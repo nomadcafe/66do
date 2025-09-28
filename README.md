@@ -34,30 +34,83 @@
 
 ## 📦 安装和运行
 
-### 1. 克隆项目
+### 方法一：Docker 部署（推荐）
+
+#### 1. 克隆项目
 ```bash
-git clone <repository-url>
-cd XFinance
+git clone https://github.com/handlegpt/xfinance.git
+cd xfinance
 ```
 
-### 2. 安装依赖
+#### 2. 配置环境变量
+```bash
+cp .env.example .env.local
+# 编辑 .env.local 文件，填入你的配置
+```
+
+#### 3. 使用 Docker Compose 启动
+```bash
+# 开发环境
+docker-compose -f docker-compose.dev.yml up -d
+
+# 生产环境
+docker-compose up -d
+```
+
+#### 4. 访问应用
+- **应用**: [http://localhost:3000](http://localhost:3000)
+- **开发服务器**: [http://localhost:3078](http://localhost:3078)
+- **数据库管理**: [http://localhost:8080](http://localhost:8080) (pgAdmin)
+
+### 方法二：本地开发
+
+#### 1. 克隆项目
+```bash
+git clone https://github.com/handlegpt/xfinance.git
+cd xfinance
+```
+
+#### 2. 安装依赖
 ```bash
 npm install
 ```
 
-### 3. 配置环境变量
+#### 3. 配置环境变量
 ```bash
 cp .env.example .env.local
-# 编辑 .env.local 文件，填入你的 Supabase 配置
+# 编辑 .env.local 文件，填入你的配置
 ```
 
-### 4. 设置数据库
+#### 4. 设置数据库
 在 Supabase SQL 编辑器中执行 `database/schema.sql` 文件
 
-### 5. 启动开发服务器
+#### 5. 启动开发服务器
 ```bash
 npm run dev
 ```
+
+访问 [http://localhost:3078](http://localhost:3078) 查看应用。
+
+## 🐳 Docker 配置说明
+
+### 环境变量
+- `NEXT_PUBLIC_SUPABASE_URL` - Supabase 项目 URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase 匿名密钥
+
+### 获取 Supabase 配置
+1. 访问 [Supabase Dashboard](https://app.supabase.com)
+2. 创建新项目或选择现有项目
+3. 在 Settings > API 中找到：
+   - Project URL
+   - anon/public key
+4. 将这些值填入 `.env.local` 文件
+
+### Docker 服务
+- **xfinance**: 主应用服务
+- **postgres**: PostgreSQL 数据库
+- **redis**: Redis 缓存
+- **nginx**: 反向代理
+- **pgadmin**: 数据库管理界面
 
 ## 🗄 数据库表结构
 
