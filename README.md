@@ -58,7 +58,7 @@ docker-compose up -d
 ```
 
 #### 4. 访问应用
-- **应用**: [http://localhost:3000](http://localhost:3000)
+- **应用**: [http://localhost:3078](http://localhost:3078)
 - **开发服务器**: [http://localhost:3078](http://localhost:3078)
 - **数据库管理**: [http://localhost:8080](http://localhost:8080) (pgAdmin)
 
