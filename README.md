@@ -50,16 +50,12 @@ cp .env.example .env.local
 
 #### 3. 使用 Docker Compose 启动
 ```bash
-# 开发环境
-docker-compose -f docker-compose.dev.yml up -d
-
-# 生产环境
+# 启动应用
 docker-compose up -d
 ```
 
 #### 4. 访问应用
 - **应用**: [http://localhost:3078](http://localhost:3078)
-- **开发服务器**: [http://localhost:3078](http://localhost:3078)
 - **数据库管理**: [http://localhost:8080](http://localhost:8080) (pgAdmin)
 
 ### 方法二：本地开发
@@ -106,11 +102,11 @@ npm run dev
 4. 将这些值填入 `.env.local` 文件
 
 ### Docker 服务
-- **xfinance**: 主应用服务
-- **postgres**: PostgreSQL 数据库
-- **redis**: Redis 缓存
-- **nginx**: 反向代理
-- **pgadmin**: 数据库管理界面
+- **xfinance**: 主应用服务 (端口 3078)
+- **postgres**: PostgreSQL 数据库 (端口 5432)
+- **redis**: Redis 缓存 (端口 6379)
+- **nginx**: 反向代理 (端口 80/443)
+- **pgadmin**: 数据库管理界面 (端口 8080)
 
 ## 🗄 数据库表结构
 
