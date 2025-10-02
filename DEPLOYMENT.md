@@ -6,7 +6,7 @@
 
 #### 步骤 1: 准备项目
 ```bash
-cd /Users/tomi/Documents/Program/XFinance
+cd /Users/tomi/Documents/Program/YoFinance
 git init
 git add .
 git commit -m "Initial commit: X Finance"

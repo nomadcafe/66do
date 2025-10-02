@@ -216,7 +216,7 @@ export default function HomePage() {
             </div>
             <div>
               <h4 className="font-semibold mb-4">{t('footer.contact')}</h4>
-              <p className="text-gray-400">hello@xfinance.app</p>
+              <p className="text-gray-400">hello@YoFinance.app</p>
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">

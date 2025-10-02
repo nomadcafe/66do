@@ -201,7 +201,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   // Load language from localStorage on mount
   useEffect(() => {
-    const savedLanguage = localStorage.getItem('xfinance-language') as Language;
+    const savedLanguage = localStorage.getItem('YoFinance-language') as Language;
     if (savedLanguage && (savedLanguage === 'en' || savedLanguage === 'zh')) {
       setLanguage(savedLanguage);
     }
@@ -210,7 +210,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   // Save language to localStorage when it changes
   const handleSetLanguage = (lang: Language) => {
     setLanguage(lang);
-    localStorage.setItem('xfinance-language', lang);
+    localStorage.setItem('YoFinance-language', lang);
   };
 
   const t = (key: string): string => {

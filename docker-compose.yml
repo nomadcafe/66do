@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   # X Finance Application
-  xfinance:
+  YoFinance:
     build: .
     ports:
       - "3078:3000"
@@ -16,15 +16,15 @@ services:
       - postgres
     restart: unless-stopped
     networks:
-      - xfinance-network
+      - YoFinance-network
 
   # PostgreSQL Database (for development)
   postgres:
     image: postgres:15-alpine
     environment:
-      - POSTGRES_DB=xfinance
-      - POSTGRES_USER=xfinance
-      - POSTGRES_PASSWORD=xfinance_password
+      - POSTGRES_DB=YoFinance
+      - POSTGRES_USER=YoFinance
+      - POSTGRES_PASSWORD=YoFinance_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
@@ -32,7 +32,7 @@ services:
       - "5432:5432"
     restart: unless-stopped
     networks:
-      - xfinance-network
+      - YoFinance-network
 
   # Redis (for caching and sessions)
   redis:
@@ -43,7 +43,7 @@ services:
       - redis_data:/data
     restart: unless-stopped
     networks:
-      - xfinance-network
+      - YoFinance-network
 
   # Nginx (reverse proxy)
   nginx:
@@ -55,15 +55,15 @@ services:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - ./ssl:/etc/nginx/ssl:ro
     depends_on:
-      - xfinance
+      - YoFinance
     restart: unless-stopped
     networks:
-      - xfinance-network
+      - YoFinance-network
 
 volumes:
   postgres_data:
   redis_data:
 
 networks:
-  xfinance-network:
+  YoFinance-network:
     driver: bridge

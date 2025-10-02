@@ -38,8 +38,8 @@
 
 #### 1. 克隆项目
 ```bash
-git clone https://github.com/handlegpt/xfinance.git
-cd xfinance
+git clone https://github.com/handlegpt/YoFinance.git
+cd YoFinance
 ```
 
 #### 2. 配置环境变量
@@ -62,8 +62,8 @@ docker-compose up -d
 
 #### 1. 克隆项目
 ```bash
-git clone https://github.com/handlegpt/xfinance.git
-cd xfinance
+git clone https://github.com/handlegpt/YoFinance.git
+cd YoFinance
 ```
 
 #### 2. 安装依赖
@@ -102,7 +102,7 @@ npm run dev
 4. 将这些值填入 `.env.local` 文件
 
 ### Docker 服务
-- **xfinance**: 主应用服务 (端口 3078)
+- **YoFinance**: 主应用服务 (端口 3078)
 - **postgres**: PostgreSQL 数据库 (端口 5432)
 - **redis**: Redis 缓存 (端口 6379)
 - **nginx**: 反向代理 (端口 80/443)
@@ -195,4 +195,4 @@ MIT License
 
 如有问题，请通过以下方式联系：
 - GitHub Issues
-- Email: hello@xfinance.app
+- Email: hello@YoFinance.app
