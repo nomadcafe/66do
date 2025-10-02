@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "X Finance - Smart Investment Management Platform",
+  title: "YoFinance - Smart Investment Management Platform",
   description: "Professional investment management tools to help investors track portfolios, manage costs, and monitor returns",
 };
 

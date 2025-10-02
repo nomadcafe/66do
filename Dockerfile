@@ -1,4 +1,4 @@
-# X Finance - Domain Investment Tracker
+# YoFinance - Domain Investment Tracker
 # Multi-stage Docker build for production
 
 # Stage 1: Dependencies

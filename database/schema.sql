@@ -1,4 +1,4 @@
--- X Finance Database Schema
+-- YoFinance Database Schema
 -- 智能投资管理平台数据库表结构
 
 -- 用户表

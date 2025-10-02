@@ -27,7 +27,7 @@ const translations = {
     'home.learnMore': 'Learn More',
     'home.startFree': 'Start Free',
     'home.startJourney': 'Start Your Domain Investment Journey',
-    'home.joinThousands': 'Join domain investors using X Finance to track their domain portfolios',
+    'home.joinThousands': 'Join domain investors using YoFinance to track their domain portfolios',
     
     // Features
     'features.title': 'Core Features',
@@ -101,7 +101,7 @@ const translations = {
     'dashboard.addFunctionality': 'Add functionality in development...',
     
     // Platform name
-    'platform.name': 'X Finance',
+    'platform.name': 'YoFinance',
     'platform.subtitle': 'Domain Investment Tracker'
   },
   zh: {
@@ -117,7 +117,7 @@ const translations = {
     'home.learnMore': '了解更多',
     'home.startFree': '免费开始',
     'home.startJourney': '开始您的域名投资之旅',
-    'home.joinThousands': '加入域名投资者，使用X Finance追踪您的域名投资组合',
+    'home.joinThousands': '加入域名投资者，使用YoFinance追踪您的域名投资组合',
     
     // Features
     'features.title': '核心功能',
@@ -191,7 +191,7 @@ const translations = {
     'dashboard.addFunctionality': '添加功能开发中...',
     
     // Platform name
-    'platform.name': 'X Finance',
+    'platform.name': 'YoFinance',
     'platform.subtitle': '域名投资追踪器'
   }
 };

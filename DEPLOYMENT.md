@@ -1,4 +1,4 @@
-# X Finance 部署指南
+# YoFinance 部署指南
 
 ## 🚀 快速部署
 
@@ -9,7 +9,7 @@
 cd /Users/tomi/Documents/Program/YoFinance
 git init
 git add .
-git commit -m "Initial commit: X Finance"
+git commit -m "Initial commit: YoFinance"
 ```
 
 #### 步骤 2: 推送到 GitHub
@@ -35,7 +35,7 @@ git push -u origin main
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 NEXT_PUBLIC_APP_URL=https://your-domain.vercel.app
-NEXT_PUBLIC_APP_NAME=X Finance
+NEXT_PUBLIC_APP_NAME=YoFinance
 ```
 
 ### 3. Supabase 设置
