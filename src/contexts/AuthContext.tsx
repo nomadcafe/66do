@@ -18,9 +18,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
   const [loading, setLoading] = useState(false);
 
-  const signIn = async (email: string, _password: string) => {
+  const signIn = async (email: string, password: string) => {
     setLoading(true);
     // Mock authentication for development
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     setTimeout(() => {
       setUser({ email, id: '1' });
       setSession({ user: { email, id: '1' } });
@@ -29,9 +30,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: null };
   };
 
-  const signUp = async (email: string, _password: string) => {
+  const signUp = async (email: string, password: string) => {
     setLoading(true);
     // Mock registration for development
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     setTimeout(() => {
       setUser({ email, id: '1' });
       setSession({ user: { email, id: '1' } });

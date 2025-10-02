@@ -7,11 +7,8 @@ const nextConfig: NextConfig = {
   // Optimize for production
   compress: true,
   
-  // Enable experimental features
-  experimental: {
-    // Enable server components
-    serverComponentsExternalPackages: ['@supabase/supabase-js'],
-  },
+  // External packages for server components
+  serverExternalPackages: ['@supabase/supabase-js'],
   
   // Environment variables
   env: {
