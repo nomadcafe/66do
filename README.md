@@ -195,4 +195,4 @@ MIT License
 
 如有问题，请通过以下方式联系：
 - GitHub Issues
-- Email: hello@YoFinance.app
+- Email: hello@YoFinance.com
