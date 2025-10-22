@@ -4,11 +4,22 @@ import { Env } from '../types';
 export async function onRequest(context: any) {
   const { request, env }: { request: Request; env: Env } = context;
   
-  // CORS headers
+  // CORS headers - restrict to specific origins
+  const allowedOrigins = [
+    'https://yofinance.com',
+    'https://yofinance.pages.dev',
+    'http://localhost:3078',
+    'http://localhost:3000'
+  ];
+  
+  const origin = request.headers.get('Origin');
+  const isAllowedOrigin = allowedOrigins.includes(origin || '');
+  
   const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': isAllowedOrigin ? (origin || 'null') : 'null',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Credentials': 'true',
   };
 
   // Handle preflight requests
