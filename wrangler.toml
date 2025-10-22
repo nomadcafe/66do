@@ -30,9 +30,4 @@ cwd = "."
 watch_dir = "src"
 
 # Pages configuration
-[pages]
-build_output_dir = "out"
-
-# Functions configuration
-[functions]
-directory = "functions"
+pages_build_output_dir = "out"
