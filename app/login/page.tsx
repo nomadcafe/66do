@@ -158,6 +158,9 @@ export default function LoginPage() {
                 size="normal"
                 className="flex justify-center"
               />
+              <div className="mt-2 text-xs text-gray-500 text-center">
+                验证码用于保护您的账户安全
+              </div>
               {turnstileError && (
                 <div className="mt-2 text-sm text-red-600">
                   {turnstileError}

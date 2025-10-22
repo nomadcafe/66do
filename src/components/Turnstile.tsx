@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface TurnstileProps {
   siteKey: string;
@@ -22,20 +22,32 @@ export default function Turnstile({
   className = ''
 }: TurnstileProps) {
   const turnstileRef = useRef<HTMLDivElement>(null);
-  const widgetIdRef = useRef<string | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isRendered, setIsRendered] = useState(false);
 
   useEffect(() => {
-    // Load Turnstile script
+    let script: HTMLScriptElement | null = null;
+    let widgetId: string | null = null;
+
     const loadTurnstile = () => {
-      if (window.turnstile) {
-        renderWidget();
+      // Check if script already exists
+      const existingScript = document.querySelector('script[src*="turnstile"]');
+      if (existingScript) {
+        if (window.turnstile) {
+          renderWidget();
+        } else {
+          existingScript.addEventListener('load', renderWidget);
+        }
         return;
       }
 
-      const script = document.createElement('script');
+      script = document.createElement('script');
       script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
       script.async = true;
-      script.onload = renderWidget;
+      script.onload = () => {
+        setIsLoaded(true);
+        renderWidget();
+      };
       script.onerror = () => {
         console.error('Failed to load Turnstile script');
         onError?.('Failed to load verification service');
@@ -44,10 +56,10 @@ export default function Turnstile({
     };
 
     const renderWidget = () => {
-      if (!window.turnstile || !turnstileRef.current) return;
+      if (!window.turnstile || !turnstileRef.current || isRendered) return;
 
       try {
-        const widgetId = window.turnstile.render(turnstileRef.current, {
+        widgetId = window.turnstile.render(turnstileRef.current, {
           sitekey: siteKey,
           theme: theme,
           size: size,
@@ -62,7 +74,7 @@ export default function Turnstile({
             onExpire?.();
           }
         } as Record<string, unknown>);
-        widgetIdRef.current = widgetId;
+        setIsRendered(true);
       } catch (error) {
         console.error('Turnstile render error:', error);
         onError?.('Failed to initialize verification');
@@ -72,21 +84,24 @@ export default function Turnstile({
     loadTurnstile();
 
     return () => {
-      if (widgetIdRef.current && window.turnstile) {
-        window.turnstile.remove(widgetIdRef.current);
+      if (widgetId && window.turnstile) {
+        try {
+          window.turnstile.remove(widgetId);
+        } catch (error) {
+          console.error('Error removing Turnstile widget:', error);
+        }
       }
     };
-  }, [siteKey, onVerify, onError, onExpire, theme, size]);
-
-  // const reset = () => {
-  //   if (widgetIdRef.current && window.turnstile) {
-  //     window.turnstile.reset(widgetIdRef.current);
-  //   }
-  // };
+  }, [siteKey, onVerify, onError, onExpire, theme, size, isRendered]);
 
   return (
     <div className={`turnstile-container ${className}`}>
       <div ref={turnstileRef} className="turnstile-widget" />
+      {!isLoaded && (
+        <div className="flex items-center justify-center p-4 border border-gray-300 rounded-md bg-gray-50">
+          <div className="text-sm text-gray-500">加载验证码中...</div>
+        </div>
+      )}
     </div>
   );
 }
