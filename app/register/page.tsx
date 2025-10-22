@@ -63,7 +63,7 @@ export default function RegisterPage() {
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('auth.registrationSuccess')}</h2>
             <p className="text-gray-600 mb-4">
-              {t('auth.checkEmail')}
+              账户创建成功！正在跳转到登录页面...
             </p>
             <p className="text-sm text-gray-500">
               {t('auth.redirecting')}
