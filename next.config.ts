@@ -1,9 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Support for Cloudflare Pages with SSR
-  experimental: {
-    // runtime: 'edge', // Commented out as it's not supported in current Next.js version
+  // Static export for Cloudflare Pages
+  output: 'export',
+  trailingSlash: true,
+  images: {
+    unoptimized: true,
   },
   
   // Output directory for Cloudflare Pages
