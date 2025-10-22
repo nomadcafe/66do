@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Support for Cloudflare Pages with SSR
   experimental: {
-    runtime: 'edge',
+    // runtime: 'edge', // Commented out as it's not supported in current Next.js version
   },
   
   // Optimize for production

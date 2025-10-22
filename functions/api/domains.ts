@@ -129,7 +129,7 @@ export async function onRequest(context: any) {
     console.error('Database error:', error);
     return new Response(JSON.stringify({ 
       error: 'Database operation failed',
-      details: error.message 
+      details: error instanceof Error ? error.message : 'Unknown error'
     }), {
       status: 500,
       headers: { 
