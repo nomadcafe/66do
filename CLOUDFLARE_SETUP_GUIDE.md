@@ -39,8 +39,9 @@
 
 2. **执行数据库脚本**
    - 点击 "Console" 标签
-   - 复制以下SQL脚本并粘贴到控制台：
+   - 在SQL编辑器中输入以下脚本（可以分段执行）：
 
+**第一步：创建用户表**
 ```sql
 -- 创建用户表
 CREATE TABLE IF NOT EXISTS users (
@@ -123,10 +124,16 @@ CREATE INDEX IF NOT EXISTS idx_transactions_domain ON domain_transactions(domain
 CREATE INDEX IF NOT EXISTS idx_transactions_date ON domain_transactions(date);
 ```
 
-3. **点击 "Run" 执行脚本**
+3. **点击 "Execute" 按钮执行脚本**
+   - 在SQL编辑器中输入SQL命令
+   - 点击 "Execute" 按钮执行
+   - 查看执行结果
+
 4. **验证表创建成功**
    - 在控制台执行：`SELECT name FROM sqlite_master WHERE type='table';`
    - 应该看到所有表名
+
+**注意：Cloudflare D1控制台使用 "Execute" 按钮，不是 "Run" 按钮！**
 
 #### **方式B：使用Wrangler CLI（可选）**
 
