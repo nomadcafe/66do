@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
     // runtime: 'edge', // Commented out as it's not supported in current Next.js version
   },
   
+  // Output directory for Cloudflare Pages
+  distDir: 'dist',
+  
   // Optimize for production
   compress: true,
   
