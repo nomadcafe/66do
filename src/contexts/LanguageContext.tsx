@@ -199,11 +199,24 @@ const translations = {
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguage] = useState<Language>('zh');
 
-  // Load language from localStorage on mount
+  // Detect browser language and load from localStorage on mount
   useEffect(() => {
+    // First check if user has previously selected a language
     const savedLanguage = localStorage.getItem('YoFinance-language') as Language;
     if (savedLanguage && (savedLanguage === 'en' || savedLanguage === 'zh')) {
       setLanguage(savedLanguage);
+      return;
+    }
+
+    // If no saved language, detect browser language
+    const browserLanguage = navigator.language || navigator.languages?.[0] || 'en';
+    
+    // Check if browser language is Chinese (zh, zh-CN, zh-TW, etc.)
+    if (browserLanguage.startsWith('zh')) {
+      setLanguage('zh');
+    } else {
+      // Default to English for all other languages
+      setLanguage('en');
     }
   }, []);
 
