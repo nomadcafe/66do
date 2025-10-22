@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "YoFinance - Smart Investment Management Platform",
-  description: "Professional investment management tools to help investors track portfolios, manage costs, and monitor returns",
+  title: "66Do - Domain Investment Platform",
+  description: "Professional domain investment management tools to help you track domain portfolios, monitor renewals, and maximize returns",
 };
 
 export default function RootLayout({

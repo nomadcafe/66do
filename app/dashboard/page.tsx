@@ -52,7 +52,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const loadData = () => {
       try {
-        const savedDomains = localStorage.getItem('YoFinance_domains');
+        const savedDomains = localStorage.getItem('66do_domains');
         if (savedDomains) {
           const parsedDomains = JSON.parse(savedDomains);
           if (Array.isArray(parsedDomains)) {

@@ -1,6 +1,6 @@
 services:
-  # YoFinance Application
-  yofinance:
+  # 66Do Application
+  66do:
     build: .
     ports:
       - "3078:3000"
@@ -20,9 +20,9 @@ services:
   postgres:
     image: postgres:15-alpine
     environment:
-      - POSTGRES_DB=yofinance
-      - POSTGRES_USER=yofinance
-      - POSTGRES_PASSWORD=yofinance_password
+      - POSTGRES_DB=66do
+      - POSTGRES_USER=66do
+      - POSTGRES_PASSWORD=66do_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql

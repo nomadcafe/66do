@@ -1,4 +1,4 @@
-# YoFinance - Domain Investment Tracker
+# 66Do - Domain Investment Platform
 # Multi-stage Docker build for production
 
 # Stage 1: Dependencies

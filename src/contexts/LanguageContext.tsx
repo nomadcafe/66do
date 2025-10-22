@@ -21,13 +21,13 @@ const translations = {
     'nav.goToDashboard': 'Go to Dashboard',
     
     // Homepage
-    'home.title': 'Domain Investment Tracker',
-    'home.subtitle': 'Professional domain investment management tools to help you track domain portfolios, manage costs, and monitor returns. Start with domain investments, expand to other assets later.',
+    'home.title': 'Domain Investment Platform',
+    'home.subtitle': 'Professional domain investment management tools to help you track domain portfolios, monitor renewals, and maximize returns. Your trusted partner in domain investing.',
     'home.getStarted': 'Get Started',
     'home.learnMore': 'Learn More',
     'home.startFree': 'Start Free',
     'home.startJourney': 'Start Your Domain Investment Journey',
-    'home.joinThousands': 'Join domain investors using YoFinance to track their domain portfolios',
+    'home.joinThousands': 'Join domain investors using 66Do to track their domain portfolios',
     
     // Features
     'features.title': 'Core Features',
@@ -101,8 +101,8 @@ const translations = {
     'dashboard.addFunctionality': 'Add functionality in development...',
     
     // Platform name
-    'platform.name': 'YoFinance',
-    'platform.subtitle': 'Domain Investment Tracker'
+    'platform.name': '66Do',
+    'platform.subtitle': 'Domain Investment Platform'
   },
   zh: {
     // Navigation
@@ -117,7 +117,7 @@ const translations = {
     'home.learnMore': '了解更多',
     'home.startFree': '免费开始',
     'home.startJourney': '开始您的域名投资之旅',
-    'home.joinThousands': '加入域名投资者，使用YoFinance追踪您的域名投资组合',
+    'home.joinThousands': '加入域名投资者，使用66Do追踪您的域名投资组合',
     
     // Features
     'features.title': '核心功能',
@@ -191,8 +191,8 @@ const translations = {
     'dashboard.addFunctionality': '添加功能开发中...',
     
     // Platform name
-    'platform.name': 'YoFinance',
-    'platform.subtitle': '域名投资追踪器'
+    'platform.name': '66Do',
+    'platform.subtitle': '域名投资平台'
   }
 };
 
@@ -202,7 +202,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   // Detect browser language and load from localStorage on mount
   useEffect(() => {
     // First check if user has previously selected a language
-    const savedLanguage = localStorage.getItem('YoFinance-language') as Language;
+    const savedLanguage = localStorage.getItem('66do-language') as Language;
     if (savedLanguage && (savedLanguage === 'en' || savedLanguage === 'zh')) {
       setLanguage(savedLanguage);
       return;
@@ -223,7 +223,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   // Save language to localStorage when it changes
   const handleSetLanguage = (lang: Language) => {
     setLanguage(lang);
-    localStorage.setItem('YoFinance-language', lang);
+    localStorage.setItem('66do-language', lang);
   };
 
   const t = (key: string): string => {

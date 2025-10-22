@@ -22,8 +22,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const checkExistingSession = () => {
       try {
-        const storedUser = localStorage.getItem('yofinance_user');
-        const storedSession = localStorage.getItem('yofinance_session');
+               const storedUser = localStorage.getItem('66do_user');
+               const storedSession = localStorage.getItem('66do_session');
         
         if (storedUser && storedSession) {
           const userData = JSON.parse(storedUser);
@@ -32,9 +32,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.error('Error checking existing session:', error);
-        // Clear invalid data
-        localStorage.removeItem('yofinance_user');
-        localStorage.removeItem('yofinance_session');
+               // Clear invalid data
+               localStorage.removeItem('66do_user');
+               localStorage.removeItem('66do_session');
       } finally {
         setLoading(false);
       }
@@ -65,8 +65,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const sessionToken = btoa(`${email}:${Date.now()}`).replace(/[^a-zA-Z0-9]/g, '');
       
       // Store in localStorage for persistence
-      localStorage.setItem('yofinance_user', JSON.stringify({ email, id: userId }));
-      localStorage.setItem('yofinance_session', sessionToken);
+      localStorage.setItem('66do_user', JSON.stringify({ email, id: userId }));
+      localStorage.setItem('66do_session', sessionToken);
       
       setUser({ email, id: userId });
       setSession({ user: { email, id: userId }, token: sessionToken });
@@ -94,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       // Check if user already exists
-      const existingUser = localStorage.getItem('yofinance_user');
+      const existingUser = localStorage.getItem('66do_user');
       if (existingUser) {
         const userData = JSON.parse(existingUser);
         if (userData.email === email) {
@@ -110,8 +110,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const sessionToken = btoa(`${email}:${Date.now()}`).replace(/[^a-zA-Z0-9]/g, '');
       
       // Store in localStorage for persistence
-      localStorage.setItem('yofinance_user', JSON.stringify({ email, id: userId }));
-      localStorage.setItem('yofinance_session', sessionToken);
+      localStorage.setItem('66do_user', JSON.stringify({ email, id: userId }));
+      localStorage.setItem('66do_session', sessionToken);
       
       setUser({ email, id: userId });
       setSession({ user: { email, id: userId }, token: sessionToken });
@@ -125,8 +125,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     // Clear localStorage
-    localStorage.removeItem('yofinance_user');
-    localStorage.removeItem('yofinance_session');
+    localStorage.removeItem('66do_user');
+    localStorage.removeItem('66do_session');
     
     setUser(null);
     setSession(null);
