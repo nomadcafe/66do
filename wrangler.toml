@@ -11,7 +11,7 @@ database_id = "85477325-049d-43e2-9b86-6bb1d9de0846"
 # Environment variables
 [vars]
 NEXT_PUBLIC_APP_NAME = "YoFinance"
-NEXT_PUBLIC_APP_URL = "https://yofinance.com"
+NEXT_PUBLIC_APP_URL = "https://yofinance.pages.dev"
 
 # Pages configuration
 pages_build_output_dir = "dist"
