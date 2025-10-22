@@ -27,21 +27,119 @@
 7. 点击 "Continue to summary" → "Create Token"
 8. 复制生成的Token（只显示一次，请保存好）
 
-### **第二步：安装Wrangler CLI**
+### **第二步：在Cloudflare控制台执行数据库脚本**
 
-#### **在本地安装Wrangler：**
-```bash
-# 全局安装（推荐）
-npm install -g wrangler
+#### **方式A：直接在Cloudflare D1控制台执行（推荐）**
 
-# 验证安装
-wrangler --version
+1. **访问D1控制台**
+   - 登录 [Cloudflare Dashboard](https://dash.cloudflare.com)
+   - 点击左侧菜单 "Workers & Pages"
+   - 点击 "D1 SQL Database"
+   - 点击你创建的数据库名称
+
+2. **执行数据库脚本**
+   - 点击 "Console" 标签
+   - 复制以下SQL脚本并粘贴到控制台：
+
+```sql
+-- 创建用户表
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email VARCHAR(255) UNIQUE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 创建域名表
+CREATE TABLE IF NOT EXISTS domains (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    domain_name VARCHAR(255) UNIQUE NOT NULL,
+    registrar VARCHAR(100),
+    purchase_date DATE,
+    purchase_cost DECIMAL(10,2),
+    renewal_cost DECIMAL(10,2),
+    total_renewal_paid DECIMAL(10,2) DEFAULT 0,
+    next_renewal_date DATE,
+    status VARCHAR(20) DEFAULT 'active',
+    estimated_value DECIMAL(10,2),
+    tags JSON,
+    owner_user_id UUID REFERENCES users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 创建交易记录表
+CREATE TABLE IF NOT EXISTS domain_transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    domain_id UUID REFERENCES domains(id),
+    type VARCHAR(20) NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    currency VARCHAR(3) DEFAULT 'USD',
+    date DATE NOT NULL,
+    notes TEXT,
+    platform VARCHAR(100),
+    transaction_time TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    gross_amount DECIMAL(10,2),
+    fee_percentage DECIMAL(5,2),
+    fee_amount DECIMAL(10,2),
+    payment_plan VARCHAR(20) DEFAULT 'lump_sum',
+    installment_period INTEGER,
+    installment_fee_percentage DECIMAL(5,2),
+    installment_fee_amount DECIMAL(10,2),
+    monthly_payment DECIMAL(10,2),
+    total_installment_amount DECIMAL(10,2),
+    payment_status VARCHAR(20) DEFAULT 'completed',
+    paid_installments INTEGER DEFAULT 0,
+    remaining_installments INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 创建域名提醒表
+CREATE TABLE IF NOT EXISTS domain_alerts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    domain_id UUID REFERENCES domains(id),
+    alert_type VARCHAR(20) NOT NULL,
+    trigger_days_before INTEGER,
+    enabled BOOLEAN DEFAULT true,
+    last_triggered TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 创建用户设置表
+CREATE TABLE IF NOT EXISTS domain_settings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id),
+    default_currency VARCHAR(3) DEFAULT 'USD',
+    default_registrar VARCHAR(100),
+    alert_preferences JSON,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 创建索引
+CREATE INDEX IF NOT EXISTS idx_domains_owner ON domains(owner_user_id);
+CREATE INDEX IF NOT EXISTS idx_domains_status ON domains(status);
+CREATE INDEX IF NOT EXISTS idx_transactions_domain ON domain_transactions(domain_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_date ON domain_transactions(date);
 ```
 
-#### **登录Cloudflare：**
+3. **点击 "Run" 执行脚本**
+4. **验证表创建成功**
+   - 在控制台执行：`SELECT name FROM sqlite_master WHERE type='table';`
+   - 应该看到所有表名
+
+#### **方式B：使用Wrangler CLI（可选）**
+
+如果你更喜欢命令行操作：
 ```bash
+# 安装Wrangler
+npm install -g wrangler
+
+# 登录
 wrangler login
-# 会打开浏览器，登录你的Cloudflare账户
+
+# 执行脚本
+wrangler d1 execute yofinance-db --file=./database/schema.sql
 ```
 
 ### **第三步：配置项目**
@@ -109,9 +207,9 @@ wrangler d1 list
 wrangler d1 execute yofinance-db --command="CREATE TABLE IF NOT EXISTS users (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), email VARCHAR(255) UNIQUE NOT NULL, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(), updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());"
 ```
 
-### **第四步：部署到Cloudflare Pages**
+### **第四步：部署到Cloudflare Pages（无需本地安装）**
 
-#### **方式A：通过Cloudflare Pages控制台（推荐）**
+#### **方式A：通过Cloudflare Pages控制台（推荐，无需本地安装）**
 
 1. **访问Cloudflare Pages控制台**
    - 打开 [Cloudflare Dashboard](https://dash.cloudflare.com)
@@ -155,9 +253,12 @@ wrangler d1 execute yofinance-db --command="CREATE TABLE IF NOT EXISTS users (id
    - 等待构建完成
    - 访问生成的URL
 
-#### **方式B：通过Wrangler CLI**
+#### **方式B：通过Wrangler CLI（需要本地安装）**
 
 ```bash
+# 安装Wrangler（如果选择此方式）
+npm install -g wrangler
+
 # 构建项目
 npm run build
 
@@ -167,6 +268,8 @@ wrangler pages deploy out
 # 或者使用项目脚本
 npm run deploy
 ```
+
+**注意：推荐使用方式A（控制台部署），无需本地安装任何工具！**
 
 ### **第五步：验证部署**
 
