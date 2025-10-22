@@ -48,7 +48,7 @@ export default function LoginPage() {
     setTurnstileError('');
   };
 
-  const handleTurnstileError = (error: string) => {
+  const handleTurnstileError = () => {
     setTurnstileError(t('auth.verificationFailed'));
     setTurnstileToken('');
   };

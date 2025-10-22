@@ -61,7 +61,7 @@ export default function Turnstile({
           'expired-callback': () => {
             onExpire?.();
           }
-        });
+        } as Record<string, unknown>);
         widgetIdRef.current = widgetId;
       } catch (error) {
         console.error('Turnstile render error:', error);
@@ -78,11 +78,11 @@ export default function Turnstile({
     };
   }, [siteKey, onVerify, onError, onExpire, theme, size]);
 
-  const reset = () => {
-    if (widgetIdRef.current && window.turnstile) {
-      window.turnstile.reset(widgetIdRef.current);
-    }
-  };
+  // const reset = () => {
+  //   if (widgetIdRef.current && window.turnstile) {
+  //     window.turnstile.reset(widgetIdRef.current);
+  //   }
+  // };
 
   return (
     <div className={`turnstile-container ${className}`}>
@@ -95,7 +95,7 @@ export default function Turnstile({
 declare global {
   interface Window {
     turnstile: {
-      render: (container: HTMLElement, options: any) => string;
+      render: (container: HTMLElement, options: Record<string, unknown>) => string;
       remove: (widgetId: string) => void;
       reset: (widgetId: string) => void;
     };
