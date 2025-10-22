@@ -1,6 +1,7 @@
-# Cloudflare Pages Configuration
+# Cloudflare Pages Configuration with D1 Database
 name = "yofinance"
 compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
 
 [env.production]
 name = "yofinance"
@@ -10,6 +11,12 @@ name = "yofinance"
 binding = "DB"
 database_name = "yofinance-db"
 database_id = "your-database-id"
+
+# KV Storage binding for sessions and cache
+[[kv_namespaces]]
+binding = "KV"
+id = "your-kv-namespace-id"
+preview_id = "your-preview-kv-namespace-id"
 
 # Environment variables
 [vars]
@@ -25,3 +32,7 @@ watch_dir = "src"
 # Pages configuration
 [pages]
 build_output_dir = "out"
+
+# Functions configuration
+[functions]
+directory = "functions"
