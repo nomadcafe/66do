@@ -1,7 +1,7 @@
 // TypeScript types for Cloudflare D1 Database
 export interface Env {
-  DB: D1Database;
-  KV: KVNamespace;
+  DB: any; // D1Database type will be available at runtime
+  KV?: any; // KVNamespace type will be available at runtime
 }
 
 export interface Domain {
