@@ -1,0 +1,27 @@
+# Cloudflare Pages Configuration
+name = "yofinance"
+compatibility_date = "2024-01-01"
+
+[env.production]
+name = "yofinance"
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "yofinance-db"
+database_id = "your-database-id"
+
+# Environment variables
+[vars]
+NEXT_PUBLIC_APP_NAME = "YoFinance"
+NEXT_PUBLIC_APP_URL = "https://yofinance.pages.dev"
+
+# Build configuration
+[build]
+command = "npm run build"
+cwd = "."
+watch_dir = "src"
+
+# Pages configuration
+[pages]
+build_output_dir = "out"

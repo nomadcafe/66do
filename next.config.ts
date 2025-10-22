@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Enable standalone output for Docker
-  output: 'standalone',
+  // Support for Cloudflare Pages with SSR
+  experimental: {
+    runtime: 'edge',
+  },
   
   // Optimize for production
   compress: true,
