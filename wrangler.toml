@@ -5,8 +5,8 @@ compatibility_date = "2025-10-01"
 # D1 Database binding
 [[d1_databases]]
 binding = "DB"
-database_name = "66do-db"
-database_id = "your-new-database-id"
+database_name = "66domain-db"
+database_id = "a0579a97-ef29-4c0a-b146-618d93d0cb2f"
 
 # Environment variables
 [vars]
