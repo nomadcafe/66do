@@ -21,8 +21,8 @@ export async function onRequest(context: any) {
       const url = new URL(request.url);
       const domainId = url.searchParams.get('domain_id');
       
-      let query;
-      let params;
+      let query: string;
+      let params: string[];
       
       if (domainId) {
         // Get transactions for specific domain
