@@ -19,11 +19,10 @@ import TaxReport from '../../src/components/reports/TaxReport';
 import { calculateAnnualRenewalCost, getRenewalOptimizationSuggestions } from '../../src/lib/renewalCalculations';
 import { calculateFinancialMetrics } from '../../src/lib/financialMetrics';
 import { calculateEnhancedFinancialMetrics, formatCurrency as formatCurrencyEnhanced } from '../../src/lib/enhancedFinancialMetrics';
-// import { domainCache } from '../../src/lib/cache';
-// import { marketDataManager } from '../../src/lib/marketData';
-// import { auditLogger } from '../../src/lib/security';
-// import LoadingSpinner from '../../src/components/ui/LoadingSpinner';
-// import ErrorMessage from '../../src/components/ui/ErrorMessage';
+import { domainCache } from '../../src/lib/cache';
+import { auditLogger } from '../../src/lib/security';
+import LoadingSpinner from '../../src/components/ui/LoadingSpinner';
+import ErrorMessage from '../../src/components/ui/ErrorMessage';
 import { 
   Globe, 
   Plus, 
@@ -167,7 +166,7 @@ export default function DashboardPage() {
     renewalCycles: {}
   });
   const [loading, setLoading] = useState(true);
-  // const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'marketplace' | 'settings' | 'data' | 'reports' | 'analysis' | 'tax'>('overview');
   
   // 计算续费分析
@@ -200,15 +199,32 @@ export default function DashboardPage() {
     }
   }, [user, router]);
 
-  // Load data from localStorage
+  // Load data from localStorage with caching and error handling
   useEffect(() => {
-    const loadData = () => {
+    const loadData = async () => {
       try {
+        setLoading(true);
+        setError(null);
+        
+        // Try to get cached data first
+        const userId = user?.id || 'default';
+        const cachedDomains = domainCache.getCachedDomains(userId);
+        const cachedTransactions = domainCache.getCachedTransactions(userId);
+        
+        if (cachedDomains && cachedTransactions) {
+          setDomains(cachedDomains as Domain[]);
+          setTransactions(cachedTransactions as Transaction[]);
+          setLoading(false);
+          return;
+        }
+
+        // Load from localStorage
         const savedDomains = localStorage.getItem('66do_domains');
         if (savedDomains) {
           const parsedDomains = JSON.parse(savedDomains);
           if (Array.isArray(parsedDomains)) {
             setDomains(parsedDomains);
+            domainCache.cacheDomains(userId, parsedDomains);
           }
         }
 
@@ -217,17 +233,27 @@ export default function DashboardPage() {
           const parsedTransactions = JSON.parse(savedTransactions);
           if (Array.isArray(parsedTransactions)) {
             setTransactions(parsedTransactions);
+            domainCache.cacheTransactions(userId, parsedTransactions);
           }
         }
+        
+        // Log successful data load
+        auditLogger.log(userId, 'data_loaded', 'dashboard', { 
+          domainsCount: domains.length, 
+          transactionsCount: transactions.length 
+        });
+        
       } catch (error) {
         console.error('Error loading data:', error);
+        setError('Failed to load data. Please refresh the page.');
+        auditLogger.log(user?.id || 'default', 'data_load_failed', 'dashboard', { error: (error as Error).message });
       } finally {
         setLoading(false);
       }
     };
 
     loadData();
-  }, []);
+  }, [user]);
 
   // Update stats when domains change
   useEffect(() => {
@@ -603,14 +629,11 @@ export default function DashboardPage() {
   });
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">加载中...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner />;
+  }
+
+  if (error) {
+    return <ErrorMessage message={error} onRetry={() => window.location.reload()} />;
   }
 
   return (
@@ -1442,11 +1465,23 @@ export default function DashboardPage() {
 
         {activeTab === 'marketplace' && (
           <DomainMarketplace
-            domains={[]} // 这里应该从API获取市场数据
-            onLike={(id) => console.log('Like domain:', id)}
-            onWatch={(id) => console.log('Watch domain:', id)}
-            onContact={(id) => console.log('Contact seller:', id)}
-            onQuickBuy={(id) => console.log('Quick buy domain:', id)}
+            domains={[]} // TODO: 从市场数据API获取
+            onLike={(id) => {
+              console.log('Like domain:', id);
+              auditLogger.log(user?.id || 'default', 'domain_liked', 'marketplace', { domainId: id });
+            }}
+            onWatch={(id) => {
+              console.log('Watch domain:', id);
+              auditLogger.log(user?.id || 'default', 'domain_watched', 'marketplace', { domainId: id });
+            }}
+            onContact={(id) => {
+              console.log('Contact seller:', id);
+              auditLogger.log(user?.id || 'default', 'seller_contacted', 'marketplace', { domainId: id });
+            }}
+            onQuickBuy={(id) => {
+              console.log('Quick buy domain:', id);
+              auditLogger.log(user?.id || 'default', 'quick_buy_initiated', 'marketplace', { domainId: id });
+            }}
             onFilter={(filters) => console.log('Filter domains:', filters)}
             onSort={(sortBy) => console.log('Sort domains:', sortBy)}
           />
@@ -1458,10 +1493,103 @@ export default function DashboardPage() {
 
         {activeTab === 'data' && (
           <DataImportExport
-            onImport={(data) => console.log('Import data:', data)}
-            onExport={(format) => console.log('Export data:', format)}
-            onBackup={() => console.log('Backup data')}
-            onRestore={(backup) => console.log('Restore data:', backup)}
+            onImport={(data: unknown) => {
+              try {
+                const importData = data as { domains?: Domain[]; transactions?: Transaction[] };
+                if (importData.domains) {
+                  setDomains(importData.domains);
+                  localStorage.setItem('66do_domains', JSON.stringify(importData.domains));
+                  domainCache.cacheDomains(user?.id || 'default', importData.domains);
+                }
+                if (importData.transactions) {
+                  setTransactions(importData.transactions);
+                  localStorage.setItem('66do_transactions', JSON.stringify(importData.transactions));
+                  domainCache.cacheTransactions(user?.id || 'default', importData.transactions);
+                }
+                auditLogger.log(user?.id || 'default', 'data_imported', 'dashboard', { 
+                  domainsCount: importData.domains?.length || 0,
+                  transactionsCount: importData.transactions?.length || 0
+                });
+                console.log('Data imported successfully');
+              } catch (error) {
+                console.error('Import failed:', error);
+                setError('Failed to import data');
+                auditLogger.log(user?.id || 'default', 'data_import_failed', 'dashboard', { error: (error as Error).message });
+              }
+            }}
+            onExport={(format) => {
+              try {
+                const data = {
+                  domains,
+                  transactions,
+                  exportDate: new Date().toISOString(),
+                  version: '1.0'
+                };
+                
+                if (format === 'json') {
+                  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `66do-backup-${new Date().toISOString().split('T')[0]}.json`;
+                  a.click();
+                } else if (format === 'csv') {
+                  // TODO: Implement CSV export
+                  console.log('CSV export not yet implemented');
+                }
+                
+                auditLogger.log(user?.id || 'default', 'data_exported', 'dashboard', { format, dataSize: JSON.stringify(data).length });
+                console.log('Data exported successfully');
+              } catch (error) {
+                console.error('Export failed:', error);
+                setError('Failed to export data');
+                auditLogger.log(user?.id || 'default', 'data_export_failed', 'dashboard', { error: (error as Error).message });
+              }
+            }}
+            onBackup={() => {
+              try {
+                const backup = {
+                  domains,
+                  transactions,
+                  backupDate: new Date().toISOString(),
+                  version: '1.0'
+                };
+                localStorage.setItem('66do_backup', JSON.stringify(backup));
+                auditLogger.log(user?.id || 'default', 'data_backed_up', 'dashboard', { 
+                  domainsCount: domains.length,
+                  transactionsCount: transactions.length
+                });
+                console.log('Data backed up successfully');
+              } catch (error) {
+                console.error('Backup failed:', error);
+                setError('Failed to backup data');
+                auditLogger.log(user?.id || 'default', 'data_backup_failed', 'dashboard', { error: (error as Error).message });
+              }
+            }}
+            onRestore={(backup: unknown) => {
+              try {
+                const restoreData = backup as { domains?: Domain[]; transactions?: Transaction[] };
+                if (restoreData.domains) {
+                  setDomains(restoreData.domains);
+                  localStorage.setItem('66do_domains', JSON.stringify(restoreData.domains));
+                  domainCache.cacheDomains(user?.id || 'default', restoreData.domains);
+                }
+                if (restoreData.transactions) {
+                  setTransactions(restoreData.transactions);
+                  localStorage.setItem('66do_transactions', JSON.stringify(restoreData.transactions));
+                  domainCache.cacheTransactions(user?.id || 'default', restoreData.transactions);
+                }
+                auditLogger.log(user?.id || 'default', 'data_restored', 'dashboard', { 
+                  domainsCount: restoreData.domains?.length || 0,
+                  transactionsCount: restoreData.transactions?.length || 0
+                });
+                console.log('Data restored successfully');
+              } catch (error) {
+                console.error('Restore failed:', error);
+                setError('Failed to restore data');
+                auditLogger.log(user?.id || 'default', 'data_restore_failed', 'dashboard', { error: (error as Error).message });
+              }
+            }}
           />
         )}
         
