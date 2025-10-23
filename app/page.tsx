@@ -304,7 +304,6 @@ export default function HomePage() {
             <div>
               <h4 className="font-bold text-lg mb-6">{t('footer.support')}</h4>
               <ul className="space-y-3 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">{t('footer.helpCenter')}</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">{t('footer.contactUs')}</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">{t('footer.privacyPolicy')}</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
@@ -316,11 +315,7 @@ export default function HomePage() {
               <div className="space-y-3 text-gray-400">
                 <p className="flex items-center">
                   <span className="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
-                  hello@66do.com
-                </p>
-                <p className="flex items-center">
-                  <span className="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
-                  Available 24/7
+                  hello # 66do.com
                 </p>
               </div>
             </div>

@@ -202,9 +202,28 @@ export function validateSession(token: string): boolean {
     const now = new Date();
     const expiresAt = new Date(session.expires_at);
 
+    // 检查token是否匹配且未过期
     return session.token === token && now < expiresAt;
   } catch (error) {
     console.error('Session validation error:', error);
+    return false;
+  }
+}
+
+// 验证存储的会话是否有效
+export function validateStoredSession(): boolean {
+  try {
+    const sessionData = localStorage.getItem('66do_session');
+    if (!sessionData) return false;
+
+    const session: Session = JSON.parse(sessionData);
+    const now = new Date();
+    const expiresAt = new Date(session.expires_at);
+
+    // 检查会话是否未过期
+    return now < expiresAt;
+  } catch (error) {
+    console.error('Stored session validation error:', error);
     return false;
   }
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect } from 'react';
-import { validateUser, createUser, createSession, validateSession, cleanupExpiredSessions } from '../lib/auth';
+import { validateUser, createUser, createSession, validateStoredSession, cleanupExpiredSessions } from '../lib/auth';
 
 interface User {
   id: string;
@@ -43,19 +43,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const storedUser = localStorage.getItem('66do_user');
         const storedSession = localStorage.getItem('66do_session');
         
+        console.log('Checking existing session:', { storedUser: !!storedUser, storedSession: !!storedSession });
+        
         if (storedUser && storedSession) {
           const userData = JSON.parse(storedUser);
           const sessionData = JSON.parse(storedSession);
           
+          console.log('Session data:', { 
+            userEmail: userData.email, 
+            sessionExpires: sessionData.expires_at,
+            isValid: validateStoredSession()
+          });
+          
           // 验证会话
-          if (validateSession(sessionData.token)) {
+          if (validateStoredSession()) {
+            console.log('Session is valid, setting user');
             setUser(userData);
             setSession(sessionData);
           } else {
+            console.log('Session is invalid, cleaning up');
             // 会话无效，清理数据
             localStorage.removeItem('66do_user');
             localStorage.removeItem('66do_session');
           }
+        } else {
+          console.log('No stored session found');
         }
       } catch (error) {
         console.error('Error checking existing session:', error);
