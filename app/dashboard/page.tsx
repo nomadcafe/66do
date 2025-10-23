@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { useLanguage } from '../../src/contexts/LanguageContext';
@@ -47,8 +47,6 @@ import {
   RefreshCw,
   Zap,
   CheckCircle,
-  XCircle,
-  Info,
   List,
   Database,
   Target
@@ -114,23 +112,11 @@ interface DomainStats {
   renewalCycles: { [key: string]: number }; // 不同续费周期的域名数量
 }
 
-interface Alert {
-  id: string;
-  type: 'renewal' | 'expiry' | 'price_drop' | 'sale_opportunity';
-  title: string;
-  message: string;
-  timestamp: string;
-  read: boolean;
-  priority: 'high' | 'medium' | 'low';
-  domain_name?: string;
-  date?: string;
-}
 
 
 export default function DashboardPage() {
   const [domains, setDomains] = useState<Domain[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [alerts, setAlerts] = useState<Alert[]>([]);
   const [stats, setStats] = useState<DomainStats>({
     totalDomains: 0,
     totalCost: 0,
@@ -312,85 +298,25 @@ export default function DashboardPage() {
     });
   }, [domains, transactions]);
 
-  // Generate alerts function
-  const generateAlerts = useCallback(() => {
-    const newAlerts: Alert[] = [];
-    
-    
-    // 域名到期提醒（更详细的提醒逻辑）
-    domains.forEach(domain => {
-      if (!domain.expiry_date) return;
+  // 计算即将到期的域名（30天内）
+  const expiringDomains = useMemo(() => {
+    return domains.filter(domain => {
+      // 跳过已出售的域名
+      if (domain.status === 'sold') return false;
+      if (!domain.expiry_date) return false;
       
       const daysUntilExpiry = Math.ceil((new Date(domain.expiry_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-      
-      // 30天提醒
-      if (daysUntilExpiry <= 30 && daysUntilExpiry > 14) {
-        newAlerts.push({
-          id: `expiry-30-${domain.id}`,
-          type: 'expiry',
-          title: '域名即将到期',
-          message: `${domain.domain_name} 将在 ${daysUntilExpiry} 天后到期，请及时续费`,
-          timestamp: new Date().toISOString(),
-          read: false,
-          priority: 'medium',
-          domain_name: domain.domain_name,
-          date: domain.expiry_date
-        });
-      }
-      
-      // 14天提醒
-      if (daysUntilExpiry <= 14 && daysUntilExpiry > 7) {
-        newAlerts.push({
-          id: `expiry-14-${domain.id}`,
-          type: 'expiry',
-          title: '域名即将到期',
-          message: `${domain.domain_name} 将在 ${daysUntilExpiry} 天后到期，请尽快续费`,
-          timestamp: new Date().toISOString(),
-          read: false,
-          priority: 'high',
-          domain_name: domain.domain_name,
-          date: domain.expiry_date
-        });
-      }
-      
-      // 7天紧急提醒
-      if (daysUntilExpiry <= 7 && daysUntilExpiry > 0) {
-        newAlerts.push({
-          id: `expiry-7-${domain.id}`,
-          type: 'expiry',
-          title: '域名即将到期',
-          message: `${domain.domain_name} 将在 ${daysUntilExpiry} 天后到期，请立即续费！`,
-          timestamp: new Date().toISOString(),
-          read: false,
-          priority: 'high',
-          domain_name: domain.domain_name,
-          date: domain.expiry_date
-        });
-      }
-      
-      // 已过期提醒
-      if (daysUntilExpiry <= 0) {
-        newAlerts.push({
-          id: `expired-${domain.id}`,
-          type: 'expiry',
-          title: '域名已过期',
-          message: `${domain.domain_name} 已过期 ${Math.abs(daysUntilExpiry)} 天，请立即处理`,
-          timestamp: new Date().toISOString(),
-          read: false,
-          priority: 'high',
-          domain_name: domain.domain_name,
-          date: domain.expiry_date
-        });
-      }
-    });
-    
-    setAlerts(newAlerts);
+      return daysUntilExpiry <= 30 && daysUntilExpiry >= 0;
+    }).map(domain => {
+      const daysUntilExpiry = Math.ceil((new Date(domain.expiry_date!).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      return {
+        ...domain,
+        daysUntilExpiry,
+        urgency: daysUntilExpiry <= 7 ? 'critical' : daysUntilExpiry <= 14 ? 'urgent' : 'normal'
+      };
+    }).sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
   }, [domains]);
 
-  // Generate alerts when data changes
-  useEffect(() => {
-    generateAlerts();
-  }, [generateAlerts]);
 
   // Domain management functions
   const handleAddDomain = () => {
@@ -610,12 +536,6 @@ export default function DashboardPage() {
   };
 
 
-  // Mark alert as read
-  const markAlertAsRead = (alertId: string) => {
-    setAlerts(alerts.map(alert => 
-      alert.id === alertId ? { ...alert, read: true } : alert
-    ));
-  };
 
   // Filter domains based on search and status
   const filteredDomains = domains.filter(domain => {
@@ -891,9 +811,9 @@ export default function DashboardPage() {
               >
                 <Bell className="h-4 w-4 inline mr-2" />
                 {t('dashboard.alerts')}
-                {alerts.filter(a => !a.read).length > 0 && (
+                {expiringDomains.length > 0 && (
                   <span className="ml-1 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
-                    {alerts.filter(a => !a.read).length}
+                    {expiringDomains.length}
                   </span>
                 )}
               </button>
@@ -1140,8 +1060,8 @@ export default function DashboardPage() {
                   <AlertTriangle className="h-5 w-5 text-red-500" />
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-red-600">{alerts.filter(a => !a.read).length}</p>
-                  <p className="text-sm text-gray-600 mt-1">未读提醒</p>
+                  <p className="text-2xl font-bold text-red-600">{expiringDomains.length}</p>
+                  <p className="text-sm text-gray-600 mt-1">即将到期</p>
                 </div>
               </div>
             </div>
@@ -1295,75 +1215,76 @@ export default function DashboardPage() {
 
         {activeTab === 'alerts' && (
           <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow-sm border">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900">提醒通知</h3>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-600">
-                      共 {alerts.length} 条提醒
-                    </span>
-                <button
-                      onClick={() => setAlerts(alerts.map(a => ({ ...a, read: true })))}
-                      className="text-blue-600 hover:text-blue-700 text-sm"
-                >
-                      全部标记为已读
-                </button>
-            </div>
-                </div>
-              </div>
-              <div className="p-6">
-                {alerts.length > 0 ? (
-            <div className="space-y-4">
-                    {alerts.map((alert) => (
-                      <div
-                        key={alert.id}
-                        className={`p-4 rounded-lg border-l-4 ${
-                          alert.priority === 'high' ? 'border-red-500 bg-red-50' :
-                          alert.priority === 'medium' ? 'border-yellow-500 bg-yellow-50' :
-                          'border-blue-500 bg-blue-50'
-                        } ${alert.read ? 'opacity-60' : ''}`}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-start space-x-3">
-                            <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                              alert.type === 'renewal' ? 'bg-orange-100' :
-                              alert.type === 'expiry' ? 'bg-red-100' :
-                              alert.type === 'sale_opportunity' ? 'bg-green-100' : 'bg-blue-100'
+            <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">即将到期的域名</h3>
+              {expiringDomains.length > 0 ? (
+                <div className="space-y-4">
+                  {expiringDomains.map((domain) => (
+                    <div
+                      key={domain.id}
+                      className={`p-4 rounded-lg border-l-4 ${
+                        domain.urgency === 'critical' 
+                          ? 'border-red-500 bg-red-50' 
+                          : domain.urgency === 'urgent' 
+                          ? 'border-orange-500 bg-orange-50' 
+                          : 'border-yellow-500 bg-yellow-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3">
+                            <h4 className="text-lg font-medium text-gray-900">
+                              {domain.domain_name}
+                            </h4>
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                              domain.urgency === 'critical' 
+                                ? 'bg-red-100 text-red-800' 
+                                : domain.urgency === 'urgent' 
+                                ? 'bg-orange-100 text-orange-800' 
+                                : 'bg-yellow-100 text-yellow-800'
                             }`}>
-                              {alert.type === 'renewal' ? <Calendar className="h-4 w-4 text-orange-600" /> :
-                               alert.type === 'expiry' ? <AlertTriangle className="h-4 w-4 text-red-600" /> :
-                               alert.type === 'sale_opportunity' ? <TrendingUp className="h-4 w-4 text-green-600" /> :
-                               <Info className="h-4 w-4 text-blue-600" />}
-              </div>
-              <div>
-                              <p className="font-medium text-gray-900">{alert.domain_name}</p>
-                              <p className="text-sm text-gray-600 mt-1">{alert.message}</p>
-                              <p className="text-xs text-gray-500 mt-1">{new Date(alert.timestamp).toLocaleString()}</p>
-                            </div>
-              </div>
-                          <div className="flex items-center space-x-2">
-                            {!alert.read && (
-                              <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                            )}
-                <button
-                              onClick={() => markAlertAsRead(alert.id)}
-                              className="text-gray-400 hover:text-gray-600"
-                >
-                              {alert.read ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-          </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Bell className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p>暂无提醒通知</p>
-        </div>
-      )}
-              </div>
+                              {domain.urgency === 'critical' ? '紧急' : 
+                               domain.urgency === 'urgent' ? '紧急' : '正常'}
+                            </span>
+                          </div>
+                          <div className="mt-2 text-sm text-gray-600">
+                            <p>到期日期: {new Date(domain.expiry_date!).toLocaleDateString()}</p>
+                            <p className="font-medium">
+                              {domain.daysUntilExpiry === 0 
+                                ? '今天到期' 
+                                : domain.daysUntilExpiry < 0 
+                                ? `已过期 ${Math.abs(domain.daysUntilExpiry)} 天`
+                                : `还有 ${domain.daysUntilExpiry} 天到期`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => handleEditDomain(domain)}
+                            className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                          >
+                            编辑
+                          </button>
+                          <button
+                            onClick={() => {
+                              // 这里可以添加续费逻辑
+                              console.log('续费域名:', domain.domain_name);
+                            }}
+                            className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200"
+                          >
+                            续费
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>暂无即将到期的域名</p>
+                </div>
+              )}
             </div>
           </div>
         )}
