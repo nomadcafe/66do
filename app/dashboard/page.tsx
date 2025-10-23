@@ -13,6 +13,9 @@ import UserPreferencesPanel from '../../src/components/settings/UserPreferencesP
 import DomainMarketplace from '../../src/components/marketplace/DomainMarketplace';
 import DataImportExport from '../../src/components/data/DataImportExport';
 import { LazyDomainExpiryAlert, LazyDomainValueTracker, LazyWrapper } from '../../src/components/LazyComponents';
+import FinancialReport from '../../src/components/reports/FinancialReport';
+import FinancialAnalysis from '../../src/components/reports/FinancialAnalysis';
+import TaxReport from '../../src/components/reports/TaxReport';
 // import { domainCache } from '../../src/lib/cache';
 // import { marketDataManager } from '../../src/lib/marketData';
 // import { auditLogger } from '../../src/lib/security';
@@ -160,7 +163,7 @@ export default function DashboardPage() {
   });
   const [loading, setLoading] = useState(true);
   // const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'marketplace' | 'settings' | 'data'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'marketplace' | 'settings' | 'data' | 'reports' | 'analysis' | 'tax'>('overview');
   const [showDomainForm, setShowDomainForm] = useState(false);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [editingDomain, setEditingDomain] = useState<Domain | undefined>();
@@ -861,6 +864,39 @@ export default function DashboardPage() {
                 <Database className="h-4 w-4 inline mr-2" />
                 数据管理
               </button>
+              <button
+                onClick={() => setActiveTab('reports')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                  activeTab === 'reports'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <FileText className="h-4 w-4 inline mr-2" />
+                财务报告
+              </button>
+              <button
+                onClick={() => setActiveTab('analysis')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                  activeTab === 'analysis'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <BarChart3 className="h-4 w-4 inline mr-2" />
+                财务分析
+              </button>
+              <button
+                onClick={() => setActiveTab('tax')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                  activeTab === 'tax'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <DollarSign className="h-4 w-4 inline mr-2" />
+                税务报告
+              </button>
             </nav>
           </div>
         </div>
@@ -1257,6 +1293,27 @@ export default function DashboardPage() {
             onExport={(format) => console.log('Export data:', format)}
             onBackup={() => console.log('Backup data')}
             onRestore={(backup) => console.log('Restore data:', backup)}
+          />
+        )}
+        
+        {activeTab === 'reports' && (
+          <FinancialReport
+            domains={domains}
+            transactions={transactions}
+          />
+        )}
+        
+        {activeTab === 'analysis' && (
+          <FinancialAnalysis
+            domains={domains}
+            transactions={transactions}
+          />
+        )}
+        
+        {activeTab === 'tax' && (
+          <TaxReport
+            domains={domains}
+            transactions={transactions}
           />
         )}
         </div>
