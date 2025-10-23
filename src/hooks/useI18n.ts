@@ -156,6 +156,18 @@ const translations: Record<Locale, Translations> = {
         title: '市场洞察',
         desc: '获取最新的域名市场趋势和机会'
       }
+    },
+    footer: {
+      description: '专业的域名投资管理平台，帮助投资者追踪投资组合、分析数据、优化收益。',
+      product: '产品',
+      investmentManagement: '投资管理',
+      dataAnalytics: '数据分析',
+      performanceTracking: '表现追踪',
+      support: '支持',
+      helpCenter: '帮助中心',
+      contactUs: '联系我们',
+      privacyPolicy: '隐私政策',
+      contact: '联系方式'
     }
   },
   en: {
@@ -304,6 +316,18 @@ const translations: Record<Locale, Translations> = {
         title: 'Market Insights',
         desc: 'Get the latest domain market trends and opportunities'
       }
+    },
+    footer: {
+      description: 'Professional domain investment management platform, helping investors track portfolios, analyze data, and optimize returns.',
+      product: 'Product',
+      investmentManagement: 'Investment Management',
+      dataAnalytics: 'Data Analytics',
+      performanceTracking: 'Performance Tracking',
+      support: 'Support',
+      helpCenter: 'Help Center',
+      contactUs: 'Contact Us',
+      privacyPolicy: 'Privacy Policy',
+      contact: 'Contact'
     }
   }
 };
