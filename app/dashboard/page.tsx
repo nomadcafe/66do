@@ -8,7 +8,7 @@ import DomainList from '../../src/components/domain/DomainList';
 import DomainForm from '../../src/components/domain/DomainForm';
 import TransactionList from '../../src/components/transaction/TransactionList';
 import TransactionForm from '../../src/components/transaction/TransactionForm';
-import DomainPerformanceChart from '../../src/components/charts/DomainPerformanceChart';
+import InvestmentAnalytics from '../../src/components/analytics/InvestmentAnalytics';
 import UserPreferencesPanel from '../../src/components/settings/UserPreferencesPanel';
 import DomainMarketplace from '../../src/components/marketplace/DomainMarketplace';
 import DataImportExport from '../../src/components/data/DataImportExport';
@@ -127,29 +127,11 @@ interface Alert {
   date?: string;
 }
 
-interface ChartData {
-  month: string;
-  domains: number;
-  cost: number;
-  revenue: number;
-  profit: number;
-}
-
-interface PerformanceData {
-  domain_name: string;
-  purchase_price: number;
-  current_value: number;
-  profit_loss: number;
-  roi_percentage: number;
-  days_held: number;
-}
 
 export default function DashboardPage() {
   const [domains, setDomains] = useState<Domain[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [chartData, setChartData] = useState<ChartData[]>([]);
-  const [performanceData, setPerformanceData] = useState<PerformanceData[]>([]);
   const [stats, setStats] = useState<DomainStats>({
     totalDomains: 0,
     totalCost: 0,
@@ -375,70 +357,10 @@ export default function DashboardPage() {
     setAlerts(newAlerts);
   }, [domains, transactions]);
 
-  // Generate chart data function
-  const generateChartData = useCallback(() => {
-    const monthlyData: ChartData[] = [];
-    const currentDate = new Date();
-    
-    for (let i = 11; i >= 0; i--) {
-      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
-      const month = date.toLocaleDateString('zh-CN', { month: 'short' });
-      
-      const monthDomains = domains.filter(domain => {
-        const domainDate = new Date(domain.purchase_date);
-        return domainDate.getMonth() === date.getMonth() && domainDate.getFullYear() === date.getFullYear();
-      });
-      
-      const monthTransactions = transactions.filter(transaction => {
-        const transactionDate = new Date(transaction.date);
-        return transactionDate.getMonth() === date.getMonth() && transactionDate.getFullYear() === date.getFullYear();
-      });
-      
-      const cost = monthDomains.reduce((sum, domain) => sum + domain.purchase_cost, 0);
-      const revenue = monthTransactions.filter(t => t.type === 'sell').reduce((sum, t) => sum + t.amount, 0);
-      
-      monthlyData.push({
-        month,
-        domains: monthDomains.length,
-        cost,
-        revenue,
-        profit: revenue - cost
-      });
-    }
-    
-    setChartData(monthlyData);
-  }, [domains, transactions]);
-
-  // Generate performance data function
-  const generatePerformanceData = useCallback(() => {
-    const performance: PerformanceData[] = domains.map(domain => {
-      const purchaseDate = new Date(domain.purchase_date);
-      const daysHeld = Math.ceil((Date.now() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
-      
-      // 模拟当前价值（实际应用中应该从API获取）
-      const currentValue = domain.purchase_cost * (1 + Math.random() * 0.5 - 0.25);
-      const profitLoss = currentValue - domain.purchase_cost;
-      const roiPercentage = (profitLoss / domain.purchase_cost) * 100;
-      
-      return {
-        domain_name: domain.domain_name,
-        purchase_price: domain.purchase_cost,
-        current_value: currentValue,
-        profit_loss: profitLoss,
-        roi_percentage: roiPercentage,
-        days_held: daysHeld
-      };
-    });
-    
-    setPerformanceData(performance);
-  }, [domains]);
-
-  // Generate alerts, chart data, and performance data when data changes
+  // Generate alerts when data changes
   useEffect(() => {
     generateAlerts();
-    generateChartData();
-    generatePerformanceData();
-  }, [generateAlerts, generateChartData, generatePerformanceData]);
+  }, [generateAlerts]);
 
   // Domain management functions
   const handleAddDomain = () => {
@@ -1357,107 +1279,10 @@ export default function DashboardPage() {
         )}
 
         {activeTab === 'analytics' && (
-          <div className="space-y-6">
-            {/* 图表选择器 */}
-            <div className="bg-white p-4 rounded-lg shadow-sm border">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">数据分析</h3>
-                <div className="flex items-center space-x-2">
-                  <select
-                    value={viewMode}
-                    onChange={(e) => setViewMode(e.target.value as 'grid' | 'list')}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="grid">网格视图</option>
-                    <option value="list">列表视图</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* 高级图表组件 */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <DomainPerformanceChart
-                performanceData={performanceData.map(p => ({
-                  name: p.domain_name,
-                  purchasePrice: p.purchase_price,
-                  currentValue: p.current_value,
-                  profit: p.profit_loss,
-                  roi: p.roi_percentage,
-                  daysHeld: p.days_held
-                }))}
-                chartData={chartData}
-                type="line"
-              />
-              <DomainPerformanceChart
-                performanceData={performanceData.map(p => ({
-                  name: p.domain_name,
-                  purchasePrice: p.purchase_price,
-                  currentValue: p.current_value,
-                  profit: p.profit_loss,
-                  roi: p.roi_percentage,
-                  daysHeld: p.days_held
-                }))}
-                chartData={chartData}
-                type="bar"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <DomainPerformanceChart
-                performanceData={performanceData.map(p => ({
-                  name: p.domain_name,
-                  purchasePrice: p.purchase_price,
-                  currentValue: p.current_value,
-                  profit: p.profit_loss,
-                  roi: p.roi_percentage,
-                  daysHeld: p.days_held
-                }))}
-                chartData={chartData}
-                type="area"
-              />
-              <DomainPerformanceChart
-                performanceData={performanceData.map(p => ({
-                  name: p.domain_name,
-                  purchasePrice: p.purchase_price,
-                  currentValue: p.current_value,
-                  profit: p.profit_loss,
-                  roi: p.roi_percentage,
-                  daysHeld: p.days_held
-                }))}
-                chartData={chartData}
-                type="pie"
-              />
-            </div>
-
-            {/* 详细表现分析 */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">域名表现排名</h3>
-              <div className="space-y-4">
-                {performanceData.slice(0, 10).map((domain, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                        <span className="text-blue-600 font-semibold">{index + 1}</span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{domain.domain_name}</p>
-                        <p className="text-sm text-gray-600">持有 {domain.days_held} 天</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className={`font-semibold ${domain.roi_percentage >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {domain.roi_percentage >= 0 ? '+' : ''}{domain.roi_percentage.toFixed(1)}%
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {domain.profit_loss >= 0 ? '+' : ''}${domain.profit_loss.toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <InvestmentAnalytics 
+            domains={domains} 
+            transactions={transactions} 
+          />
         )}
 
         {activeTab === 'alerts' && (
