@@ -101,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     try {
       // 使用真实的用户创建功能
-      const { user: newUser, error: createError } = await createUser(email, password);
+      const { user: newUser, error: createError, requiresVerification } = await createUser(email, password);
       
       if (createError || !newUser) {
         throw new Error(createError || '用户创建失败');
@@ -117,6 +117,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(newUser);
       setSession(session);
       setLoading(false);
+      
+      // 如果需要邮箱验证，重定向到验证页面
+      if (requiresVerification) {
+        return { error: null, requiresVerification: true };
+      }
       
       return { error: null };
     } catch (error: unknown) {

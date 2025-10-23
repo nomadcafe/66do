@@ -40,21 +40,56 @@ async function verifyPassword(password: string, hash: string): Promise<boolean> 
 // 从D1数据库获取用户
 async function getUserFromDatabase(email: string): Promise<User | null> {
   try {
-    // 这里应该调用D1数据库API
-    // 暂时使用localStorage模拟数据库
-    const users = JSON.parse(localStorage.getItem('66do_users') || '[]');
-    return users.find((user: User) => user.email === email) || null;
+    // 调用D1数据库API
+    const response = await fetch('/api/users', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'getUser',
+        email: email
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Database query failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result.user || null;
   } catch (error) {
     console.error('Database query error:', error);
-    return null;
+    // 降级到localStorage作为备用
+    const users = JSON.parse(localStorage.getItem('66do_users') || '[]');
+    return users.find((user: User) => user.email === email) || null;
   }
 }
 
 // 保存用户到D1数据库
 async function saveUserToDatabase(user: User): Promise<boolean> {
   try {
-    // 这里应该调用D1数据库API
-    // 暂时使用localStorage模拟数据库
+    // 调用D1数据库API
+    const response = await fetch('/api/users', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'saveUser',
+        user: user
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Database save failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result.success || false;
+  } catch (error) {
+    console.error('Database save error:', error);
+    // 降级到localStorage作为备用
     const users = JSON.parse(localStorage.getItem('66do_users') || '[]');
     const existingUserIndex = users.findIndex((u: User) => u.email === user.email);
     
@@ -66,9 +101,6 @@ async function saveUserToDatabase(user: User): Promise<boolean> {
     
     localStorage.setItem('66do_users', JSON.stringify(users));
     return true;
-  } catch (error) {
-    console.error('Database save error:', error);
-    return false;
   }
 }
 
@@ -99,7 +131,7 @@ export async function validateUser(email: string, password: string): Promise<Use
 }
 
 // 创建新用户
-export async function createUser(email: string, password: string): Promise<{ user: User | null; error: string | null }> {
+export async function createUser(email: string, password: string): Promise<{ user: User | null; error: string | null; requiresVerification?: boolean }> {
   try {
     // 检查邮箱是否已存在
     const existingUser = await getUserFromDatabase(email);
@@ -134,6 +166,15 @@ export async function createUser(email: string, password: string): Promise<{ use
       return { user: null, error: '用户创建失败' };
     }
 
+    // 发送邮箱验证邮件
+    try {
+      const { sendVerificationEmail } = await import('./emailVerification');
+      await sendVerificationEmail(email, newUser.id);
+    } catch (error) {
+      console.error('Failed to send verification email:', error);
+      // 不阻止用户注册，但记录错误
+    }
+
     // 返回用户信息（不包含密码哈希）
     return {
       user: {
@@ -142,7 +183,8 @@ export async function createUser(email: string, password: string): Promise<{ use
         created_at: newUser.created_at,
         updated_at: newUser.updated_at
       } as User,
-      error: null
+      error: null,
+      requiresVerification: true
     };
   } catch (error) {
     console.error('User creation error:', error);
