@@ -9,7 +9,6 @@ import {
   BarChart3, 
   ArrowRight, 
   Shield,
-  CheckCircle,
   Star,
   Zap,
   Target,
@@ -198,21 +197,6 @@ export default function HomePage() {
               </button>
             </div>
             
-            {/* Trust indicators */}
-            <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-8 text-sm text-gray-500">
-              <div className="flex items-center space-x-2">
-                <CheckCircle className="h-4 w-4 text-green-500" />
-                <span>Free 7-day trial</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <CheckCircle className="h-4 w-4 text-green-500" />
-                <span>No credit card required</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <CheckCircle className="h-4 w-4 text-green-500" />
-                <span>Cancel anytime</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>

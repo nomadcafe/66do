@@ -112,7 +112,7 @@ const translations = {
     
     // Homepage
     'home.title': '域名投资追踪器',
-    'home.subtitle': '专业的域名投资管理工具，帮助您追踪域名投资组合、管理成本和收益。专注于域名投资，后期可扩展至其他投资领域。',
+    'home.subtitle': '专业的域名投资管理工具，帮助您追踪域名投资组合、管理成本和收益。专注于域名投资的专业平台。',
     'home.getStarted': '立即开始',
     'home.learnMore': '了解更多',
     'home.startFree': '免费开始',
