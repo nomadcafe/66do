@@ -4,7 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { useLanguage } from '../../src/contexts/LanguageContext';
-import { Globe, Plus, DollarSign, TrendingUp, BarChart3, LogOut, User } from 'lucide-react';
+import DomainList from '../../src/components/domain/DomainList';
+import DomainForm from '../../src/components/domain/DomainForm';
+import TransactionList from '../../src/components/transaction/TransactionList';
+import TransactionForm from '../../src/components/transaction/TransactionForm';
+import { Globe, Plus, DollarSign, TrendingUp, BarChart3, LogOut, User, FileText } from 'lucide-react';
 
 interface Domain {
   id: string;
@@ -13,9 +17,21 @@ interface Domain {
   purchase_date: string;
   purchase_cost: number;
   renewal_cost: number;
+  next_renewal_date?: string;
   status: 'active' | 'for_sale' | 'sold' | 'expired';
   estimated_value: number;
   tags: string[];
+}
+
+interface Transaction {
+  id: string;
+  domain_id: string;
+  type: 'buy' | 'renew' | 'sell' | 'transfer' | 'fee';
+  amount: number;
+  currency: string;
+  date: string;
+  notes: string;
+  platform?: string;
 }
 
 interface DomainStats {
@@ -28,6 +44,7 @@ interface DomainStats {
 
 export default function DashboardPage() {
   const [domains, setDomains] = useState<Domain[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [stats, setStats] = useState<DomainStats>({
     totalDomains: 0,
     totalCost: 0,
@@ -36,7 +53,11 @@ export default function DashboardPage() {
     roi: 0
   });
   const [loading, setLoading] = useState(true);
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<'domains' | 'transactions'>('domains');
+  const [showDomainForm, setShowDomainForm] = useState(false);
+  const [showTransactionForm, setShowTransactionForm] = useState(false);
+  const [editingDomain, setEditingDomain] = useState<Domain | undefined>();
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
   const { user, signOut } = useAuth();
   const { t, language, setLanguage } = useLanguage();
   const router = useRouter();
@@ -57,6 +78,14 @@ export default function DashboardPage() {
           const parsedDomains = JSON.parse(savedDomains);
           if (Array.isArray(parsedDomains)) {
             setDomains(parsedDomains);
+          }
+        }
+
+        const savedTransactions = localStorage.getItem('66do_transactions');
+        if (savedTransactions) {
+          const parsedTransactions = JSON.parse(savedTransactions);
+          if (Array.isArray(parsedTransactions)) {
+            setTransactions(parsedTransactions);
           }
         }
       } catch (error) {
@@ -86,14 +115,96 @@ export default function DashboardPage() {
     });
   }, [domains]);
 
-  // Handle add domain button click
+  // Domain management functions
   const handleAddDomain = () => {
-    setShowAddModal(true);
+    setEditingDomain(undefined);
+    setShowDomainForm(true);
   };
 
-  // Handle close modal
-  const handleCloseModal = () => {
-    setShowAddModal(false);
+  const handleEditDomain = (domain: Domain) => {
+    setEditingDomain(domain);
+    setShowDomainForm(true);
+  };
+
+  const handleDeleteDomain = (id: string) => {
+    const updatedDomains = domains.filter(domain => domain.id !== id);
+    setDomains(updatedDomains);
+    localStorage.setItem('66do_domains', JSON.stringify(updatedDomains));
+    
+    // Also remove related transactions
+    const updatedTransactions = transactions.filter(transaction => transaction.domain_id !== id);
+    setTransactions(updatedTransactions);
+    localStorage.setItem('66do_transactions', JSON.stringify(updatedTransactions));
+  };
+
+  const handleSaveDomain = (domainData: Omit<Domain, 'id'>) => {
+    if (editingDomain) {
+      // Update existing domain
+      const updatedDomains = domains.map(domain => 
+        domain.id === editingDomain.id 
+          ? { ...domainData, id: editingDomain.id }
+          : domain
+      );
+      setDomains(updatedDomains);
+      localStorage.setItem('66do_domains', JSON.stringify(updatedDomains));
+    } else {
+      // Add new domain
+      const newDomain: Domain = {
+        ...domainData,
+        id: Date.now().toString()
+      };
+      const updatedDomains = [...domains, newDomain];
+      setDomains(updatedDomains);
+      localStorage.setItem('66do_domains', JSON.stringify(updatedDomains));
+    }
+    setShowDomainForm(false);
+    setEditingDomain(undefined);
+  };
+
+  const handleViewDomain = (domain: Domain) => {
+    // TODO: Implement domain details view
+    console.log('View domain:', domain);
+  };
+
+  // Transaction management functions
+  const handleAddTransaction = () => {
+    setEditingTransaction(undefined);
+    setShowTransactionForm(true);
+  };
+
+  const handleEditTransaction = (transaction: Transaction) => {
+    setEditingTransaction(transaction);
+    setShowTransactionForm(true);
+  };
+
+  const handleDeleteTransaction = (id: string) => {
+    const updatedTransactions = transactions.filter(transaction => transaction.id !== id);
+    setTransactions(updatedTransactions);
+    localStorage.setItem('66do_transactions', JSON.stringify(updatedTransactions));
+  };
+
+  const handleSaveTransaction = (transactionData: Omit<Transaction, 'id'>) => {
+    if (editingTransaction) {
+      // Update existing transaction
+      const updatedTransactions = transactions.map(transaction => 
+        transaction.id === editingTransaction.id 
+          ? { ...transactionData, id: editingTransaction.id }
+          : transaction
+      );
+      setTransactions(updatedTransactions);
+      localStorage.setItem('66do_transactions', JSON.stringify(updatedTransactions));
+    } else {
+      // Add new transaction
+      const newTransaction: Transaction = {
+        ...transactionData,
+        id: Date.now().toString()
+      };
+      const updatedTransactions = [...transactions, newTransaction];
+      setTransactions(updatedTransactions);
+      localStorage.setItem('66do_transactions', JSON.stringify(updatedTransactions));
+    }
+    setShowTransactionForm(false);
+    setEditingTransaction(undefined);
   };
 
   // Handle logout
@@ -216,104 +327,80 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Domains List */}
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="px-6 py-4 border-b">
-            <h3 className="text-lg font-medium text-gray-900">{t('dashboard.investmentPortfolio')}</h3>
-          </div>
-          <div className="p-6">
-            {domains.length === 0 ? (
-              <div className="text-center py-8">
-                <Globe className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">{t('dashboard.noInvestments')}</p>
-                <button 
-                  onClick={handleAddDomain}
-                  className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                >
-                  {t('dashboard.addFirstInvestment')}
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {domains.map((domain) => (
-                  <div key={domain.id} className="flex items-center justify-between py-3 border-b last:border-b-0">
-                    <div className="flex items-center space-x-3">
-                      <Globe className="h-5 w-5 text-gray-400" />
-                      <div>
-                        <p className="font-medium text-gray-900">{domain.domain_name}</p>
-                        <p className="text-sm text-gray-500">{domain.registrar}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium text-gray-900">${domain.purchase_cost}</p>
-                      <p className="text-sm text-gray-500">{domain.status}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+        {/* Tabs */}
+        <div className="bg-white rounded-lg shadow-sm border mb-6">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8 px-6">
+              <button
+                onClick={() => setActiveTab('domains')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'domains'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Globe className="h-4 w-4 inline mr-2" />
+                Domains
+              </button>
+              <button
+                onClick={() => setActiveTab('transactions')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'transactions'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <FileText className="h-4 w-4 inline mr-2" />
+                Transactions
+              </button>
+            </nav>
           </div>
         </div>
+
+        {/* Tab Content */}
+        {activeTab === 'domains' && (
+          <DomainList
+            domains={domains}
+            onEdit={handleEditDomain}
+            onDelete={handleDeleteDomain}
+            onView={handleViewDomain}
+            onAdd={handleAddDomain}
+          />
+        )}
+
+        {activeTab === 'transactions' && (
+          <TransactionList
+            transactions={transactions}
+            domains={domains}
+            onEdit={handleEditTransaction}
+            onDelete={handleDeleteTransaction}
+            onAdd={handleAddTransaction}
+          />
+        )}
       </div>
 
-      {/* Add Domain Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-900">{t('dashboard.addInvestment')}</h3>
-              <button
-                onClick={handleCloseModal}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('dashboard.investmentName')}
-                </label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder={t('dashboard.investmentNamePlaceholder')}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('dashboard.investmentAmount')}
-                </label>
-                <input
-                  type="number"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="0.00"
-                />
-              </div>
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={handleCloseModal}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
-                >
-                  {t('dashboard.cancel')}
-                </button>
-                <button
-                  onClick={() => {
-                    // TODO: Implement add functionality
-                    alert(t('dashboard.addFunctionality'));
-                    handleCloseModal();
-                  }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                >
-                  {t('dashboard.add')}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Domain Form Modal */}
+      <DomainForm
+        domain={editingDomain}
+        isOpen={showDomainForm}
+        onClose={() => {
+          setShowDomainForm(false);
+          setEditingDomain(undefined);
+        }}
+        onSave={handleSaveDomain}
+      />
+
+      {/* Transaction Form Modal */}
+      <TransactionForm
+        transaction={editingTransaction}
+        domains={domains}
+        isOpen={showTransactionForm}
+        onClose={() => {
+          setShowTransactionForm(false);
+          setEditingTransaction(undefined);
+        }}
+        onSave={handleSaveTransaction}
+      />
     </div>
   );
 }
