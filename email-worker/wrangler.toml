@@ -6,3 +6,6 @@ compatibility_date = "2025-10-01"
 [vars]
 FROM_EMAIL = "noreply@66do.com"
 APP_NAME = "66Do"
+
+# Secrets (需要在 Cloudflare Dashboard 中设置)
+# SENDGRID_API_KEY = "your_sendgrid_api_key_here"

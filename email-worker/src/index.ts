@@ -1,6 +1,7 @@
 export interface Env {
   FROM_EMAIL: string;
   APP_NAME: string;
+  SENDGRID_API_KEY: string;
 }
 
 export default {
@@ -61,11 +62,49 @@ export default {
           `
         };
 
-        // 记录邮件发送请求
-        console.log(`Sending verification email to ${email} with code ${verificationCode}`);
+        // 使用 SendGrid API 发送邮件（更稳定可靠）
+        const sendGridResponse = await fetch('https://api.sendgrid.com/v3/mail/send', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${env.SENDGRID_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            personalizations: [{
+              to: [{ email: email }],
+              subject: `${env.APP_NAME} 账户验证码`
+            }],
+            from: { email: env.FROM_EMAIL },
+            content: [
+              {
+                type: 'text/html',
+                value: emailData.html
+              },
+              {
+                type: 'text/plain',
+                value: emailData.text
+              }
+            ]
+          })
+        });
+
+        if (!sendGridResponse.ok) {
+          const errorData = await sendGridResponse.text();
+          console.error('SendGrid API error:', errorData);
+          return new Response(JSON.stringify({ 
+            success: false, 
+            message: '邮件发送失败，请重试' 
+          }), {
+            status: 500,
+            headers: { 
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            }
+          });
+        }
+
+        console.log('Email sent successfully via SendGrid');
         
-        // 模拟邮件发送成功
-        // 在实际生产环境中，这里应该调用真实的邮件服务
         return new Response(JSON.stringify({ 
           success: true, 
           message: '验证码已发送到您的邮箱' 
