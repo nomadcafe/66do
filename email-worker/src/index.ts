@@ -1,7 +1,7 @@
 export interface Env {
   FROM_EMAIL: string;
   APP_NAME: string;
-  SENDGRID_API_KEY: string;
+  RESEND_API_KEY: string;
 }
 
 export default {
@@ -62,35 +62,25 @@ export default {
           `
         };
 
-        // 使用 SendGrid API 发送邮件（更稳定可靠）
-        const sendGridResponse = await fetch('https://api.sendgrid.com/v3/mail/send', {
+        // 使用 Resend API 发送邮件（简单易用）
+        const resendResponse = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${env.SENDGRID_API_KEY}`,
+            'Authorization': `Bearer ${env.RESEND_API_KEY}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            personalizations: [{
-              to: [{ email: email }],
-              subject: `${env.APP_NAME} 账户验证码`
-            }],
-            from: { email: env.FROM_EMAIL },
-            content: [
-              {
-                type: 'text/html',
-                value: emailData.html
-              },
-              {
-                type: 'text/plain',
-                value: emailData.text
-              }
-            ]
+            from: env.FROM_EMAIL,
+            to: [email],
+            subject: `${env.APP_NAME} 账户验证码`,
+            html: emailData.html,
+            text: emailData.text
           })
         });
 
-        if (!sendGridResponse.ok) {
-          const errorData = await sendGridResponse.text();
-          console.error('SendGrid API error:', errorData);
+        if (!resendResponse.ok) {
+          const errorData = await resendResponse.json();
+          console.error('Resend API error:', errorData);
           return new Response(JSON.stringify({ 
             success: false, 
             message: '邮件发送失败，请重试' 
@@ -103,7 +93,8 @@ export default {
           });
         }
 
-        console.log('Email sent successfully via SendGrid');
+        const resendResult = await resendResponse.json();
+        console.log('Email sent successfully via Resend:', resendResult);
         
         return new Response(JSON.stringify({ 
           success: true, 
