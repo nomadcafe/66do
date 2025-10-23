@@ -227,8 +227,8 @@ export function calculateEnhancedFinancialMetrics(
 }
 
 // 格式化货币
-export function formatCurrency(amount: number, currency: string = 'CNY'): string {
-  return new Intl.NumberFormat('zh-CN', {
+export function formatCurrency(amount: number, currency: string = 'USD'): string {
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currency
   }).format(amount);
