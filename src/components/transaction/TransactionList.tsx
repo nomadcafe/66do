@@ -6,12 +6,20 @@ import { Search, Filter, Plus, Edit, Trash2, DollarSign, Calendar, FileText } fr
 interface Transaction {
   id: string;
   domain_id: string;
-  type: 'buy' | 'renew' | 'sell' | 'transfer' | 'fee';
+  type: 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising';
   amount: number;
   currency: string;
+  exchange_rate?: number;
+  base_amount?: number;
+  platform_fee?: number;
+  platform_fee_percentage?: number;
+  net_amount?: number;
   date: string;
   notes: string;
   platform?: string;
+  category?: string;
+  tax_deductible?: boolean;
+  receipt_url?: string;
 }
 
 interface Domain {
@@ -54,6 +62,10 @@ export default function TransactionList({
         return 'bg-yellow-100 text-yellow-800';
       case 'fee':
         return 'bg-gray-100 text-gray-800';
+      case 'marketing':
+        return 'bg-purple-100 text-purple-800';
+      case 'advertising':
+        return 'bg-pink-100 text-pink-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -66,6 +78,8 @@ export default function TransactionList({
       case 'renew': return 'Renewal';
       case 'transfer': return 'Transfer';
       case 'fee': return 'Fee';
+      case 'marketing': return 'Marketing';
+      case 'advertising': return 'Advertising';
       default: return type;
     }
   };
@@ -98,7 +112,9 @@ export default function TransactionList({
     { value: 'sell', label: 'Sale' },
     { value: 'renew', label: 'Renewal' },
     { value: 'transfer', label: 'Transfer' },
-    { value: 'fee', label: 'Fee' }
+    { value: 'fee', label: 'Fee' },
+    { value: 'marketing', label: 'Marketing' },
+    { value: 'advertising', label: 'Advertising' }
   ];
 
   return (

@@ -6,12 +6,20 @@ import { X, Save, DollarSign, Calendar, FileText } from 'lucide-react';
 interface Transaction {
   id: string;
   domain_id: string;
-  type: 'buy' | 'renew' | 'sell' | 'transfer' | 'fee';
+  type: 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising';
   amount: number;
   currency: string;
+  exchange_rate?: number;
+  base_amount?: number;
+  platform_fee?: number;
+  platform_fee_percentage?: number;
+  net_amount?: number;
   date: string;
   notes: string;
   platform?: string;
+  category?: string;
+  tax_deductible?: boolean;
+  receipt_url?: string;
 }
 
 interface Domain {
@@ -36,12 +44,20 @@ export default function TransactionForm({
 }: TransactionFormProps) {
   const [formData, setFormData] = useState({
     domain_id: '',
-    type: 'buy' as 'buy' | 'renew' | 'sell' | 'transfer' | 'fee',
+    type: 'buy' as 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising',
     amount: 0,
     currency: 'USD',
+    exchange_rate: 1,
+    base_amount: 0,
+    platform_fee: 0,
+    platform_fee_percentage: 0,
+    net_amount: 0,
     date: new Date().toISOString().split('T')[0],
     notes: '',
-    platform: ''
+    platform: '',
+    category: '',
+    tax_deductible: false,
+    receipt_url: ''
   });
 
   useEffect(() => {
@@ -51,19 +67,35 @@ export default function TransactionForm({
         type: transaction.type,
         amount: transaction.amount,
         currency: transaction.currency,
+        exchange_rate: transaction.exchange_rate || 1,
+        base_amount: transaction.base_amount || 0,
+        platform_fee: transaction.platform_fee || 0,
+        platform_fee_percentage: transaction.platform_fee_percentage || 0,
+        net_amount: transaction.net_amount || 0,
         date: transaction.date,
         notes: transaction.notes,
-        platform: transaction.platform || ''
+        platform: transaction.platform || '',
+        category: transaction.category || '',
+        tax_deductible: transaction.tax_deductible || false,
+        receipt_url: transaction.receipt_url || ''
       });
     } else {
       setFormData({
         domain_id: '',
-        type: 'buy' as 'buy' | 'renew' | 'sell' | 'transfer' | 'fee',
+        type: 'buy' as 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising',
         amount: 0,
         currency: 'USD',
+        exchange_rate: 1,
+        base_amount: 0,
+        platform_fee: 0,
+        platform_fee_percentage: 0,
+        net_amount: 0,
         date: new Date().toISOString().split('T')[0],
         notes: '',
-        platform: ''
+        platform: '',
+        category: '',
+        tax_deductible: false,
+        receipt_url: ''
       });
     }
   }, [transaction]);
@@ -79,7 +111,9 @@ export default function TransactionForm({
     { value: 'renew', label: 'Renewal' },
     { value: 'sell', label: 'Sale' },
     { value: 'transfer', label: 'Transfer' },
-    { value: 'fee', label: 'Fee' }
+    { value: 'fee', label: 'Fee' },
+    { value: 'marketing', label: 'Marketing' },
+    { value: 'advertising', label: 'Advertising' }
   ];
 
   const currencies = [
@@ -207,6 +241,81 @@ export default function TransactionForm({
                 placeholder="GoDaddy, Namecheap, etc."
               />
             </div>
+          </div>
+
+          {/* 新增财务字段 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Exchange Rate
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.0001"
+                value={formData.exchange_rate}
+                onChange={(e) => setFormData({ ...formData, exchange_rate: parseFloat(e.target.value) || 1 })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="1.0000"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Platform Fee (%)
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                value={formData.platform_fee_percentage}
+                onChange={(e) => setFormData({ ...formData, platform_fee_percentage: parseFloat(e.target.value) || 0 })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Category
+              </label>
+              <input
+                type="text"
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Investment, Marketing, etc."
+              />
+            </div>
+
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="tax_deductible"
+                checked={formData.tax_deductible}
+                onChange={(e) => setFormData({ ...formData, tax_deductible: e.target.checked })}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="tax_deductible" className="ml-2 block text-sm text-gray-700">
+                Tax Deductible
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Receipt URL
+            </label>
+            <input
+              type="url"
+              value={formData.receipt_url}
+              onChange={(e) => setFormData({ ...formData, receipt_url: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="https://example.com/receipt.pdf"
+            />
           </div>
 
           <div>
