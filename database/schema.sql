@@ -17,21 +17,15 @@ CREATE TABLE IF NOT EXISTS domains (
   purchase_date DATE,
   purchase_cost DECIMAL(10, 2),
   renewal_cost DECIMAL(10, 2),
-  total_renewal_paid DECIMAL(10, 2) DEFAULT 0,
+  renewal_cycle INTEGER DEFAULT 1, -- 续费周期（年数）：1, 2, 3等
   next_renewal_date DATE,
+  expiry_date DATE NOT NULL, -- 域名到期日期
   status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'for_sale', 'sold', 'expired')),
   estimated_value DECIMAL(10, 2),
   tags TEXT[] DEFAULT '{}',
   owner_user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  -- Renewal cycle fields
-  renewal_cycle_years INTEGER DEFAULT 1,
-  renewal_cycle_type VARCHAR(20) DEFAULT 'annual' CHECK (renewal_cycle_type IN ('annual', 'biennial', 'triennial', 'custom')),
-  last_renewal_amount DECIMAL(10, 2) DEFAULT 0,
-  last_renewal_date DATE,
-  next_renewal_amount DECIMAL(10, 2) DEFAULT 0,
-  renewal_count INTEGER DEFAULT 0
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- 交易记录表

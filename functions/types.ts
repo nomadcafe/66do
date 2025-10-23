@@ -11,8 +11,9 @@ export interface Domain {
   purchase_date: string;
   purchase_cost: number;
   renewal_cost: number;
-  total_renewal_paid: number;
-  next_renewal_date: string;
+  renewal_cycle: number; // 续费周期（年数）：1, 2, 3等
+  next_renewal_date?: string;
+  expiry_date: string;
   status: 'active' | 'for_sale' | 'sold' | 'expired';
   estimated_value: number;
   tags: string[];

@@ -12,6 +12,10 @@ import DomainPerformanceChart from '../../src/components/charts/DomainPerformanc
 import UserPreferencesPanel from '../../src/components/settings/UserPreferencesPanel';
 import DomainMarketplace from '../../src/components/marketplace/DomainMarketplace';
 import DataImportExport from '../../src/components/data/DataImportExport';
+import DomainExpiryAlert from '../../src/components/alerts/DomainExpiryAlert';
+import DomainValueTracker from '../../src/components/market/DomainValueTracker';
+// import LoadingSpinner from '../../src/components/ui/LoadingSpinner';
+// import ErrorMessage from '../../src/components/ui/ErrorMessage';
 import { 
   Globe, 
   Plus, 
@@ -144,6 +148,7 @@ export default function DashboardPage() {
     renewalCycles: {}
   });
   const [loading, setLoading] = useState(true);
+  // const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'marketplace' | 'settings' | 'data'>('overview');
   const [showDomainForm, setShowDomainForm] = useState(false);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
@@ -441,6 +446,50 @@ export default function DashboardPage() {
     const updatedTransactions = transactions.filter(transaction => transaction.id !== id);
     setTransactions(updatedTransactions);
     localStorage.setItem('66do_transactions', JSON.stringify(updatedTransactions));
+  };
+
+  // 处理域名续费
+  const handleRenewDomain = (domainId: string) => {
+    const domain = domains.find(d => d.id === domainId);
+    if (!domain) return;
+
+    const renewalTransaction: Transaction = {
+      id: Date.now().toString(),
+      domain_id: domainId,
+      type: 'renew',
+      amount: domain.renewal_cost,
+      currency: 'USD',
+      date: new Date().toISOString().split('T')[0],
+      notes: `域名 ${domain.domain_name} 续费 ${domain.renewal_cycle} 年`,
+      platform: domain.registrar
+    };
+
+    const newTransactions = [...transactions, renewalTransaction];
+    setTransactions(newTransactions);
+    localStorage.setItem('66do_transactions', JSON.stringify(newTransactions));
+
+    // 更新域名到期日期
+    const newExpiryDate = new Date(domain.expiry_date);
+    newExpiryDate.setFullYear(newExpiryDate.getFullYear() + domain.renewal_cycle);
+    
+    const updatedDomains = domains.map(d => 
+      d.id === domainId 
+        ? { ...d, expiry_date: newExpiryDate.toISOString().split('T')[0] }
+        : d
+    );
+    setDomains(updatedDomains);
+    localStorage.setItem('66do_domains', JSON.stringify(updatedDomains));
+  };
+
+  // 处理域名价值更新
+  const handleUpdateDomainValue = (domainId: string, newValue: number) => {
+    const updatedDomains = domains.map(d => 
+      d.id === domainId 
+        ? { ...d, estimated_value: newValue }
+        : d
+    );
+    setDomains(updatedDomains);
+    localStorage.setItem('66do_domains', JSON.stringify(updatedDomains));
   };
 
   const handleSaveTransaction = (transactionData: Omit<Transaction, 'id'>) => {
@@ -904,6 +953,18 @@ export default function DashboardPage() {
                 )}
               </div>
             </div>
+
+            {/* Domain Expiry Alerts */}
+            <DomainExpiryAlert 
+              domains={domains} 
+              onRenewDomain={handleRenewDomain}
+            />
+
+            {/* Domain Value Tracker */}
+            <DomainValueTracker 
+              domains={domains} 
+              onUpdateValue={handleUpdateDomainValue}
+            />
           </div>
         )}
 
@@ -1101,7 +1162,7 @@ export default function DashboardPage() {
               </div>
               <div className="p-6">
                 {alerts.length > 0 ? (
-                  <div className="space-y-4">
+            <div className="space-y-4">
                     {alerts.map((alert) => (
                       <div
                         key={alert.id}
