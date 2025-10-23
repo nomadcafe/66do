@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS domains (
   expiry_date DATE NOT NULL, -- 域名到期日期
   status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'for_sale', 'sold', 'expired')),
   estimated_value DECIMAL(10, 2),
+  sale_date DATE, -- 出售日期
+  sale_price DECIMAL(10, 2), -- 出售价格
   tags TEXT[] DEFAULT '{}',
   owner_user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

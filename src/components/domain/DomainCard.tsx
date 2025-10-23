@@ -16,6 +16,8 @@ interface Domain {
   expiry_date: string;
   status: 'active' | 'for_sale' | 'sold' | 'expired';
   estimated_value: number;
+  sale_date?: string; // 出售日期
+  sale_price?: number; // 出售价格
   tags: string[];
 }
 
@@ -111,6 +113,34 @@ export default function DomainCard({ domain, onEdit, onDelete, onView }: DomainC
             <span>总持有成本: {formatCurrency(totalHoldingCost)}</span>
           </div>
         </div>
+
+        {/* 出售信息显示 */}
+        {domain.status === 'sold' && domain.sale_date && domain.sale_price && (
+          <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center space-x-2 text-green-800">
+              <DollarSign className="h-4 w-4" />
+              <span className="font-medium">已出售</span>
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-4 text-sm">
+              <div className="flex items-center space-x-1">
+                <Calendar className="h-4 w-4 text-green-600" />
+                <span className="text-green-700">出售日期: {formatDate(domain.sale_date)}</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <DollarSign className="h-4 w-4 text-green-600" />
+                <span className="text-green-700 font-medium">出售价格: {formatCurrency(domain.sale_price)}</span>
+              </div>
+            </div>
+            <div className="mt-2 text-sm">
+              <span className="text-green-700">
+                净利润: {formatCurrency(domain.sale_price - totalHoldingCost)}
+              </span>
+              <span className="ml-2 text-green-600">
+                (ROI: {(((domain.sale_price - totalHoldingCost) / totalHoldingCost) * 100).toFixed(1)}%)
+              </span>
+            </div>
+          </div>
+        )}
 
             {domain.tags && domain.tags.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-3">

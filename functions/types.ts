@@ -17,6 +17,8 @@ export interface Domain {
   expiry_date: string;
   status: 'active' | 'for_sale' | 'sold' | 'expired';
   estimated_value: number;
+  sale_date?: string; // 出售日期
+  sale_price?: number; // 出售价格
   tags: string[];
   owner_user_id: string;
   created_at: string;

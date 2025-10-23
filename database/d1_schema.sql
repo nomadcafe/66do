@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS domains (
   expiry_date TEXT NOT NULL,
   status TEXT DEFAULT 'active' CHECK (status IN ('active', 'for_sale', 'sold', 'expired')),
   estimated_value REAL,
+  sale_date TEXT, -- 出售日期
+  sale_price REAL, -- 出售价格
   tags TEXT,
   owner_user_id TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,

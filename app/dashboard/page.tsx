@@ -533,9 +533,35 @@ export default function DashboardPage() {
       const updatedTransactions = [...transactions, newTransaction];
       setTransactions(updatedTransactions);
       localStorage.setItem('66do_transactions', JSON.stringify(updatedTransactions));
+      
+      // 自动更新域名状态
+      updateDomainStatusFromTransaction(newTransaction);
     }
     setShowTransactionForm(false);
     setEditingTransaction(undefined);
+  };
+
+  // 根据交易自动更新域名状态
+  const updateDomainStatusFromTransaction = (transaction: Transaction) => {
+    if (transaction.type === 'sell' && transaction.domain_id) {
+      const updatedDomains = domains.map(domain => {
+        if (domain.id === transaction.domain_id) {
+          return {
+            ...domain,
+            status: 'sold' as const,
+            sale_date: transaction.date,
+            sale_price: transaction.amount
+          };
+        }
+        return domain;
+      });
+      
+      setDomains(updatedDomains);
+      localStorage.setItem('66do_domains', JSON.stringify(updatedDomains));
+      
+      // 显示成功消息
+      console.log(`域名状态已自动更新为"已出售"`);
+    }
   };
 
   // Handle logout
