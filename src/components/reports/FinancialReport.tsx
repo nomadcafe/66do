@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+// 使用共享计算逻辑
 import { 
   TrendingUp, 
   TrendingDown, 

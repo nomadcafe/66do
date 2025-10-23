@@ -22,12 +22,20 @@ export interface Domain {
 export interface DomainTransaction {
   id: string;
   domain_id: string;
-  type: 'buy' | 'renew' | 'sell' | 'transfer' | 'fee';
+  type: 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising';
   amount: number;
   currency: string;
+  exchange_rate?: number; // 汇率
+  base_amount?: number; // 基础货币金额
+  platform_fee?: number; // 平台手续费
+  platform_fee_percentage?: number; // 手续费百分比
+  net_amount?: number; // 净收入
   date: string;
   notes: string;
   platform?: string;
+  category?: string; // 交易分类
+  tax_deductible?: boolean; // 是否可抵税
+  receipt_url?: string; // 收据链接
   transaction_time?: string;
   gross_amount?: number;
   fee_percentage?: number;

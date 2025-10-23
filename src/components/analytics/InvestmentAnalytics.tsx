@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import { useComprehensiveFinancialAnalysis } from '../../hooks/useFinancialCalculations';
 import { 
   LineChart, 
   Line, 
@@ -52,7 +53,7 @@ interface Transaction {
   amount: number;
   currency: string;
   date: string;
-  notes?: string;
+  notes: string;
   platform?: string;
   exchange_rate?: number;
   base_amount?: number;
@@ -105,90 +106,23 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
   const [selectedTimeframe, setSelectedTimeframe] = useState<'1M' | '3M' | '6M' | '1Y' | 'ALL'>('ALL');
   const [selectedMetric, setSelectedMetric] = useState<'portfolio' | 'performance' | 'risk' | 'trends'>('portfolio');
 
-  // 计算投资组合指标
-  const portfolioMetrics: PortfolioMetrics = useMemo(() => {
-    const totalInvestment = domains.reduce((sum, domain) => {
-      const holdingCost = domain.purchase_cost + (domain.renewal_count * domain.renewal_cost);
-      return sum + holdingCost;
-    }, 0);
-
-    const totalRevenue = transactions
-      .filter(t => t.type === 'sell')
-      .reduce((sum, t) => sum + (t.net_amount || t.amount), 0);
-
-    const totalProfit = totalRevenue - totalInvestment;
-    const totalReturn = totalInvestment > 0 ? (totalProfit / totalInvestment) * 100 : 0;
-
-    // 计算年化收益率
-    const oldestDomain = domains.reduce((oldest, domain) => {
-      const domainDate = new Date(domain.purchase_date);
-      const oldestDate = new Date(oldest.purchase_date);
-      return domainDate < oldestDate ? domain : oldest;
-    }, domains[0]);
-    
-    const years = oldestDomain ? 
-      (new Date().getTime() - new Date(oldestDomain.purchase_date).getTime()) / (1000 * 60 * 60 * 24 * 365) : 1;
-    
-    const annualizedReturn = years > 0 ? Math.pow(1 + totalReturn / 100, 1 / years) - 1 : 0;
-
-    // 计算夏普比率（简化版）
-    const monthlyReturns = calculateMonthlyReturns(domains, transactions);
-    const avgReturn = monthlyReturns.reduce((sum, r) => sum + r, 0) / monthlyReturns.length;
-    const variance = monthlyReturns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / monthlyReturns.length;
-    const volatility = Math.sqrt(variance);
-    const sharpeRatio = volatility > 0 ? (avgReturn - 0.02) / volatility : 0; // 假设无风险利率2%
-
-    // 计算最大回撤
-    const maxDrawdown = calculateMaxDrawdown(monthlyReturns);
-
-    // 计算胜率
-    const soldDomains = domains.filter(d => d.status === 'sold');
-    const profitableDomains = soldDomains.filter(d => {
-      const totalCost = d.purchase_cost + (d.renewal_count * d.renewal_cost);
-      return (d.sale_price || 0) > totalCost;
-    });
-    const winRate = soldDomains.length > 0 ? (profitableDomains.length / soldDomains.length) * 100 : 0;
-
-    // 计算平均持有期
-    const avgHoldingPeriod = soldDomains.length > 0 ? 
-      soldDomains.reduce((sum, domain) => {
-        const purchaseDate = new Date(domain.purchase_date);
-        const saleDate = new Date(domain.sale_date || domain.purchase_date);
-        return sum + (saleDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24);
-      }, 0) / soldDomains.length : 0;
-
-    // 最佳和最差表现域名
-    const domainPerformance = domains.map(domain => {
-      const totalCost = domain.purchase_cost + (domain.renewal_count * domain.renewal_cost);
-      const revenue = domain.sale_price || domain.estimated_value;
-      const profit = revenue - totalCost;
-      const roi = totalCost > 0 ? (profit / totalCost) * 100 : 0;
-      return { domain, profit, roi };
-    });
-
-    const bestDomain = domainPerformance.reduce((best, current) => 
-      current.roi > best.roi ? current : best, domainPerformance[0] || { domain: { domain_name: 'N/A' }, roi: 0 }
-    );
-
-    const worstDomain = domainPerformance.reduce((worst, current) => 
-      current.roi < worst.roi ? current : worst, domainPerformance[0] || { domain: { domain_name: 'N/A' }, roi: 0 }
-    );
-
-    return {
-      totalInvestment,
-      totalRevenue,
-      totalProfit,
-      totalReturn,
-      annualizedReturn: annualizedReturn * 100,
-      sharpeRatio,
-      maxDrawdown,
-      volatility: volatility * 100,
-      winRate,
-      avgHoldingPeriod,
-      bestPerformingDomain: bestDomain.domain.domain_name,
-      worstPerformingDomain: worstDomain.domain.domain_name
-    };
-  }, [domains, transactions]);
+  // 使用共享的计算逻辑
+  const financialAnalysis = useComprehensiveFinancialAnalysis(domains, transactions);
+  
+  const portfolioMetrics: PortfolioMetrics = useMemo(() => ({
+    totalInvestment: financialAnalysis.basic.totalInvestment,
+    totalRevenue: financialAnalysis.basic.totalRevenue,
+    totalProfit: financialAnalysis.basic.totalProfit,
+    totalReturn: financialAnalysis.basic.roi,
+    annualizedReturn: financialAnalysis.advanced.annualizedReturn,
+    sharpeRatio: financialAnalysis.advanced.sharpeRatio,
+    maxDrawdown: financialAnalysis.advanced.maxDrawdown,
+    volatility: financialAnalysis.advanced.volatility,
+    winRate: financialAnalysis.advanced.winRate,
+    avgHoldingPeriod: financialAnalysis.advanced.avgHoldingPeriod,
+    bestPerformingDomain: financialAnalysis.advanced.bestPerformingDomain,
+    worstPerformingDomain: financialAnalysis.advanced.worstPerformingDomain
+  }), [financialAnalysis]);
 
   // 计算时间序列数据
   const timeSeriesData: TimeSeriesData[] = useMemo(() => {
@@ -278,51 +212,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     };
   }, [domains, portfolioMetrics]);
 
-  // 辅助函数
-  function calculateMonthlyReturns(domains: Domain[], transactions: Transaction[]): number[] {
-    const returns: number[] = [];
-    for (let i = 0; i < 12; i++) {
-      const date = new Date();
-      date.setMonth(date.getMonth() - i);
-      const monthKey = date.toISOString().slice(0, 7);
-      
-      const monthTransactions = transactions.filter(t => 
-        new Date(t.date).toISOString().slice(0, 7) === monthKey
-      );
-      
-      const revenue = monthTransactions
-        .filter(t => t.type === 'sell')
-        .reduce((sum, t) => sum + (t.net_amount || t.amount), 0);
-      
-      const investment = domains.reduce((sum, domain) => {
-        const holdingCost = domain.purchase_cost + (domain.renewal_count * domain.renewal_cost);
-        return sum + holdingCost;
-      }, 0);
-      
-      const monthlyReturn = investment > 0 ? (revenue / investment) * 100 : 0;
-      returns.push(monthlyReturn);
-    }
-    return returns;
-  }
-
-  function calculateMaxDrawdown(returns: number[]): number {
-    let maxDrawdown = 0;
-    let peak = 0;
-    let runningSum = 0;
-
-    for (const return_ of returns) {
-      runningSum += return_;
-      if (runningSum > peak) {
-        peak = runningSum;
-      }
-      const drawdown = peak - runningSum;
-      if (drawdown > maxDrawdown) {
-        maxDrawdown = drawdown;
-      }
-    }
-
-    return maxDrawdown;
-  }
+  // 辅助函数已移至共享计算库
 
   const renderPortfolioMetrics = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

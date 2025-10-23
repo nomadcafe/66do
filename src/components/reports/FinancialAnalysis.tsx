@@ -9,6 +9,7 @@ import {
   XCircle,
   Target
 } from 'lucide-react';
+// 使用优化后的组件
 import { 
   calculateROI, 
   calculateProfitMargin, 

@@ -14,7 +14,7 @@ import DomainMarketplace from '../../src/components/marketplace/DomainMarketplac
 import DataImportExport from '../../src/components/data/DataImportExport';
 import { LazyDomainExpiryAlert, LazyDomainValueTracker, LazyWrapper } from '../../src/components/LazyComponents';
 import FinancialReport from '../../src/components/reports/FinancialReport';
-import FinancialAnalysis from '../../src/components/reports/FinancialAnalysis';
+import FinancialAnalysis from '../../src/components/reports/FinancialAnalysisOptimized';
 import ShareModal from '../../src/components/share/ShareModal';
 import SaleSuccessModal from '../../src/components/share/SaleSuccessModal';
 import { calculateAnnualRenewalCost, getRenewalOptimizationSuggestions } from '../../src/lib/renewalCalculations';
