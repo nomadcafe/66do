@@ -157,6 +157,11 @@ export default function VerifyPage() {
         <p className="mt-2 text-center text-sm text-gray-600">
           我们已向 <span className="font-medium text-blue-600">{email}</span> 发送了验证码
         </p>
+        <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+          <p className="text-sm text-yellow-800 text-center">
+            <strong>开发环境提示：</strong> 验证码已显示在浏览器控制台中，请按 F12 查看
+          </p>
+        </div>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">

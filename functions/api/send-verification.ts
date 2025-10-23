@@ -4,8 +4,8 @@ export async function onRequestPost(context: any) {
   try {
     const { email, verificationCode } = await request.json();
     
-    // 使用 Cloudflare Email Worker 发送邮件
-    const response = await fetch('https://66do-email-worker.metadomain.workers.dev/send-verification', {
+    // 使用 Cloudflare Email Workers 发送邮件
+    const emailResponse = await fetch('https://66do-email-worker.metadomain.workers.dev/send-verification', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -16,9 +16,23 @@ export async function onRequestPost(context: any) {
       })
     });
     
-    const result = await response.json();
+    if (!emailResponse.ok) {
+      console.error('Email Worker failed:', emailResponse.status, await emailResponse.text());
+      return new Response(JSON.stringify({ 
+        success: false, 
+        message: '邮件服务暂时不可用，请稍后重试' 
+      }), {
+        status: 500,
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
+    }
     
-    if (response.ok && result.success) {
+    const result = await emailResponse.json();
+    
+    if (result.success) {
       return new Response(JSON.stringify({ 
         success: true, 
         message: '验证码已发送到您的邮箱' 
