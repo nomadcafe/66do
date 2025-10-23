@@ -12,6 +12,7 @@ interface Domain {
   purchase_cost: number;
   renewal_cost: number;
   next_renewal_date?: string;
+  expiry_date: string;
   status: 'active' | 'for_sale' | 'sold' | 'expired';
   estimated_value: number;
   tags: string[];

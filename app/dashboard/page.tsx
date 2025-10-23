@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { useLanguage } from '../../src/contexts/LanguageContext';
@@ -8,6 +8,10 @@ import DomainList from '../../src/components/domain/DomainList';
 import DomainForm from '../../src/components/domain/DomainForm';
 import TransactionList from '../../src/components/transaction/TransactionList';
 import TransactionForm from '../../src/components/transaction/TransactionForm';
+import DomainPerformanceChart from '../../src/components/charts/DomainPerformanceChart';
+import UserPreferencesPanel from '../../src/components/settings/UserPreferencesPanel';
+import DomainMarketplace from '../../src/components/marketplace/DomainMarketplace';
+import DataImportExport from '../../src/components/data/DataImportExport';
 import { 
   Globe, 
   Plus, 
@@ -19,31 +23,20 @@ import {
   FileText,
   AlertTriangle,
   Calendar,
-  Target,
   Award,
   PieChart,
-  LineChart,
   Activity,
   Bell,
   Settings,
   Eye,
-  Edit,
-  Trash,
-  Filter,
   Search,
-  Download,
-  Upload,
   RefreshCw,
-  Star,
-  TrendingDown,
   Zap,
-  Shield,
-  Clock,
   CheckCircle,
   XCircle,
-  AlertCircle,
   Info,
-  List
+  List,
+  Database
 } from 'lucide-react';
 
 interface Domain {
@@ -54,6 +47,7 @@ interface Domain {
   purchase_cost: number;
   renewal_cost: number;
   next_renewal_date?: string;
+  expiry_date: string;
   status: 'active' | 'for_sale' | 'sold' | 'expired';
   estimated_value: number;
   tags: string[];
@@ -88,13 +82,14 @@ interface DomainStats {
 
 interface Alert {
   id: string;
-  domain_id: string;
-  domain_name: string;
-  type: 'renewal' | 'expiry' | 'price_drop' | 'sale_opportunity';
+  type: 'renewal' | 'expiry' | 'price_drop' | 'sale_opportunity' | 'sale';
+  title: string;
   message: string;
+  timestamp: string;
+  read: boolean;
   priority: 'high' | 'medium' | 'low';
-  date: string;
-  isRead: boolean;
+  domain_name?: string;
+  date?: string;
 }
 
 interface ChartData {
@@ -136,7 +131,7 @@ export default function DashboardPage() {
     worstPerformingDomain: ''
   });
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'marketplace' | 'settings' | 'data'>('overview');
   const [showDomainForm, setShowDomainForm] = useState(false);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [editingDomain, setEditingDomain] = useState<Domain | undefined>();
@@ -233,12 +228,111 @@ export default function DashboardPage() {
     });
   }, [domains, transactions]);
 
+  // Generate alerts function
+  const generateAlerts = useCallback(() => {
+    const newAlerts: Alert[] = [];
+    
+    // 域名续费提醒
+    domains.forEach(domain => {
+      const daysUntilExpiry = Math.ceil((new Date(domain.expiry_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      if (daysUntilExpiry <= 30 && daysUntilExpiry > 0) {
+        newAlerts.push({
+          id: `renewal-${domain.id}`,
+          type: 'renewal',
+          title: '域名即将到期',
+          message: `${domain.domain_name} 将在 ${daysUntilExpiry} 天后到期`,
+          timestamp: new Date().toISOString(),
+          read: false,
+          priority: daysUntilExpiry <= 7 ? 'high' : 'medium'
+        });
+      }
+    });
+    
+    // 交易提醒
+    transactions.forEach(transaction => {
+      if (transaction.type === 'sell' && transaction.amount > 1000) {
+        const domain = domains.find(d => d.id === transaction.domain_id);
+        if (domain) {
+          newAlerts.push({
+            id: `sale-${transaction.id}`,
+            type: 'sale',
+            title: '域名售出',
+            message: `恭喜！${domain.domain_name} 以 $${transaction.amount} 售出`,
+            timestamp: transaction.date,
+            read: false,
+            priority: 'high'
+          });
+        }
+      }
+    });
+    
+    setAlerts(newAlerts);
+  }, [domains, transactions]);
+
+  // Generate chart data function
+  const generateChartData = useCallback(() => {
+    const monthlyData: ChartData[] = [];
+    const currentDate = new Date();
+    
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+      const month = date.toLocaleDateString('zh-CN', { month: 'short' });
+      
+      const monthDomains = domains.filter(domain => {
+        const domainDate = new Date(domain.purchase_date);
+        return domainDate.getMonth() === date.getMonth() && domainDate.getFullYear() === date.getFullYear();
+      });
+      
+      const monthTransactions = transactions.filter(transaction => {
+        const transactionDate = new Date(transaction.date);
+        return transactionDate.getMonth() === date.getMonth() && transactionDate.getFullYear() === date.getFullYear();
+      });
+      
+      const cost = monthDomains.reduce((sum, domain) => sum + domain.purchase_cost, 0);
+      const revenue = monthTransactions.filter(t => t.type === 'sell').reduce((sum, t) => sum + t.amount, 0);
+      
+      monthlyData.push({
+        month,
+        domains: monthDomains.length,
+        cost,
+        revenue,
+        profit: revenue - cost
+      });
+    }
+    
+    setChartData(monthlyData);
+  }, [domains, transactions]);
+
+  // Generate performance data function
+  const generatePerformanceData = useCallback(() => {
+    const performance: PerformanceData[] = domains.map(domain => {
+      const purchaseDate = new Date(domain.purchase_date);
+      const daysHeld = Math.ceil((Date.now() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // 模拟当前价值（实际应用中应该从API获取）
+      const currentValue = domain.purchase_cost * (1 + Math.random() * 0.5 - 0.25);
+      const profitLoss = currentValue - domain.purchase_cost;
+      const roiPercentage = (profitLoss / domain.purchase_cost) * 100;
+      
+      return {
+        domain_name: domain.domain_name,
+        purchase_price: domain.purchase_cost,
+        current_value: currentValue,
+        profit_loss: profitLoss,
+        roi_percentage: roiPercentage,
+        days_held: daysHeld
+      };
+    });
+    
+    setPerformanceData(performance);
+  }, [domains]);
+
   // Generate alerts, chart data, and performance data when data changes
   useEffect(() => {
     generateAlerts();
     generateChartData();
     generatePerformanceData();
-  }, [domains, transactions]);
+  }, [generateAlerts, generateChartData, generatePerformanceData]);
 
   // Domain management functions
   const handleAddDomain = () => {
@@ -338,132 +432,11 @@ export default function DashboardPage() {
     router.push('/');
   };
 
-  // Generate alerts based on domain data
-  const generateAlerts = () => {
-    const newAlerts: Alert[] = [];
-    const now = new Date();
-    
-    domains.forEach(domain => {
-      // Renewal alerts
-      if (domain.next_renewal_date) {
-        const renewalDate = new Date(domain.next_renewal_date);
-        const daysUntilRenewal = Math.ceil((renewalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-        
-        if (daysUntilRenewal <= 30 && daysUntilRenewal > 0) {
-          newAlerts.push({
-            id: `renewal-${domain.id}`,
-            domain_id: domain.id,
-            domain_name: domain.domain_name,
-            type: 'renewal',
-            message: `域名 ${domain.domain_name} 将在 ${daysUntilRenewal} 天后到期，续费费用：$${domain.renewal_cost}`,
-            priority: daysUntilRenewal <= 7 ? 'high' : daysUntilRenewal <= 14 ? 'medium' : 'low',
-            date: now.toISOString(),
-            isRead: false
-          });
-        }
-      }
-      
-      // Expiry alerts
-      if (domain.next_renewal_date) {
-        const renewalDate = new Date(domain.next_renewal_date);
-        const daysUntilRenewal = Math.ceil((renewalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-        
-        if (daysUntilRenewal <= 0) {
-          newAlerts.push({
-            id: `expiry-${domain.id}`,
-            domain_id: domain.id,
-            domain_name: domain.domain_name,
-            type: 'expiry',
-            message: `域名 ${domain.domain_name} 已过期！请立即续费以避免丢失`,
-            priority: 'high',
-            date: now.toISOString(),
-            isRead: false
-          });
-        }
-      }
-      
-      // Sale opportunity alerts
-      if (domain.status === 'active' && domain.estimated_value > domain.purchase_cost * 2) {
-        newAlerts.push({
-          id: `sale-${domain.id}`,
-          domain_id: domain.id,
-          domain_name: domain.domain_name,
-          type: 'sale_opportunity',
-          message: `域名 ${domain.domain_name} 估值 ${domain.estimated_value}，是购买价格的 ${Math.round((domain.estimated_value / domain.purchase_cost) * 100)}% 倍，考虑出售？`,
-          priority: 'medium',
-          date: now.toISOString(),
-          isRead: false
-        });
-      }
-    });
-    
-    setAlerts(newAlerts);
-  };
-
-  // Generate chart data for analytics
-  const generateChartData = () => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const currentYear = new Date().getFullYear();
-    const chartData: ChartData[] = [];
-    
-    for (let i = 0; i < 12; i++) {
-      const monthStart = new Date(currentYear, i, 1);
-      const monthEnd = new Date(currentYear, i + 1, 0);
-      
-      const monthDomains = domains.filter(d => {
-        const purchaseDate = new Date(d.purchase_date);
-        return purchaseDate >= monthStart && purchaseDate <= monthEnd;
-      });
-      
-      const monthTransactions = transactions.filter(t => {
-        const transactionDate = new Date(t.date);
-        return transactionDate >= monthStart && transactionDate <= monthEnd;
-      });
-      
-      const cost = monthTransactions.filter(t => t.type === 'buy' || t.type === 'renew' || t.type === 'fee').reduce((sum, t) => sum + t.amount, 0);
-      const revenue = monthTransactions.filter(t => t.type === 'sell').reduce((sum, t) => sum + t.amount, 0);
-      
-      chartData.push({
-        month: months[i],
-        domains: monthDomains.length,
-        cost,
-        revenue,
-        profit: revenue - cost
-      });
-    }
-    
-    setChartData(chartData);
-  };
-
-  // Generate performance data
-  const generatePerformanceData = () => {
-    const performance: PerformanceData[] = domains.map(domain => {
-      const domainTransactions = transactions.filter(t => t.domain_id === domain.id);
-      const totalSpent = domainTransactions.filter(t => t.type === 'buy' || t.type === 'renew' || t.type === 'fee').reduce((sum, t) => sum + t.amount, 0);
-      const totalEarned = domainTransactions.filter(t => t.type === 'sell').reduce((sum, t) => sum + t.amount, 0);
-      const profitLoss = totalEarned - totalSpent;
-      const roiPercentage = totalSpent > 0 ? (profitLoss / totalSpent) * 100 : 0;
-      
-      const purchaseDate = new Date(domain.purchase_date);
-      const daysHeld = Math.ceil((Date.now() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
-      
-      return {
-        domain_name: domain.domain_name,
-        purchase_price: domain.purchase_cost,
-        current_value: domain.estimated_value,
-        profit_loss: profitLoss,
-        roi_percentage: roiPercentage,
-        days_held: daysHeld
-      };
-    });
-    
-    setPerformanceData(performance.sort((a, b) => b.roi_percentage - a.roi_percentage));
-  };
 
   // Mark alert as read
   const markAlertAsRead = (alertId: string) => {
     setAlerts(alerts.map(alert => 
-      alert.id === alertId ? { ...alert, isRead: true } : alert
+      alert.id === alertId ? { ...alert, read: true } : alert
     ));
   };
 
@@ -718,11 +691,44 @@ export default function DashboardPage() {
               >
                 <Bell className="h-4 w-4 inline mr-2" />
                 提醒通知
-                {alerts.filter(a => !a.isRead).length > 0 && (
+                {alerts.filter(a => !a.read).length > 0 && (
                   <span className="ml-1 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
-                    {alerts.filter(a => !a.isRead).length}
+                    {alerts.filter(a => !a.read).length}
                   </span>
                 )}
+              </button>
+              <button
+                onClick={() => setActiveTab('marketplace')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                  activeTab === 'marketplace'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Globe className="h-4 w-4 inline mr-2" />
+                域名市场
+              </button>
+              <button
+                onClick={() => setActiveTab('settings')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                  activeTab === 'settings'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Settings className="h-4 w-4 inline mr-2" />
+                设置
+              </button>
+              <button
+                onClick={() => setActiveTab('data')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                  activeTab === 'data'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Database className="h-4 w-4 inline mr-2" />
+                数据管理
               </button>
             </nav>
           </div>
@@ -773,7 +779,7 @@ export default function DashboardPage() {
                   <AlertTriangle className="h-5 w-5 text-red-500" />
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-red-600">{alerts.filter(a => !a.isRead).length}</p>
+                  <p className="text-2xl font-bold text-red-600">{alerts.filter(a => !a.read).length}</p>
                   <p className="text-sm text-gray-600 mt-1">未读提醒</p>
                 </div>
               </div>
@@ -905,9 +911,81 @@ export default function DashboardPage() {
 
         {activeTab === 'analytics' && (
           <div className="space-y-6">
-            {/* Performance Chart */}
+            {/* 图表选择器 */}
+            <div className="bg-white p-4 rounded-lg shadow-sm border">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">数据分析</h3>
+                <div className="flex items-center space-x-2">
+                  <select
+                    value={viewMode}
+                    onChange={(e) => setViewMode(e.target.value as 'grid' | 'list')}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="grid">网格视图</option>
+                    <option value="list">列表视图</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* 高级图表组件 */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <DomainPerformanceChart
+                performanceData={performanceData.map(p => ({
+                  name: p.domain_name,
+                  purchasePrice: p.purchase_price,
+                  currentValue: p.current_value,
+                  profit: p.profit_loss,
+                  roi: p.roi_percentage,
+                  daysHeld: p.days_held
+                }))}
+                chartData={chartData}
+                type="line"
+              />
+              <DomainPerformanceChart
+                performanceData={performanceData.map(p => ({
+                  name: p.domain_name,
+                  purchasePrice: p.purchase_price,
+                  currentValue: p.current_value,
+                  profit: p.profit_loss,
+                  roi: p.roi_percentage,
+                  daysHeld: p.days_held
+                }))}
+                chartData={chartData}
+                type="bar"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <DomainPerformanceChart
+                performanceData={performanceData.map(p => ({
+                  name: p.domain_name,
+                  purchasePrice: p.purchase_price,
+                  currentValue: p.current_value,
+                  profit: p.profit_loss,
+                  roi: p.roi_percentage,
+                  daysHeld: p.days_held
+                }))}
+                chartData={chartData}
+                type="area"
+              />
+              <DomainPerformanceChart
+                performanceData={performanceData.map(p => ({
+                  name: p.domain_name,
+                  purchasePrice: p.purchase_price,
+                  currentValue: p.current_value,
+                  profit: p.profit_loss,
+                  roi: p.roi_percentage,
+                  daysHeld: p.days_held
+                }))}
+                chartData={chartData}
+                type="pie"
+              />
+            </div>
+
+            {/* 详细表现分析 */}
             <div className="bg-white p-6 rounded-lg shadow-sm border">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">域名表现分析</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">域名表现排名</h3>
               <div className="space-y-4">
                 {performanceData.slice(0, 10).map((domain, index) => (
                   <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
@@ -932,34 +1010,6 @@ export default function DashboardPage() {
                 ))}
               </div>
             </div>
-
-            {/* Monthly Chart */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">月度投资趋势</h3>
-              <div className="space-y-4">
-                {chartData.slice(-6).map((data, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">{data.month}</span>
-                    <div className="flex items-center space-x-4">
-                      <div className="text-right">
-                        <p className="text-sm text-gray-600">成本</p>
-                        <p className="font-semibold text-red-600">${data.cost.toFixed(2)}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-gray-600">收益</p>
-                        <p className="font-semibold text-green-600">${data.revenue.toFixed(2)}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-gray-600">利润</p>
-                        <p className={`font-semibold ${data.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          ${data.profit.toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
         )}
 
@@ -974,7 +1024,7 @@ export default function DashboardPage() {
                       共 {alerts.length} 条提醒
                     </span>
                     <button
-                      onClick={() => setAlerts(alerts.map(a => ({ ...a, isRead: true })))}
+                      onClick={() => setAlerts(alerts.map(a => ({ ...a, read: true })))}
                       className="text-blue-600 hover:text-blue-700 text-sm"
                     >
                       全部标记为已读
@@ -992,7 +1042,7 @@ export default function DashboardPage() {
                           alert.priority === 'high' ? 'border-red-500 bg-red-50' :
                           alert.priority === 'medium' ? 'border-yellow-500 bg-yellow-50' :
                           'border-blue-500 bg-blue-50'
-                        } ${alert.isRead ? 'opacity-60' : ''}`}
+                        } ${alert.read ? 'opacity-60' : ''}`}
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex items-start space-x-3">
@@ -1009,18 +1059,18 @@ export default function DashboardPage() {
                             <div>
                               <p className="font-medium text-gray-900">{alert.domain_name}</p>
                               <p className="text-sm text-gray-600 mt-1">{alert.message}</p>
-                              <p className="text-xs text-gray-500 mt-1">{new Date(alert.date).toLocaleString()}</p>
+                              <p className="text-xs text-gray-500 mt-1">{new Date(alert.timestamp).toLocaleString()}</p>
                             </div>
                           </div>
                           <div className="flex items-center space-x-2">
-                            {!alert.isRead && (
+                            {!alert.read && (
                               <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                             )}
                             <button
                               onClick={() => markAlertAsRead(alert.id)}
                               className="text-gray-400 hover:text-gray-600"
                             >
-                              {alert.isRead ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                              {alert.read ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
                             </button>
                           </div>
                         </div>
@@ -1036,6 +1086,31 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {activeTab === 'marketplace' && (
+          <DomainMarketplace
+            domains={[]} // 这里应该从API获取市场数据
+            onLike={(id) => console.log('Like domain:', id)}
+            onWatch={(id) => console.log('Watch domain:', id)}
+            onContact={(id) => console.log('Contact seller:', id)}
+            onQuickBuy={(id) => console.log('Quick buy domain:', id)}
+            onFilter={(filters) => console.log('Filter domains:', filters)}
+            onSort={(sortBy) => console.log('Sort domains:', sortBy)}
+          />
+        )}
+
+        {activeTab === 'settings' && (
+          <UserPreferencesPanel />
+        )}
+
+        {activeTab === 'data' && (
+          <DataImportExport
+            onImport={(data) => console.log('Import data:', data)}
+            onExport={(format) => console.log('Export data:', format)}
+            onBackup={() => console.log('Backup data')}
+            onRestore={(backup) => console.log('Restore data:', backup)}
+          />
         )}
       </div>
 

@@ -156,7 +156,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const completeRegistration = async (email: string, _password: string) => {
+  const completeRegistration = async (email: string) => {
     setLoading(true);
     try {
       // Generate a secure user ID based on email
