@@ -16,7 +16,7 @@ interface User {
 
 export async function onRequest(context: any) {
   const { request, env } = context;
-  const { DB } = env as Env;
+  const DB = env.DB;
 
   // 设置CORS头
   const corsHeaders = {
@@ -28,6 +28,18 @@ export async function onRequest(context: any) {
   // 处理预检请求
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders });
+  }
+
+  // 检查D1数据库绑定
+  if (!DB) {
+    console.error('D1 database binding not found');
+    return new Response(JSON.stringify({ 
+      error: 'Database not available',
+      details: 'D1 database binding is not configured'
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
 
   try {
