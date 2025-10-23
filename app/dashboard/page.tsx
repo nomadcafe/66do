@@ -894,7 +894,7 @@ export default function DashboardPage() {
                 }`}
               >
                 <Activity className="h-4 w-4 inline mr-2" />
-                概览
+                {t('dashboard.overview')}
                 </button>
               <button
                 onClick={() => setActiveTab('domains')}
@@ -905,7 +905,7 @@ export default function DashboardPage() {
                 }`}
               >
                 <Globe className="h-4 w-4 inline mr-2" />
-                域名管理
+                {t('dashboard.domains')}
               </button>
               <button
                 onClick={() => setActiveTab('transactions')}
@@ -916,7 +916,7 @@ export default function DashboardPage() {
                 }`}
               >
                 <FileText className="h-4 w-4 inline mr-2" />
-                交易记录
+                {t('dashboard.transactions')}
               </button>
               <button
                 onClick={() => setActiveTab('analytics')}
@@ -927,7 +927,7 @@ export default function DashboardPage() {
                 }`}
               >
                 <PieChart className="h-4 w-4 inline mr-2" />
-                数据分析
+                {t('dashboard.analytics')}
               </button>
               <button
                 onClick={() => setActiveTab('alerts')}
@@ -938,7 +938,7 @@ export default function DashboardPage() {
                 }`}
               >
                 <Bell className="h-4 w-4 inline mr-2" />
-                提醒通知
+                {t('dashboard.alerts')}
                 {alerts.filter(a => !a.read).length > 0 && (
                   <span className="ml-1 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
                     {alerts.filter(a => !a.read).length}
@@ -954,7 +954,7 @@ export default function DashboardPage() {
                 }`}
               >
                 <Globe className="h-4 w-4 inline mr-2" />
-                域名市场
+                {t('dashboard.marketplace')}
               </button>
               <button
                 onClick={() => setActiveTab('settings')}
@@ -965,7 +965,7 @@ export default function DashboardPage() {
                 }`}
               >
                 <Settings className="h-4 w-4 inline mr-2" />
-                设置
+                {t('dashboard.settings')}
               </button>
               <button
                 onClick={() => setActiveTab('data')}
@@ -976,7 +976,7 @@ export default function DashboardPage() {
                 }`}
               >
                 <Database className="h-4 w-4 inline mr-2" />
-                数据管理
+                {t('dashboard.data')}
               </button>
               <button
                 onClick={() => setActiveTab('reports')}
@@ -987,7 +987,7 @@ export default function DashboardPage() {
                 }`}
               >
                 <FileText className="h-4 w-4 inline mr-2" />
-                财务报告
+                {t('dashboard.reports')}
               </button>
               <button
                 onClick={() => setActiveTab('analysis')}
@@ -998,7 +998,7 @@ export default function DashboardPage() {
                 }`}
               >
                 <BarChart3 className="h-4 w-4 inline mr-2" />
-                财务分析
+                {t('dashboard.analysis')}
               </button>
               <button
                 onClick={() => setActiveTab('tax')}
@@ -1009,7 +1009,7 @@ export default function DashboardPage() {
                 }`}
               >
                 <DollarSign className="h-4 w-4 inline mr-2" />
-                税务报告
+                {t('dashboard.tax')}
               </button>
             </nav>
               </div>
@@ -1172,7 +1172,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-white p-6 rounded-lg shadow-sm border">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">快速操作</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">{t('action.quickActions')}</h3>
                   <Zap className="h-5 w-5 text-yellow-500" />
                 </div>
                 <div className="space-y-3">
@@ -1181,14 +1181,14 @@ export default function DashboardPage() {
                     className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center space-x-2"
                   >
                     <Plus className="h-4 w-4" />
-                    <span>添加域名</span>
+                    <span>{t('domain.add')}</span>
                   </button>
                   <button
                     onClick={handleAddTransaction}
                     className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center justify-center space-x-2"
                   >
                     <FileText className="h-4 w-4" />
-                    <span>记录交易</span>
+                    <span>{t('transaction.add')}</span>
               </button>
             </div>
               </div>
