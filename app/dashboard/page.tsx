@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { useLanguage } from '../../src/contexts/LanguageContext';
@@ -16,6 +16,7 @@ import { LazyDomainExpiryAlert, LazyDomainValueTracker, LazyWrapper } from '../.
 import FinancialReport from '../../src/components/reports/FinancialReport';
 import FinancialAnalysis from '../../src/components/reports/FinancialAnalysis';
 import TaxReport from '../../src/components/reports/TaxReport';
+import { calculateAnnualRenewalCost, getRenewalOptimizationSuggestions } from '../../src/lib/renewalCalculations';
 // import { domainCache } from '../../src/lib/cache';
 // import { marketDataManager } from '../../src/lib/marketData';
 // import { auditLogger } from '../../src/lib/security';
@@ -164,6 +165,11 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   // const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'marketplace' | 'settings' | 'data' | 'reports' | 'analysis' | 'tax'>('overview');
+  
+  // 计算续费分析
+  const renewalAnalysis = useMemo(() => {
+    return calculateAnnualRenewalCost(domains);
+  }, [domains]);
   const [showDomainForm, setShowDomainForm] = useState(false);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [editingDomain, setEditingDomain] = useState<Domain | undefined>();
@@ -228,22 +234,12 @@ export default function DashboardPage() {
     const totalProfit = totalRevenue - totalHoldingCost;
     const roi = totalHoldingCost > 0 ? (totalProfit / totalHoldingCost) * 100 : 0;
     
-    // 计算年度续费成本（按续费周期计算）
-    const annualRenewalCost = domains.reduce((sum, domain) => {
-      if (domain.status === 'active') {
-        return sum + (domain.renewal_cost / domain.renewal_cycle);
-      }
-      return sum;
-    }, 0);
+    // 计算年度续费成本（使用新的准确计算逻辑）
+    const renewalAnalysis = calculateAnnualRenewalCost(domains);
+    const annualRenewalCost = renewalAnalysis.totalAnnualCost;
     
-    // 统计不同续费周期的域名数量
-    const renewalCycles: { [key: string]: number } = {};
-    domains.forEach(domain => {
-      if (domain.status === 'active') {
-        const cycle = `${domain.renewal_cycle}年`;
-        renewalCycles[cycle] = (renewalCycles[cycle] || 0) + 1;
-      }
-    });
+    // 统计不同续费周期的域名数量和成本
+    const renewalCycles = renewalAnalysis.costByCycle;
     
     const activeDomains = domains.filter(d => d.status === 'active').length;
     const forSaleDomains = domains.filter(d => d.status === 'for_sale').length;
@@ -696,7 +692,7 @@ export default function DashboardPage() {
                 <p className="text-blue-200 text-xs mt-1">
                   活跃: {stats.activeDomains} | 出售: {stats.forSaleDomains}
                 </p>
-              </div>
+          </div>
               <Globe className="h-8 w-8 text-blue-200" />
             </div>
           </div>
@@ -771,7 +767,7 @@ export default function DashboardPage() {
         <div className="bg-white rounded-lg shadow-sm border mb-6">
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex space-x-8 px-6 overflow-x-auto">
-              <button
+                <button 
                 onClick={() => setActiveTab('overview')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                   activeTab === 'overview'
@@ -781,7 +777,7 @@ export default function DashboardPage() {
               >
                 <Activity className="h-4 w-4 inline mr-2" />
                 概览
-              </button>
+                </button>
               <button
                 onClick={() => setActiveTab('domains')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
@@ -898,12 +894,96 @@ export default function DashboardPage() {
                 税务报告
               </button>
             </nav>
-          </div>
+              </div>
         </div>
 
         {/* Tab Content */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
+            {/* 续费分析卡片 */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">年度续费分析</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <div className="flex items-center justify-between">
+                      <div>
+                      <p className="text-sm font-medium text-blue-600">今年续费成本</p>
+                      <p className="text-2xl font-bold text-blue-900">
+                        ¥{renewalAnalysis.totalAnnualCost.toLocaleString()}
+                      </p>
+                      </div>
+                    <Calendar className="h-8 w-8 text-blue-600" />
+                    </div>
+                    </div>
+                
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-green-600">需要续费域名</p>
+                      <p className="text-2xl font-bold text-green-900">
+                        {renewalAnalysis.domainsNeedingRenewal.length}
+                      </p>
+                    </div>
+                    <Globe className="h-8 w-8 text-green-600" />
+                  </div>
+                </div>
+                
+                <div className="bg-purple-50 p-4 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-purple-600">无需续费域名</p>
+                      <p className="text-2xl font-bold text-purple-900">
+                        {renewalAnalysis.domainsNotNeedingRenewal.length}
+                      </p>
+                    </div>
+                    <CheckCircle className="h-8 w-8 text-purple-600" />
+                  </div>
+                </div>
+                
+                <div className="bg-orange-50 p-4 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-orange-600">平均成本/域名</p>
+                      <p className="text-2xl font-bold text-orange-900">
+                        ¥{renewalAnalysis.domainsNeedingRenewal.length > 0 
+                          ? (renewalAnalysis.totalAnnualCost / renewalAnalysis.domainsNeedingRenewal.length).toFixed(0)
+                          : '0'}
+                      </p>
+                    </div>
+                    <DollarSign className="h-8 w-8 text-orange-600" />
+                  </div>
+                </div>
+              </div>
+              
+              {/* 续费周期分布 */}
+              {Object.keys(renewalAnalysis.costByCycle).length > 0 && (
+                <div className="mt-6">
+                  <h4 className="text-md font-medium text-gray-900 mb-3">续费周期分布</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {Object.entries(renewalAnalysis.costByCycle).map(([cycle, cost]) => (
+                      <div key={cycle} className="bg-gray-50 p-3 rounded-lg">
+                        <p className="text-sm text-gray-600">{cycle}</p>
+                        <p className="text-lg font-semibold text-gray-900">¥{cost.toLocaleString()}</p>
+                  </div>
+                ))}
+                  </div>
+              </div>
+            )}
+              
+              {/* 续费优化建议 */}
+              <div className="mt-6">
+                <h4 className="text-md font-medium text-gray-900 mb-3">续费优化建议</h4>
+                <div className="space-y-2">
+                  {getRenewalOptimizationSuggestions(renewalAnalysis).map((suggestion, index) => (
+                    <div key={index} className="flex items-start space-x-2 p-3 bg-yellow-50 rounded-lg">
+                      <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                      <p className="text-sm text-yellow-800">{suggestion}</p>
+                    </div>
+                  ))}
+          </div>
+        </div>
+      </div>
+
             {/* Quick Actions */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-white p-6 rounded-lg shadow-sm border">
@@ -912,7 +992,7 @@ export default function DashboardPage() {
                   <Zap className="h-5 w-5 text-yellow-500" />
                 </div>
                 <div className="space-y-3">
-                <button 
+              <button
                   onClick={handleAddDomain}
                     className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center space-x-2"
                   >
@@ -925,8 +1005,8 @@ export default function DashboardPage() {
                   >
                     <FileText className="h-4 w-4" />
                     <span>记录交易</span>
-                  </button>
-                </div>
+              </button>
+            </div>
               </div>
 
               <div className="bg-white p-6 rounded-lg shadow-sm border">
@@ -959,7 +1039,7 @@ export default function DashboardPage() {
               </div>
               <div className="p-6">
                 {transactions.slice(0, 5).length > 0 ? (
-                  <div className="space-y-4">
+            <div className="space-y-4">
                     {transactions.slice(0, 5).map((transaction) => (
                       <div key={transaction.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
                         <div className="flex items-center space-x-3">
@@ -973,7 +1053,7 @@ export default function DashboardPage() {
                              transaction.type === 'renew' ? <RefreshCw className="h-4 w-4 text-yellow-600" /> :
                              <FileText className="h-4 w-4 text-gray-600" />}
                           </div>
-                          <div>
+              <div>
                             <p className="font-medium text-gray-900">
                               {domains.find(d => d.id === transaction.domain_id)?.domain_name || 'Unknown Domain'}
                             </p>
@@ -1031,14 +1111,14 @@ export default function DashboardPage() {
                 <div className="flex-1">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <input
-                      type="text"
+                <input
+                  type="text"
                       placeholder="搜索域名..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
+                />
+              </div>
                 </div>
                 <div className="flex gap-2">
                   <select
@@ -1078,8 +1158,8 @@ export default function DashboardPage() {
               onDelete={handleDeleteDomain}
               onView={handleViewDomain}
               onAdd={handleAddDomain}
-            />
-          </div>
+                />
+              </div>
         )}
 
         {activeTab === 'transactions' && (
@@ -1206,12 +1286,12 @@ export default function DashboardPage() {
                     <span className="text-sm text-gray-600">
                       共 {alerts.length} 条提醒
                     </span>
-              <button
+                <button
                       onClick={() => setAlerts(alerts.map(a => ({ ...a, read: true })))}
                       className="text-blue-600 hover:text-blue-700 text-sm"
-              >
+                >
                       全部标记为已读
-              </button>
+                </button>
             </div>
                 </div>
               </div>
@@ -1255,17 +1335,17 @@ export default function DashboardPage() {
                 >
                               {alert.read ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
                 </button>
-                          </div>
-                        </div>
-                      </div>
+              </div>
+            </div>
+          </div>
                     ))}
                   </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500">
                     <Bell className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                     <p>暂无提醒通知</p>
-                  </div>
-                )}
+        </div>
+      )}
               </div>
             </div>
           </div>
