@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+// Cloudflare Pages Function for domains API
 
 interface Domain {
   id: string;
@@ -22,73 +22,113 @@ interface Domain {
   updated_at: string;
 }
 
-export async function POST(request: NextRequest) {
+export async function onRequest(context: any) {
+  const { request, env } = context;
+  
   try {
     const { action, userId, domain, domains } = await request.json();
 
     if (!userId) {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+      return new Response(JSON.stringify({ error: 'User ID is required' }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Get D1 database from environment
+    const db = env.DB;
+    if (!db) {
+      return new Response(JSON.stringify({ error: 'Database not available' }), { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
     switch (action) {
       case 'getDomains':
-        return await getDomains(userId);
+        return await getDomains(db, userId);
       
       case 'addDomain':
         if (!domain) {
-          return NextResponse.json({ error: 'Domain data is required' }, { status: 400 });
+          return new Response(JSON.stringify({ error: 'Domain data is required' }), { 
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          });
         }
-        return await addDomain(userId, domain);
+        return await addDomain(db, userId, domain);
       
       case 'updateDomain':
         if (!domain) {
-          return NextResponse.json({ error: 'Domain data is required' }, { status: 400 });
+          return new Response(JSON.stringify({ error: 'Domain data is required' }), { 
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          });
         }
-        return await updateDomain(userId, domain);
+        return await updateDomain(db, userId, domain);
       
       case 'deleteDomain':
         if (!domain?.id) {
-          return NextResponse.json({ error: 'Domain ID is required' }, { status: 400 });
+          return new Response(JSON.stringify({ error: 'Domain ID is required' }), { 
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          });
         }
-        return await deleteDomain(userId, domain.id);
+        return await deleteDomain(db, userId, domain.id);
       
-      case 'bulkUpdate':
-        if (!domains) {
-          return NextResponse.json({ error: 'Domains data is required' }, { status: 400 });
+      case 'bulkUpdateDomains':
+        if (!domains || !Array.isArray(domains)) {
+          return new Response(JSON.stringify({ error: 'Domains array is required' }), { 
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          });
         }
-        return await bulkUpdateDomains(userId, domains);
+        return await bulkUpdateDomains(db, userId, domains);
       
       default:
-        return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+        return new Response(JSON.stringify({ error: 'Invalid action' }), { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
     }
   } catch (error) {
     console.error('Domain API error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return new Response(JSON.stringify({ error: 'Internal server error' }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
 
-async function getDomains(userId: string) {
+async function getDomains(db: any, userId: string) {
   try {
-    const result = await (globalThis as any).env.DB.prepare(
+    const result = await db.prepare(
       'SELECT * FROM domains WHERE user_id = ? ORDER BY created_at DESC'
     ).bind(userId).all();
-
-    return NextResponse.json({ 
+    
+    return new Response(JSON.stringify({ 
       success: true, 
-      domains: result.results || [] 
+      data: result.results 
+    }), {
+      headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
     console.error('Error getting domains:', error);
-    return NextResponse.json({ error: 'Failed to get domains' }, { status: 500 });
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: 'Failed to get domains' 
+    }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
 
-async function addDomain(userId: string, domain: Omit<Domain, 'id' | 'user_id' | 'created_at' | 'updated_at'>) {
+async function addDomain(db: any, userId: string, domain: Omit<Domain, 'id' | 'user_id' | 'created_at' | 'updated_at'>) {
   try {
-    const id = crypto.randomUUID();
+    const id = Date.now().toString();
     const now = new Date().toISOString();
     
-    const result = await (globalThis as any).env.DB.prepare(`
+    const result = await db.prepare(`
       INSERT INTO domains (
         id, user_id, domain_name, registrar, purchase_date, purchase_cost,
         renewal_cost, renewal_cycle, renewal_count, next_renewal_date,
@@ -98,29 +138,35 @@ async function addDomain(userId: string, domain: Omit<Domain, 'id' | 'user_id' |
     `).bind(
       id, userId, domain.domain_name, domain.registrar, domain.purchase_date,
       domain.purchase_cost, domain.renewal_cost, domain.renewal_cycle,
-      domain.renewal_count, domain.next_renewal_date || null,
-      domain.expiry_date || null, domain.status, domain.estimated_value,
-      domain.sale_date || null, domain.sale_price || null,
-      domain.platform_fee || null, JSON.stringify(domain.tags),
-      now, now
+      domain.renewal_count, domain.next_renewal_date, domain.expiry_date,
+      domain.status, domain.estimated_value, domain.sale_date, domain.sale_price,
+      domain.platform_fee, JSON.stringify(domain.tags), now, now
     ).run();
-
-    return NextResponse.json({ 
+    
+    return new Response(JSON.stringify({ 
       success: true, 
-      domain: { ...domain, id, user_id: userId, created_at: now, updated_at: now }
+      id: result.meta.last_row_id 
+    }), {
+      headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
     console.error('Error adding domain:', error);
-    return NextResponse.json({ error: 'Failed to add domain' }, { status: 500 });
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: 'Failed to add domain' 
+    }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
 
-async function updateDomain(userId: string, domain: Domain) {
+async function updateDomain(db: any, userId: string, domain: Domain) {
   try {
     const now = new Date().toISOString();
     
-    const result = await (globalThis as any).env.DB.prepare(`
-      UPDATE domains SET
+    const result = await db.prepare(`
+      UPDATE domains SET 
         domain_name = ?, registrar = ?, purchase_date = ?, purchase_cost = ?,
         renewal_cost = ?, renewal_cycle = ?, renewal_count = ?, next_renewal_date = ?,
         expiry_date = ?, status = ?, estimated_value = ?, sale_date = ?,
@@ -128,52 +174,62 @@ async function updateDomain(userId: string, domain: Domain) {
       WHERE id = ? AND user_id = ?
     `).bind(
       domain.domain_name, domain.registrar, domain.purchase_date, domain.purchase_cost,
-      domain.renewal_cost, domain.renewal_cycle, domain.renewal_count,
-      domain.next_renewal_date || null, domain.expiry_date || null,
-      domain.status, domain.estimated_value, domain.sale_date || null,
-      domain.sale_price || null, domain.platform_fee || null,
-      JSON.stringify(domain.tags), now, domain.id, userId
+      domain.renewal_cost, domain.renewal_cycle, domain.renewal_count, domain.next_renewal_date,
+      domain.expiry_date, domain.status, domain.estimated_value, domain.sale_date,
+      domain.sale_price, domain.platform_fee, JSON.stringify(domain.tags), now,
+      domain.id, userId
     ).run();
-
-    if (result.changes === 0) {
-      return NextResponse.json({ error: 'Domain not found or access denied' }, { status: 404 });
-    }
-
-    return NextResponse.json({ 
+    
+    return new Response(JSON.stringify({ 
       success: true, 
-      domain: { ...domain, updated_at: now }
+      changes: result.meta.changes 
+    }), {
+      headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
     console.error('Error updating domain:', error);
-    return NextResponse.json({ error: 'Failed to update domain' }, { status: 500 });
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: 'Failed to update domain' 
+    }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
 
-async function deleteDomain(userId: string, domainId: string) {
+async function deleteDomain(db: any, userId: string, domainId: string) {
   try {
-    const result = await (globalThis as any).env.DB.prepare(
+    const result = await db.prepare(
       'DELETE FROM domains WHERE id = ? AND user_id = ?'
     ).bind(domainId, userId).run();
-
-    if (result.changes === 0) {
-      return NextResponse.json({ error: 'Domain not found or access denied' }, { status: 404 });
-    }
-
-    return NextResponse.json({ success: true });
+    
+    return new Response(JSON.stringify({ 
+      success: true, 
+      changes: result.meta.changes 
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
   } catch (error) {
     console.error('Error deleting domain:', error);
-    return NextResponse.json({ error: 'Failed to delete domain' }, { status: 500 });
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: 'Failed to delete domain' 
+    }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
 
-async function bulkUpdateDomains(userId: string, domains: Domain[]) {
+async function bulkUpdateDomains(db: any, userId: string, domains: Domain[]) {
   try {
     const now = new Date().toISOString();
+    let successCount = 0;
     
-    // 使用事务来确保数据一致性
-    const statements = domains.map(domain => 
-      (globalThis as any).env.DB.prepare(`
-        UPDATE domains SET
+    for (const domain of domains) {
+      await db.prepare(`
+        UPDATE domains SET 
           domain_name = ?, registrar = ?, purchase_date = ?, purchase_cost = ?,
           renewal_cost = ?, renewal_cycle = ?, renewal_count = ?, next_renewal_date = ?,
           expiry_date = ?, status = ?, estimated_value = ?, sale_date = ?,
@@ -181,22 +237,28 @@ async function bulkUpdateDomains(userId: string, domains: Domain[]) {
         WHERE id = ? AND user_id = ?
       `).bind(
         domain.domain_name, domain.registrar, domain.purchase_date, domain.purchase_cost,
-        domain.renewal_cost, domain.renewal_cycle, domain.renewal_count,
-        domain.next_renewal_date || null, domain.expiry_date || null,
-        domain.status, domain.estimated_value, domain.sale_date || null,
-        domain.sale_price || null, domain.platform_fee || null,
-        JSON.stringify(domain.tags), now, domain.id, userId
-      )
-    );
-
-    await (globalThis as any).env.DB.batch(statements);
-
-    return NextResponse.json({ 
+        domain.renewal_cost, domain.renewal_cycle, domain.renewal_count, domain.next_renewal_date,
+        domain.expiry_date, domain.status, domain.estimated_value, domain.sale_date,
+        domain.sale_price, domain.platform_fee, JSON.stringify(domain.tags), now,
+        domain.id, userId
+      ).run();
+      successCount++;
+    }
+    
+    return new Response(JSON.stringify({ 
       success: true, 
-      domains: domains.map(d => ({ ...d, updated_at: now }))
+      updated: successCount 
+    }), {
+      headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
     console.error('Error bulk updating domains:', error);
-    return NextResponse.json({ error: 'Failed to bulk update domains' }, { status: 500 });
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: 'Failed to bulk update domains' 
+    }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }

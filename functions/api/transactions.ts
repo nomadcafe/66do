@@ -1,10 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+// Cloudflare Pages Function for transactions API
 
 interface Transaction {
   id: string;
   domain_id: string;
-  user_id: string;
-  type: 'purchase' | 'renewal' | 'sell' | 'expense' | 'income' | 'marketing' | 'advertising';
+  type: 'buy' | 'sell' | 'renew' | 'transfer' | 'fee' | 'marketing' | 'advertising';
   amount: number;
   currency: string;
   exchange_rate?: number;
@@ -16,186 +15,246 @@ interface Transaction {
   tax_deductible?: boolean;
   receipt_url?: string;
   notes: string;
-  transaction_date: string;
+  date: string;
+  user_id: string;
   created_at: string;
   updated_at: string;
 }
 
-export async function POST(request: NextRequest) {
+export async function onRequest(context: any) {
+  const { request, env } = context;
+  
   try {
     const { action, userId, transaction, transactions } = await request.json();
 
     if (!userId) {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+      return new Response(JSON.stringify({ error: 'User ID is required' }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Get D1 database from environment
+    const db = env.DB;
+    if (!db) {
+      return new Response(JSON.stringify({ error: 'Database not available' }), { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
     switch (action) {
       case 'getTransactions':
-        return await getTransactions(userId);
+        return await getTransactions(db, userId);
       
       case 'addTransaction':
         if (!transaction) {
-          return NextResponse.json({ error: 'Transaction data is required' }, { status: 400 });
+          return new Response(JSON.stringify({ error: 'Transaction data is required' }), { 
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          });
         }
-        return await addTransaction(userId, transaction);
+        return await addTransaction(db, userId, transaction);
       
       case 'updateTransaction':
         if (!transaction) {
-          return NextResponse.json({ error: 'Transaction data is required' }, { status: 400 });
+          return new Response(JSON.stringify({ error: 'Transaction data is required' }), { 
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          });
         }
-        return await updateTransaction(userId, transaction);
+        return await updateTransaction(db, userId, transaction);
       
       case 'deleteTransaction':
         if (!transaction?.id) {
-          return NextResponse.json({ error: 'Transaction ID is required' }, { status: 400 });
+          return new Response(JSON.stringify({ error: 'Transaction ID is required' }), { 
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          });
         }
-        return await deleteTransaction(userId, transaction.id);
+        return await deleteTransaction(db, userId, transaction.id);
       
-      case 'bulkUpdate':
-        if (!transactions) {
-          return NextResponse.json({ error: 'Transactions data is required' }, { status: 400 });
+      case 'bulkUpdateTransactions':
+        if (!transactions || !Array.isArray(transactions)) {
+          return new Response(JSON.stringify({ error: 'Transactions array is required' }), { 
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          });
         }
-        return await bulkUpdateTransactions(userId, transactions);
+        return await bulkUpdateTransactions(db, userId, transactions);
       
       default:
-        return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+        return new Response(JSON.stringify({ error: 'Invalid action' }), { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
     }
   } catch (error) {
     console.error('Transaction API error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return new Response(JSON.stringify({ error: 'Internal server error' }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
 
-async function getTransactions(userId: string) {
+async function getTransactions(db: any, userId: string) {
   try {
-    const result = await (globalThis as any).env.DB.prepare(
-      'SELECT * FROM transactions WHERE user_id = ? ORDER BY transaction_date DESC'
+    const result = await db.prepare(
+      'SELECT * FROM domain_transactions WHERE user_id = ? ORDER BY date DESC'
     ).bind(userId).all();
-
-    return NextResponse.json({ 
+    
+    return new Response(JSON.stringify({ 
       success: true, 
-      transactions: result.results || [] 
+      data: result.results 
+    }), {
+      headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
     console.error('Error getting transactions:', error);
-    return NextResponse.json({ error: 'Failed to get transactions' }, { status: 500 });
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: 'Failed to get transactions' 
+    }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
 
-async function addTransaction(userId: string, transaction: Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at'>) {
+async function addTransaction(db: any, userId: string, transaction: Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at'>) {
   try {
-    const id = crypto.randomUUID();
+    const id = Date.now().toString();
     const now = new Date().toISOString();
     
-    const result = await (globalThis as any).env.DB.prepare(`
-      INSERT INTO transactions (
+    const result = await db.prepare(`
+      INSERT INTO domain_transactions (
         id, user_id, domain_id, type, amount, currency, exchange_rate,
         base_amount, platform_fee, platform_fee_percentage, net_amount,
-        category, tax_deductible, receipt_url, notes, transaction_date,
-        created_at, updated_at
+        category, tax_deductible, receipt_url, notes, date, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       id, userId, transaction.domain_id, transaction.type, transaction.amount,
-      transaction.currency, transaction.exchange_rate || null,
-      transaction.base_amount || null, transaction.platform_fee || null,
-      transaction.platform_fee_percentage || null, transaction.net_amount || null,
-      transaction.category || null, transaction.tax_deductible || false,
-      transaction.receipt_url || null, transaction.notes, transaction.transaction_date,
-      now, now
+      transaction.currency, transaction.exchange_rate, transaction.base_amount,
+      transaction.platform_fee, transaction.platform_fee_percentage, transaction.net_amount,
+      transaction.category, transaction.tax_deductible, transaction.receipt_url,
+      transaction.notes, transaction.date, now, now
     ).run();
-
-    return NextResponse.json({ 
+    
+    return new Response(JSON.stringify({ 
       success: true, 
-      transaction: { ...transaction, id, user_id: userId, created_at: now, updated_at: now }
+      id: result.meta.last_row_id 
+    }), {
+      headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
     console.error('Error adding transaction:', error);
-    return NextResponse.json({ error: 'Failed to add transaction' }, { status: 500 });
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: 'Failed to add transaction' 
+    }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
 
-async function updateTransaction(userId: string, transaction: Transaction) {
+async function updateTransaction(db: any, userId: string, transaction: Transaction) {
   try {
     const now = new Date().toISOString();
     
-    const result = await (globalThis as any).env.DB.prepare(`
-      UPDATE transactions SET
+    const result = await db.prepare(`
+      UPDATE domain_transactions SET 
         domain_id = ?, type = ?, amount = ?, currency = ?, exchange_rate = ?,
-        base_amount = ?, platform_fee = ?, platform_fee_percentage = ?,
-        net_amount = ?, category = ?, tax_deductible = ?, receipt_url = ?,
-        notes = ?, transaction_date = ?, updated_at = ?
+        base_amount = ?, platform_fee = ?, platform_fee_percentage = ?, net_amount = ?,
+        category = ?, tax_deductible = ?, receipt_url = ?, notes = ?, date = ?, updated_at = ?
       WHERE id = ? AND user_id = ?
     `).bind(
       transaction.domain_id, transaction.type, transaction.amount, transaction.currency,
-      transaction.exchange_rate || null, transaction.base_amount || null,
-      transaction.platform_fee || null, transaction.platform_fee_percentage || null,
-      transaction.net_amount || null, transaction.category || null,
-      transaction.tax_deductible || false, transaction.receipt_url || null,
-      transaction.notes, transaction.transaction_date, now, transaction.id, userId
+      transaction.exchange_rate, transaction.base_amount, transaction.platform_fee,
+      transaction.platform_fee_percentage, transaction.net_amount, transaction.category,
+      transaction.tax_deductible, transaction.receipt_url, transaction.notes,
+      transaction.date, now, transaction.id, userId
     ).run();
-
-    if (result.changes === 0) {
-      return NextResponse.json({ error: 'Transaction not found or access denied' }, { status: 404 });
-    }
-
-    return NextResponse.json({ 
+    
+    return new Response(JSON.stringify({ 
       success: true, 
-      transaction: { ...transaction, updated_at: now }
+      changes: result.meta.changes 
+    }), {
+      headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
     console.error('Error updating transaction:', error);
-    return NextResponse.json({ error: 'Failed to update transaction' }, { status: 500 });
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: 'Failed to update transaction' 
+    }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
 
-async function deleteTransaction(userId: string, transactionId: string) {
+async function deleteTransaction(db: any, userId: string, transactionId: string) {
   try {
-    const result = await (globalThis as any).env.DB.prepare(
-      'DELETE FROM transactions WHERE id = ? AND user_id = ?'
+    const result = await db.prepare(
+      'DELETE FROM domain_transactions WHERE id = ? AND user_id = ?'
     ).bind(transactionId, userId).run();
-
-    if (result.changes === 0) {
-      return NextResponse.json({ error: 'Transaction not found or access denied' }, { status: 404 });
-    }
-
-    return NextResponse.json({ success: true });
+    
+    return new Response(JSON.stringify({ 
+      success: true, 
+      changes: result.meta.changes 
+    }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
   } catch (error) {
     console.error('Error deleting transaction:', error);
-    return NextResponse.json({ error: 'Failed to delete transaction' }, { status: 500 });
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: 'Failed to delete transaction' 
+    }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
 
-async function bulkUpdateTransactions(userId: string, transactions: Transaction[]) {
+async function bulkUpdateTransactions(db: any, userId: string, transactions: Transaction[]) {
   try {
     const now = new Date().toISOString();
+    let successCount = 0;
     
-    // 使用事务来确保数据一致性
-    const statements = transactions.map(transaction => 
-      (globalThis as any).env.DB.prepare(`
-        UPDATE transactions SET
+    for (const transaction of transactions) {
+      await db.prepare(`
+        UPDATE domain_transactions SET 
           domain_id = ?, type = ?, amount = ?, currency = ?, exchange_rate = ?,
-          base_amount = ?, platform_fee = ?, platform_fee_percentage = ?,
-          net_amount = ?, category = ?, tax_deductible = ?, receipt_url = ?,
-          notes = ?, transaction_date = ?, updated_at = ?
+          base_amount = ?, platform_fee = ?, platform_fee_percentage = ?, net_amount = ?,
+          category = ?, tax_deductible = ?, receipt_url = ?, notes = ?, date = ?, updated_at = ?
         WHERE id = ? AND user_id = ?
       `).bind(
         transaction.domain_id, transaction.type, transaction.amount, transaction.currency,
-        transaction.exchange_rate || null, transaction.base_amount || null,
-        transaction.platform_fee || null, transaction.platform_fee_percentage || null,
-        transaction.net_amount || null, transaction.category || null,
-        transaction.tax_deductible || false, transaction.receipt_url || null,
-        transaction.notes, transaction.transaction_date, now, transaction.id, userId
-      )
-    );
-
-    await (globalThis as any).env.DB.batch(statements);
-
-    return NextResponse.json({ 
+        transaction.exchange_rate, transaction.base_amount, transaction.platform_fee,
+        transaction.platform_fee_percentage, transaction.net_amount, transaction.category,
+        transaction.tax_deductible, transaction.receipt_url, transaction.notes,
+        transaction.date, now, transaction.id, userId
+      ).run();
+      successCount++;
+    }
+    
+    return new Response(JSON.stringify({ 
       success: true, 
-      transactions: transactions.map(t => ({ ...t, updated_at: now }))
+      updated: successCount 
+    }), {
+      headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
     console.error('Error bulk updating transactions:', error);
-    return NextResponse.json({ error: 'Failed to bulk update transactions' }, { status: 500 });
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: 'Failed to bulk update transactions' 
+    }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }

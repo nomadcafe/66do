@@ -1,8 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Static export for Cloudflare Pages
-  output: 'export',
+  // Cloudflare Pages with Functions support
   trailingSlash: true,
   images: {
     unoptimized: true,
