@@ -10,9 +10,8 @@ interface VerificationToken {
 
 // 生成验证令牌
 function generateVerificationToken(): string {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+  // 生成6位数字验证码
+  return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 // 发送验证邮件
@@ -43,7 +42,7 @@ export async function sendVerificationEmail(email: string, userId: string): Prom
       },
       body: JSON.stringify({
         email,
-        token,
+        verificationCode: token,
         userId,
         type: 'email_verification'
       })
