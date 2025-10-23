@@ -13,7 +13,7 @@ interface Domain {
   renewal_cycle: number; // 续费周期（年数）：1, 2, 3等
   renewal_count: number; // 已续费次数
   next_renewal_date?: string;
-  expiry_date: string;
+  expiry_date?: string; // 改为可选字段
   status: 'active' | 'for_sale' | 'sold' | 'expired';
   estimated_value: number;
   tags: string[];
@@ -55,7 +55,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
         renewal_cycle: domain.renewal_cycle,
         renewal_count: domain.renewal_count,
         next_renewal_date: domain.next_renewal_date || '',
-        expiry_date: domain.expiry_date,
+        expiry_date: domain.expiry_date || '',
         status: domain.status,
         estimated_value: domain.estimated_value,
         tags: domain.tags
@@ -185,11 +185,10 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <Calendar className="h-4 w-4 inline mr-1" />
-                Expiry Date *
+                Expiry Date
               </label>
               <input
                 type="date"
-                required
                 value={formData.expiry_date}
                 onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"

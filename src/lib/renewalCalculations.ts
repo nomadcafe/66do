@@ -27,7 +27,7 @@ export function calculateAnnualRenewalCost(
     renewal_cycle: number;
     renewal_count: number;
     purchase_date: string;
-    expiry_date: string;
+    expiry_date?: string; // 改为可选字段
     status: string;
   }>,
   targetYear: number = new Date().getFullYear()
@@ -45,6 +45,9 @@ export function calculateAnnualRenewalCost(
   
   domains.forEach(domain => {
     if (domain.status !== 'active') return;
+    
+    // 如果没有到期日期，跳过续费计算
+    if (!domain.expiry_date) return;
     
     const purchaseDate = new Date(domain.purchase_date);
     const expiryDate = new Date(domain.expiry_date);
@@ -95,7 +98,7 @@ function calculateDomainRenewalStatus(
     renewal_cycle: number;
     renewal_count: number;
     purchase_date: string;
-    expiry_date: string;
+    expiry_date?: string; // 改为可选字段
   },
   targetYear: number,
   purchaseDate: Date,

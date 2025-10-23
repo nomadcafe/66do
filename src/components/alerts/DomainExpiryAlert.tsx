@@ -6,7 +6,7 @@ import { AlertTriangle, Calendar, Clock, CheckCircle } from 'lucide-react';
 interface Domain {
   id: string;
   domain_name: string;
-  expiry_date: string;
+  expiry_date?: string; // 改为可选字段
   renewal_cost: number;
   renewal_cycle: number;
   status: 'active' | 'for_sale' | 'sold' | 'expired';
@@ -35,6 +35,9 @@ export default function DomainExpiryAlert({ domains, onRenewDomain }: DomainExpi
 
       domains.forEach(domain => {
         if (domain.status !== 'active') return;
+        
+        // 如果没有到期日期，跳过提醒
+        if (!domain.expiry_date) return;
 
         const expiryDate = new Date(domain.expiry_date);
         const daysUntilExpiry = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));

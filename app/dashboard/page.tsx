@@ -62,9 +62,12 @@ interface Domain {
   renewal_cycle: number; // 续费周期（年数）：1, 2, 3等
   renewal_count: number; // 已续费次数
   next_renewal_date?: string;
-  expiry_date: string;
+  expiry_date?: string; // 改为可选字段
   status: 'active' | 'for_sale' | 'sold' | 'expired';
   estimated_value: number;
+  sale_date?: string; // 出售日期
+  sale_price?: number; // 出售价格
+  platform_fee?: number; // 平台手续费
   tags: string[];
 }
 
@@ -328,6 +331,9 @@ export default function DashboardPage() {
     
     // 域名续费提醒
     domains.forEach(domain => {
+      // 如果没有到期日期，跳过提醒
+      if (!domain.expiry_date) return;
+      
       const daysUntilExpiry = Math.ceil((new Date(domain.expiry_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
       if (daysUntilExpiry <= 30 && daysUntilExpiry > 0) {
         newAlerts.push({
@@ -517,6 +523,8 @@ export default function DashboardPage() {
     localStorage.setItem('66do_transactions', JSON.stringify(newTransactions));
 
     // 更新域名到期日期
+    if (!domain.expiry_date) return; // 如果没有到期日期，跳过更新
+    
     const newExpiryDate = new Date(domain.expiry_date);
     newExpiryDate.setFullYear(newExpiryDate.getFullYear() + domain.renewal_cycle);
     
@@ -576,7 +584,8 @@ export default function DashboardPage() {
             ...domain,
             status: 'sold' as const,
             sale_date: transaction.date,
-            sale_price: transaction.amount
+            sale_price: transaction.amount,
+            platform_fee: transaction.platform_fee || 0
           };
         }
         return domain;

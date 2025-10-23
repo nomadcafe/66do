@@ -28,7 +28,7 @@ interface Domain {
   renewal_cost: number;
   renewal_cycle: number;
   renewal_count: number;
-  expiry_date: string;
+  expiry_date?: string; // 改为可选字段
   status: 'active' | 'for_sale' | 'sold' | 'expired';
   estimated_value: number;
   tags: string[];

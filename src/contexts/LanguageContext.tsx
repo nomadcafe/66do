@@ -56,7 +56,7 @@ const translations = {
     'stats.totalUsers': 'Active Users',
     'stats.portfolioValue': 'Portfolio Value',
     'stats.investmentCount': 'Domains Managed',
-    'stats.successRate': 'User Satisfaction',
+    'stats.successRate': 'Free',
     
     // Footer
     'footer.description': 'Professional domain investment management platform to help you achieve your domain investment goals.',
@@ -157,7 +157,7 @@ const translations = {
     'stats.totalUsers': '活跃用户',
     'stats.portfolioValue': '投资组合价值',
     'stats.investmentCount': '管理域名数',
-    'stats.successRate': '用户满意度',
+    'stats.successRate': '免费',
     
     // Footer
     'footer.description': '专业的域名投资管理平台，助您实现域名投资目标。',

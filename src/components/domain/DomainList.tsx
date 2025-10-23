@@ -14,7 +14,7 @@ interface Domain {
   renewal_cycle: number; // 续费周期（年数）：1, 2, 3等
   renewal_count: number; // 已续费次数
   next_renewal_date?: string;
-  expiry_date: string;
+  expiry_date?: string; // 改为可选字段
   status: 'active' | 'for_sale' | 'sold' | 'expired';
   estimated_value: number;
   tags: string[];

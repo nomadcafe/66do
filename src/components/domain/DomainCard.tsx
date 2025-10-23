@@ -13,11 +13,12 @@ interface Domain {
   renewal_cycle: number; // 续费周期（年数）：1, 2, 3等
   renewal_count: number; // 已续费次数
   next_renewal_date?: string;
-  expiry_date: string;
+  expiry_date?: string; // 改为可选字段
   status: 'active' | 'for_sale' | 'sold' | 'expired';
   estimated_value: number;
   sale_date?: string; // 出售日期
   sale_price?: number; // 出售价格
+  platform_fee?: number; // 平台手续费
   tags: string[];
 }
 
@@ -133,10 +134,10 @@ export default function DomainCard({ domain, onEdit, onDelete, onView }: DomainC
             </div>
             <div className="mt-2 text-sm">
               <span className="text-green-700">
-                净利润: {formatCurrency(domain.sale_price - totalHoldingCost)}
+                净利润: {formatCurrency(domain.sale_price - totalHoldingCost - (domain.platform_fee || 0))}
               </span>
               <span className="ml-2 text-green-600">
-                (ROI: {(((domain.sale_price - totalHoldingCost) / totalHoldingCost) * 100).toFixed(1)}%)
+                (ROI: {(((domain.sale_price - totalHoldingCost - (domain.platform_fee || 0)) / totalHoldingCost) * 100).toFixed(1)}%)
               </span>
             </div>
           </div>
