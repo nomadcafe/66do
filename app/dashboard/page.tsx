@@ -17,7 +17,8 @@ import FinancialReport from '../../src/components/reports/FinancialReport';
 import FinancialAnalysis from '../../src/components/reports/FinancialAnalysis';
 import TaxReport from '../../src/components/reports/TaxReport';
 import { calculateAnnualRenewalCost, getRenewalOptimizationSuggestions } from '../../src/lib/renewalCalculations';
-import { calculateFinancialMetrics, formatCurrency } from '../../src/lib/financialMetrics';
+import { calculateFinancialMetrics } from '../../src/lib/financialMetrics';
+import { calculateEnhancedFinancialMetrics, formatCurrency as formatCurrencyEnhanced } from '../../src/lib/enhancedFinancialMetrics';
 // import { domainCache } from '../../src/lib/cache';
 // import { marketDataManager } from '../../src/lib/marketData';
 // import { auditLogger } from '../../src/lib/security';
@@ -177,6 +178,11 @@ export default function DashboardPage() {
   // 计算财务指标
   const financialMetrics = useMemo(() => {
     return calculateFinancialMetrics(domains, transactions);
+  }, [domains, transactions]);
+  
+  // 计算增强的财务指标
+  const enhancedFinancialMetrics = useMemo(() => {
+    return calculateEnhancedFinancialMetrics(domains, transactions);
   }, [domains, transactions]);
   const [showDomainForm, setShowDomainForm] = useState(false);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
@@ -911,9 +917,9 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-cyan-100 text-sm font-medium">总销售额</p>
-                    <p className="text-3xl font-bold">{formatCurrency(financialMetrics.totalSales)}</p>
+                    <p className="text-3xl font-bold">{formatCurrencyEnhanced(enhancedFinancialMetrics.totalSales)}</p>
                     <p className="text-cyan-200 text-xs mt-1">
-                      未扣除手续费
+                      未扣除任何费用
                     </p>
                   </div>
                   <DollarSign className="h-8 w-8 text-cyan-200" />
@@ -924,7 +930,7 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-red-100 text-sm font-medium">平台手续费</p>
-                    <p className="text-3xl font-bold">{formatCurrency(financialMetrics.totalPlatformFees)}</p>
+                    <p className="text-3xl font-bold">{formatCurrencyEnhanced(enhancedFinancialMetrics.totalPlatformFees)}</p>
                     <p className="text-red-200 text-xs mt-1">
                       总手续费
                     </p>
@@ -937,7 +943,7 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-emerald-100 text-sm font-medium">年度销售额</p>
-                    <p className="text-3xl font-bold">{formatCurrency(financialMetrics.annualSales)}</p>
+                    <p className="text-3xl font-bold">{formatCurrencyEnhanced(enhancedFinancialMetrics.annualSales)}</p>
                     <p className="text-emerald-200 text-xs mt-1">
                       今年销售额
                     </p>
@@ -946,16 +952,16 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className={`bg-gradient-to-br p-6 rounded-lg shadow-lg text-white ${financialMetrics.annualProfit >= 0 ? 'from-green-500 to-green-600' : 'from-red-500 to-red-600'}`}>
+              <div className={`bg-gradient-to-br p-6 rounded-lg shadow-lg text-white ${enhancedFinancialMetrics.annualProfit >= 0 ? 'from-green-500 to-green-600' : 'from-red-500 to-red-600'}`}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className={`text-sm font-medium ${financialMetrics.annualProfit >= 0 ? 'text-green-100' : 'text-red-100'}`}>年度利润</p>
-                    <p className="text-3xl font-bold">{formatCurrency(financialMetrics.annualProfit)}</p>
-                    <p className={`text-xs mt-1 ${financialMetrics.annualProfit >= 0 ? 'text-green-200' : 'text-red-200'}`}>
-                      今年净利润
+                    <p className={`text-sm font-medium ${enhancedFinancialMetrics.annualProfit >= 0 ? 'text-green-100' : 'text-red-100'}`}>年度净利润</p>
+                    <p className="text-3xl font-bold">{formatCurrencyEnhanced(enhancedFinancialMetrics.annualProfit)}</p>
+                    <p className={`text-xs mt-1 ${enhancedFinancialMetrics.annualProfit >= 0 ? 'text-green-200' : 'text-red-200'}`}>
+                      扣除所有成本后
                     </p>
                   </div>
-                  <Target className={`h-8 w-8 ${financialMetrics.annualProfit >= 0 ? 'text-green-200' : 'text-red-200'}`} />
+                  <Target className={`h-8 w-8 ${enhancedFinancialMetrics.annualProfit >= 0 ? 'text-green-200' : 'text-red-200'}`} />
                 </div>
               </div>
             </div>

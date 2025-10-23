@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Filter, Plus, Edit, Trash2, DollarSign, Calendar, FileText } from 'lucide-react';
+import { Search, Filter, Plus, Edit, Trash2, DollarSign, Calendar, FileText, TrendingUp, TrendingDown } from 'lucide-react';
+import { calculateDomainROI, getROIColor, getROIBgColor, formatPercentage } from '../../lib/enhancedFinancialMetrics';
 
 interface Transaction {
   id: string;
@@ -25,6 +26,11 @@ interface Transaction {
 interface Domain {
   id: string;
   domain_name: string;
+  purchase_cost: number;
+  renewal_cost: number;
+  renewal_count: number;
+  purchase_date: string;
+  status: string;
 }
 
 interface TransactionListProps {
@@ -253,6 +259,28 @@ export default function TransactionList({
                             <span className="text-xs text-gray-500 ml-2">
                               (手续费: {formatCurrency(transaction.platform_fee, transaction.currency)})
                             </span>
+                          </div>
+                        )}
+                        {transaction.type === 'sell' && (
+                          <div className="mt-1">
+                            {(() => {
+                              const domain = domains.find(d => d.id === transaction.domain_id);
+                              if (!domain) return null;
+                              
+                              const domainROI = calculateDomainROI(domain, [transaction]);
+                              return (
+                                <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getROIBgColor(domainROI.roi)}`}>
+                                  {domainROI.roi >= 0 ? (
+                                    <TrendingUp className="h-3 w-3 mr-1" />
+                                  ) : (
+                                    <TrendingDown className="h-3 w-3 mr-1" />
+                                  )}
+                                  <span className={getROIColor(domainROI.roi)}>
+                                    ROI: {formatPercentage(domainROI.roi)}
+                                  </span>
+                                </div>
+                              );
+                            })()}
                           </div>
                         )}
                       </div>
