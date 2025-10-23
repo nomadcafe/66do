@@ -36,12 +36,8 @@ import LoadingSpinner from '../../src/components/ui/LoadingSpinner';
 import ErrorMessage from '../../src/components/ui/ErrorMessage';
 import { 
   loadDomainsFromD1, 
-  loadTransactionsFromD1, 
-  loadDomainsFromLocalStorage, 
-  loadTransactionsFromLocalStorage,
-  checkD1Connection 
+  loadTransactionsFromD1
 } from '../../src/lib/dataService';
-import { migrateAllDataToD1, needsMigration, backupLocalStorageData } from '../../src/lib/dataMigration';
 import { 
   Globe, 
   Plus, 
@@ -158,9 +154,7 @@ export default function DashboardPage() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [migrationStatus, setMigrationStatus] = useState<'idle' | 'checking' | 'migrating' | 'completed' | 'failed'>('idle');
-  const [migrationProgress, setMigrationProgress] = useState({ domains: 0, transactions: 0 });
-  const [dataSource, setDataSource] = useState<'d1' | 'localStorage' | 'cache'>('cache');
+  const [dataSource, setDataSource] = useState<'d1' | 'cache'>('cache');
   const [activeTab, setActiveTab] = useState<'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'marketplace' | 'settings' | 'data' | 'reports'>('overview');
   
   // 计算续费分析
@@ -197,7 +191,7 @@ export default function DashboardPage() {
     }
   }, [user, router]);
 
-  // Load data with D1 database integration and fallback to localStorage
+  // Load data from D1 database only
   useEffect(() => {
     const loadData = async () => {
       if (!user?.id) return;
@@ -205,7 +199,6 @@ export default function DashboardPage() {
       try {
         setLoading(true);
         setError(null);
-        setMigrationStatus('checking');
         
         const userId = user.id;
         
@@ -218,67 +211,37 @@ export default function DashboardPage() {
           setTransactions(cachedTransactions as Transaction[]);
           setDataSource('cache');
           setLoading(false);
-          setMigrationStatus('idle');
           return;
         }
 
-        // Check D1 database connection
-        const d1Connected = await checkD1Connection();
+        // Load from D1 database
+        console.log('Loading data from D1 database...');
         
-        if (d1Connected) {
-          console.log('D1 database connected, loading from D1...');
-          
-          // Load from D1 database
-          const domainsResult = await loadDomainsFromD1(userId);
-          const transactionsResult = await loadTransactionsFromD1(userId);
-          
-          if (domainsResult.success && transactionsResult.success) {
-            setDomains(domainsResult.data);
-            setTransactions(transactionsResult.data);
-            setDataSource('d1');
-            
-            // Cache the data
-            domainCache.cacheDomains(userId, domainsResult.data);
-            domainCache.cacheTransactions(userId, transactionsResult.data);
-            
-            console.log('Data loaded from D1 database');
-          } else {
-            console.log('D1 load failed, falling back to localStorage');
-            throw new Error('D1 database load failed');
-          }
-        } else {
-          console.log('D1 database not connected, loading from localStorage...');
-          throw new Error('D1 database not available');
-        }
-        
-      } catch (error) {
-        console.log('Falling back to localStorage:', error);
-        
-        // Fallback to localStorage
-        const domainsResult = loadDomainsFromLocalStorage();
-        const transactionsResult = loadTransactionsFromLocalStorage();
+        const domainsResult = await loadDomainsFromD1(userId);
+        const transactionsResult = await loadTransactionsFromD1(userId);
         
         if (domainsResult.success && transactionsResult.success) {
           setDomains(domainsResult.data);
           setTransactions(transactionsResult.data);
-          setDataSource('localStorage');
+          setDataSource('d1');
           
           // Cache the data
-          const userId = user?.id || 'default';
           domainCache.cacheDomains(userId, domainsResult.data);
           domainCache.cacheTransactions(userId, transactionsResult.data);
           
-          // Check if migration is needed
-          if (needsMigration()) {
-            console.log('Migration needed, starting migration process...');
-            await startDataMigration();
-          }
+          console.log('Data loaded from D1 database successfully');
         } else {
-          setError('Failed to load data from both D1 database and localStorage');
+          throw new Error('Failed to load data from D1 database');
         }
+        
+      } catch (error) {
+        console.error('Error loading data from D1:', error);
+        setError('Failed to load data from database. Please try again.');
+        auditLogger.log(user?.id || 'default', 'data_load_failed', 'dashboard', { 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        });
       } finally {
         setLoading(false);
-        setMigrationStatus('idle');
         
         // Log successful data load
         const userId = user?.id || 'default';
@@ -291,72 +254,109 @@ export default function DashboardPage() {
     };
 
     loadData();
-  }, [user?.id, dataSource, domains.length, transactions.length]);
+  }, [user?.id]);
 
-  // Data migration function
-  const startDataMigration = async () => {
-    if (!user?.id) return;
-    
-    try {
-      setMigrationStatus('migrating');
-      console.log('Starting data migration to D1 database...');
-      
-      // Backup localStorage data first
-      backupLocalStorageData();
-      
-      // Migrate data to D1
-      const result = await migrateAllDataToD1(user.id);
-      
-      if (result.success) {
-        console.log('Data migration completed successfully');
-        setMigrationStatus('completed');
-        setMigrationProgress({ 
-          domains: result.domainsMigrated, 
-          transactions: result.transactionsMigrated 
-        });
-        
-        // Reload data from D1 after successful migration
-        setTimeout(() => {
-          window.location.reload();
-        }, 2000);
-      } else {
-        console.error('Data migration failed:', result.errors);
-        setMigrationStatus('failed');
-        setError(`Migration failed: ${result.errors.join(', ')}`);
-      }
-    } catch (error) {
-      console.error('Migration error:', error);
-      setMigrationStatus('failed');
-      setError(`Migration error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  };
 
-  // Unified data saving function
+  // Save data to D1 database only
   const saveData = async (newDomains: Domain[], newTransactions: Transaction[]) => {
     if (!user?.id) return;
     
     try {
-      if (dataSource === 'd1') {
-        // Save to D1 database
-        console.log('Saving data to D1 database...');
-        // Note: In a real implementation, you would call the D1 API here
-        // For now, we'll fall back to localStorage
-        localStorage.setItem('66do_domains', JSON.stringify(newDomains));
-        localStorage.setItem('66do_transactions', JSON.stringify(newTransactions));
-      } else {
-        // Save to localStorage
-        localStorage.setItem('66do_domains', JSON.stringify(newDomains));
-        localStorage.setItem('66do_transactions', JSON.stringify(newTransactions));
+      console.log('Saving data to D1 database...');
+      
+      // Save domains to D1
+      for (const domain of newDomains) {
+        if (domains.find(d => d.id === domain.id)) {
+          // Update existing domain
+          await fetch('/api/domains', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'updateDomain',
+              userId: user.id,
+              domain
+            })
+          });
+        } else {
+          // Add new domain
+          await fetch('/api/domains', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'addDomain',
+              userId: user.id,
+              domain: {
+                domain_name: domain.domain_name,
+                registrar: domain.registrar,
+                purchase_date: domain.purchase_date,
+                purchase_cost: domain.purchase_cost,
+                renewal_cost: domain.renewal_cost,
+                renewal_cycle: domain.renewal_cycle,
+                renewal_count: domain.renewal_count,
+                next_renewal_date: domain.next_renewal_date,
+                expiry_date: domain.expiry_date,
+                status: domain.status,
+                estimated_value: domain.estimated_value,
+                sale_date: domain.sale_date,
+                sale_price: domain.sale_price,
+                platform_fee: domain.platform_fee,
+                tags: domain.tags
+              }
+            })
+          });
+        }
+      }
+      
+      // Save transactions to D1
+      for (const transaction of newTransactions) {
+        if (transactions.find(t => t.id === transaction.id)) {
+          // Update existing transaction
+          await fetch('/api/transactions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'updateTransaction',
+              userId: user.id,
+              transaction
+            })
+          });
+        } else {
+          // Add new transaction
+          await fetch('/api/transactions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'addTransaction',
+              userId: user.id,
+              transaction: {
+                domain_id: transaction.domain_id,
+                type: transaction.type,
+                amount: transaction.amount,
+                currency: transaction.currency,
+                exchange_rate: transaction.exchange_rate,
+                base_amount: transaction.base_amount,
+                platform_fee: transaction.platform_fee,
+                platform_fee_percentage: transaction.platform_fee_percentage,
+                net_amount: transaction.net_amount,
+                category: transaction.category,
+                tax_deductible: transaction.tax_deductible,
+                receipt_url: transaction.receipt_url,
+                notes: transaction.notes,
+                date: transaction.date
+              }
+            })
+          });
+        }
       }
       
       // Update cache
       domainCache.cacheDomains(user.id, newDomains);
       domainCache.cacheTransactions(user.id, newTransactions);
       
-      console.log('Data saved successfully');
+      console.log('Data saved to D1 database successfully');
     } catch (error) {
-      console.error('Error saving data:', error);
-      setError('Failed to save data');
+      console.error('Error saving data to D1:', error);
+      setError('Failed to save data to database. Please try again.');
     }
   };
 
@@ -1667,70 +1667,10 @@ export default function DashboardPage() {
         />
       )}
 
-      {/* Data Migration Status */}
-      {migrationStatus === 'migrating' && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <h3 className="text-lg font-semibold mb-2">数据迁移中...</h3>
-              <p className="text-gray-600 mb-4">
-                正在将您的数据迁移到云端数据库，请稍候...
-              </p>
-              <div className="bg-gray-200 rounded-full h-2 mb-2">
-                <div 
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ 
-                    width: `${((migrationProgress.domains + migrationProgress.transactions) / 2) * 100}%` 
-                  }}
-                ></div>
-              </div>
-              <p className="text-sm text-gray-500">
-                域名: {migrationProgress.domains} | 交易: {migrationProgress.transactions}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {migrationStatus === 'completed' && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="text-center">
-              <div className="text-green-600 text-4xl mb-4">✓</div>
-              <h3 className="text-lg font-semibold mb-2">迁移完成！</h3>
-              <p className="text-gray-600 mb-4">
-                您的数据已成功迁移到云端数据库，页面将自动刷新...
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {migrationStatus === 'failed' && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="text-center">
-              <div className="text-red-600 text-4xl mb-4">✗</div>
-              <h3 className="text-lg font-semibold mb-2">迁移失败</h3>
-              <p className="text-gray-600 mb-4">
-                数据迁移过程中出现错误，请重试或联系技术支持。
-              </p>
-              <button
-                onClick={() => setMigrationStatus('idle')}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-              >
-                关闭
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Data Source Indicator */}
       {dataSource && (
         <div className="fixed bottom-4 right-4 bg-gray-800 text-white px-3 py-2 rounded-lg text-sm">
-          数据源: {dataSource === 'd1' ? '云端数据库' : dataSource === 'localStorage' ? '本地存储' : '缓存'}
+          数据源: {dataSource === 'd1' ? '云端数据库' : '缓存'}
         </div>
       )}
 
