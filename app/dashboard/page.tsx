@@ -16,6 +16,7 @@ import { LazyDomainExpiryAlert, LazyDomainValueTracker, LazyWrapper } from '../.
 import MobileNavigation from '../../src/components/layout/MobileNavigation';
 import ResponsiveGrid from '../../src/components/layout/ResponsiveGrid';
 import MobileCard from '../../src/components/ui/MobileCard';
+import AutoDomainMonitor from '../../src/components/monitoring/AutoDomainMonitor';
 // Mobile components imported but not used yet
 // import TouchGestures from '../../src/components/mobile/TouchGestures';
 // import PullToRefresh from '../../src/components/mobile/PullToRefresh';
@@ -713,6 +714,21 @@ export default function DashboardPage() {
             </div>
           </div>
         </ResponsiveGrid>
+
+        {/* Auto Domain Monitor */}
+        <div className="mb-8">
+          <AutoDomainMonitor 
+            domains={domains}
+            autoStart={true}
+            showNotifications={true}
+            onDomainExpiry={(expiryInfo) => {
+              console.log('域名到期提醒:', expiryInfo);
+            }}
+            onBulkExpiry={(expiryInfos) => {
+              console.log('批量域名到期提醒:', expiryInfos);
+            }}
+          />
+        </div>
 
         {/* Enhanced Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
