@@ -1,4 +1,4 @@
-// 数据服务 - 支持D1数据库和localStorage混合模式
+// 数据服务 - D1数据库专用
 
 interface Domain {
   id: string;
@@ -40,7 +40,7 @@ interface Transaction {
 interface DataServiceResult<T> {
   success: boolean;
   data: T;
-  source: 'd1' | 'localStorage' | 'cache';
+  source: 'd1' | 'cache';
   error?: string;
 }
 
@@ -124,67 +124,6 @@ export async function loadTransactionsFromD1(userId: string): Promise<DataServic
   }
 }
 
-// 从localStorage加载域名数据
-export function loadDomainsFromLocalStorage(): DataServiceResult<Domain[]> {
-  try {
-    const savedDomains = localStorage.getItem('66do_domains');
-    if (savedDomains) {
-      const parsedDomains = JSON.parse(savedDomains);
-      if (Array.isArray(parsedDomains)) {
-        return {
-          success: true,
-          data: parsedDomains,
-          source: 'localStorage'
-        };
-      }
-    }
-    
-    return {
-      success: true,
-      data: [],
-      source: 'localStorage'
-    };
-  } catch (error) {
-    console.error('Error loading domains from localStorage:', error);
-    return {
-      success: false,
-      data: [],
-      source: 'localStorage',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-}
-
-// 从localStorage加载交易数据
-export function loadTransactionsFromLocalStorage(): DataServiceResult<Transaction[]> {
-  try {
-    const savedTransactions = localStorage.getItem('66do_transactions');
-    if (savedTransactions) {
-      const parsedTransactions = JSON.parse(savedTransactions);
-      if (Array.isArray(parsedTransactions)) {
-        return {
-          success: true,
-          data: parsedTransactions,
-          source: 'localStorage'
-        };
-      }
-    }
-    
-    return {
-      success: true,
-      data: [],
-      source: 'localStorage'
-    };
-  } catch (error) {
-    console.error('Error loading transactions from localStorage:', error);
-    return {
-      success: false,
-      data: [],
-      source: 'localStorage',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-}
 
 // 保存域名数据到D1数据库
 export async function saveDomainToD1(userId: string, domain: Omit<Domain, 'id' | 'created_at' | 'updated_at'>): Promise<DataServiceResult<Domain>> {

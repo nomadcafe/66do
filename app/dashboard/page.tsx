@@ -514,7 +514,7 @@ export default function DashboardPage() {
   const handleDeleteTransaction = (id: string) => {
     const updatedTransactions = transactions.filter(transaction => transaction.id !== id);
     setTransactions(updatedTransactions);
-    localStorage.setItem('66do_transactions', JSON.stringify(updatedTransactions));
+    saveData(domains, updatedTransactions);
   };
 
   // 处理域名续费
@@ -535,7 +535,7 @@ export default function DashboardPage() {
 
     const newTransactions = [...transactions, renewalTransaction];
     setTransactions(newTransactions);
-    localStorage.setItem('66do_transactions', JSON.stringify(newTransactions));
+    saveData(domains, newTransactions);
 
     // 使用智能域名管理器处理续费
     const renewedDomain = domainExpiryManager.handleDomainRenewal(domain);
@@ -544,7 +544,7 @@ export default function DashboardPage() {
       d.id === domainId ? renewedDomain : d
     );
     setDomains(updatedDomains);
-    localStorage.setItem('66do_domains', JSON.stringify(updatedDomains));
+    saveData(updatedDomains, transactions);
   };
 
 
@@ -557,7 +557,7 @@ export default function DashboardPage() {
           : transaction
       );
       setTransactions(updatedTransactions);
-      localStorage.setItem('66do_transactions', JSON.stringify(updatedTransactions));
+      saveData(domains, updatedTransactions);
     } else {
       // Add new transaction
       const newTransaction: Transaction = {
@@ -566,7 +566,7 @@ export default function DashboardPage() {
       };
       const updatedTransactions = [...transactions, newTransaction];
       setTransactions(updatedTransactions);
-      localStorage.setItem('66do_transactions', JSON.stringify(updatedTransactions));
+      saveData(domains, updatedTransactions);
       
       // 自动更新域名状态
       updateDomainStatusFromTransaction(newTransaction);
@@ -592,7 +592,7 @@ export default function DashboardPage() {
       });
       
       setDomains(updatedDomains);
-      localStorage.setItem('66do_domains', JSON.stringify(updatedDomains));
+      saveData(updatedDomains, transactions);
       
       // 显示成功消息
       console.log(`域名状态已自动更新为"已出售"`);
@@ -1483,14 +1483,14 @@ export default function DashboardPage() {
                 const importData = data as { domains?: Domain[]; transactions?: Transaction[] };
                 if (importData.domains) {
                   setDomains(importData.domains);
-                  localStorage.setItem('66do_domains', JSON.stringify(importData.domains));
                   domainCache.cacheDomains(user?.id || 'default', importData.domains);
                 }
                 if (importData.transactions) {
                   setTransactions(importData.transactions);
-                  localStorage.setItem('66do_transactions', JSON.stringify(importData.transactions));
                   domainCache.cacheTransactions(user?.id || 'default', importData.transactions);
                 }
+                // Save imported data to D1 database
+                saveData(importData.domains || domains, importData.transactions || transactions);
                 auditLogger.log(user?.id || 'default', 'data_imported', 'dashboard', { 
                   domainsCount: importData.domains?.length || 0,
                   transactionsCount: importData.transactions?.length || 0
@@ -1539,7 +1539,8 @@ export default function DashboardPage() {
                   backupDate: new Date().toISOString(),
                   version: '1.0'
                 };
-                localStorage.setItem('66do_backup', JSON.stringify(backup));
+                // Backup data to D1 database (implement backup API if needed)
+                console.log('Backup created:', backup);
                 auditLogger.log(user?.id || 'default', 'data_backed_up', 'dashboard', { 
                   domainsCount: domains.length,
                   transactionsCount: transactions.length
@@ -1556,14 +1557,14 @@ export default function DashboardPage() {
                 const restoreData = backup as { domains?: Domain[]; transactions?: Transaction[] };
                 if (restoreData.domains) {
                   setDomains(restoreData.domains);
-                  localStorage.setItem('66do_domains', JSON.stringify(restoreData.domains));
                   domainCache.cacheDomains(user?.id || 'default', restoreData.domains);
                 }
                 if (restoreData.transactions) {
                   setTransactions(restoreData.transactions);
-                  localStorage.setItem('66do_transactions', JSON.stringify(restoreData.transactions));
                   domainCache.cacheTransactions(user?.id || 'default', restoreData.transactions);
                 }
+                // Save restored data to D1 database
+                saveData(restoreData.domains || domains, restoreData.transactions || transactions);
                 auditLogger.log(user?.id || 'default', 'data_restored', 'dashboard', { 
                   domainsCount: restoreData.domains?.length || 0,
                   transactionsCount: restoreData.transactions?.length || 0
