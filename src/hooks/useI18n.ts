@@ -230,6 +230,21 @@ const translations: Record<Locale, Translations> = {
       hasAccount: '已有账户？',
       signInNow: '立即登录'
     },
+    domain: {
+      expiryMonitoring: '域名到期监控',
+      syncWhois: '同步WHOIS',
+      totalExpiring: '即将到期',
+      critical: '紧急',
+      high: '重要',
+      medium: '注意',
+      low: '提醒',
+      lastUpdate: '最后更新',
+      whoisVerified: 'WHOIS已验证',
+      expiringDomains: '即将到期的域名',
+      noExpiringDomains: '暂无即将到期的域名',
+      registrar: '注册商',
+      renewNow: '立即续费'
+    },
     mobile: {
       menu: '菜单',
       close: '关闭',
@@ -540,6 +555,21 @@ const translations: Record<Locale, Translations> = {
       signUpButton: 'Sign Up',
       hasAccount: 'Already have an account?',
       signInNow: 'Sign in now'
+    },
+    domain: {
+      expiryMonitoring: 'Domain Expiry Monitoring',
+      syncWhois: 'Sync WHOIS',
+      totalExpiring: 'Expiring Soon',
+      critical: 'Critical',
+      high: 'High',
+      medium: 'Medium',
+      low: 'Low',
+      lastUpdate: 'Last Update',
+      whoisVerified: 'WHOIS Verified',
+      expiringDomains: 'Expiring Domains',
+      noExpiringDomains: 'No expiring domains',
+      registrar: 'Registrar',
+      renewNow: 'Renew Now'
     },
     mobile: {
       menu: 'Menu',
