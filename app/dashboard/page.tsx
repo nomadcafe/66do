@@ -16,6 +16,7 @@ import { LazyDomainExpiryAlert, LazyDomainValueTracker, LazyWrapper } from '../.
 import FinancialReport from '../../src/components/reports/FinancialReport';
 import FinancialAnalysis from '../../src/components/reports/FinancialAnalysis';
 import TaxReport from '../../src/components/reports/TaxReport';
+import ShareModal from '../../src/components/share/ShareModal';
 import { calculateAnnualRenewalCost, getRenewalOptimizationSuggestions } from '../../src/lib/renewalCalculations';
 import { calculateFinancialMetrics } from '../../src/lib/financialMetrics';
 import { calculateEnhancedFinancialMetrics, formatCurrency as formatCurrencyEnhanced } from '../../src/lib/enhancedFinancialMetrics';
@@ -36,6 +37,7 @@ import {
   AlertTriangle,
   Calendar,
   Award,
+  Share2,
   PieChart,
   Activity,
   Bell,
@@ -191,6 +193,7 @@ export default function DashboardPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('date');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [showShareModal, setShowShareModal] = useState(false);
   const { user, signOut } = useAuth();
   const { t, language, setLanguage } = useLanguage();
   const router = useRouter();
@@ -605,6 +608,41 @@ export default function DashboardPage() {
     router.push('/');
   };
 
+  // Calculate share data for social media
+  const calculateShareData = () => {
+    const soldDomains = domains.filter(d => d.status === 'sold');
+    const totalProfit = soldDomains.reduce((sum, domain) => {
+      const totalHoldingCost = domain.purchase_cost + (domain.renewal_count * domain.renewal_cost);
+      const platformFee = domain.platform_fee || 0;
+      return sum + (domain.sale_price || 0) - totalHoldingCost - platformFee;
+    }, 0);
+    
+    const totalInvestment = domains.reduce((sum, domain) => {
+      return sum + domain.purchase_cost + (domain.renewal_count * domain.renewal_cost);
+    }, 0);
+    
+    const roi = totalInvestment > 0 ? (totalProfit / totalInvestment) * 100 : 0;
+    
+    const bestDomain = soldDomains.reduce((best, domain) => {
+      const domainProfit = (domain.sale_price || 0) - domain.purchase_cost - (domain.renewal_count * domain.renewal_cost) - (domain.platform_fee || 0);
+      const bestProfit = (best.sale_price || 0) - best.purchase_cost - (best.renewal_count * best.renewal_cost) - (best.platform_fee || 0);
+      return domainProfit > bestProfit ? domain : best;
+    }, soldDomains[0] || { domain_name: 'N/A' });
+    
+    const investmentPeriod = domains.length > 0 ? 
+      `${Math.ceil((new Date().getTime() - new Date(Math.min(...domains.map(d => new Date(d.purchase_date).getTime()))).getTime()) / (1000 * 60 * 60 * 24 * 30))}个月` : 
+      '0个月';
+    
+    return {
+      totalProfit,
+      roi,
+      bestDomain: bestDomain.domain_name,
+      investmentPeriod,
+      domainCount: domains.length,
+      totalInvestment
+    };
+  };
+
 
   // Mark alert as read
   const markAlertAsRead = (alertId: string) => {
@@ -966,6 +1004,17 @@ export default function DashboardPage() {
         {/* Tab Content */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
+            {/* 分享按钮 */}
+            <div className="flex justify-end mb-4">
+              <button
+                onClick={() => setShowShareModal(true)}
+                className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-pink-700 flex items-center space-x-2 shadow-lg hover:shadow-xl transition-all duration-300"
+              >
+                <Share2 className="h-5 w-5" />
+                <span>分享投资成果</span>
+              </button>
+            </div>
+            
             {/* 新增财务指标卡片 */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 p-6 rounded-lg shadow-lg text-white">
@@ -1645,6 +1694,13 @@ export default function DashboardPage() {
           setEditingTransaction(undefined);
         }}
         onSave={handleSaveTransaction}
+      />
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        shareData={calculateShareData()}
       />
     </div>
   );
