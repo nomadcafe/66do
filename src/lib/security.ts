@@ -108,7 +108,7 @@ export class AccessControl {
   }
 
   // 检查资源所有权
-  private isResourceOwner(userId: string, resourceId: string): boolean {
+  private isResourceOwner(_userId: string, _resourceId: string): boolean {
     // 这里应该查询数据库检查资源所有权
     // 暂时返回true，实际应用中需要数据库查询
     return true;
@@ -126,8 +126,28 @@ export class AuditLogger {
     ip?: string;
   }> = [];
 
+  // 重要操作列表 - 只记录这些操作
+  private importantActions = [
+    'user_login',
+    'user_logout', 
+    'user_register',
+    'password_change',
+    'email_verification',
+    'data_export',
+    'data_import',
+    'domain_sale',
+    'transaction_create',
+    'security_violation',
+    'unauthorized_access'
+  ];
+
   // 记录操作
   log(userId: string, action: string, resource: string, details: Record<string, unknown> = {}): void {
+    // 只记录重要操作，过滤掉常规的数据加载操作
+    if (!this.importantActions.includes(action)) {
+      return;
+    }
+
     const log = {
       timestamp: new Date().toISOString(),
       userId,
@@ -140,8 +160,8 @@ export class AuditLogger {
     this.logs.push(log);
     
     // 限制日志数量
-    if (this.logs.length > 1000) {
-      this.logs = this.logs.slice(-500);
+    if (this.logs.length > 500) {
+      this.logs = this.logs.slice(-250);
     }
 
     // 发送到服务器（实际应用中）
@@ -157,7 +177,14 @@ export class AuditLogger {
   // 发送到服务器
   private sendToServer(log: Record<string, unknown>): void {
     // 实际应用中应该发送到日志服务器
-    console.log('Audit log:', log);
+    // 只在开发环境输出重要安全操作
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔒 Security Audit:', {
+        action: log.action,
+        resource: log.resource,
+        timestamp: log.timestamp
+      });
+    }
   }
 
   // 获取用户操作历史
