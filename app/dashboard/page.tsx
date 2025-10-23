@@ -176,9 +176,6 @@ export default function DashboardPage() {
   }, [domains]);
   
   // 计算财务指标
-  const financialMetrics = useMemo(() => {
-    return calculateFinancialMetrics(domains, transactions);
-  }, [domains, transactions]);
   
   // 计算增强的财务指标
   const enhancedFinancialMetrics = useMemo(() => {

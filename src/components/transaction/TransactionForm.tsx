@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Save, DollarSign, Calendar, FileText } from 'lucide-react';
+import { X, Save, DollarSign, Calendar, FileText, TrendingUp, TrendingDown } from 'lucide-react';
+import { exchangeRateManager, formatCurrencyAmount, getRateTrend } from '../../lib/exchangeRates';
 
 interface Transaction {
   id: string;
@@ -60,6 +61,13 @@ export default function TransactionForm({
     receipt_url: ''
   });
 
+  const [baseCurrency] = useState('USD');
+  const [exchangeRateInfo, setExchangeRateInfo] = useState<{
+    rate: number;
+    trend: 'up' | 'down' | 'stable';
+    changePercent: number;
+  } | null>(null);
+
   useEffect(() => {
     if (transaction) {
       setFormData({
@@ -100,6 +108,26 @@ export default function TransactionForm({
     }
   }, [transaction]);
 
+  // 汇率处理逻辑
+  useEffect(() => {
+    if (formData.currency !== baseCurrency && formData.amount > 0) {
+      const rate = exchangeRateManager.getCurrentRate(formData.currency, baseCurrency);
+      const trend = getRateTrend(formData.currency, baseCurrency);
+      
+      setFormData(prev => ({
+        ...prev,
+        exchange_rate: rate,
+        base_amount: formData.amount * rate
+      }));
+      
+      setExchangeRateInfo({
+        rate,
+        trend: trend.changePercent > 0 ? 'up' : trend.changePercent < 0 ? 'down' : 'stable',
+        changePercent: trend.changePercent
+      });
+    }
+  }, [formData.currency, formData.amount, baseCurrency]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -124,12 +152,10 @@ export default function TransactionForm({
     { value: 'advertising', label: 'Advertising' }
   ];
 
-  const currencies = [
-    { value: 'USD', label: 'USD' },
-    { value: 'EUR', label: 'EUR' },
-    { value: 'GBP', label: 'GBP' },
-    { value: 'CNY', label: 'CNY' }
-  ];
+  const currencies = exchangeRateManager.getSupportedCurrencies().map(currency => ({
+    value: currency.code,
+    label: `${currency.flag} ${currency.code} - ${currency.name}`
+  }));
 
   if (!isOpen) return null;
 
@@ -235,6 +261,30 @@ export default function TransactionForm({
                   </option>
                 ))}
               </select>
+              
+              {/* 汇率信息显示 */}
+              {exchangeRateInfo && formData.currency !== baseCurrency && (
+                <div className="mt-2 p-2 bg-blue-50 rounded-md">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">
+                      汇率: 1 {formData.currency} = {exchangeRateInfo.rate.toFixed(4)} {baseCurrency}
+                    </span>
+                    <div className="flex items-center">
+                      {exchangeRateInfo.trend === 'up' && <TrendingUp className="h-4 w-4 text-green-500" />}
+                      {exchangeRateInfo.trend === 'down' && <TrendingDown className="h-4 w-4 text-red-500" />}
+                      <span className={`ml-1 text-xs ${
+                        exchangeRateInfo.trend === 'up' ? 'text-green-600' : 
+                        exchangeRateInfo.trend === 'down' ? 'text-red-600' : 'text-gray-600'
+                      }`}>
+                        {exchangeRateInfo.changePercent > 0 ? '+' : ''}{exchangeRateInfo.changePercent.toFixed(2)}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    等值: {formatCurrencyAmount(formData.base_amount, baseCurrency)}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>
