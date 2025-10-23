@@ -21,11 +21,16 @@ export default function VerifyPage() {
     if (verificationData) {
       const data = JSON.parse(verificationData);
       setEmail(data.email);
+      
+      // 保持用户选择的语言
+      if (data.language) {
+        setLanguage(data.language);
+      }
     } else {
       // No verification data, redirect to register
       router.push('/register');
     }
-  }, [router]);
+  }, [router, setLanguage]);
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();

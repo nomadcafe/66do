@@ -115,7 +115,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           },
           body: JSON.stringify({
             email,
-            verificationCode
+            verificationCode,
+            language: localStorage.getItem('66do-language') || 'en'
           })
         });
         
@@ -129,7 +130,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email,
           code: verificationCode,
           timestamp: Date.now(),
-          password: password // Store password temporarily for verification
+          password: password, // Store password temporarily for verification
+          language: localStorage.getItem('66do-language') || 'en' // Save user's language preference
         };
         
         localStorage.setItem('66do_verification', JSON.stringify(verificationData));

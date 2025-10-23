@@ -2,7 +2,7 @@ export async function onRequestPost(context: any) {
   const { request, env } = context;
   
   try {
-    const { email, verificationCode } = await request.json();
+    const { email, verificationCode, language = 'en' } = await request.json();
     
     // 使用 Cloudflare Email Workers 发送邮件
     const emailResponse = await fetch('https://66do-email-worker.metadomain.workers.dev/send-verification', {
@@ -12,7 +12,8 @@ export async function onRequestPost(context: any) {
       },
       body: JSON.stringify({
         email,
-        verificationCode
+        verificationCode,
+        language
       })
     });
     

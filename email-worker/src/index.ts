@@ -10,15 +10,14 @@ export default {
     
     if (request.method === 'POST' && url.pathname === '/send-verification') {
       try {
-        const { email, verificationCode } = await request.json();
+        const { email, verificationCode, language = 'en' } = await request.json();
         
-        // 使用 Cloudflare Email Workers 发送邮件
-        // 这里需要配置 Cloudflare Email Workers 的绑定
-        const emailData = {
-          from: env.FROM_EMAIL,
-          to: email,
-          subject: `${env.APP_NAME} 账户验证码`,
-          html: `
+        // 根据语言生成邮件内容
+        const isChinese = language === 'zh';
+        
+        const emailContent = {
+          subject: isChinese ? `${env.APP_NAME} 账户验证码` : `${env.APP_NAME} Account Verification Code`,
+          html: isChinese ? `
             <!DOCTYPE html>
             <html>
             <head>
@@ -50,8 +49,40 @@ export default {
                 </div>
             </body>
             </html>
+          ` : `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <title>${env.APP_NAME} Account Verification</title>
+            </head>
+            <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <h1 style="color: #2563eb; font-size: 28px;">${env.APP_NAME}</h1>
+                    <h2 style="color: #374151; font-size: 20px;">Account Verification Code</h2>
+                </div>
+                
+                <div style="background-color: #f9fafb; padding: 30px; border-radius: 12px; margin-bottom: 20px;">
+                    <p style="font-size: 16px; margin: 0 0 20px 0;">Hello!</p>
+                    <p style="font-size: 16px; margin: 0 0 20px 0;">Your verification code is:</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <span style="font-size: 36px; font-weight: bold; color: #2563eb; background-color: #eff6ff; padding: 20px 40px; border-radius: 12px; display: inline-block; border: 2px solid #dbeafe;">
+                            ${verificationCode}
+                        </span>
+                    </div>
+                    <p style="color: #6b7280; font-size: 14px; margin: 20px 0 0 0;">
+                        This code will expire in 10 minutes.
+                    </p>
+                </div>
+                
+                <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; color: #6b7280; font-size: 12px;">
+                    <p style="margin: 0 0 10px 0;">If you didn't request this code, please ignore this email.</p>
+                    <p style="margin: 0;">This email was sent automatically by ${env.APP_NAME} system, please do not reply.</p>
+                </div>
+            </body>
+            </html>
           `,
-          text: `
+          text: isChinese ? `
             ${env.APP_NAME} 账户验证码
             
             您的验证码是：${verificationCode}
@@ -59,7 +90,23 @@ export default {
             验证码有效期为 10 分钟。
             
             如果您没有请求此验证码，请忽略此邮件。
+          ` : `
+            ${env.APP_NAME} Account Verification Code
+            
+            Your verification code is: ${verificationCode}
+            
+            This code will expire in 10 minutes.
+            
+            If you didn't request this code, please ignore this email.
           `
+        };
+
+        const emailData = {
+          from: env.FROM_EMAIL,
+          to: email,
+          subject: emailContent.subject,
+          html: emailContent.html,
+          text: emailContent.text
         };
 
         // 使用 Resend API 发送邮件（简单易用）
