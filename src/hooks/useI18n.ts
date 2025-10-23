@@ -107,7 +107,55 @@ const translations: Record<Locale, Translations> = {
       totalUsers: '活跃用户',
       portfolioValue: '投资组合价值',
       domainsManaged: '管理域名数',
-      successRate: '成功率'
+      successRate: '成功率',
+      investmentCount: '投资数量'
+    },
+    home: {
+      title: '域名投资平台',
+      subtitle: '专业的域名投资管理工具，帮助您追踪域名投资组合、管理成本和收益。专注于域名投资。',
+      getStarted: '开始使用',
+      startJourney: '开始您的域名投资之旅',
+      joinThousands: '加入域名投资者使用66Do追踪他们的域名投资组合',
+      startFree: '免费开始'
+    },
+    nav: {
+      goToDashboard: '进入仪表板'
+    },
+    features: {
+      title: '核心功能',
+      subtitle: '为域名投资者量身定制的专业工具',
+      portfolio: {
+        title: '投资组合管理',
+        desc: '全面追踪您的域名投资组合，实时监控投资表现'
+      },
+      analytics: {
+        title: '投资分析',
+        desc: '深度分析投资数据，提供专业的投资洞察和建议'
+      },
+      data: {
+        title: '数据智能',
+        desc: '智能数据处理，让您的投资决策更加精准'
+      },
+      security: {
+        title: '安全可靠',
+        desc: '企业级安全保障，保护您的投资数据安全'
+      }
+    },
+    benefits: {
+      title: '为什么选择我们',
+      subtitle: '专业的域名投资管理解决方案',
+      portfolio: {
+        title: '投资组合追踪',
+        desc: '实时监控您的域名投资组合表现'
+      },
+      analytics: {
+        title: '投资分析',
+        desc: '深度分析投资数据，提供专业洞察'
+      },
+      market: {
+        title: '市场洞察',
+        desc: '获取最新的域名市场趋势和机会'
+      }
     }
   },
   en: {
@@ -207,7 +255,55 @@ const translations: Record<Locale, Translations> = {
       totalUsers: 'Active Users',
       portfolioValue: 'Portfolio Value',
       domainsManaged: 'Domains Managed',
-      successRate: 'Success Rate'
+      successRate: 'Success Rate',
+      investmentCount: 'Investment Count'
+    },
+    home: {
+      title: 'Domain Investment Platform',
+      subtitle: 'Professional domain investment management tools to help you track domain portfolios, monitor renewals, and maximize returns. Focused on domain investment.',
+      getStarted: 'Get Started',
+      startJourney: 'Start Your Domain Investment Journey',
+      joinThousands: 'Join domain investors using 66Do to track their domain portfolios',
+      startFree: 'Start Free'
+    },
+    nav: {
+      goToDashboard: 'Go to Dashboard'
+    },
+    features: {
+      title: 'Core Features',
+      subtitle: 'Professional tools tailored for domain investors',
+      portfolio: {
+        title: 'Portfolio Management',
+        desc: 'Comprehensive tracking of your domain investment portfolio with real-time performance monitoring'
+      },
+      analytics: {
+        title: 'Investment Analytics',
+        desc: 'Deep analysis of investment data with professional insights and recommendations'
+      },
+      data: {
+        title: 'Data Intelligence',
+        desc: 'Smart data processing to make your investment decisions more precise'
+      },
+      security: {
+        title: 'Secure & Reliable',
+        desc: 'Enterprise-grade security to protect your investment data'
+      }
+    },
+    benefits: {
+      title: 'Why Choose Us',
+      subtitle: 'Professional domain investment management solution',
+      portfolio: {
+        title: 'Portfolio Tracking',
+        desc: 'Real-time monitoring of your domain investment portfolio performance'
+      },
+      analytics: {
+        title: 'Investment Analytics',
+        desc: 'Deep analysis of investment data with professional insights'
+      },
+      market: {
+        title: 'Market Insights',
+        desc: 'Get the latest domain market trends and opportunities'
+      }
     }
   }
 };
