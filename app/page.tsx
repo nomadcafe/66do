@@ -51,18 +51,18 @@ export default function HomePage() {
   const benefits = [
     {
       icon: <Zap className="h-6 w-6" />,
-      title: "Automated Management",
-      description: "Save 90% of your time with intelligent domain portfolio automation"
+      title: "Portfolio Tracking",
+      description: "Monitor all your domains with automated renewal alerts and cost tracking"
     },
     {
       icon: <Target className="h-6 w-6" />,
-      title: "Smart Analytics",
-      description: "Get insights into your domain investments with advanced analytics"
+      title: "ROI Analysis",
+      description: "Track investment returns, calculate profits, and optimize your domain strategy"
     },
     {
       icon: <Users className="h-6 w-6" />,
-      title: "Community Driven",
-      description: "Join thousands of domain investors using 66Do to maximize returns"
+      title: "Market Insights",
+      description: "Access domain valuation data and market trends to make informed decisions"
     }
   ];
 
@@ -228,10 +228,10 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-white mb-6">
-              Everything you need for domain investing
+              Complete Domain Investment Solution
             </h2>
             <p className="text-xl text-blue-100 max-w-3xl mx-auto">
-              Not sure? Launch demo and see how 66Do can transform your domain investment workflow
+              From portfolio tracking to ROI analysis, 66Do provides everything you need to succeed in domain investing
             </p>
           </div>
           
@@ -250,7 +250,7 @@ export default function HomePage() {
           <div className="text-center">
             <button className="bg-white text-blue-600 px-8 py-4 rounded-xl hover:bg-gray-50 flex items-center justify-center space-x-3 text-lg font-semibold mx-auto shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:-translate-y-1">
               <Play className="h-5 w-5" />
-              <span>Launch Demo</span>
+              <span>Start Free Trial</span>
             </button>
           </div>
         </div>
@@ -265,16 +265,13 @@ export default function HomePage() {
           <p className="text-xl text-gray-600 mb-12">
             {t('home.joinThousands')}
           </p>
-          <div className="flex flex-col sm:flex-row gap-6 justify-center">
+          <div className="flex justify-center">
             <button
               onClick={handleGetStarted}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl hover:from-blue-700 hover:to-purple-700 flex items-center justify-center space-x-3 text-lg font-semibold shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:-translate-y-1"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-12 py-4 rounded-xl hover:from-blue-700 hover:to-purple-700 flex items-center justify-center space-x-3 text-lg font-semibold shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:-translate-y-1"
             >
               <span>{t('home.startFree')}</span>
               <ArrowRight className="h-5 w-5" />
-            </button>
-            <button className="border-2 border-gray-200 text-gray-700 px-8 py-4 rounded-xl hover:border-gray-300 hover:bg-gray-50 text-lg font-semibold transition-all duration-300">
-              View Pricing
             </button>
           </div>
         </div>

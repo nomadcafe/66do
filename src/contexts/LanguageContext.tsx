@@ -26,8 +26,8 @@ const translations = {
     'home.getStarted': 'Get Started',
     'home.learnMore': 'Learn More',
     'home.startFree': 'Start Free',
-    'home.startJourney': 'Start Your Domain Investment Journey',
-    'home.joinThousands': 'Join domain investors using 66Do to track their domain portfolios',
+    'home.startJourney': 'Ready to Start Your Domain Investment Journey?',
+    'home.joinThousands': 'Join thousands of successful domain investors who trust 66Do for portfolio management',
     
     // Features
     'features.title': 'Core Features',
@@ -116,8 +116,8 @@ const translations = {
     'home.getStarted': '立即开始',
     'home.learnMore': '了解更多',
     'home.startFree': '免费开始',
-    'home.startJourney': '开始您的域名投资之旅',
-    'home.joinThousands': '加入域名投资者，使用66Do追踪您的域名投资组合',
+    'home.startJourney': '准备开始您的域名投资之旅？',
+    'home.joinThousands': '加入数千名成功的域名投资者，他们信任66Do进行投资组合管理',
     
     // Features
     'features.title': '核心功能',
