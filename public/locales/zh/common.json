@@ -1,0 +1,100 @@
+{
+  "platform": {
+    "name": "66Do",
+    "subtitle": "域名投资平台"
+  },
+  "navigation": {
+    "signIn": "登录",
+    "signUp": "注册",
+    "signOut": "退出登录",
+    "overview": "概览",
+    "domains": "域名",
+    "transactions": "交易",
+    "analytics": "分析",
+    "alerts": "提醒",
+    "marketplace": "市场",
+    "settings": "设置",
+    "data": "数据"
+  },
+  "auth": {
+    "signIn": {
+      "title": "登录账户",
+      "subtitle": "登录到您的账户",
+      "email": "邮箱地址",
+      "password": "密码",
+      "submit": "登录",
+      "noAccount": "还没有账户？",
+      "signUpLink": "立即注册"
+    },
+    "signUp": {
+      "title": "创建账户",
+      "subtitle": "注册新账户",
+      "email": "邮箱地址",
+      "password": "密码",
+      "confirmPassword": "确认密码",
+      "submit": "注册",
+      "hasAccount": "已有账户？",
+      "signInLink": "立即登录"
+    },
+    "verify": {
+      "title": "验证邮箱",
+      "subtitle": "请输入发送到您邮箱的验证码",
+      "code": "验证码",
+      "submit": "验证",
+      "resend": "重新发送",
+      "backToLogin": "返回登录"
+    }
+  },
+  "dashboard": {
+    "title": "域名投资仪表板",
+    "welcome": "欢迎回来",
+    "totalInvestments": "总投资",
+    "totalCost": "总成本",
+    "totalRevenue": "总收入",
+    "totalProfit": "净利润",
+    "roi": "投资回报率",
+    "addInvestment": "添加域名",
+    "editInvestment": "编辑域名",
+    "deleteInvestment": "删除域名",
+    "investmentName": "域名名称",
+    "investmentAmount": "投资金额",
+    "investmentNamePlaceholder": "例如：example.com、mydomain.net等",
+    "cancel": "取消",
+    "add": "添加",
+    "save": "保存",
+    "delete": "删除",
+    "confirm": "确认",
+    "noInvestments": "还没有添加任何域名",
+    "addFirstInvestment": "添加第一个域名"
+  },
+  "mobile": {
+    "menu": "菜单",
+    "close": "关闭",
+    "swipeToNavigate": "滑动导航",
+    "tapToExpand": "点击展开",
+    "pullToRefresh": "下拉刷新"
+  },
+  "gesture": {
+    "swipeLeft": "向左滑动",
+    "swipeRight": "向右滑动",
+    "pullDown": "下拉",
+    "pullUp": "上拉"
+  },
+  "responsive": {
+    "mobileView": "移动视图",
+    "tabletView": "平板视图",
+    "desktopView": "桌面视图"
+  },
+  "touch": {
+    "tap": "点击",
+    "doubleTap": "双击",
+    "longPress": "长按",
+    "swipe": "滑动"
+  },
+  "stats": {
+    "totalUsers": "活跃用户",
+    "portfolioValue": "投资组合价值",
+    "domainsManaged": "管理域名数",
+    "successRate": "成功率"
+  }
+}

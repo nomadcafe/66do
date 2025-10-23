@@ -1,0 +1,100 @@
+{
+  "platform": {
+    "name": "66Do",
+    "subtitle": "Domain Investment Platform"
+  },
+  "navigation": {
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "signOut": "Sign Out",
+    "overview": "Overview",
+    "domains": "Domains",
+    "transactions": "Transactions",
+    "analytics": "Analytics",
+    "alerts": "Alerts",
+    "marketplace": "Marketplace",
+    "settings": "Settings",
+    "data": "Data"
+  },
+  "auth": {
+    "signIn": {
+      "title": "Sign in to your account",
+      "subtitle": "Enter your credentials to access your account",
+      "email": "Email address",
+      "password": "Password",
+      "submit": "Sign In",
+      "noAccount": "Don't have an account?",
+      "signUpLink": "Sign up now"
+    },
+    "signUp": {
+      "title": "Create your account",
+      "subtitle": "Sign up for a new account",
+      "email": "Email address",
+      "password": "Password",
+      "confirmPassword": "Confirm password",
+      "submit": "Sign Up",
+      "hasAccount": "Already have an account?",
+      "signInLink": "Sign in now"
+    },
+    "verify": {
+      "title": "Verify your email",
+      "subtitle": "Enter the verification code sent to your email",
+      "code": "Verification code",
+      "submit": "Verify",
+      "resend": "Resend code",
+      "backToLogin": "Back to login"
+    }
+  },
+  "dashboard": {
+    "title": "Domain Investment Dashboard",
+    "welcome": "Welcome back",
+    "totalInvestments": "Total Investments",
+    "totalCost": "Total Cost",
+    "totalRevenue": "Total Revenue",
+    "totalProfit": "Net Profit",
+    "roi": "ROI",
+    "addInvestment": "Add Domain",
+    "editInvestment": "Edit Domain",
+    "deleteInvestment": "Delete Domain",
+    "investmentName": "Domain Name",
+    "investmentAmount": "Investment Amount",
+    "investmentNamePlaceholder": "e.g., example.com, mydomain.net, etc.",
+    "cancel": "Cancel",
+    "add": "Add",
+    "save": "Save",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "noInvestments": "No domains added yet",
+    "addFirstInvestment": "Add your first domain"
+  },
+  "mobile": {
+    "menu": "Menu",
+    "close": "Close",
+    "swipeToNavigate": "Swipe to navigate",
+    "tapToExpand": "Tap to expand",
+    "pullToRefresh": "Pull to refresh"
+  },
+  "gesture": {
+    "swipeLeft": "Swipe left",
+    "swipeRight": "Swipe right",
+    "pullDown": "Pull down",
+    "pullUp": "Pull up"
+  },
+  "responsive": {
+    "mobileView": "Mobile view",
+    "tabletView": "Tablet view",
+    "desktopView": "Desktop view"
+  },
+  "touch": {
+    "tap": "Tap",
+    "doubleTap": "Double tap",
+    "longPress": "Long press",
+    "swipe": "Swipe"
+  },
+  "stats": {
+    "totalUsers": "Active Users",
+    "portfolioValue": "Portfolio Value",
+    "domainsManaged": "Domains Managed",
+    "successRate": "Success Rate"
+  }
+}

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../src/contexts/AuthContext';
-import { useLanguage } from '../../src/contexts/LanguageContext';
+import { useI18nContext } from '../../src/contexts/I18nProvider';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 
 export default function LoginPage() {
@@ -13,7 +13,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { signIn } = useAuth();
-  const { t, language, setLanguage } = useLanguage();
+  const { t, locale, setLocale } = useI18nContext();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,8 +43,8 @@ export default function LoginPage() {
         </div>
         <div className="flex justify-center mt-4">
           <select
-            value={language}
-            onChange={(e) => setLanguage(e.target.value as 'en' | 'zh')}
+            value={locale}
+            onChange={(e) => setLocale(e.target.value as 'en' | 'zh')}
             className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="zh">中文</option>

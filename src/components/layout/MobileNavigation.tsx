@@ -13,7 +13,7 @@ import {
   Database,
   TrendingUp
 } from 'lucide-react';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { useI18nContext } from '../../contexts/I18nProvider';
 
 interface MobileNavigationProps {
   activeTab: 'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'marketplace' | 'settings' | 'data' | 'reports';
@@ -23,17 +23,17 @@ interface MobileNavigationProps {
 
 export default function MobileNavigation({ activeTab, onTabChange, expiringCount }: MobileNavigationProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const { t } = useLanguage();
+  const { t } = useI18nContext();
 
   const navigationItems = [
-    { id: 'overview', label: t('dashboard.overview'), icon: Home },
-    { id: 'domains', label: t('dashboard.domains'), icon: Globe },
-    { id: 'transactions', label: t('dashboard.transactions'), icon: DollarSign },
-    { id: 'analytics', label: t('dashboard.analytics'), icon: BarChart3 },
-    { id: 'alerts', label: t('dashboard.alerts'), icon: Bell, badge: expiringCount },
-    { id: 'marketplace', label: t('dashboard.marketplace'), icon: TrendingUp },
-    { id: 'settings', label: t('dashboard.settings'), icon: Settings },
-    { id: 'data', label: t('dashboard.data'), icon: Database }
+    { id: 'overview', label: t('navigation.overview'), icon: Home },
+    { id: 'domains', label: t('navigation.domains'), icon: Globe },
+    { id: 'transactions', label: t('navigation.transactions'), icon: DollarSign },
+    { id: 'analytics', label: t('navigation.analytics'), icon: BarChart3 },
+    { id: 'alerts', label: t('navigation.alerts'), icon: Bell, badge: expiringCount },
+    { id: 'marketplace', label: t('navigation.marketplace'), icon: TrendingUp },
+    { id: 'settings', label: t('navigation.settings'), icon: Settings },
+    { id: 'data', label: t('navigation.data'), icon: Database }
   ];
 
   return (

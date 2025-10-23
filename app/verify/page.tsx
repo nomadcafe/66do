@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../src/contexts/AuthContext';
-import { useLanguage } from '../../src/contexts/LanguageContext';
+import { useI18nContext } from '../../src/contexts/I18nProvider';
 import { Mail, ArrowLeft } from 'lucide-react';
 
 export default function VerifyPage() {
@@ -12,7 +12,7 @@ export default function VerifyPage() {
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
   const { completeRegistration } = useAuth();
-  const { t, language, setLanguage } = useLanguage();
+  const { t, locale, setLocale } = useI18nContext();
   const router = useRouter();
 
   useEffect(() => {
@@ -24,13 +24,13 @@ export default function VerifyPage() {
       
       // 保持用户选择的语言
       if (data.language) {
-        setLanguage(data.language);
+        setLocale(data.language);
       }
     } else {
       // No verification data, redirect to register
       router.push('/register');
     }
-  }, [router, setLanguage]);
+  }, [router, setLocale]);
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,8 +148,8 @@ export default function VerifyPage() {
         </div>
         <div className="flex justify-center mt-4">
           <select
-            value={language}
-            onChange={(e) => setLanguage(e.target.value as 'en' | 'zh')}
+            value={locale}
+            onChange={(e) => setLocale(e.target.value as 'en' | 'zh')}
             className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="zh">中文</option>

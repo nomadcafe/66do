@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../src/contexts/AuthContext';
-import { useLanguage } from '../src/contexts/LanguageContext';
+import { useI18nContext } from '../src/contexts/I18nProvider';
 import { 
   Globe, 
   TrendingUp, 
@@ -17,7 +17,7 @@ import {
 
 export default function HomePage() {
   const { user } = useAuth();
-  const { t, language, setLanguage } = useLanguage();
+  const { t, locale, setLocale } = useI18nContext();
   const router = useRouter();
 
   const features = [
@@ -99,8 +99,8 @@ export default function HomePage() {
               {/* Language Selector */}
               <div className="relative">
                 <select
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value as 'en' | 'zh')}
+                  value={locale}
+                  onChange={(e) => setLocale(e.target.value as 'en' | 'zh')}
                   className="appearance-none bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
                 >
                   <option value="zh">中文</option>

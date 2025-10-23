@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../src/contexts/AuthContext';
-import { useLanguage } from '../../src/contexts/LanguageContext';
+import { useI18nContext } from '../../src/contexts/I18nProvider';
 import DomainList from '../../src/components/domain/DomainList';
 import DomainForm from '../../src/components/domain/DomainForm';
 import TransactionList from '../../src/components/transaction/TransactionList';
@@ -172,7 +172,7 @@ export default function DashboardPage() {
   const [showSaleSuccessModal, setShowSaleSuccessModal] = useState(false);
   const [saleSuccessData, setSaleSuccessData] = useState<{domain: Domain, transaction: Transaction} | null>(null);
   const { user, signOut } = useAuth();
-  const { t, language, setLanguage } = useLanguage();
+  const { t, locale, setLocale } = useI18nContext();
   const router = useRouter();
 
   // Redirect if not authenticated
@@ -590,8 +590,8 @@ export default function DashboardPage() {
               {/* Language Selector */}
               <div className="relative">
                 <select
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value as 'en' | 'zh')}
+                  value={locale}
+                  onChange={(e) => setLocale(e.target.value as 'en' | 'zh')}
                   className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="zh">中文</option>
