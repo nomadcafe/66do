@@ -22,7 +22,7 @@ interface Domain {
 interface Transaction {
   id: string;
   domain_id: string;
-  type: 'purchase' | 'renewal' | 'sell' | 'expense' | 'income' | 'marketing' | 'advertising';
+  type: 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising';
   amount: number;
   currency: string;
   exchange_rate?: number;
@@ -34,7 +34,7 @@ interface Transaction {
   tax_deductible?: boolean;
   receipt_url?: string;
   notes: string;
-  transaction_date: string;
+  date: string;
 }
 
 interface DataServiceResult<T> {
