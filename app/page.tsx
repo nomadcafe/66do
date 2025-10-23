@@ -12,8 +12,7 @@ import {
   Star,
   Zap,
   Target,
-  Users,
-  Play
+  Users
 } from 'lucide-react';
 
 export default function HomePage() {
@@ -162,18 +161,13 @@ export default function HomePage() {
               {t('home.subtitle')}
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-6 justify-center mb-16">
+            <div className="flex justify-center mb-16">
               <button
                 onClick={handleGetStarted}
-                className="group bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl hover:from-blue-700 hover:to-purple-700 flex items-center justify-center space-x-3 text-lg font-semibold shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:-translate-y-1"
+                className="group bg-gradient-to-r from-blue-600 to-purple-600 text-white px-12 py-4 rounded-xl hover:from-blue-700 hover:to-purple-700 flex items-center justify-center space-x-3 text-lg font-semibold shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:-translate-y-1"
               >
                 <span>{t('home.getStarted')}</span>
                 <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-              </button>
-              
-              <button className="group border-2 border-gray-200 text-gray-700 px-8 py-4 rounded-xl hover:border-gray-300 hover:bg-gray-50 text-lg font-semibold transition-all duration-300 flex items-center justify-center space-x-3">
-                <Play className="h-5 w-5" />
-                <span>Watch Demo</span>
               </button>
             </div>
             
@@ -247,12 +241,6 @@ export default function HomePage() {
             ))}
           </div>
           
-          <div className="text-center">
-            <button className="bg-white text-blue-600 px-8 py-4 rounded-xl hover:bg-gray-50 flex items-center justify-center space-x-3 text-lg font-semibold mx-auto shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:-translate-y-1">
-              <Play className="h-5 w-5" />
-              <span>Start Free Trial</span>
-            </button>
-          </div>
         </div>
       </div>
 
