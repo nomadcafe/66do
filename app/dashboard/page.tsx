@@ -17,6 +17,7 @@ import FinancialReport from '../../src/components/reports/FinancialReport';
 import FinancialAnalysis from '../../src/components/reports/FinancialAnalysis';
 import TaxReport from '../../src/components/reports/TaxReport';
 import ShareModal from '../../src/components/share/ShareModal';
+import SaleSuccessModal from '../../src/components/share/SaleSuccessModal';
 import { calculateAnnualRenewalCost, getRenewalOptimizationSuggestions } from '../../src/lib/renewalCalculations';
 import { calculateFinancialMetrics } from '../../src/lib/financialMetrics';
 import { calculateEnhancedFinancialMetrics, formatCurrency as formatCurrencyEnhanced } from '../../src/lib/enhancedFinancialMetrics';
@@ -194,6 +195,8 @@ export default function DashboardPage() {
   const [sortBy, setSortBy] = useState<string>('date');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showSaleSuccessModal, setShowSaleSuccessModal] = useState(false);
+  const [saleSuccessData, setSaleSuccessData] = useState<{domain: Domain, transaction: Transaction} | null>(null);
   const { user, signOut } = useAuth();
   const { t, language, setLanguage } = useLanguage();
   const router = useRouter();
@@ -600,6 +603,17 @@ export default function DashboardPage() {
       // 显示成功消息
       console.log(`域名状态已自动更新为"已出售"`);
     }
+  };
+
+  // 处理出售交易完成后的分享
+  const handleSaleComplete = (transaction: Omit<Transaction, 'id'>, domain: Domain) => {
+    // 创建完整的Transaction对象
+    const fullTransaction: Transaction = {
+      ...transaction,
+      id: Date.now().toString()
+    };
+    setSaleSuccessData({ domain, transaction: fullTransaction });
+    setShowSaleSuccessModal(true);
   };
 
   // Handle logout
@@ -1694,6 +1708,7 @@ export default function DashboardPage() {
           setEditingTransaction(undefined);
         }}
         onSave={handleSaveTransaction}
+        onSaleComplete={handleSaleComplete}
       />
 
       {/* Share Modal */}
@@ -1702,6 +1717,19 @@ export default function DashboardPage() {
         onClose={() => setShowShareModal(false)}
         shareData={calculateShareData()}
       />
+
+      {/* Sale Success Modal */}
+      {saleSuccessData && (
+        <SaleSuccessModal
+          isOpen={showSaleSuccessModal}
+          onClose={() => {
+            setShowSaleSuccessModal(false);
+            setSaleSuccessData(null);
+          }}
+          domain={saleSuccessData.domain}
+          transaction={saleSuccessData.transaction}
+        />
+      )}
     </div>
   );
 }

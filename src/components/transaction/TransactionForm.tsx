@@ -26,6 +26,20 @@ interface Transaction {
 interface Domain {
   id: string;
   domain_name: string;
+  registrar: string;
+  purchase_date: string;
+  purchase_cost: number;
+  renewal_cost: number;
+  renewal_cycle: number;
+  renewal_count: number;
+  next_renewal_date?: string;
+  expiry_date?: string;
+  status: 'active' | 'for_sale' | 'sold' | 'expired';
+  estimated_value: number;
+  sale_date?: string;
+  sale_price?: number;
+  platform_fee?: number;
+  tags: string[];
 }
 
 interface TransactionFormProps {
@@ -34,6 +48,7 @@ interface TransactionFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (transaction: Omit<Transaction, 'id'>) => void;
+  onSaleComplete?: (transaction: Omit<Transaction, 'id'>, domain: Domain) => void;
 }
 
 export default function TransactionForm({ 
@@ -41,7 +56,8 @@ export default function TransactionForm({
   domains, 
   isOpen, 
   onClose, 
-  onSave 
+  onSave,
+  onSaleComplete
 }: TransactionFormProps) {
   const [formData, setFormData] = useState({
     domain_id: '',
@@ -139,6 +155,15 @@ export default function TransactionForm({
     };
     
     onSave(finalFormData);
+    
+    // 如果是出售交易，触发分享功能
+    if (finalFormData.type === 'sell' && onSaleComplete) {
+      const selectedDomain = domains.find(d => d.id === finalFormData.domain_id);
+      if (selectedDomain) {
+        onSaleComplete(finalFormData, selectedDomain);
+      }
+    }
+    
     onClose();
   };
 
