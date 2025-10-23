@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, Save, DollarSign, Calendar, FileText, TrendingUp, TrendingDown } from 'lucide-react';
 import { exchangeRateManager, formatCurrencyAmount, getRateTrend } from '../../lib/exchangeRates';
+import { useI18nContext } from '../../contexts/I18nProvider';
 
 interface Transaction {
   id: string;
@@ -59,6 +60,7 @@ export default function TransactionForm({
   onSave,
   onSaleComplete
 }: TransactionFormProps) {
+  const { t } = useI18nContext();
   const [formData, setFormData] = useState({
     domain_id: '',
     type: 'buy' as 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising',
@@ -292,7 +294,7 @@ export default function TransactionForm({
                 <div className="mt-2 p-2 bg-blue-50 rounded-md">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-600">
-                      汇率: 1 {formData.currency} = {exchangeRateInfo.rate.toFixed(4)} {baseCurrency}
+                      {t('transaction.exchangeRateDesc')}: 1 {formData.currency} = {exchangeRateInfo.rate.toFixed(4)} {baseCurrency}
                     </span>
                     <div className="flex items-center">
                       {exchangeRateInfo.trend === 'up' && <TrendingUp className="h-4 w-4 text-green-500" />}
@@ -306,7 +308,7 @@ export default function TransactionForm({
                     </div>
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
-                    等值: {formatCurrencyAmount(formData.base_amount, baseCurrency)}
+                    {t('transaction.equivalentAmount')}: {formatCurrencyAmount(formData.base_amount, baseCurrency)}
                   </div>
                 </div>
               )}
@@ -373,12 +375,12 @@ export default function TransactionForm({
             <div className="bg-green-50 p-4 rounded-lg border border-green-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-green-800">净收入计算</p>
+                  <p className="text-sm font-medium text-green-800">{t('transaction.netIncomeCalculation')}</p>
                   <p className="text-lg font-semibold text-green-900">
                     ¥{(formData.amount - formData.platform_fee).toFixed(2)}
                   </p>
                   <p className="text-xs text-green-600 mt-1">
-                    总金额: ¥{formData.amount.toFixed(2)} - 手续费: ¥{formData.platform_fee.toFixed(2)}
+                    {t('transaction.totalAmount')}: ¥{formData.amount.toFixed(2)} - {t('transaction.platformFeeDesc')}: ¥{formData.platform_fee.toFixed(2)}
                   </p>
                 </div>
                 <div className="p-2 bg-green-100 rounded-full">

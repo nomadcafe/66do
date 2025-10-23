@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useComprehensiveFinancialAnalysis } from '../../hooks/useFinancialCalculations';
+import { useI18nContext } from '../../contexts/I18nProvider';
 import { 
   LineChart, 
   Line, 
@@ -103,6 +104,7 @@ interface RiskAnalysis {
 }
 
 export default function InvestmentAnalytics({ domains, transactions }: InvestmentAnalyticsProps) {
+  const { t } = useI18nContext();
   const [selectedTimeframe, setSelectedTimeframe] = useState<'1M' | '3M' | '6M' | '1Y' | 'ALL'>('ALL');
   const [selectedMetric, setSelectedMetric] = useState<'portfolio' | 'performance' | 'risk' | 'trends'>('portfolio');
 
@@ -219,7 +221,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-lg text-white">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-blue-100 text-sm">总投资</p>
+            <p className="text-blue-100 text-sm">{t('analytics.totalInvestment')}</p>
             <p className="text-2xl font-bold">${portfolioMetrics.totalInvestment.toLocaleString()}</p>
           </div>
           <DollarSign className="h-8 w-8 text-blue-200" />
@@ -229,7 +231,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       <div className="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-lg text-white">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-green-100 text-sm">总收益</p>
+            <p className="text-green-100 text-sm">{t('analytics.totalRevenue')}</p>
             <p className="text-2xl font-bold">${portfolioMetrics.totalRevenue.toLocaleString()}</p>
           </div>
           <TrendingUp className="h-8 w-8 text-green-200" />
@@ -239,7 +241,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-lg text-white">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-purple-100 text-sm">净利润</p>
+            <p className="text-purple-100 text-sm">{t('analytics.netProfit')}</p>
             <p className="text-2xl font-bold">${portfolioMetrics.totalProfit.toLocaleString()}</p>
           </div>
           <Target className="h-8 w-8 text-purple-200" />
@@ -249,7 +251,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-6 rounded-lg text-white">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-orange-100 text-sm">总回报率</p>
+            <p className="text-orange-100 text-sm">{t('analytics.totalReturn')}</p>
             <p className="text-2xl font-bold">{portfolioMetrics.totalReturn.toFixed(1)}%</p>
           </div>
           <BarChart3 className="h-8 w-8 text-orange-200" />
@@ -259,7 +261,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       <div className="bg-gradient-to-br from-red-500 to-red-600 p-6 rounded-lg text-white">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-red-100 text-sm">年化收益率</p>
+            <p className="text-red-100 text-sm">{t('analytics.annualizedReturn')}</p>
             <p className="text-2xl font-bold">{portfolioMetrics.annualizedReturn.toFixed(1)}%</p>
           </div>
           <Activity className="h-8 w-8 text-red-200" />
@@ -269,7 +271,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 p-6 rounded-lg text-white">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-indigo-100 text-sm">夏普比率</p>
+            <p className="text-indigo-100 text-sm">{t('analytics.sharpeRatio')}</p>
             <p className="text-2xl font-bold">{portfolioMetrics.sharpeRatio.toFixed(2)}</p>
           </div>
           <Zap className="h-8 w-8 text-indigo-200" />
@@ -280,7 +282,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
 
   const renderPerformanceChart = () => (
     <div className="bg-white p-6 rounded-lg shadow-sm border">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">投资组合表现</h3>
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.portfolioPerformance')}</h3>
       <ResponsiveContainer width="100%" height={400}>
         <AreaChart data={timeSeriesData}>
           <CartesianGrid strokeDasharray="3 3" />
@@ -289,9 +291,9 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
           <Tooltip 
             formatter={(value, name) => [
               `$${Number(value).toLocaleString()}`, 
-              name === 'investment' ? '投资' : 
-              name === 'revenue' ? '收益' : 
-              name === 'profit' ? '利润' : '组合价值'
+              name === 'investment' ? t('analytics.investment') : 
+              name === 'revenue' ? t('analytics.revenue') : 
+              name === 'profit' ? t('analytics.profit') : t('analytics.portfolioValue')
             ]}
           />
           <Area 
@@ -301,7 +303,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
             stroke="#3B82F6" 
             fill="#3B82F6" 
             fillOpacity={0.6}
-            name="投资"
+            name={t('analytics.investment')}
           />
           <Area 
             type="monotone" 
@@ -310,14 +312,14 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
             stroke="#10B981" 
             fill="#10B981" 
             fillOpacity={0.6}
-            name="收益"
+            name={t('analytics.revenue')}
           />
           <Line 
             type="monotone" 
             dataKey="portfolioValue" 
             stroke="#8B5CF6" 
             strokeWidth={3}
-            name="组合价值"
+            name={t('analytics.portfolioValue')}
           />
         </AreaChart>
       </ResponsiveContainer>

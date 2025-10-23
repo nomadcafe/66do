@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { Search, Filter, Plus, Edit, Trash2, DollarSign, Calendar, FileText, TrendingUp, TrendingDown } from 'lucide-react';
 import { calculateDomainROI, getROIColor, getROIBgColor, formatPercentage } from '../../lib/enhancedFinancialMetrics';
+import { useI18nContext } from '../../contexts/I18nProvider';
 
 // 计算持有时间
-function calculateHoldingTime(purchaseDate: string, saleDate: string): {
+function calculateHoldingTime(purchaseDate: string, saleDate: string, t: (key: string) => string): {
   days: number;
   months: number;
   years: number;
@@ -22,11 +23,11 @@ function calculateHoldingTime(purchaseDate: string, saleDate: string): {
   
   let displayText = '';
   if (years > 0) {
-    displayText = `${years}年${months > 0 ? `${months}个月` : ''}`;
+    displayText = `${years}${t('transaction.year')}${months > 0 ? `${months}${t('transaction.month')}` : ''}`;
   } else if (months > 0) {
-    displayText = `${months}个月${days > 0 ? `${days}天` : ''}`;
+    displayText = `${months}${t('transaction.month')}${days > 0 ? `${days}${t('transaction.day')}` : ''}`;
   } else {
-    displayText = `${days}天`;
+    displayText = `${days}${t('transaction.day')}`;
   }
   
   return {
@@ -97,6 +98,7 @@ export default function TransactionList({
   onDelete, 
   onAdd 
 }: TransactionListProps) {
+  const { t } = useI18nContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
 
@@ -317,7 +319,7 @@ export default function TransactionList({
                               if (!domain) return null;
                               
                               const domainROI = calculateDomainROI(domain, [transaction]);
-                              const holdingTime = calculateHoldingTime(domain.purchase_date, transaction.date);
+                              const holdingTime = calculateHoldingTime(domain.purchase_date, transaction.date, t);
                               
                               return (
                                 <div className="flex flex-col space-y-1">
