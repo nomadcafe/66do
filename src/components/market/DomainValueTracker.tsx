@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { TrendingUp, TrendingDown, DollarSign, Globe, RefreshCw } from 'lucide-react';
 
 interface Domain {
@@ -31,7 +31,7 @@ export default function DomainValueTracker({ domains, onUpdateValue }: DomainVal
   const [lastUpdated, setLastUpdated] = useState<string>('');
 
   // 模拟市场价值数据（实际应用中应该从API获取）
-  const fetchMarketValues = async () => {
+  const fetchMarketValues = useCallback(async () => {
     setLoading(true);
     try {
       // 模拟API调用延迟
@@ -61,7 +61,7 @@ export default function DomainValueTracker({ domains, onUpdateValue }: DomainVal
     } finally {
       setLoading(false);
     }
-  };
+  }, [domains]);
 
   useEffect(() => {
     if (domains.length > 0) {

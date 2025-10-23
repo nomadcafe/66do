@@ -13,9 +13,9 @@ import UserPreferencesPanel from '../../src/components/settings/UserPreferencesP
 import DomainMarketplace from '../../src/components/marketplace/DomainMarketplace';
 import DataImportExport from '../../src/components/data/DataImportExport';
 import { LazyDomainExpiryAlert, LazyDomainValueTracker, LazyWrapper } from '../../src/components/LazyComponents';
-import { domainCache } from '../../src/lib/cache';
-import { marketDataManager } from '../../src/lib/marketData';
-import { auditLogger } from '../../src/lib/security';
+// import { domainCache } from '../../src/lib/cache';
+// import { marketDataManager } from '../../src/lib/marketData';
+// import { auditLogger } from '../../src/lib/security';
 // import LoadingSpinner from '../../src/components/ui/LoadingSpinner';
 // import ErrorMessage from '../../src/components/ui/ErrorMessage';
 import { 
@@ -53,6 +53,7 @@ interface Domain {
   purchase_cost: number;
   renewal_cost: number;
   renewal_cycle: number; // 续费周期（年数）：1, 2, 3等
+  renewal_count: number; // 已续费次数
   next_renewal_date?: string;
   expiry_date: string;
   status: 'active' | 'for_sale' | 'sold' | 'expired';
@@ -206,9 +207,13 @@ export default function DashboardPage() {
     const totalCost = domains.reduce((sum, domain) => sum + domain.purchase_cost, 0);
     const totalRevenue = transactions.filter(t => t.type === 'sell').reduce((sum, t) => sum + t.amount, 0);
     
-    // 计算续费成本统计
-    const totalRenewalCost = transactions.filter(t => t.type === 'renew').reduce((sum, t) => sum + t.amount, 0);
-    const totalHoldingCost = totalCost + totalRenewalCost;
+        // 计算续费成本统计 - 基于域名续费次数
+        const totalRenewalCost = domains.reduce((sum, domain) => {
+          return sum + (domain.renewal_count * domain.renewal_cost);
+        }, 0);
+        
+        // 计算总持有成本（购买成本 + 续费成本）
+        const totalHoldingCost = totalCost + totalRenewalCost;
     const totalProfit = totalRevenue - totalHoldingCost;
     const roi = totalHoldingCost > 0 ? (totalProfit / totalHoldingCost) * 100 : 0;
     

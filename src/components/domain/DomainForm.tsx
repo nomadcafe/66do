@@ -11,6 +11,7 @@ interface Domain {
   purchase_cost: number;
   renewal_cost: number;
   renewal_cycle: number; // 续费周期（年数）：1, 2, 3等
+  renewal_count: number; // 已续费次数
   next_renewal_date?: string;
   expiry_date: string;
   status: 'active' | 'for_sale' | 'sold' | 'expired';
@@ -33,6 +34,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
     purchase_cost: 0,
     renewal_cost: 0,
     renewal_cycle: 1, // 默认1年续费
+    renewal_count: 0, // 默认未续费
     next_renewal_date: '',
     expiry_date: '',
     status: 'active' as 'active' | 'for_sale' | 'sold' | 'expired',
@@ -51,6 +53,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
         purchase_cost: domain.purchase_cost,
         renewal_cost: domain.renewal_cost,
         renewal_cycle: domain.renewal_cycle,
+        renewal_count: domain.renewal_count,
         next_renewal_date: domain.next_renewal_date || '',
         expiry_date: domain.expiry_date,
         status: domain.status,
@@ -65,6 +68,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
         purchase_cost: 0,
         renewal_cost: 0,
         renewal_cycle: 1,
+        renewal_count: 0,
         next_renewal_date: '',
         expiry_date: '',
         status: 'active' as 'active' | 'for_sale' | 'sold' | 'expired',
@@ -225,26 +229,44 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Calendar className="h-4 w-4 inline mr-1" />
-                Renewal Cycle (Years)
-              </label>
-              <select
-                value={formData.renewal_cycle}
-                onChange={(e) => setFormData({ ...formData, renewal_cycle: parseInt(e.target.value) })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value={1}>1 Year (e.g., .com, .net)</option>
-                <option value={2}>2 Years (e.g., .ai)</option>
-                <option value={3}>3 Years (e.g., .tt)</option>
-                <option value={5}>5 Years</option>
-                <option value={10}>10 Years</option>
-              </select>
-              <p className="text-xs text-gray-500 mt-1">
-                选择域名的续费周期，用于计算年度续费成本
-              </p>
-            </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            <Calendar className="h-4 w-4 inline mr-1" />
+            Renewal Cycle (Years)
+          </label>
+          <select
+            value={formData.renewal_cycle}
+            onChange={(e) => setFormData({ ...formData, renewal_cycle: parseInt(e.target.value) })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value={1}>1 Year (e.g., .com, .net)</option>
+            <option value={2}>2 Years (e.g., .ai)</option>
+            <option value={3}>3 Years (e.g., .tt)</option>
+            <option value={5}>5 Years</option>
+            <option value={10}>10 Years</option>
+          </select>
+          <p className="text-xs text-gray-500 mt-1">
+            选择域名的续费周期，用于计算年度续费成本
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            <Calendar className="h-4 w-4 inline mr-1" />
+            Renewal Count (已续费次数)
+          </label>
+          <input
+            type="number"
+            min="0"
+            value={formData.renewal_count}
+            onChange={(e) => setFormData({ ...formData, renewal_count: parseInt(e.target.value) || 0 })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="输入已续费次数"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            输入该域名已经续费的次数，用于计算总持有成本
+          </p>
+        </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

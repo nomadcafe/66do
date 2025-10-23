@@ -2,7 +2,7 @@
 import CryptoJS from 'crypto-js';
 
 // 数据加密
-export function encryptData(data: any, key: string): string {
+export function encryptData(data: unknown, key: string): string {
   try {
     const encrypted = CryptoJS.AES.encrypt(JSON.stringify(data), key).toString();
     return encrypted;
@@ -13,7 +13,7 @@ export function encryptData(data: any, key: string): string {
 }
 
 // 数据解密
-export function decryptData(encryptedData: string, key: string): any {
+export function decryptData(encryptedData: string, key: string): unknown {
   try {
     const decrypted = CryptoJS.AES.decrypt(encryptedData, key);
     const data = decrypted.toString(CryptoJS.enc.Utf8);
@@ -32,7 +32,7 @@ export function generateSecureKey(): string {
 }
 
 // 数据脱敏
-export function maskSensitiveData(data: any, fields: string[]): any {
+export function maskSensitiveData(data: Record<string, unknown>, fields: string[]): Record<string, unknown> {
   const masked = { ...data };
   
   fields.forEach(field => {
@@ -92,19 +92,19 @@ export class AccessControl {
   }
 
   // 检查资源访问权限
-  canAccessResource(userId: string, resourceId: string, action: string): boolean {
+  canAccessResource(_userId: string, _resourceId: string, _action: string): boolean {
     // 检查是否是资源所有者
-    if (this.isResourceOwner(userId, resourceId)) {
+    if (this.isResourceOwner(_userId, _resourceId)) {
       return true;
     }
 
     // 检查管理员权限
-    if (this.hasPermission(userId, 'admin')) {
+    if (this.hasPermission(_userId, 'admin')) {
       return true;
     }
 
     // 检查特定权限
-    return this.hasPermission(userId, `${action}_${resourceId}`);
+    return this.hasPermission(_userId, `${_action}_${_resourceId}`);
   }
 
   // 检查资源所有权
@@ -122,12 +122,12 @@ export class AuditLogger {
     userId: string;
     action: string;
     resource: string;
-    details: any;
+    details: Record<string, unknown>;
     ip?: string;
   }> = [];
 
   // 记录操作
-  log(userId: string, action: string, resource: string, details: any = {}): void {
+  log(userId: string, action: string, resource: string, details: Record<string, unknown> = {}): void {
     const log = {
       timestamp: new Date().toISOString(),
       userId,
@@ -155,13 +155,13 @@ export class AuditLogger {
   }
 
   // 发送到服务器
-  private sendToServer(log: any): void {
+  private sendToServer(log: Record<string, unknown>): void {
     // 实际应用中应该发送到日志服务器
     console.log('Audit log:', log);
   }
 
   // 获取用户操作历史
-  getUserHistory(userId: string, limit: number = 50): any[] {
+  getUserHistory(userId: string, limit: number = 50): Array<Record<string, unknown>> {
     return this.logs
       .filter(log => log.userId === userId)
       .slice(-limit)
@@ -169,7 +169,7 @@ export class AuditLogger {
   }
 
   // 获取所有日志
-  getAllLogs(limit: number = 100): any[] {
+  getAllLogs(limit: number = 100): Array<Record<string, unknown>> {
     return this.logs.slice(-limit).reverse();
   }
 }
@@ -179,22 +179,24 @@ export const accessControl = new AccessControl();
 export const auditLogger = new AuditLogger();
 
 // 安全中间件
-export function securityMiddleware(req: any, res: any, next: any) {
+export function securityMiddleware(req: Record<string, unknown>, res: Record<string, unknown>, next: () => void) {
   // 设置安全头
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  if (typeof res.setHeader === 'function') {
+    (res as any).setHeader('X-Content-Type-Options', 'nosniff');
+    (res as any).setHeader('X-Frame-Options', 'DENY');
+    (res as any).setHeader('X-XSS-Protection', '1; mode=block');
+    (res as any).setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
   
   // 记录请求
   auditLogger.log(
-    req.user?.id || 'anonymous',
+    (req as any).user?.id || 'anonymous',
     'request',
-    req.path,
+    (req as any).path,
     {
-      method: req.method,
-      userAgent: req.get('User-Agent'),
-      ip: req.ip
+      method: (req as any).method,
+      userAgent: (req as any).get?.('User-Agent'),
+      ip: (req as any).ip
     }
   );
   

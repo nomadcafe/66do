@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS domains (
   purchase_cost DECIMAL(10, 2),
   renewal_cost DECIMAL(10, 2),
   renewal_cycle INTEGER DEFAULT 1, -- 续费周期（年数）：1, 2, 3等
+  renewal_count INTEGER DEFAULT 0, -- 已续费次数
   next_renewal_date DATE,
   expiry_date DATE NOT NULL, -- 域名到期日期
   status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'for_sale', 'sold', 'expired')),

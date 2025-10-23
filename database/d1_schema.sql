@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS domains (
   purchase_cost REAL,
   renewal_cost REAL,
   renewal_cycle INTEGER DEFAULT 1,
+  renewal_count INTEGER DEFAULT 0, -- 已续费次数
   next_renewal_date TEXT,
   expiry_date TEXT NOT NULL,
   status TEXT DEFAULT 'active' CHECK (status IN ('active', 'for_sale', 'sold', 'expired')),

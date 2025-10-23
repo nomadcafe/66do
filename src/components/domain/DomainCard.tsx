@@ -11,6 +11,7 @@ interface Domain {
   purchase_cost: number;
   renewal_cost: number;
   renewal_cycle: number; // 续费周期（年数）：1, 2, 3等
+  renewal_count: number; // 已续费次数
   next_renewal_date?: string;
   expiry_date: string;
   status: 'active' | 'for_sale' | 'sold' | 'expired';
@@ -27,6 +28,14 @@ interface DomainCardProps {
 
 export default function DomainCard({ domain, onEdit, onDelete, onView }: DomainCardProps) {
   const [showActions, setShowActions] = useState(false);
+
+  // 计算总持有成本
+  const calculateTotalHoldingCost = () => {
+    const totalRenewalCost = domain.renewal_count * domain.renewal_cost;
+    return domain.purchase_cost + totalRenewalCost;
+  };
+
+  const totalHoldingCost = calculateTotalHoldingCost();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -82,16 +91,26 @@ export default function DomainCard({ domain, onEdit, onDelete, onView }: DomainC
               </div>
             </div>
 
-            <div className="flex items-center space-x-4 mt-2">
-              <div className="flex items-center space-x-1 text-sm text-gray-600">
-                <DollarSign className="h-4 w-4" />
-                <span>Renewal: {formatCurrency(domain.renewal_cost)}</span>
-              </div>
-              <div className="flex items-center space-x-1 text-sm text-gray-600">
-                <Calendar className="h-4 w-4" />
-                <span>Every {domain.renewal_cycle} year{domain.renewal_cycle > 1 ? 's' : ''}</span>
-              </div>
-            </div>
+        <div className="flex items-center space-x-4 mt-2">
+          <div className="flex items-center space-x-1 text-sm text-gray-600">
+            <DollarSign className="h-4 w-4" />
+            <span>Renewal: {formatCurrency(domain.renewal_cost)}</span>
+          </div>
+          <div className="flex items-center space-x-1 text-sm text-gray-600">
+            <Calendar className="h-4 w-4" />
+            <span>Every {domain.renewal_cycle} year{domain.renewal_cycle > 1 ? 's' : ''}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-4 mt-2">
+          <div className="flex items-center space-x-1 text-sm text-blue-600">
+            <span>续费次数: {domain.renewal_count}</span>
+          </div>
+          <div className="flex items-center space-x-1 text-sm text-purple-600 font-medium">
+            <DollarSign className="h-4 w-4" />
+            <span>总持有成本: {formatCurrency(totalHoldingCost)}</span>
+          </div>
+        </div>
 
             {domain.tags && domain.tags.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-3">

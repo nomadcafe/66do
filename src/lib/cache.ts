@@ -13,7 +13,7 @@ interface CacheStats {
 }
 
 export class DataCache {
-  private cache: Map<string, CacheItem<any>> = new Map();
+  private cache: Map<string, CacheItem<unknown>> = new Map();
   private stats: CacheStats = {
     hits: 0,
     misses: 0,
@@ -144,52 +144,52 @@ export class DataCache {
 // 域名数据缓存
 export class DomainCache extends DataCache {
   // 缓存域名列表
-  cacheDomains(userId: string, domains: any[], ttl?: number): void {
+  cacheDomains(userId: string, domains: unknown[], ttl?: number): void {
     this.set(`domains_${userId}`, domains, ttl);
   }
 
   // 获取缓存的域名列表
-  getCachedDomains(userId: string): any[] | null {
+  getCachedDomains(userId: string): unknown[] | null {
     return this.get(`domains_${userId}`);
   }
 
   // 缓存域名详情
-  cacheDomain(domainId: string, domain: any, ttl?: number): void {
+  cacheDomain(domainId: string, domain: unknown, ttl?: number): void {
     this.set(`domain_${domainId}`, domain, ttl);
   }
 
   // 获取缓存的域名详情
-  getCachedDomain(domainId: string): any | null {
+  getCachedDomain(domainId: string): unknown | null {
     return this.get(`domain_${domainId}`);
   }
 
   // 缓存交易记录
-  cacheTransactions(userId: string, transactions: any[], ttl?: number): void {
+  cacheTransactions(userId: string, transactions: unknown[], ttl?: number): void {
     this.set(`transactions_${userId}`, transactions, ttl);
   }
 
   // 获取缓存的交易记录
-  getCachedTransactions(userId: string): any[] | null {
+  getCachedTransactions(userId: string): unknown[] | null {
     return this.get(`transactions_${userId}`);
   }
 
   // 缓存统计数据
-  cacheStats(userId: string, stats: any, ttl?: number): void {
+  cacheStats(userId: string, stats: unknown, ttl?: number): void {
     this.set(`stats_${userId}`, stats, ttl);
   }
 
   // 获取缓存的统计数据
-  getCachedStats(userId: string): any | null {
+  getCachedStats(userId: string): unknown | null {
     return this.get(`stats_${userId}`);
   }
 
   // 缓存市场价值
-  cacheMarketValue(domain: string, value: any, ttl?: number): void {
+  cacheMarketValue(domain: string, value: unknown, ttl?: number): void {
     this.set(`market_${domain}`, value, ttl);
   }
 
   // 获取缓存的市场价值
-  getCachedMarketValue(domain: string): any | null {
+  getCachedMarketValue(domain: string): unknown | null {
     return this.get(`market_${domain}`);
   }
 

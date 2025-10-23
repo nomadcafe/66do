@@ -1,5 +1,4 @@
 // 基于D1数据库的真实认证系统
-import { supabase } from './supabase';
 
 interface User {
   id: string;
