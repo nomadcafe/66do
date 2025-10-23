@@ -108,7 +108,7 @@ export class AccessControl {
   }
 
   // 检查资源所有权
-  private isResourceOwner(userId: string, resourceId: string): boolean {
+  private isResourceOwner(_userId: string, _resourceId: string): boolean {
     // 这里应该查询数据库检查资源所有权
     // 暂时返回true，实际应用中需要数据库查询
     return true;
@@ -182,21 +182,24 @@ export const auditLogger = new AuditLogger();
 export function securityMiddleware(req: Record<string, unknown>, res: Record<string, unknown>, next: () => void) {
   // 设置安全头
   if (typeof res.setHeader === 'function') {
-    (res as any).setHeader('X-Content-Type-Options', 'nosniff');
-    (res as any).setHeader('X-Frame-Options', 'DENY');
-    (res as any).setHeader('X-XSS-Protection', '1; mode=block');
-    (res as any).setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    const resObj = res as { setHeader: (key: string, value: string) => void };
+    resObj.setHeader('X-Content-Type-Options', 'nosniff');
+    resObj.setHeader('X-Frame-Options', 'DENY');
+    resObj.setHeader('X-XSS-Protection', '1; mode=block');
+    resObj.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   }
   
   // 记录请求
+  const reqObj = req as Record<string, unknown>;
+  const user = reqObj.user as Record<string, unknown> | undefined;
   auditLogger.log(
-    (req as any).user?.id || 'anonymous',
+    user?.id as string || 'anonymous',
     'request',
-    (req as any).path,
+    reqObj.path as string,
     {
-      method: (req as any).method,
-      userAgent: (req as any).get?.('User-Agent'),
-      ip: (req as any).ip
+      method: reqObj.method as string,
+      userAgent: (reqObj.get as ((key: string) => string) | undefined)?.('User-Agent') || '',
+      ip: reqObj.ip as string
     }
   );
   

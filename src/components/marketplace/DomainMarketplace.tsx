@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { 
   Search, 
   Globe, 
@@ -234,9 +235,11 @@ export default function DomainMarketplace({
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
               {domain.seller.avatar ? (
-                <img 
+                <Image 
                   src={domain.seller.avatar} 
                   alt={domain.seller.name}
+                  width={32}
+                  height={32}
                   className="w-8 h-8 rounded-full object-cover"
                 />
               ) : (

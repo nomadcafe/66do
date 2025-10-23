@@ -14,6 +14,7 @@ interface MarketDataProvider {
 }
 
 // Estibot API 集成
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class EstibotProvider implements MarketDataProvider {
   name = 'Estibot';
   private apiKey: string;
@@ -68,6 +69,7 @@ class EstibotProvider implements MarketDataProvider {
 }
 
 // GoDaddy API 集成
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class GoDaddyProvider implements MarketDataProvider {
   name = 'GoDaddy';
   private apiKey: string;
