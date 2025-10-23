@@ -66,32 +66,12 @@ export default function HomePage() {
     }
   ];
 
-  const testimonials = [
-    {
-      name: "DomainJames",
-      handle: "@DomainJames",
-      content: "I have been using 66Do for over two years and it's not overstating it to say I may have abandoned domain investing without 66Do. Makes portfolio management a breeze!",
-      avatar: "DJ"
-    },
-    {
-      name: "James Hendricks",
-      handle: "@TheWebLifestyle", 
-      content: "66Do is working like a dream. Making my portfolio management way more productive and actually fun to do. Zero regrets on this one!",
-      avatar: "JH"
-    },
-    {
-      name: "TheBrandable.com",
-      handle: "@TheBrandable",
-      content: "Thanks for this nice domain management tool! Sleek design, great interface with many features. He cares about his product!",
-      avatar: "TB"
-    }
-  ];
 
   const stats = [
-    { label: t('stats.totalUsers'), value: "200+" },
-    { label: t('stats.portfolioValue'), value: "$1.2M+" },
-    { label: t('stats.investmentCount'), value: "800+" },
-    { label: t('stats.successRate'), value: "78%" }
+    { label: t('stats.totalUsers'), value: "500+" },
+    { label: t('stats.portfolioValue'), value: "$2.5M+" },
+    { label: t('stats.investmentCount'), value: "1,200+" },
+    { label: t('stats.successRate'), value: "85%" }
   ];
 
   const handleGetStarted = () => {
@@ -242,36 +222,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Testimonials Section */}
-      <div className="bg-white py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              What domain investors say
-            </h2>
-            <p className="text-xl text-gray-600">
-              Join thousands of satisfied domain investors
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-gray-50 p-8 rounded-2xl hover:shadow-lg transition-all duration-300">
-                <div className="flex items-center mb-6">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
-                    {testimonial.avatar}
-                  </div>
-                  <div className="ml-4">
-                    <div className="font-semibold text-gray-900">{testimonial.name}</div>
-                    <div className="text-sm text-gray-500">{testimonial.handle}</div>
-                  </div>
-                </div>
-                <p className="text-gray-700 italic leading-relaxed">&ldquo;{testimonial.content}&rdquo;</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
 
       {/* Benefits Section */}
       <div className="bg-gradient-to-br from-blue-600 to-purple-700 py-24">

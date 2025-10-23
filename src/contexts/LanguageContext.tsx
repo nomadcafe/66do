@@ -42,10 +42,10 @@ const translations = {
     'features.security.desc': 'Enterprise-grade encryption to ensure your investment data remains secure',
     
     // Stats
-    'stats.totalUsers': 'Domain Investors',
-    'stats.portfolioValue': 'Domain Portfolio Value',
-    'stats.investmentCount': 'Domains Tracked',
-    'stats.successRate': 'Success Rate',
+    'stats.totalUsers': 'Active Users',
+    'stats.portfolioValue': 'Portfolio Value',
+    'stats.investmentCount': 'Domains Managed',
+    'stats.successRate': 'User Satisfaction',
     
     // Footer
     'footer.description': 'Professional domain investment management platform to help you achieve your domain investment goals.',
@@ -132,10 +132,10 @@ const translations = {
     'features.security.desc': '企业级数据加密，确保您的投资数据安全',
     
     // Stats
-    'stats.totalUsers': '域名投资者',
-    'stats.portfolioValue': '域名投资组合价值',
-    'stats.investmentCount': '追踪域名数',
-    'stats.successRate': '成功率',
+    'stats.totalUsers': '活跃用户',
+    'stats.portfolioValue': '投资组合价值',
+    'stats.investmentCount': '管理域名数',
+    'stats.successRate': '用户满意度',
     
     // Footer
     'footer.description': '专业的域名投资管理平台，助您实现域名投资目标。',
