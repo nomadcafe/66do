@@ -7,9 +7,7 @@ import {
   CheckCircle, 
   AlertTriangle, 
   Info, 
-  DollarSign, 
   Calendar, 
-  TrendingUp,
   Search,
   Trash2,
   Archive
@@ -17,12 +15,12 @@ import {
 
 interface Notification {
   id: string;
-  type: 'info' | 'warning' | 'success' | 'error' | 'renewal' | 'sale' | 'price';
+  type: 'info' | 'warning' | 'success' | 'error' | 'renewal' | 'expiry';
   title: string;
   message: string;
   domainName?: string;
-  amount?: number;
-  date: string;
+  date?: string;
+  timestamp: string;
   read: boolean;
   archived: boolean;
   priority: 'low' | 'medium' | 'high';
@@ -60,10 +58,8 @@ export default function AdvancedNotificationSystem({
     switch (type) {
       case 'renewal':
         return <Calendar className="h-5 w-5 text-orange-500" />;
-      case 'sale':
-        return <DollarSign className="h-5 w-5 text-green-500" />;
-      case 'price':
-        return <TrendingUp className="h-5 w-5 text-blue-500" />;
+      case 'expiry':
+        return <AlertTriangle className="h-5 w-5 text-red-500" />;
       case 'warning':
         return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
       case 'error':
@@ -90,7 +86,7 @@ export default function AdvancedNotificationSystem({
           return priorityOrder[b.priority] - priorityOrder[a.priority];
         case 'date':
         default:
-          return new Date(b.date).getTime() - new Date(a.date).getTime();
+          return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
       }
     });
 
@@ -216,13 +212,13 @@ export default function AdvancedNotificationSystem({
                                 域名: {notification.domainName}
                               </p>
                             )}
-                            {notification.amount && (
-                              <p className="text-xs text-green-600 mt-1">
-                                金额: ${notification.amount.toFixed(2)}
+                            {notification.date && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                到期日期: {new Date(notification.date).toLocaleDateString()}
                               </p>
                             )}
                             <p className="text-xs text-gray-500 mt-1">
-                              {new Date(notification.date).toLocaleString()}
+                              {new Date(notification.timestamp).toLocaleString()}
                             </p>
                           </div>
                           

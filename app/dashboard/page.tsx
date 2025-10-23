@@ -116,7 +116,7 @@ interface DomainStats {
 
 interface Alert {
   id: string;
-  type: 'renewal' | 'expiry' | 'price_drop' | 'sale_opportunity' | 'sale';
+  type: 'renewal' | 'expiry' | 'price_drop' | 'sale_opportunity';
   title: string;
   message: string;
   timestamp: string;
@@ -316,45 +316,76 @@ export default function DashboardPage() {
   const generateAlerts = useCallback(() => {
     const newAlerts: Alert[] = [];
     
-    // 域名续费提醒
+    
+    // 域名到期提醒（更详细的提醒逻辑）
     domains.forEach(domain => {
-      // 如果没有到期日期，跳过提醒
       if (!domain.expiry_date) return;
       
       const daysUntilExpiry = Math.ceil((new Date(domain.expiry_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-      if (daysUntilExpiry <= 30 && daysUntilExpiry > 0) {
+      
+      // 30天提醒
+      if (daysUntilExpiry <= 30 && daysUntilExpiry > 14) {
         newAlerts.push({
-          id: `renewal-${domain.id}`,
-          type: 'renewal',
+          id: `expiry-30-${domain.id}`,
+          type: 'expiry',
           title: '域名即将到期',
-          message: `${domain.domain_name} 将在 ${daysUntilExpiry} 天后到期`,
+          message: `${domain.domain_name} 将在 ${daysUntilExpiry} 天后到期，请及时续费`,
           timestamp: new Date().toISOString(),
           read: false,
-          priority: daysUntilExpiry <= 7 ? 'high' : 'medium'
+          priority: 'medium',
+          domain_name: domain.domain_name,
+          date: domain.expiry_date
+        });
+      }
+      
+      // 14天提醒
+      if (daysUntilExpiry <= 14 && daysUntilExpiry > 7) {
+        newAlerts.push({
+          id: `expiry-14-${domain.id}`,
+          type: 'expiry',
+          title: '域名即将到期',
+          message: `${domain.domain_name} 将在 ${daysUntilExpiry} 天后到期，请尽快续费`,
+          timestamp: new Date().toISOString(),
+          read: false,
+          priority: 'high',
+          domain_name: domain.domain_name,
+          date: domain.expiry_date
+        });
+      }
+      
+      // 7天紧急提醒
+      if (daysUntilExpiry <= 7 && daysUntilExpiry > 0) {
+        newAlerts.push({
+          id: `expiry-7-${domain.id}`,
+          type: 'expiry',
+          title: '域名即将到期',
+          message: `${domain.domain_name} 将在 ${daysUntilExpiry} 天后到期，请立即续费！`,
+          timestamp: new Date().toISOString(),
+          read: false,
+          priority: 'high',
+          domain_name: domain.domain_name,
+          date: domain.expiry_date
+        });
+      }
+      
+      // 已过期提醒
+      if (daysUntilExpiry <= 0) {
+        newAlerts.push({
+          id: `expired-${domain.id}`,
+          type: 'expiry',
+          title: '域名已过期',
+          message: `${domain.domain_name} 已过期 ${Math.abs(daysUntilExpiry)} 天，请立即处理`,
+          timestamp: new Date().toISOString(),
+          read: false,
+          priority: 'high',
+          domain_name: domain.domain_name,
+          date: domain.expiry_date
         });
       }
     });
     
-    // 交易提醒
-    transactions.forEach(transaction => {
-      if (transaction.type === 'sell' && transaction.amount > 1000) {
-        const domain = domains.find(d => d.id === transaction.domain_id);
-        if (domain) {
-          newAlerts.push({
-            id: `sale-${transaction.id}`,
-            type: 'sale',
-            title: '域名售出',
-            message: `恭喜！${domain.domain_name} 以 $${transaction.amount} 售出`,
-            timestamp: transaction.date,
-            read: false,
-            priority: 'high'
-          });
-        }
-      }
-    });
-    
     setAlerts(newAlerts);
-  }, [domains, transactions]);
+  }, [domains]);
 
   // Generate alerts when data changes
   useEffect(() => {
