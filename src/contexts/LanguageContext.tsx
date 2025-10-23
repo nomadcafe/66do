@@ -69,7 +69,6 @@ const translations = {
     'dashboard.data': 'Data Management',
     'dashboard.reports': 'Reports',
     'dashboard.analysis': 'Analysis',
-    'dashboard.tax': 'Tax Report',
     
     // Domain Management
     'domain.add': 'Add Domain',
@@ -334,7 +333,6 @@ const translations = {
     'dashboard.data': '数据管理',
     'dashboard.reports': '财务报告',
     'dashboard.analysis': '投资分析',
-    'dashboard.tax': '税务报告',
     
     // Domain Management
     'domain.add': '添加域名',

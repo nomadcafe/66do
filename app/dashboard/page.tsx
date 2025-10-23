@@ -15,7 +15,6 @@ import DataImportExport from '../../src/components/data/DataImportExport';
 import { LazyDomainExpiryAlert, LazyDomainValueTracker, LazyWrapper } from '../../src/components/LazyComponents';
 import FinancialReport from '../../src/components/reports/FinancialReport';
 import FinancialAnalysis from '../../src/components/reports/FinancialAnalysis';
-import TaxReport from '../../src/components/reports/TaxReport';
 import ShareModal from '../../src/components/share/ShareModal';
 import SaleSuccessModal from '../../src/components/share/SaleSuccessModal';
 import { calculateAnnualRenewalCost, getRenewalOptimizationSuggestions } from '../../src/lib/renewalCalculations';
@@ -155,7 +154,7 @@ export default function DashboardPage() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'marketplace' | 'settings' | 'data' | 'reports' | 'analysis' | 'tax'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'marketplace' | 'settings' | 'data' | 'reports'>('overview');
   
   // 计算续费分析
   const renewalAnalysis = useMemo(() => {
@@ -908,30 +907,8 @@ export default function DashboardPage() {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                <FileText className="h-4 w-4 inline mr-2" />
-                {t('dashboard.reports')}
-              </button>
-              <button
-                onClick={() => setActiveTab('analysis')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                  activeTab === 'analysis'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
                 <BarChart3 className="h-4 w-4 inline mr-2" />
-                {t('dashboard.analysis')}
-              </button>
-              <button
-                onClick={() => setActiveTab('tax')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                  activeTab === 'tax'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <DollarSign className="h-4 w-4 inline mr-2" />
-                {t('dashboard.tax')}
+                {t('dashboard.reports')}
               </button>
             </nav>
               </div>
@@ -1491,24 +1468,36 @@ export default function DashboardPage() {
         )}
         
         {activeTab === 'reports' && (
-          <FinancialReport
-            domains={domains}
-            transactions={transactions}
-          />
-        )}
-        
-        {activeTab === 'analysis' && (
-          <FinancialAnalysis
-            domains={domains}
-            transactions={transactions}
-          />
-        )}
-        
-        {activeTab === 'tax' && (
-          <TaxReport
-            domains={domains}
-            transactions={transactions}
-          />
+          <div className="space-y-6">
+            {/* 报告类型选择器 */}
+            <div className="bg-white p-4 rounded-lg shadow-sm border">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">财务报告</h3>
+                <div className="flex items-center space-x-4">
+                  <select
+                    value={viewMode}
+                    onChange={(e) => setViewMode(e.target.value as 'grid' | 'list')}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="grid">网格视图</option>
+                    <option value="list">列表视图</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* 综合财务报告 */}
+            <FinancialReport
+              domains={domains}
+              transactions={transactions}
+            />
+            
+            {/* 投资分析 */}
+            <FinancialAnalysis
+              domains={domains}
+              transactions={transactions}
+            />
+          </div>
         )}
         </div>
 
