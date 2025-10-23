@@ -18,6 +18,10 @@
 /out/
 /dist/
 
+# Cloudflare Pages cache
+.cache/
+cache/
+
 # production
 /build
 

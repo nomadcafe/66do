@@ -13,6 +13,35 @@ const nextConfig: NextConfig = {
   // Optimize for production
   compress: true,
   
+  // Optimize bundle size for Cloudflare Pages
+  // experimental: {
+  //   optimizeCss: true, // Requires critters package
+  // },
+  
+  // Webpack optimization
+  webpack: (config: any, { isServer }: any) => {
+    if (!isServer) {
+      // Optimize client bundle
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        cacheGroups: {
+          default: {
+            minChunks: 2,
+            priority: -20,
+            reuseExistingChunk: true,
+          },
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            priority: -10,
+            chunks: 'all',
+          },
+        },
+      };
+    }
+    return config;
+  },
+  
   // External packages for server components
   serverExternalPackages: ['@supabase/supabase-js'],
   

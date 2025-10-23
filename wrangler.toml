@@ -18,6 +18,10 @@ NEXT_PUBLIC_APP_URL = "https://66do.pages.dev"
 
 # Production environment
 [env.production]
+[vars]
+NEXT_PUBLIC_APP_NAME = "66Do"
+NEXT_PUBLIC_APP_URL = "https://66do.pages.dev"
+
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "66domain-db"
