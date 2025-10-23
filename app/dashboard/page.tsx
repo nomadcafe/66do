@@ -13,6 +13,13 @@ import UserPreferencesPanel from '../../src/components/settings/UserPreferencesP
 import DomainMarketplace from '../../src/components/marketplace/DomainMarketplace';
 import DataImportExport from '../../src/components/data/DataImportExport';
 import { LazyDomainExpiryAlert, LazyDomainValueTracker, LazyWrapper } from '../../src/components/LazyComponents';
+import MobileNavigation from '../../src/components/layout/MobileNavigation';
+import ResponsiveGrid from '../../src/components/layout/ResponsiveGrid';
+import MobileCard from '../../src/components/ui/MobileCard';
+// Mobile components imported but not used yet
+// import TouchGestures from '../../src/components/mobile/TouchGestures';
+// import PullToRefresh from '../../src/components/mobile/PullToRefresh';
+// import { isMobile, getDeviceType } from '../../src/lib/utils';
 import FinancialReport from '../../src/components/reports/FinancialReport';
 import FinancialAnalysis from '../../src/components/reports/FinancialAnalysisOptimized';
 import ShareModal from '../../src/components/share/ShareModal';
@@ -571,8 +578,8 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      {/* Desktop Header */}
+      <div className="hidden lg:block bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div>
@@ -619,11 +626,46 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Mobile Header */}
+      <div className="lg:hidden bg-white shadow-sm border-b sticky top-0 z-40">
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                <Globe className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold text-gray-900">{t('platform.name')}</h1>
+                <p className="text-xs text-gray-600">{t('dashboard.title')}</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleAddDomain}
+                className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700"
+              >
+                <Plus size={18} />
+              </button>
+              <button
+                onClick={handleLogout}
+                className="text-gray-600 hover:text-gray-800 p-2"
+              >
+                <LogOut size={18} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <ResponsiveGrid 
+          cols={{ default: 1, sm: 2, lg: 4 }} 
+          gap="lg" 
+          className="mb-8"
+        >
+          <MobileCard>
             <div className="flex items-center">
               <div className="p-2 bg-blue-100 rounded-lg">
                 <Globe className="h-6 w-6 text-blue-600" />
@@ -633,7 +675,7 @@ export default function DashboardPage() {
                 <p className="text-2xl font-bold text-gray-900">{stats.totalDomains}</p>
               </div>
             </div>
-          </div>
+          </MobileCard>
 
           <div className="bg-white p-6 rounded-lg shadow-sm border">
             <div className="flex items-center">
@@ -670,7 +712,7 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-        </div>
+        </ResponsiveGrid>
 
         {/* Enhanced Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -1496,6 +1538,13 @@ export default function DashboardPage() {
           transaction={saleSuccessData.transaction}
         />
       )}
+
+      {/* Mobile Navigation */}
+      <MobileNavigation 
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        expiringCount={expiringDomains.length}
+      />
     </div>
   );
 }

@@ -276,7 +276,41 @@ const translations = {
     
     // Platform name
     'platform.name': '66Do',
-    'platform.subtitle': 'Domain Investment Platform'
+    'platform.subtitle': 'Domain Investment Platform',
+    
+    // Mobile specific
+    'mobile.menu': 'Menu',
+    'mobile.close': 'Close',
+    'mobile.swipeToNavigate': 'Swipe to navigate',
+    'mobile.tapToExpand': 'Tap to expand',
+    'mobile.pullToRefresh': 'Pull to refresh',
+    
+    // Navigation
+    'nav.overview': 'Overview',
+    'nav.domains': 'Domains',
+    'nav.transactions': 'Transactions',
+    'nav.analytics': 'Analytics',
+    'nav.alerts': 'Alerts',
+    'nav.marketplace': 'Marketplace',
+    'nav.settings': 'Settings',
+    'nav.data': 'Data',
+    
+    // Mobile gestures
+    'gesture.swipeLeft': 'Swipe left',
+    'gesture.swipeRight': 'Swipe right',
+    'gesture.pullDown': 'Pull down',
+    'gesture.pullUp': 'Pull up',
+    
+    // Responsive design
+    'responsive.mobileView': 'Mobile view',
+    'responsive.tabletView': 'Tablet view',
+    'responsive.desktopView': 'Desktop view',
+    
+    // Touch interactions
+    'touch.tap': 'Tap',
+    'touch.doubleTap': 'Double tap',
+    'touch.longPress': 'Long press',
+    'touch.swipe': 'Swipe'
   },
   zh: {
     // Navigation
@@ -540,7 +574,41 @@ const translations = {
     
     // Platform name
     'platform.name': '66Do',
-    'platform.subtitle': '域名投资平台'
+    'platform.subtitle': '域名投资平台',
+    
+    // Mobile specific
+    'mobile.menu': '菜单',
+    'mobile.close': '关闭',
+    'mobile.swipeToNavigate': '滑动导航',
+    'mobile.tapToExpand': '点击展开',
+    'mobile.pullToRefresh': '下拉刷新',
+    
+    // Navigation
+    'nav.overview': '概览',
+    'nav.domains': '域名',
+    'nav.transactions': '交易',
+    'nav.analytics': '分析',
+    'nav.alerts': '提醒',
+    'nav.marketplace': '市场',
+    'nav.settings': '设置',
+    'nav.data': '数据',
+    
+    // Mobile gestures
+    'gesture.swipeLeft': '向左滑动',
+    'gesture.swipeRight': '向右滑动',
+    'gesture.pullDown': '下拉',
+    'gesture.pullUp': '上拉',
+    
+    // Responsive design
+    'responsive.mobileView': '移动视图',
+    'responsive.tabletView': '平板视图',
+    'responsive.desktopView': '桌面视图',
+    
+    // Touch interactions
+    'touch.tap': '点击',
+    'touch.doubleTap': '双击',
+    'touch.longPress': '长按',
+    'touch.swipe': '滑动'
   }
 };
 
