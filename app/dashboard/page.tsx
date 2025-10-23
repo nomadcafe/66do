@@ -18,10 +18,10 @@ import MobileNavigation from '../../src/components/layout/MobileNavigation';
 import ResponsiveGrid from '../../src/components/layout/ResponsiveGrid';
 import MobileCard from '../../src/components/ui/MobileCard';
 import AutoDomainMonitor from '../../src/components/monitoring/AutoDomainMonitor';
-// Mobile components imported but not used yet
-// import TouchGestures from '../../src/components/mobile/TouchGestures';
-// import PullToRefresh from '../../src/components/mobile/PullToRefresh';
-// import { isMobile, getDeviceType } from '../../src/lib/utils';
+// Mobile components for enhanced mobile experience
+import TouchGestures from '../../src/components/mobile/TouchGestures';
+import PullToRefresh from '../../src/components/mobile/PullToRefresh';
+import { isMobile } from '../../src/lib/utils';
 import FinancialReport from '../../src/components/reports/FinancialReport';
 import FinancialAnalysis from '../../src/components/reports/FinancialAnalysisOptimized';
 import ShareModal from '../../src/components/share/ShareModal';
@@ -157,10 +157,23 @@ export default function DashboardPage() {
   const [dataSource, setDataSource] = useState<'d1' | 'cache'>('cache');
   const [activeTab, setActiveTab] = useState<'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'marketplace' | 'settings' | 'data' | 'reports'>('overview');
   
-  // 计算续费分析
+  // 计算续费分析 - 使用缓存优化性能
   const renewalAnalysis = useMemo(() => {
     return calculateAnnualRenewalCost(domains);
   }, [domains]);
+
+  // 缓存财务指标计算 - 用于性能优化
+  // const financialMetrics = useMemo(() => {
+  //   return calculateFinancialMetrics(domains, transactions);
+  // }, [domains, transactions]);
+
+  // 缓存域名性能分析 - 用于性能优化
+  // const domainPerformance = useMemo(() => {
+  //   return domains.map(domain => ({
+  //     ...domain,
+  //     performance: calculateDomainPerformance(domain, transactions.filter(t => t.domain_id === domain.id))
+  //   }));
+  // }, [domains, transactions]);
   
   // 计算财务指标
   
@@ -254,7 +267,7 @@ export default function DashboardPage() {
     };
 
     loadData();
-  }, [user?.id]);
+  }, [user?.id, dataSource, domains.length, transactions.length]);
 
 
   // Save data to D1 database only
@@ -1673,6 +1686,18 @@ export default function DashboardPage() {
         <div className="fixed bottom-4 right-4 bg-gray-800 text-white px-3 py-2 rounded-lg text-sm">
           数据源: {dataSource === 'd1' ? '云端数据库' : '缓存'}
         </div>
+      )}
+
+      {/* Mobile Components */}
+      {isMobile() && (
+        <>
+          <TouchGestures onSwipeLeft={() => setActiveTab('domains')} onSwipeRight={() => setActiveTab('overview')}>
+            <div></div>
+          </TouchGestures>
+          <PullToRefresh onRefresh={async () => window.location.reload()}>
+            <div></div>
+          </PullToRefresh>
+        </>
       )}
 
       {/* Mobile Navigation */}

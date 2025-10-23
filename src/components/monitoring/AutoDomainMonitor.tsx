@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Domain } from '../../types/domain';
 import { DomainMonitor, DomainExpiryInfo } from '../../lib/domainMonitoring';
-import { useI18nContext } from '../../contexts/I18nProvider';
+// import { useI18nContext } from '../../contexts/I18nProvider';
 import { AlertTriangle, Clock, CheckCircle, XCircle } from 'lucide-react';
 
 interface AutoDomainMonitorProps {
@@ -26,7 +26,7 @@ export default function AutoDomainMonitor({
   const [lastCheckTime, setLastCheckTime] = useState<Date | null>(null);
   const [expiryAlerts, setExpiryAlerts] = useState<DomainExpiryInfo[]>([]);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
-  const { t } = useI18nContext();
+  // const { t } = useI18nContext();
 
   // 请求通知权限
   useEffect(() => {
@@ -121,9 +121,9 @@ export default function AutoDomainMonitor({
   }, [autoStart, domains.length, startMonitoring, stopMonitoring]);
 
   // 更新监控设置
-  const updateSettings = useCallback((settings: Partial<typeof monitor.getSettings>) => {
-    monitor.updateSettings(settings);
-  }, [monitor]);
+  // const updateSettings = useCallback((settings: Partial<typeof monitor.getSettings>) => {
+  //   monitor.updateSettings(settings);
+  // }, [monitor]);
 
   // 获取监控统计
   const getMonitoringStats = useCallback(() => {

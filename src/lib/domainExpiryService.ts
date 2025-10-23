@@ -4,7 +4,7 @@
  */
 
 import { Domain } from '../types/domain';
-import { whoisService, WhoisData, WhoisError } from './whoisService';
+import { whoisService, WhoisData } from './whoisService';
 
 export interface DomainExpiryInfo {
   domain: Domain;
@@ -168,13 +168,13 @@ export class DomainExpiryService {
   /**
    * 生成提醒消息
    */
-  private generateMessage(domainName: string, daysUntilExpiry: number, priority: string): string {
-    const priorityText = {
-      critical: '紧急',
-      high: '重要',
-      medium: '注意',
-      low: '提醒'
-    }[priority];
+  private generateMessage(domainName: string, daysUntilExpiry: number, _priority: string): string {
+    // const priorityText = {
+    //   critical: '紧急',
+    //   high: '重要',
+    //   medium: '注意',
+    //   low: '提醒'
+    // }[priority];
 
     if (daysUntilExpiry === 0) {
       return `域名 ${domainName} 今天到期！`;
