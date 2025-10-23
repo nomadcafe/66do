@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect } from 'react';
-import { validateUser, createSession, validateSession, cleanupExpiredSessions } from '../lib/auth';
+import { validateUser, createUser, createSession, validateSession, cleanupExpiredSessions } from '../lib/auth';
 
 interface User {
   id: string;
@@ -100,22 +100,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (email: string, password: string) => {
     setLoading(true);
     try {
-      // 基本验证
-      if (!email || !email.includes('@')) {
-        throw new Error('请输入有效的邮箱地址');
-      }
+      // 使用真实的用户创建功能
+      const { user: newUser, error: createError } = await createUser(email, password);
       
-      if (!password || password.length < 6) {
-        throw new Error('密码至少需要6个字符');
+      if (createError || !newUser) {
+        throw new Error(createError || '用户创建失败');
       }
-
-      // 模拟注册过程（实际应用中应该调用D1数据库）
-      const newUser = {
-        id: Date.now().toString(),
-        email,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
 
       // 创建会话
       const session = createSession(newUser);
