@@ -8,6 +8,7 @@ interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  completeRegistration: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -155,6 +156,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const completeRegistration = async (email: string, _password: string) => {
+    setLoading(true);
+    try {
+      // Generate a secure user ID based on email
+      const userId = btoa(email).replace(/[^a-zA-Z0-9]/g, '').substring(0, 16);
+      
+      // Create session token
+      const sessionToken = btoa(`${email}:${Date.now()}`).replace(/[^a-zA-Z0-9]/g, '');
+      
+      // Store in localStorage for persistence
+      localStorage.setItem('66do_user', JSON.stringify({ email, id: userId }));
+      localStorage.setItem('66do_session', sessionToken);
+      
+      setUser({ email, id: userId });
+      setSession({ user: { email, id: userId }, token: sessionToken });
+      setLoading(false);
+      return { error: null };
+    } catch (error) {
+      setLoading(false);
+      return { error: error instanceof Error ? error : new Error('Registration completion failed') };
+    }
+  };
+
   const signOut = async () => {
     // Clear localStorage
     localStorage.removeItem('66do_user');
@@ -170,6 +194,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     signIn,
     signUp,
+    completeRegistration,
     signOut,
   };
 

@@ -11,7 +11,7 @@ export default function VerifyPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
-  const { signUp } = useAuth();
+  const { completeRegistration } = useAuth();
   const { t, language, setLanguage } = useLanguage();
   const router = useRouter();
 
@@ -71,7 +71,7 @@ export default function VerifyPage() {
       }
 
       // Complete registration
-      const { error } = await signUp(data.email, data.password);
+      const { error } = await completeRegistration(data.email, data.password);
       
       if (error) {
         setError(error.message);
