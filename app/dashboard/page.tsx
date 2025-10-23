@@ -17,6 +17,7 @@ import FinancialReport from '../../src/components/reports/FinancialReport';
 import FinancialAnalysis from '../../src/components/reports/FinancialAnalysis';
 import TaxReport from '../../src/components/reports/TaxReport';
 import { calculateAnnualRenewalCost, getRenewalOptimizationSuggestions } from '../../src/lib/renewalCalculations';
+import { calculateFinancialMetrics, formatCurrency } from '../../src/lib/financialMetrics';
 // import { domainCache } from '../../src/lib/cache';
 // import { marketDataManager } from '../../src/lib/marketData';
 // import { auditLogger } from '../../src/lib/security';
@@ -27,6 +28,7 @@ import {
   Plus, 
   DollarSign, 
   TrendingUp, 
+  TrendingDown,
   BarChart3, 
   LogOut, 
   User, 
@@ -46,7 +48,8 @@ import {
   XCircle,
   Info,
   List,
-  Database
+  Database,
+  Target
 } from 'lucide-react';
 
 interface Domain {
@@ -170,6 +173,11 @@ export default function DashboardPage() {
   const renewalAnalysis = useMemo(() => {
     return calculateAnnualRenewalCost(domains);
   }, [domains]);
+  
+  // 计算财务指标
+  const financialMetrics = useMemo(() => {
+    return calculateFinancialMetrics(domains, transactions);
+  }, [domains, transactions]);
   const [showDomainForm, setShowDomainForm] = useState(false);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [editingDomain, setEditingDomain] = useState<Domain | undefined>();
@@ -220,19 +228,16 @@ export default function DashboardPage() {
 
   // Update stats when domains change
   useEffect(() => {
-    const totalDomains = domains.length;
-    const totalCost = domains.reduce((sum, domain) => sum + domain.purchase_cost, 0);
-    const totalRevenue = transactions.filter(t => t.type === 'sell').reduce((sum, t) => sum + t.amount, 0);
+    // 使用新的财务指标计算
+    const financialMetrics = calculateFinancialMetrics(domains, transactions);
     
-        // 计算续费成本统计 - 基于域名续费次数
-        const totalRenewalCost = domains.reduce((sum, domain) => {
-          return sum + (domain.renewal_count * domain.renewal_cost);
-        }, 0);
-        
-        // 计算总持有成本（购买成本 + 续费成本）
-        const totalHoldingCost = totalCost + totalRenewalCost;
-    const totalProfit = totalRevenue - totalHoldingCost;
-    const roi = totalHoldingCost > 0 ? (totalProfit / totalHoldingCost) * 100 : 0;
+    const totalDomains = financialMetrics.totalDomains;
+    const totalCost = financialMetrics.totalInvestment;
+    const totalRevenue = financialMetrics.totalRevenue;
+    const totalRenewalCost = financialMetrics.totalRenewalCost;
+    const totalHoldingCost = financialMetrics.totalHoldingCost;
+    const totalProfit = financialMetrics.totalProfit;
+    const roi = financialMetrics.roi;
     
     // 计算年度续费成本（使用新的准确计算逻辑）
     const renewalAnalysis = calculateAnnualRenewalCost(domains);
@@ -241,13 +246,13 @@ export default function DashboardPage() {
     // 统计不同续费周期的域名数量和成本
     const renewalCycles = renewalAnalysis.costByCycle;
     
-    const activeDomains = domains.filter(d => d.status === 'active').length;
+    const activeDomains = financialMetrics.activeDomains;
     const forSaleDomains = domains.filter(d => d.status === 'for_sale').length;
-    const soldDomains = domains.filter(d => d.status === 'sold').length;
+    const soldDomains = financialMetrics.soldDomains;
     const expiredDomains = domains.filter(d => d.status === 'expired').length;
     
-    const avgPurchasePrice = totalDomains > 0 ? totalCost / totalDomains : 0;
-    const avgSalePrice = soldDomains > 0 ? totalRevenue / soldDomains : 0;
+    const avgPurchasePrice = financialMetrics.avgPurchasePrice;
+    const avgSalePrice = financialMetrics.avgSalePrice;
     const avgRenewalCost = activeDomains > 0 ? totalRenewalCost / activeDomains : 0;
     
     // Find best and worst performing domains
@@ -900,6 +905,61 @@ export default function DashboardPage() {
         {/* Tab Content */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
+            {/* 新增财务指标卡片 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 p-6 rounded-lg shadow-lg text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-cyan-100 text-sm font-medium">总销售额</p>
+                    <p className="text-3xl font-bold">{formatCurrency(financialMetrics.totalSales)}</p>
+                    <p className="text-cyan-200 text-xs mt-1">
+                      未扣除手续费
+                    </p>
+                  </div>
+                  <DollarSign className="h-8 w-8 text-cyan-200" />
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-red-500 to-red-600 p-6 rounded-lg shadow-lg text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-red-100 text-sm font-medium">平台手续费</p>
+                    <p className="text-3xl font-bold">{formatCurrency(financialMetrics.totalPlatformFees)}</p>
+                    <p className="text-red-200 text-xs mt-1">
+                      总手续费
+                    </p>
+                  </div>
+                  <TrendingDown className="h-8 w-8 text-red-200" />
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 p-6 rounded-lg shadow-lg text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-emerald-100 text-sm font-medium">年度销售额</p>
+                    <p className="text-3xl font-bold">{formatCurrency(financialMetrics.annualSales)}</p>
+                    <p className="text-emerald-200 text-xs mt-1">
+                      今年销售额
+                    </p>
+                  </div>
+                  <Calendar className="h-8 w-8 text-emerald-200" />
+                </div>
+              </div>
+
+              <div className={`bg-gradient-to-br p-6 rounded-lg shadow-lg text-white ${financialMetrics.annualProfit >= 0 ? 'from-green-500 to-green-600' : 'from-red-500 to-red-600'}`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className={`text-sm font-medium ${financialMetrics.annualProfit >= 0 ? 'text-green-100' : 'text-red-100'}`}>年度利润</p>
+                    <p className="text-3xl font-bold">{formatCurrency(financialMetrics.annualProfit)}</p>
+                    <p className={`text-xs mt-1 ${financialMetrics.annualProfit >= 0 ? 'text-green-200' : 'text-red-200'}`}>
+                      今年净利润
+                    </p>
+                  </div>
+                  <Target className={`h-8 w-8 ${financialMetrics.annualProfit >= 0 ? 'text-green-200' : 'text-red-200'}`} />
+                </div>
+              </div>
+            </div>
+
             {/* 续费分析卡片 */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">年度续费分析</h3>

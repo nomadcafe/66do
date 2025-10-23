@@ -102,7 +102,15 @@ export default function TransactionForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    
+    // 自动计算净收入
+    const calculatedNetAmount = formData.amount - formData.platform_fee;
+    const finalFormData = {
+      ...formData,
+      net_amount: calculatedNetAmount
+    };
+    
+    onSave(finalFormData);
     onClose();
   };
 
