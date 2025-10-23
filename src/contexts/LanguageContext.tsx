@@ -56,7 +56,7 @@ const translations = {
     'stats.totalUsers': 'Active Users',
     'stats.portfolioValue': 'Portfolio Value',
     'stats.investmentCount': 'Domains Managed',
-    'stats.successRate': 'Free',
+    'stats.successRate': 'Success Rate',
     
     // Dashboard
     'dashboard.overview': 'Overview',
@@ -320,7 +320,7 @@ const translations = {
     'stats.totalUsers': '活跃用户',
     'stats.portfolioValue': '投资组合价值',
     'stats.investmentCount': '管理域名数',
-    'stats.successRate': '免费',
+    'stats.successRate': '成功率',
     
     // Dashboard
     'dashboard.overview': '概览',
