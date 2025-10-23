@@ -28,35 +28,6 @@ const translations: Record<Locale, Translations> = {
       settings: '设置',
       data: '数据'
     },
-    auth: {
-      signIn: {
-        title: '登录账户',
-        subtitle: '登录到您的账户',
-        email: '邮箱地址',
-        password: '密码',
-        submit: '登录',
-        noAccount: '还没有账户？',
-        signUpLink: '立即注册'
-      },
-      signUp: {
-        title: '创建账户',
-        subtitle: '注册新账户',
-        email: '邮箱地址',
-        password: '密码',
-        confirmPassword: '确认密码',
-        submit: '注册',
-        hasAccount: '已有账户？',
-        signInLink: '立即登录'
-      },
-      verify: {
-        title: '验证邮箱',
-        subtitle: '请输入发送到您邮箱的验证码',
-        code: '验证码',
-        submit: '验证',
-        resend: '重新发送',
-        backToLogin: '返回登录'
-      }
-    },
     dashboard: {
       title: '域名投资仪表板',
       welcome: '欢迎回来',
@@ -222,6 +193,43 @@ const translations: Record<Locale, Translations> = {
       lowLiquidity: '流动性不足，建议增加待售域名数量',
       lowDiversity: '域名数量较少，建议增加投资组合多样性'
     },
+    auth: {
+      signIn: {
+        title: '登录账户',
+        button: '登录',
+        loading: '登录中...'
+      },
+      email: '邮箱地址',
+      emailPlaceholder: '请输入邮箱地址',
+      password: '密码',
+      passwordPlaceholder: '请输入密码',
+      noAccount: '还没有账户？',
+      signUpNow: '立即注册',
+      signUp: {
+        title: '创建账户',
+        button: '注册',
+        loading: '注册中...'
+      },
+      verify: {
+        title: '验证邮箱',
+        subtitle: '请输入发送到您邮箱的验证码',
+        code: '验证码',
+        submit: '验证',
+        resend: '重新发送',
+        backToLogin: '返回登录'
+      },
+      registrationSuccess: '注册成功！',
+      redirecting: '正在跳转到验证页面...',
+      passwordsNotMatch: '密码不匹配',
+      passwordTooShort: '密码长度至少8位',
+      passwordMinLength: '至少8位字符',
+      confirmPassword: '确认密码',
+      confirmPasswordPlaceholder: '请再次输入密码',
+      signUpLoading: '注册中...',
+      signUpButton: '注册',
+      hasAccount: '已有账户？',
+      signInNow: '立即登录'
+    },
     mobile: {
       menu: '菜单',
       close: '关闭',
@@ -330,35 +338,6 @@ const translations: Record<Locale, Translations> = {
       marketplace: 'Marketplace',
       settings: 'Settings',
       data: 'Data'
-    },
-    auth: {
-      signIn: {
-        title: 'Sign in to your account',
-        subtitle: 'Enter your credentials to access your account',
-        email: 'Email address',
-        password: 'Password',
-        submit: 'Sign In',
-        noAccount: 'Don\'t have an account?',
-        signUpLink: 'Sign up now'
-      },
-      signUp: {
-        title: 'Create your account',
-        subtitle: 'Sign up for a new account',
-        email: 'Email address',
-        password: 'Password',
-        confirmPassword: 'Confirm password',
-        submit: 'Sign Up',
-        hasAccount: 'Already have an account?',
-        signInLink: 'Sign in now'
-      },
-      verify: {
-        title: 'Verify your email',
-        subtitle: 'Enter the verification code sent to your email',
-        code: 'Verification code',
-        submit: 'Verify',
-        resend: 'Resend code',
-        backToLogin: 'Back to login'
-      }
     },
     dashboard: {
       title: 'Domain Investment Dashboard',
@@ -524,6 +503,43 @@ const translations: Record<Locale, Translations> = {
       highVolatility: 'Portfolio volatility is high, consider adding stable income domains',
       lowLiquidity: 'Insufficient liquidity, consider increasing the number of domains for sale',
       lowDiversity: 'Few domains, consider increasing portfolio diversity'
+    },
+    auth: {
+      signIn: {
+        title: 'Sign in to your account',
+        button: 'Sign In',
+        loading: 'Signing in...'
+      },
+      email: 'Email Address',
+      emailPlaceholder: 'Enter your email address',
+      password: 'Password',
+      passwordPlaceholder: 'Enter your password',
+      noAccount: "Don't have an account?",
+      signUpNow: 'Sign up now',
+      signUp: {
+        title: 'Create your account',
+        button: 'Sign Up',
+        loading: 'Creating account...'
+      },
+      verify: {
+        title: 'Verify Email',
+        subtitle: 'Please enter the verification code sent to your email',
+        code: 'Verification Code',
+        submit: 'Verify',
+        resend: 'Resend code',
+        backToLogin: 'Back to login'
+      },
+      registrationSuccess: 'Registration successful!',
+      redirecting: 'Redirecting to verification page...',
+      passwordsNotMatch: 'Passwords do not match',
+      passwordTooShort: 'Password must be at least 8 characters',
+      passwordMinLength: 'At least 8 characters',
+      confirmPassword: 'Confirm Password',
+      confirmPasswordPlaceholder: 'Enter password again',
+      signUpLoading: 'Creating account...',
+      signUpButton: 'Sign Up',
+      hasAccount: 'Already have an account?',
+      signInNow: 'Sign in now'
     },
     mobile: {
       menu: 'Menu',
