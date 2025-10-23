@@ -60,9 +60,7 @@ async function getUserFromDatabase(email: string): Promise<User | null> {
     return result.user || null;
   } catch (error) {
     console.error('Database query error:', error);
-    // 降级到localStorage作为备用
-    const users = JSON.parse(localStorage.getItem('66do_users') || '[]');
-    return users.find((user: User) => user.email === email) || null;
+    throw error; // 直接抛出错误，不使用降级机制
   }
 }
 
@@ -89,18 +87,7 @@ async function saveUserToDatabase(user: User): Promise<boolean> {
     return result.success || false;
   } catch (error) {
     console.error('Database save error:', error);
-    // 降级到localStorage作为备用
-    const users = JSON.parse(localStorage.getItem('66do_users') || '[]');
-    const existingUserIndex = users.findIndex((u: User) => u.email === user.email);
-    
-    if (existingUserIndex >= 0) {
-      users[existingUserIndex] = user;
-    } else {
-      users.push(user);
-    }
-    
-    localStorage.setItem('66do_users', JSON.stringify(users));
-    return true;
+    throw error; // 直接抛出错误，不使用降级机制
   }
 }
 

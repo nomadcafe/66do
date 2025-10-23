@@ -44,6 +44,9 @@ export async function onRequest(context: any) {
       case 'updateUser':
         return await updateUser(DB, user, corsHeaders);
       
+      case 'updateUserEmailVerification':
+        return await updateUserEmailVerification(DB, email, body.email_verified, corsHeaders);
+      
       case 'deleteUser':
         return await deleteUser(DB, email, corsHeaders);
       
@@ -175,6 +178,40 @@ async function updateUser(DB: D1Database, user: User, corsHeaders: Record<string
     return new Response(JSON.stringify({ 
       success: false, 
       error: 'Failed to update user' 
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+}
+
+// 更新用户邮箱验证状态
+async function updateUserEmailVerification(DB: D1Database, email: string, emailVerified: boolean, corsHeaders: Record<string, string>) {
+  try {
+    const stmt = DB.prepare(`
+      UPDATE users 
+      SET email_verified = ?, updated_at = ?
+      WHERE email = ?
+    `);
+    
+    await stmt.bind(
+      emailVerified,
+      new Date().toISOString(),
+      email
+    ).run();
+
+    return new Response(JSON.stringify({ 
+      success: true, 
+      message: 'Email verification status updated successfully' 
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  } catch (error) {
+    console.error('Update email verification error:', error);
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: 'Failed to update email verification status' 
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

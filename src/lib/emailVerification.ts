@@ -86,14 +86,21 @@ export async function verifyEmailToken(token: string, email: string): Promise<{ 
       return { success: false, error: 'Verification token has expired' };
     }
 
-    // 更新用户邮箱验证状态
-    const users = JSON.parse(localStorage.getItem('66do_users') || '[]');
-    const userIndex = users.findIndex((u: { email: string }) => u.email === email);
-    
-    if (userIndex >= 0) {
-      users[userIndex].email_verified = true;
-      users[userIndex].updated_at = new Date().toISOString();
-      localStorage.setItem('66do_users', JSON.stringify(users));
+    // 更新用户邮箱验证状态 - 调用D1数据库API
+    const response = await fetch('/api/users', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'updateUserEmailVerification',
+        email: email,
+        email_verified: true
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update email verification status');
     }
 
     // 删除已使用的令牌
@@ -101,7 +108,7 @@ export async function verifyEmailToken(token: string, email: string): Promise<{ 
     localStorage.setItem('66do_verification_tokens', JSON.stringify(updatedTokens));
 
     // 记录审计日志
-    auditLogger.log(users[userIndex]?.id || 'unknown', 'email_verified', 'auth', { email });
+    auditLogger.log('unknown', 'email_verified', 'auth', { email });
 
     return { success: true };
   } catch (error) {
@@ -114,11 +121,25 @@ export async function verifyEmailToken(token: string, email: string): Promise<{ 
 }
 
 // 检查邮箱是否已验证
-export function isEmailVerified(email: string): boolean {
+export async function isEmailVerified(email: string): Promise<boolean> {
   try {
-    const users = JSON.parse(localStorage.getItem('66do_users') || '[]');
-    const user = users.find((u: { email: string; email_verified?: boolean }) => u.email === email);
-    return user?.email_verified || false;
+    const response = await fetch('/api/users', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'getUser',
+        email: email
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to check email verification status');
+    }
+
+    const result = await response.json();
+    return result.user?.email_verified || false;
   } catch (error) {
     console.error('Check email verification error:', error);
     return false;
@@ -129,7 +150,7 @@ export function isEmailVerified(email: string): boolean {
 export async function resendVerificationEmail(email: string, userId: string): Promise<{ success: boolean; error?: string }> {
   try {
     // 检查是否已经验证
-    if (isEmailVerified(email)) {
+    if (await isEmailVerified(email)) {
       return { success: false, error: 'Email is already verified' };
     }
 
