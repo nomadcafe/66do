@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, Save, Globe, Calendar, DollarSign, Tag } from 'lucide-react';
+import { validateDomain, sanitizeDomainData } from '../../lib/validation';
 
 interface Domain {
   id: string;
@@ -43,6 +44,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
   });
 
   const [tagInput, setTagInput] = useState('');
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   useEffect(() => {
     if (domain) {
@@ -80,7 +82,18 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    
+    // 验证数据
+    const sanitizedData = sanitizeDomainData(formData);
+    const validation = validateDomain(sanitizedData);
+    
+    if (!validation.valid) {
+      setValidationErrors(validation.errors);
+      return;
+    }
+    
+    setValidationErrors([]);
+    onSave(sanitizedData as Omit<Domain, 'id'>);
     onClose();
   };
 
@@ -126,6 +139,17 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* 验证错误显示 */}
+          {validationErrors.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <h3 className="text-red-800 font-medium mb-2">请修正以下错误：</h3>
+              <ul className="text-red-700 text-sm space-y-1">
+                {validationErrors.map((error, index) => (
+                  <li key={index}>• {error}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

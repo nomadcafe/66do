@@ -259,7 +259,7 @@ export default function DashboardPage() {
     };
 
     loadData();
-  }, [user]);
+  }, [user, domains.length, transactions.length]);
 
   // Update stats when domains change
   useEffect(() => {

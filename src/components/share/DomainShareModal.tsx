@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { X, Download, Share2, Twitter, Linkedin, Facebook, MessageCircle } from 'lucide-react';
+import { X, Download, Twitter, Linkedin, Facebook, MessageCircle } from 'lucide-react';
 
 interface Domain {
   id: string;
