@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Filter, Grid, List, Plus } from 'lucide-react';
+import { Search, Filter, Grid, List, Plus, Table } from 'lucide-react';
 import DomainCard from './DomainCard';
+import DomainTable from './DomainTable';
 
 interface Domain {
   id: string;
@@ -31,7 +32,7 @@ interface DomainListProps {
 export default function DomainList({ domains, onEdit, onDelete, onView, onAdd }: DomainListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'table'>('table');
 
   const filteredDomains = domains.filter(domain => {
     const matchesSearch = domain.domain_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -101,14 +102,23 @@ export default function DomainList({ domains, onEdit, onDelete, onView, onAdd }:
           
           <div className="flex items-center border border-gray-300 rounded-lg">
             <button
+              onClick={() => setViewMode('table')}
+              className={`p-2 ${viewMode === 'table' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+              title="Table View"
+            >
+              <Table className="h-4 w-4" />
+            </button>
+            <button
               onClick={() => setViewMode('grid')}
               className={`p-2 ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+              title="Grid View"
             >
               <Grid className="h-4 w-4" />
             </button>
             <button
               onClick={() => setViewMode('list')}
               className={`p-2 ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+              title="List View"
             >
               <List className="h-4 w-4" />
             </button>
@@ -121,8 +131,16 @@ export default function DomainList({ domains, onEdit, onDelete, onView, onAdd }:
         Showing {filteredDomains.length} of {domains.length} domains
       </div>
 
-      {/* Domains Grid/List */}
-      {filteredDomains.length === 0 ? (
+      {/* Domains Display */}
+      {viewMode === 'table' ? (
+        <DomainTable
+          domains={domains}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onView={onView}
+          onAdd={onAdd}
+        />
+      ) : filteredDomains.length === 0 ? (
         <div className="text-center py-12">
           <div className="text-gray-400 mb-4">
             <Search className="h-12 w-12 mx-auto" />
