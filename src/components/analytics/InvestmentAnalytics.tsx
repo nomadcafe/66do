@@ -23,7 +23,8 @@ import {
   AlertTriangle,
   BarChart3,
   Activity,
-  Zap
+  Zap,
+  Globe
 } from 'lucide-react';
 
 interface Domain {
@@ -484,8 +485,58 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     </div>
   );
 
+  // 计算域名后缀分布
+  const domainSuffixAnalysis = useMemo(() => {
+    // 提取域名后缀
+    const extractSuffix = (domainName: string): string => {
+      const parts = domainName.split('.');
+      return parts.length > 1 ? parts[parts.length - 1] : 'unknown';
+    };
+
+    // 持有域名后缀分布
+    const heldDomains = domains.filter(d => d.status === 'active' || d.status === 'for_sale');
+    const heldSuffixCount: { [key: string]: number } = {};
+    heldDomains.forEach(domain => {
+      const suffix = extractSuffix(domain.domain_name);
+      heldSuffixCount[suffix] = (heldSuffixCount[suffix] || 0) + 1;
+    });
+
+    // 出售域名后缀分布
+    const soldDomains = domains.filter(d => d.status === 'sold');
+    const soldSuffixCount: { [key: string]: number } = {};
+    soldDomains.forEach(domain => {
+      const suffix = extractSuffix(domain.domain_name);
+      soldSuffixCount[suffix] = (soldSuffixCount[suffix] || 0) + 1;
+    });
+
+    // 转换为图表数据
+    const heldSuffixData = Object.entries(heldSuffixCount)
+      .map(([suffix, count]) => ({
+        name: `.${suffix}`,
+        value: count,
+        percentage: (count / heldDomains.length) * 100
+      }))
+      .sort((a, b) => b.value - a.value);
+
+    const soldSuffixData = Object.entries(soldSuffixCount)
+      .map(([suffix, count]) => ({
+        name: `.${suffix}`,
+        value: count,
+        percentage: (count / soldDomains.length) * 100
+      }))
+      .sort((a, b) => b.value - a.value);
+
+    return {
+      heldSuffixData,
+      soldSuffixData,
+      totalHeld: heldDomains.length,
+      totalSold: soldDomains.length
+    };
+  }, [domains]);
+
   const renderTrendsAnalysis = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="space-y-6">
+      {/* 月度收益趋势 */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">月度收益趋势</h3>
         <ResponsiveContainer width="100%" height={300}>
@@ -505,6 +556,150 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         </ResponsiveContainer>
       </div>
 
+      {/* 域名后缀分析 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 持有域名后缀分布 */}
+        <div className="bg-white p-6 rounded-lg shadow-sm border">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">持有域名后缀分布</h3>
+          {domainSuffixAnalysis.heldSuffixData.length > 0 ? (
+            <div className="space-y-4">
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={domainSuffixAnalysis.heldSuffixData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {domainSuffixAnalysis.heldSuffixData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={`hsl(${index * 60}, 70%, 50%)`} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value, name) => [`${value}个`, name]} />
+                </PieChart>
+              </ResponsiveContainer>
+              
+              {/* 后缀统计列表 */}
+              <div className="space-y-2">
+                <h4 className="font-medium text-gray-700">详细统计</h4>
+                {domainSuffixAnalysis.heldSuffixData.slice(0, 5).map((suffix, index) => (
+                  <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-sm font-medium">{suffix.name}</span>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-600">{suffix.value}个</span>
+                      <span className="text-xs text-gray-500">({suffix.percentage.toFixed(1)}%)</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <Globe className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>暂无持有域名数据</p>
+            </div>
+          )}
+        </div>
+
+        {/* 出售域名后缀分布 */}
+        <div className="bg-white p-6 rounded-lg shadow-sm border">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">出售域名后缀分布</h3>
+          {domainSuffixAnalysis.soldSuffixData.length > 0 ? (
+            <div className="space-y-4">
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={domainSuffixAnalysis.soldSuffixData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {domainSuffixAnalysis.soldSuffixData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={`hsl(${index * 60 + 180}, 70%, 50%)`} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value, name) => [`${value}个`, name]} />
+                </PieChart>
+              </ResponsiveContainer>
+              
+              {/* 后缀统计列表 */}
+              <div className="space-y-2">
+                <h4 className="font-medium text-gray-700">详细统计</h4>
+                {domainSuffixAnalysis.soldSuffixData.slice(0, 5).map((suffix, index) => (
+                  <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-sm font-medium">{suffix.name}</span>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-600">{suffix.value}个</span>
+                      <span className="text-xs text-gray-500">({suffix.percentage.toFixed(1)}%)</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <Globe className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>暂无出售域名数据</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 后缀对比分析 */}
+      <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">后缀对比分析</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* 持有域名后缀排名 */}
+          <div>
+            <h4 className="font-medium text-gray-700 mb-3">持有域名后缀排名</h4>
+            <div className="space-y-2">
+              {domainSuffixAnalysis.heldSuffixData.slice(0, 8).map((suffix, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <span className="text-blue-600 font-semibold text-sm">{index + 1}</span>
+                    </div>
+                    <span className="font-medium text-gray-900">{suffix.name}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm font-semibold text-blue-600">{suffix.value}个</span>
+                    <p className="text-xs text-gray-500">{suffix.percentage.toFixed(1)}%</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 出售域名后缀排名 */}
+          <div>
+            <h4 className="font-medium text-gray-700 mb-3">出售域名后缀排名</h4>
+            <div className="space-y-2">
+              {domainSuffixAnalysis.soldSuffixData.slice(0, 8).map((suffix, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                      <span className="text-green-600 font-semibold text-sm">{index + 1}</span>
+                    </div>
+                    <span className="font-medium text-gray-900">{suffix.name}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm font-semibold text-green-600">{suffix.value}个</span>
+                    <p className="text-xs text-gray-500">{suffix.percentage.toFixed(1)}%</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 投资分布 */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">投资分布</h3>
         <ResponsiveContainer width="100%" height={300}>
