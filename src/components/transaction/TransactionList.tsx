@@ -4,6 +4,55 @@ import { useState } from 'react';
 import { Search, Filter, Plus, Edit, Trash2, DollarSign, Calendar, FileText, TrendingUp, TrendingDown } from 'lucide-react';
 import { calculateDomainROI, getROIColor, getROIBgColor, formatPercentage } from '../../lib/enhancedFinancialMetrics';
 
+// 计算持有时间
+function calculateHoldingTime(purchaseDate: string, saleDate: string): {
+  days: number;
+  months: number;
+  years: number;
+  displayText: string;
+} {
+  const purchase = new Date(purchaseDate);
+  const sale = new Date(saleDate);
+  const diffTime = sale.getTime() - purchase.getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  
+  const years = Math.floor(diffDays / 365);
+  const months = Math.floor((diffDays % 365) / 30);
+  const days = diffDays % 30;
+  
+  let displayText = '';
+  if (years > 0) {
+    displayText = `${years}年${months > 0 ? `${months}个月` : ''}`;
+  } else if (months > 0) {
+    displayText = `${months}个月${days > 0 ? `${days}天` : ''}`;
+  } else {
+    displayText = `${days}天`;
+  }
+  
+  return {
+    days: diffDays,
+    months,
+    years,
+    displayText
+  };
+}
+
+// 获取持有时间颜色
+function getHoldingTimeColor(days: number): string {
+  if (days < 30) return 'text-red-600';      // 短期持有（红色）
+  if (days < 180) return 'text-yellow-600';   // 中期持有（黄色）
+  if (days < 365) return 'text-blue-600';     // 长期持有（蓝色）
+  return 'text-green-600';                     // 超长期持有（绿色）
+}
+
+// 获取持有时间背景色
+function getHoldingTimeBgColor(days: number): string {
+  if (days < 30) return 'bg-red-100';
+  if (days < 180) return 'bg-yellow-100';
+  if (days < 365) return 'bg-blue-100';
+  return 'bg-green-100';
+}
+
 interface Transaction {
   id: string;
   domain_id: string;
@@ -262,22 +311,35 @@ export default function TransactionList({
                           </div>
                         )}
                         {transaction.type === 'sell' && (
-                          <div className="mt-1">
+                          <div className="mt-1 space-y-1">
                             {(() => {
                               const domain = domains.find(d => d.id === transaction.domain_id);
                               if (!domain) return null;
                               
                               const domainROI = calculateDomainROI(domain, [transaction]);
+                              const holdingTime = calculateHoldingTime(domain.purchase_date, transaction.date);
+                              
                               return (
-                                <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getROIBgColor(domainROI.roi)}`}>
-                                  {domainROI.roi >= 0 ? (
-                                    <TrendingUp className="h-3 w-3 mr-1" />
-                                  ) : (
-                                    <TrendingDown className="h-3 w-3 mr-1" />
-                                  )}
-                                  <span className={getROIColor(domainROI.roi)}>
-                                    ROI: {formatPercentage(domainROI.roi)}
-                                  </span>
+                                <div className="flex flex-col space-y-1">
+                                  {/* ROI显示 */}
+                                  <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getROIBgColor(domainROI.roi)}`}>
+                                    {domainROI.roi >= 0 ? (
+                                      <TrendingUp className="h-3 w-3 mr-1" />
+                                    ) : (
+                                      <TrendingDown className="h-3 w-3 mr-1" />
+                                    )}
+                                    <span className={getROIColor(domainROI.roi)}>
+                                      ROI: {formatPercentage(domainROI.roi)}
+                                    </span>
+                                  </div>
+                                  
+                                  {/* 持有时间显示 */}
+                                  <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getHoldingTimeBgColor(holdingTime.days)}`}>
+                                    <Calendar className="h-3 w-3 mr-1" />
+                                    <span className={getHoldingTimeColor(holdingTime.days)}>
+                                      持有: {holdingTime.displayText}
+                                    </span>
+                                  </div>
                                 </div>
                               );
                             })()}
