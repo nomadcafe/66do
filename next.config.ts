@@ -24,21 +24,41 @@ const nextConfig: NextConfig = {
       // Optimize client bundle
       config.optimization.splitChunks = {
         chunks: 'all',
+        maxSize: 200000, // 200KB per chunk
         cacheGroups: {
           default: {
             minChunks: 2,
             priority: -20,
             reuseExistingChunk: true,
+            maxSize: 200000,
           },
           vendor: {
             test: /[\\/]node_modules[\\/]/,
             name: 'vendors',
             priority: -10,
             chunks: 'all',
+            maxSize: 200000,
+          },
+          common: {
+            name: 'common',
+            minChunks: 2,
+            priority: -5,
+            reuseExistingChunk: true,
+            maxSize: 200000,
           },
         },
       };
     }
+    
+    // Exclude large packages from server bundle
+    if (isServer) {
+      config.externals = config.externals || [];
+      config.externals.push({
+        'sharp': 'commonjs sharp',
+        'canvas': 'commonjs canvas',
+      });
+    }
+    
     return config;
   },
   
