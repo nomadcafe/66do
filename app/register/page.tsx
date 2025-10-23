@@ -37,10 +37,13 @@ export default function RegisterPage() {
       return;
     }
 
-    const { error } = await signUp(email, password);
+    const result = await signUp(email, password);
     
-    if (error) {
-      setError(error.message);
+    if (result.error) {
+      setError(result.error.message);
+    } else if ((result as { requiresVerification?: boolean }).requiresVerification) {
+      // 需要验证码，跳转到验证页面
+      router.push('/verify');
     } else {
       setSuccess(true);
       setTimeout(() => {

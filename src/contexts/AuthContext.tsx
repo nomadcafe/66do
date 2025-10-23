@@ -103,20 +103,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
       
-      // Generate a secure user ID based on email
-      const userId = btoa(email).replace(/[^a-zA-Z0-9]/g, '').substring(0, 16);
+      // Generate verification code
+      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
       
-      // Create session token
-      const sessionToken = btoa(`${email}:${Date.now()}`).replace(/[^a-zA-Z0-9]/g, '');
+      // Send verification email
+      try {
+        const emailResponse = await fetch('/api/send-verification', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email,
+            verificationCode
+          })
+        });
+        
+        if (!emailResponse.ok) {
+          setLoading(false);
+          return { error: new Error('Failed to send verification email') };
+        }
+        
+        // Store verification data temporarily
+        const verificationData = {
+          email,
+          code: verificationCode,
+          timestamp: Date.now(),
+          password: password // Store password temporarily for verification
+        };
+        
+        localStorage.setItem('66do_verification', JSON.stringify(verificationData));
+        
+        setLoading(false);
+        return { 
+          error: null, 
+          requiresVerification: true,
+          message: '验证码已发送到您的邮箱，请查收并输入验证码完成注册'
+        };
+        
+      } catch (emailError) {
+        console.error('Email sending error:', emailError);
+        setLoading(false);
+        return { error: new Error('Email service unavailable') };
+      }
       
-      // Store in localStorage for persistence
-      localStorage.setItem('66do_user', JSON.stringify({ email, id: userId }));
-      localStorage.setItem('66do_session', sessionToken);
-      
-      setUser({ email, id: userId });
-      setSession({ user: { email, id: userId }, token: sessionToken });
-      setLoading(false);
-      return { error: null };
     } catch (error) {
       setLoading(false);
       return { error: error instanceof Error ? error : new Error('Registration failed') };
