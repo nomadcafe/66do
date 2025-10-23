@@ -10,6 +10,7 @@ interface Domain {
   purchase_date: string;
   purchase_cost: number;
   renewal_cost: number;
+  renewal_cycle: number; // 续费周期（年数）：1, 2, 3等
   next_renewal_date?: string;
   expiry_date: string;
   status: 'active' | 'for_sale' | 'sold' | 'expired';
@@ -78,6 +79,17 @@ export default function DomainCard({ domain, onEdit, onDelete, onView }: DomainC
               <div className="flex items-center space-x-1 text-sm text-gray-600">
                 <DollarSign className="h-4 w-4" />
                 <span>{formatCurrency(domain.purchase_cost)}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-4 mt-2">
+              <div className="flex items-center space-x-1 text-sm text-gray-600">
+                <DollarSign className="h-4 w-4" />
+                <span>Renewal: {formatCurrency(domain.renewal_cost)}</span>
+              </div>
+              <div className="flex items-center space-x-1 text-sm text-gray-600">
+                <Calendar className="h-4 w-4" />
+                <span>Every {domain.renewal_cycle} year{domain.renewal_cycle > 1 ? 's' : ''}</span>
               </div>
             </div>
 

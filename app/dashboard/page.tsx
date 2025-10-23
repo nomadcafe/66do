@@ -46,6 +46,7 @@ interface Domain {
   purchase_date: string;
   purchase_cost: number;
   renewal_cost: number;
+  renewal_cycle: number; // 续费周期（年数）：1, 2, 3等
   next_renewal_date?: string;
   expiry_date: string;
   status: 'active' | 'for_sale' | 'sold' | 'expired';
@@ -78,6 +79,12 @@ interface DomainStats {
   avgSalePrice: number;
   bestPerformingDomain: string;
   worstPerformingDomain: string;
+  // 新增续费成本统计
+  totalRenewalCost: number;
+  annualRenewalCost: number;
+  totalHoldingCost: number;
+  avgRenewalCost: number;
+  renewalCycles: { [key: string]: number }; // 不同续费周期的域名数量
 }
 
 interface Alert {
@@ -128,7 +135,13 @@ export default function DashboardPage() {
     avgPurchasePrice: 0,
     avgSalePrice: 0,
     bestPerformingDomain: '',
-    worstPerformingDomain: ''
+    worstPerformingDomain: '',
+    // 新增续费成本统计
+    totalRenewalCost: 0,
+    annualRenewalCost: 0,
+    totalHoldingCost: 0,
+    avgRenewalCost: 0,
+    renewalCycles: {}
   });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'marketplace' | 'settings' | 'data'>('overview');
@@ -185,8 +198,29 @@ export default function DashboardPage() {
     const totalDomains = domains.length;
     const totalCost = domains.reduce((sum, domain) => sum + domain.purchase_cost, 0);
     const totalRevenue = transactions.filter(t => t.type === 'sell').reduce((sum, t) => sum + t.amount, 0);
-    const totalProfit = totalRevenue - totalCost;
-    const roi = totalCost > 0 ? (totalProfit / totalCost) * 100 : 0;
+    
+    // 计算续费成本统计
+    const totalRenewalCost = transactions.filter(t => t.type === 'renew').reduce((sum, t) => sum + t.amount, 0);
+    const totalHoldingCost = totalCost + totalRenewalCost;
+    const totalProfit = totalRevenue - totalHoldingCost;
+    const roi = totalHoldingCost > 0 ? (totalProfit / totalHoldingCost) * 100 : 0;
+    
+    // 计算年度续费成本（按续费周期计算）
+    const annualRenewalCost = domains.reduce((sum, domain) => {
+      if (domain.status === 'active') {
+        return sum + (domain.renewal_cost / domain.renewal_cycle);
+      }
+      return sum;
+    }, 0);
+    
+    // 统计不同续费周期的域名数量
+    const renewalCycles: { [key: string]: number } = {};
+    domains.forEach(domain => {
+      if (domain.status === 'active') {
+        const cycle = `${domain.renewal_cycle}年`;
+        renewalCycles[cycle] = (renewalCycles[cycle] || 0) + 1;
+      }
+    });
     
     const activeDomains = domains.filter(d => d.status === 'active').length;
     const forSaleDomains = domains.filter(d => d.status === 'for_sale').length;
@@ -195,6 +229,7 @@ export default function DashboardPage() {
     
     const avgPurchasePrice = totalDomains > 0 ? totalCost / totalDomains : 0;
     const avgSalePrice = soldDomains > 0 ? totalRevenue / soldDomains : 0;
+    const avgRenewalCost = activeDomains > 0 ? totalRenewalCost / activeDomains : 0;
     
     // Find best and worst performing domains
     const domainPerformance = domains.map(domain => {
@@ -224,7 +259,13 @@ export default function DashboardPage() {
       avgPurchasePrice,
       avgSalePrice,
       bestPerformingDomain: bestPerforming.domain.domain_name,
-      worstPerformingDomain: worstPerforming.domain.domain_name
+      worstPerformingDomain: worstPerforming.domain.domain_name,
+      // 新增续费成本统计
+      totalRenewalCost,
+      annualRenewalCost,
+      totalHoldingCost,
+      avgRenewalCost,
+      renewalCycles
     });
   }, [domains, transactions]);
 
@@ -619,6 +660,32 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 p-6 rounded-lg shadow-lg text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-yellow-100 text-sm font-medium">续费成本</p>
+                <p className="text-3xl font-bold">${stats.totalRenewalCost.toFixed(2)}</p>
+                <p className="text-yellow-200 text-xs mt-1">
+                  年度成本: ${stats.annualRenewalCost.toFixed(2)}
+                </p>
+              </div>
+              <RefreshCw className="h-8 w-8 text-yellow-200" />
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 p-6 rounded-lg shadow-lg text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-indigo-100 text-sm font-medium">总持有成本</p>
+                <p className="text-3xl font-bold">${stats.totalHoldingCost.toFixed(2)}</p>
+                <p className="text-indigo-200 text-xs mt-1">
+                  购买 + 续费
+                </p>
+              </div>
+              <Database className="h-8 w-8 text-indigo-200" />
+            </div>
+          </div>
+
           <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-6 rounded-lg shadow-lg text-white">
             <div className="flex items-center justify-between">
               <div>
@@ -745,8 +812,8 @@ export default function DashboardPage() {
                   <Zap className="h-5 w-5 text-yellow-500" />
                 </div>
                 <div className="space-y-3">
-                  <button
-                    onClick={handleAddDomain}
+                <button 
+                  onClick={handleAddDomain}
                     className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center space-x-2"
                   >
                     <Plus className="h-4 w-4" />
@@ -829,8 +896,8 @@ export default function DashboardPage() {
                     <p>暂无交易记录</p>
                     <button
                       onClick={handleAddTransaction}
-                      className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                    >
+                  className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                >
                       添加第一笔交易
                     </button>
                   </div>
@@ -884,7 +951,7 @@ export default function DashboardPage() {
                     className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                   >
                     {viewMode === 'grid' ? <Eye className="h-4 w-4" /> : <List className="h-4 w-4" />}
-                  </button>
+                </button>
                 </div>
               </div>
             </div>
@@ -1023,13 +1090,13 @@ export default function DashboardPage() {
                     <span className="text-sm text-gray-600">
                       共 {alerts.length} 条提醒
                     </span>
-                    <button
+              <button
                       onClick={() => setAlerts(alerts.map(a => ({ ...a, read: true })))}
                       className="text-blue-600 hover:text-blue-700 text-sm"
-                    >
+              >
                       全部标记为已读
-                    </button>
-                  </div>
+              </button>
+            </div>
                 </div>
               </div>
               <div className="p-6">
@@ -1055,23 +1122,23 @@ export default function DashboardPage() {
                                alert.type === 'expiry' ? <AlertTriangle className="h-4 w-4 text-red-600" /> :
                                alert.type === 'sale_opportunity' ? <TrendingUp className="h-4 w-4 text-green-600" /> :
                                <Info className="h-4 w-4 text-blue-600" />}
-                            </div>
-                            <div>
+              </div>
+              <div>
                               <p className="font-medium text-gray-900">{alert.domain_name}</p>
                               <p className="text-sm text-gray-600 mt-1">{alert.message}</p>
                               <p className="text-xs text-gray-500 mt-1">{new Date(alert.timestamp).toLocaleString()}</p>
                             </div>
-                          </div>
+              </div>
                           <div className="flex items-center space-x-2">
                             {!alert.read && (
                               <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                             )}
-                            <button
+                <button
                               onClick={() => markAlertAsRead(alert.id)}
                               className="text-gray-400 hover:text-gray-600"
-                            >
+                >
                               {alert.read ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
-                            </button>
+                </button>
                           </div>
                         </div>
                       </div>
@@ -1112,7 +1179,7 @@ export default function DashboardPage() {
             onRestore={(backup) => console.log('Restore data:', backup)}
           />
         )}
-      </div>
+        </div>
 
       {/* Domain Form Modal */}
       <DomainForm

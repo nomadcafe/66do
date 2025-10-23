@@ -11,6 +11,7 @@ interface Domain {
   purchase_date: string;
   purchase_cost: number;
   renewal_cost: number;
+  renewal_cycle: number; // 续费周期（年数）：1, 2, 3等
   next_renewal_date?: string;
   expiry_date: string;
   status: 'active' | 'for_sale' | 'sold' | 'expired';
