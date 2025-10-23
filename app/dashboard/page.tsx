@@ -13,7 +13,7 @@ import InvestmentAnalytics from '../../src/components/analytics/InvestmentAnalyt
 import UserPreferencesPanel from '../../src/components/settings/UserPreferencesPanel';
 import DomainMarketplace from '../../src/components/marketplace/DomainMarketplace';
 import DataImportExport from '../../src/components/data/DataImportExport';
-import { LazyDomainExpiryAlert, LazyDomainValueTracker, LazyWrapper } from '../../src/components/LazyComponents';
+import { LazyDomainExpiryAlert, LazyWrapper } from '../../src/components/LazyComponents';
 import MobileNavigation from '../../src/components/layout/MobileNavigation';
 import ResponsiveGrid from '../../src/components/layout/ResponsiveGrid';
 import MobileCard from '../../src/components/ui/MobileCard';
@@ -427,16 +427,6 @@ export default function DashboardPage() {
     localStorage.setItem('66do_domains', JSON.stringify(updatedDomains));
   };
 
-  // 处理域名价值更新
-  const handleUpdateDomainValue = (domainId: string, newValue: number) => {
-    const updatedDomains = domains.map(d => 
-      d.id === domainId 
-        ? { ...d, estimated_value: newValue }
-        : d
-    );
-    setDomains(updatedDomains);
-    localStorage.setItem('66do_domains', JSON.stringify(updatedDomains));
-  };
 
   const handleSaveTransaction = (transactionData: Omit<Transaction, 'id'>) => {
     if (editingTransaction) {
@@ -1183,13 +1173,6 @@ export default function DashboardPage() {
               />
             </LazyWrapper>
 
-            {/* Domain Value Tracker */}
-            <LazyWrapper>
-              <LazyDomainValueTracker 
-                domains={domains} 
-                onUpdateValue={handleUpdateDomainValue}
-              />
-            </LazyWrapper>
           </div>
         )}
 

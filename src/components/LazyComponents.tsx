@@ -27,10 +27,6 @@ export const LazyAdvancedNotificationSystem = lazy(() =>
   import('./notifications/AdvancedNotificationSystem')
 );
 
-// 懒加载市场价值追踪
-export const LazyDomainValueTracker = lazy(() => 
-  import('./market/DomainValueTracker')
-);
 
 // 懒加载到期提醒
 export const LazyDomainExpiryAlert = lazy(() => 
