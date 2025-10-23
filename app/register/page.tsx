@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { useLanguage } from '../../src/contexts/LanguageContext';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
-// import Turnstile from '../../src/components/Turnstile';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');

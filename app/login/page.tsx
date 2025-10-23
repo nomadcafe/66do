@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { useLanguage } from '../../src/contexts/LanguageContext';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
-import Turnstile from '../../src/components/Turnstile';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -13,8 +12,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [turnstileToken, setTurnstileToken] = useState('');
-  const [turnstileError, setTurnstileError] = useState('');
   const { signIn } = useAuth();
   const { t, language, setLanguage } = useLanguage();
   const router = useRouter();
@@ -23,14 +20,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError('');
-    setTurnstileError('');
 
-    // Check if Turnstile is verified
-    if (!turnstileToken) {
-      setTurnstileError(t('auth.verificationRequired'));
-      setLoading(false);
-      return;
-    }
 
     const { error } = await signIn(email, password);
     
@@ -43,20 +33,6 @@ export default function LoginPage() {
     setLoading(false);
   };
 
-  const handleTurnstileVerify = (token: string) => {
-    setTurnstileToken(token);
-    setTurnstileError('');
-  };
-
-  const handleTurnstileError = () => {
-    setTurnstileError(t('auth.verificationFailed'));
-    setTurnstileToken('');
-  };
-
-  const handleTurnstileExpire = () => {
-    setTurnstileToken('');
-    setTurnstileError(t('auth.verificationExpired'));
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -144,29 +120,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Turnstile Verification */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t('auth.verification')}
-              </label>
-              <Turnstile
-                siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
-                onVerify={handleTurnstileVerify}
-                onError={handleTurnstileError}
-                onExpire={handleTurnstileExpire}
-                theme="auto"
-                size="normal"
-                className="flex justify-center"
-              />
-              <div className="mt-2 text-xs text-gray-500 text-center">
-                验证码用于保护您的账户安全
-              </div>
-              {turnstileError && (
-                <div className="mt-2 text-sm text-red-600">
-                  {turnstileError}
-                </div>
-              )}
-            </div>
 
             <div>
               <button
