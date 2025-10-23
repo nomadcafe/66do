@@ -2,7 +2,10 @@
 name = "66do"
 compatibility_date = "2025-10-01"
 
-# D1 Database binding
+# Pages configuration
+pages_build_output_dir = "dist"
+
+# D1 Database binding for Pages Functions
 [[d1_databases]]
 binding = "DB"
 database_name = "66domain-db"
@@ -13,10 +16,7 @@ database_id = "a0579a97-ef29-4c0a-b146-618d93d0cb2f"
 NEXT_PUBLIC_APP_NAME = "66Do"
 NEXT_PUBLIC_APP_URL = "https://66do.pages.dev"
 
-# Pages configuration
-pages_build_output_dir = "dist"
-
-# Pages Functions configuration
+# Production environment
 [env.production]
 [[env.production.d1_databases]]
 binding = "DB"
