@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Globe, Calendar, DollarSign, Tag, Edit, Trash2, Eye } from 'lucide-react';
+import { Globe, Calendar, DollarSign, Tag, Edit, Trash2, Eye, Share2 } from 'lucide-react';
+import DomainShareModal from '../share/DomainShareModal';
 
 interface Domain {
   id: string;
@@ -31,6 +32,7 @@ interface DomainCardProps {
 
 export default function DomainCard({ domain, onEdit, onDelete, onView }: DomainCardProps) {
   const [showActions, setShowActions] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   // 计算总持有成本
   const calculateTotalHoldingCost = () => {
@@ -187,6 +189,15 @@ export default function DomainCard({ domain, onEdit, onDelete, onView }: DomainC
             >
               <Edit className="h-4 w-4" />
             </button>
+            {domain.status === 'sold' && (
+              <button
+                onClick={() => setShowShareModal(true)}
+                className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg"
+                title="Share Success"
+              >
+                <Share2 className="h-4 w-4" />
+              </button>
+            )}
             <button
               onClick={() => onDelete(domain.id)}
               className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
@@ -197,6 +208,13 @@ export default function DomainCard({ domain, onEdit, onDelete, onView }: DomainC
           </div>
         )}
       </div>
+
+      {/* Domain Share Modal */}
+      <DomainShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        domain={domain}
+      />
     </div>
   );
 }
