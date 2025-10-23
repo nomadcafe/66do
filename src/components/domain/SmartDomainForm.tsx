@@ -1,0 +1,404 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Domain } from '../../types/domain';
+import { domainExpiryManager } from '../../lib/domainExpiryManager';
+// import { useI18nContext } from '../../contexts/I18nProvider';
+import { Calendar, AlertCircle, CheckCircle, Info, RefreshCw } from 'lucide-react';
+
+interface SmartDomainFormProps {
+  domain?: Domain;
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (domain: Omit<Domain, 'id'>) => void;
+}
+
+export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: SmartDomainFormProps) {
+  // const { t } = useI18nContext();
+  const [formData, setFormData] = useState<Omit<Domain, 'id'>>({
+    domain_name: '',
+    registrar: '',
+    purchase_date: new Date().toISOString().split('T')[0],
+    purchase_cost: 0,
+    renewal_cost: 0,
+    renewal_cycle: 1,
+    renewal_count: 0,
+    status: 'active',
+    estimated_value: 0,
+    tags: []
+  });
+
+  const [suggestedExpiry, setSuggestedExpiry] = useState<string | null>(null);
+  const [expiryValidation, setExpiryValidation] = useState<{
+    isValid: boolean;
+    warnings: string[];
+    suggestions: string[];
+  } | null>(null);
+  const [autoCalculate, setAutoCalculate] = useState(true);
+  const [isCalculating, setIsCalculating] = useState(false);
+
+  useEffect(() => {
+    if (domain) {
+      setFormData(domain);
+      setAutoCalculate(!domain.expiry_date); // 如果没有到期日期，启用自动计算
+    } else {
+      setFormData({
+        domain_name: '',
+        registrar: '',
+        purchase_date: new Date().toISOString().split('T')[0],
+        purchase_cost: 0,
+        renewal_cost: 0,
+        renewal_cycle: 1,
+        renewal_count: 0,
+        status: 'active',
+        estimated_value: 0,
+        tags: []
+      });
+      setAutoCalculate(true);
+    }
+  }, [domain]);
+
+  // 自动计算到期日期
+  useEffect(() => {
+    if (autoCalculate && formData.purchase_date && formData.renewal_cycle) {
+      setIsCalculating(true);
+      
+      // 模拟计算延迟
+      setTimeout(() => {
+        const calculated = domainExpiryManager.calculateExpiryDate(formData as Domain);
+        setSuggestedExpiry(calculated);
+        setIsCalculating(false);
+      }, 500);
+    }
+  }, [formData.purchase_date, formData.renewal_cycle, formData.renewal_count, autoCalculate, formData]);
+
+  // 验证到期日期
+  useEffect(() => {
+    if (formData.expiry_date) {
+      const validation = domainExpiryManager.validateExpiryDate(formData as Domain, formData.expiry_date);
+      setExpiryValidation(validation);
+    } else {
+      setExpiryValidation(null);
+    }
+  }, [formData.expiry_date, formData.purchase_date, formData.renewal_cycle, formData]);
+
+  const handleInputChange = (field: keyof Domain, value: string | number | string[]) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleApplySuggestion = () => {
+    if (suggestedExpiry) {
+      setFormData(prev => ({ ...prev, expiry_date: suggestedExpiry }));
+      setAutoCalculate(false);
+    }
+  };
+
+  const handleAutoCalculate = () => {
+    setAutoCalculate(!autoCalculate);
+    if (!autoCalculate) {
+      const calculated = domainExpiryManager.calculateExpiryDate(formData as Domain);
+      if (calculated) {
+        setFormData(prev => ({ ...prev, expiry_date: calculated }));
+      }
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // 如果启用自动计算且没有到期日期，使用建议的日期
+    if (autoCalculate && !formData.expiry_date && suggestedExpiry) {
+      formData.expiry_date = suggestedExpiry;
+    }
+    
+    onSave(formData);
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">
+              {domain ? '编辑域名' : '添加域名'}
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              ✕
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* 基本信息 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  域名名称 *
+                </label>
+                <input
+                  type="text"
+                  value={formData.domain_name}
+                  onChange={(e) => handleInputChange('domain_name', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="example.com"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  注册商
+                </label>
+                <input
+                  type="text"
+                  value={formData.registrar}
+                  onChange={(e) => handleInputChange('registrar', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="GoDaddy, Namecheap, etc."
+                />
+              </div>
+            </div>
+
+            {/* 购买信息 */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  购买日期 *
+                </label>
+                <input
+                  type="date"
+                  value={formData.purchase_date}
+                  onChange={(e) => handleInputChange('purchase_date', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  购买价格
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.purchase_cost}
+                  onChange={(e) => handleInputChange('purchase_cost', parseFloat(e.target.value) || 0)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  续费周期（年）
+                </label>
+                <select
+                  value={formData.renewal_cycle}
+                  onChange={(e) => handleInputChange('renewal_cycle', parseInt(e.target.value))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value={1}>1年</option>
+                  <option value={2}>2年</option>
+                  <option value={3}>3年</option>
+                  <option value={5}>5年</option>
+                  <option value={10}>10年</option>
+                </select>
+              </div>
+            </div>
+
+            {/* 续费信息 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  续费费用
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.renewal_cost}
+                  onChange={(e) => handleInputChange('renewal_cost', parseFloat(e.target.value) || 0)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  已续费次数
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.renewal_count}
+                  onChange={(e) => handleInputChange('renewal_count', parseInt(e.target.value) || 0)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* 智能到期日期管理 */}
+            <div className="border-t pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                  <Calendar className="h-5 w-5 mr-2" />
+                  到期日期管理
+                </h3>
+                <button
+                  type="button"
+                  onClick={handleAutoCalculate}
+                  className={`flex items-center px-3 py-1 rounded-md text-sm font-medium ${
+                    autoCalculate 
+                      ? 'bg-blue-100 text-blue-700' 
+                      : 'bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  {isCalculating ? (
+                    <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <CheckCircle className="h-4 w-4 mr-1" />
+                  )}
+                  自动计算
+                </button>
+              </div>
+
+              {/* 自动计算建议 */}
+              {autoCalculate && suggestedExpiry && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Info className="h-5 w-5 text-blue-600 mr-2" />
+                      <div>
+                        <p className="text-sm font-medium text-blue-900">
+                          建议的到期日期：{suggestedExpiry}
+                        </p>
+                        <p className="text-xs text-blue-700">
+                          基于购买日期和续费周期自动计算
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleApplySuggestion}
+                      className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
+                    >
+                      应用建议
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* 手动输入到期日期 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  到期日期
+                  {!autoCalculate && (
+                    <span className="text-gray-500 ml-2">（手动输入）</span>
+                  )}
+                </label>
+                <input
+                  type="date"
+                  value={formData.expiry_date || ''}
+                  onChange={(e) => handleInputChange('expiry_date', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={autoCalculate}
+                />
+              </div>
+
+              {/* 验证结果 */}
+              {expiryValidation && (
+                <div className={`mt-3 p-3 rounded-lg ${
+                  expiryValidation.isValid 
+                    ? 'bg-green-50 border border-green-200' 
+                    : 'bg-red-50 border border-red-200'
+                }`}>
+                  {expiryValidation.warnings.length > 0 && (
+                    <div className="flex items-start mb-2">
+                      <AlertCircle className="h-4 w-4 text-red-600 mr-2 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-red-900">警告：</p>
+                        <ul className="text-xs text-red-700 list-disc list-inside">
+                          {expiryValidation.warnings.map((warning, index) => (
+                            <li key={index}>{warning}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {expiryValidation.suggestions.length > 0 && (
+                    <div className="flex items-start">
+                      <Info className="h-4 w-4 text-blue-600 mr-2 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-blue-900">建议：</p>
+                        <ul className="text-xs text-blue-700 list-disc list-inside">
+                          {expiryValidation.suggestions.map((suggestion, index) => (
+                            <li key={index}>{suggestion}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* 其他信息 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  预估价值
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.estimated_value}
+                  onChange={(e) => handleInputChange('estimated_value', parseFloat(e.target.value) || 0)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  状态
+                </label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => handleInputChange('status', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="active">活跃</option>
+                  <option value="for_sale">出售中</option>
+                  <option value="sold">已出售</option>
+                  <option value="expired">已过期</option>
+                </select>
+              </div>
+            </div>
+
+            {/* 提交按钮 */}
+            <div className="flex justify-end space-x-3 pt-6 border-t">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+              >
+                取消
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                {domain ? '更新' : '添加'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}

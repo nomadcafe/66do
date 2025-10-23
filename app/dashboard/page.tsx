@@ -6,6 +6,7 @@ import { useAuth } from '../../src/contexts/AuthContext';
 import { useI18nContext } from '../../src/contexts/I18nProvider';
 import DomainList from '../../src/components/domain/DomainList';
 import DomainForm from '../../src/components/domain/DomainForm';
+import SmartDomainForm from '../../src/components/domain/SmartDomainForm';
 import TransactionList from '../../src/components/transaction/TransactionList';
 import TransactionForm from '../../src/components/transaction/TransactionForm';
 import InvestmentAnalytics from '../../src/components/analytics/InvestmentAnalytics';
@@ -26,6 +27,7 @@ import FinancialAnalysis from '../../src/components/reports/FinancialAnalysisOpt
 import ShareModal from '../../src/components/share/ShareModal';
 import SaleSuccessModal from '../../src/components/share/SaleSuccessModal';
 import { calculateAnnualRenewalCost, getRenewalOptimizationSuggestions } from '../../src/lib/renewalCalculations';
+import { domainExpiryManager } from '../../src/lib/domainExpiryManager';
 import { calculateFinancialMetrics } from '../../src/lib/financialMetrics';
 import { calculateEnhancedFinancialMetrics, formatCurrency as formatCurrencyEnhanced } from '../../src/lib/enhancedFinancialMetrics';
 import { domainCache } from '../../src/lib/cache';
@@ -162,6 +164,7 @@ export default function DashboardPage() {
     return calculateEnhancedFinancialMetrics(domains, transactions);
   }, [domains, transactions]);
   const [showDomainForm, setShowDomainForm] = useState(false);
+  const [showSmartDomainForm, setShowSmartDomainForm] = useState(false);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [editingDomain, setEditingDomain] = useState<Domain | undefined>();
   const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
@@ -329,7 +332,7 @@ export default function DashboardPage() {
   // Domain management functions
   const handleAddDomain = () => {
     setEditingDomain(undefined);
-    setShowDomainForm(true);
+    setShowSmartDomainForm(true);
   };
 
   const handleEditDomain = (domain: Domain) => {
@@ -414,16 +417,11 @@ export default function DashboardPage() {
     setTransactions(newTransactions);
     localStorage.setItem('66do_transactions', JSON.stringify(newTransactions));
 
-    // 更新域名到期日期
-    if (!domain.expiry_date) return; // 如果没有到期日期，跳过更新
-    
-    const newExpiryDate = new Date(domain.expiry_date);
-    newExpiryDate.setFullYear(newExpiryDate.getFullYear() + domain.renewal_cycle);
+    // 使用智能域名管理器处理续费
+    const renewedDomain = domainExpiryManager.handleDomainRenewal(domain);
     
     const updatedDomains = domains.map(d => 
-      d.id === domainId 
-        ? { ...d, expiry_date: newExpiryDate.toISOString().split('T')[0] }
-        : d
+      d.id === domainId ? renewedDomain : d
     );
     setDomains(updatedDomains);
     localStorage.setItem('66do_domains', JSON.stringify(updatedDomains));
@@ -1517,6 +1515,17 @@ export default function DashboardPage() {
         isOpen={showDomainForm}
         onClose={() => {
           setShowDomainForm(false);
+          setEditingDomain(undefined);
+        }}
+        onSave={handleSaveDomain}
+      />
+
+      {/* Smart Domain Form Modal */}
+      <SmartDomainForm
+        domain={editingDomain}
+        isOpen={showSmartDomainForm}
+        onClose={() => {
+          setShowSmartDomainForm(false);
           setEditingDomain(undefined);
         }}
         onSave={handleSaveDomain}
