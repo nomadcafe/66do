@@ -12,8 +12,10 @@ import DomainPerformanceChart from '../../src/components/charts/DomainPerformanc
 import UserPreferencesPanel from '../../src/components/settings/UserPreferencesPanel';
 import DomainMarketplace from '../../src/components/marketplace/DomainMarketplace';
 import DataImportExport from '../../src/components/data/DataImportExport';
-import DomainExpiryAlert from '../../src/components/alerts/DomainExpiryAlert';
-import DomainValueTracker from '../../src/components/market/DomainValueTracker';
+import { LazyDomainExpiryAlert, LazyDomainValueTracker, LazyWrapper } from '../../src/components/LazyComponents';
+import { domainCache } from '../../src/lib/cache';
+import { marketDataManager } from '../../src/lib/marketData';
+import { auditLogger } from '../../src/lib/security';
 // import LoadingSpinner from '../../src/components/ui/LoadingSpinner';
 // import ErrorMessage from '../../src/components/ui/ErrorMessage';
 import { 
@@ -955,16 +957,20 @@ export default function DashboardPage() {
             </div>
 
             {/* Domain Expiry Alerts */}
-            <DomainExpiryAlert 
-              domains={domains} 
-              onRenewDomain={handleRenewDomain}
-            />
+            <LazyWrapper>
+              <LazyDomainExpiryAlert 
+                domains={domains} 
+                onRenewDomain={handleRenewDomain}
+              />
+            </LazyWrapper>
 
             {/* Domain Value Tracker */}
-            <DomainValueTracker 
-              domains={domains} 
-              onUpdateValue={handleUpdateDomainValue}
-            />
+            <LazyWrapper>
+              <LazyDomainValueTracker 
+                domains={domains} 
+                onUpdateValue={handleUpdateDomainValue}
+              />
+            </LazyWrapper>
           </div>
         )}
 

@@ -1,10 +1,24 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect } from 'react';
+import { validateUser, createSession, validateSession, cleanupExpiredSessions } from '../lib/auth';
+
+interface User {
+  id: string;
+  email: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Session {
+  user: User;
+  token: string;
+  expires_at: string;
+}
 
 interface AuthContextType {
-  user: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  session: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  user: User | null;
+  session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -15,27 +29,38 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
-  const [session, setSession] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
-  const [loading, setLoading] = useState(true); // Start with loading true to check for existing session
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Check for existing session on mount
+  // Initialize auth state
   useEffect(() => {
     const checkExistingSession = () => {
       try {
-               const storedUser = localStorage.getItem('66do_user');
-               const storedSession = localStorage.getItem('66do_session');
+        // 清理过期会话
+        cleanupExpiredSessions();
+        
+        const storedUser = localStorage.getItem('66do_user');
+        const storedSession = localStorage.getItem('66do_session');
         
         if (storedUser && storedSession) {
           const userData = JSON.parse(storedUser);
-          setUser(userData);
-          setSession({ user: userData, token: storedSession });
+          const sessionData = JSON.parse(storedSession);
+          
+          // 验证会话
+          if (validateSession(sessionData.token)) {
+            setUser(userData);
+            setSession(sessionData);
+          } else {
+            // 会话无效，清理数据
+            localStorage.removeItem('66do_user');
+            localStorage.removeItem('66do_session');
+          }
         }
       } catch (error) {
         console.error('Error checking existing session:', error);
-               // Clear invalid data
-               localStorage.removeItem('66do_user');
-               localStorage.removeItem('66do_session');
+        localStorage.removeItem('66do_user');
+        localStorage.removeItem('66do_session');
       } finally {
         setLoading(false);
       }
@@ -47,145 +72,109 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
-      // Basic email validation
-      if (!email || !email.includes('@')) {
-        setLoading(false);
-        return { error: new Error('Invalid email format') };
+      // 验证用户凭据
+      const user = await validateUser(email, password);
+      
+      if (!user) {
+        throw new Error('邮箱或密码错误');
       }
+
+      // 创建会话
+      const session = createSession(user);
       
-      // Basic password validation
-      if (!password || password.length < 6) {
-        setLoading(false);
-        return { error: new Error('Password must be at least 6 characters') };
-      }
+      // 存储到localStorage
+      localStorage.setItem('66do_user', JSON.stringify(user));
+      localStorage.setItem('66do_session', JSON.stringify(session));
       
-      // Generate a secure user ID based on email
-      const userId = btoa(email).replace(/[^a-zA-Z0-9]/g, '').substring(0, 16);
-      
-      // Create session token
-      const sessionToken = btoa(`${email}:${Date.now()}`).replace(/[^a-zA-Z0-9]/g, '');
-      
-      // Store in localStorage for persistence
-      localStorage.setItem('66do_user', JSON.stringify({ email, id: userId }));
-      localStorage.setItem('66do_session', sessionToken);
-      
-      setUser({ email, id: userId });
-      setSession({ user: { email, id: userId }, token: sessionToken });
+      setUser(user);
+      setSession(session);
       setLoading(false);
+      
       return { error: null };
-    } catch (error) {
+    } catch (error: unknown) {
       setLoading(false);
-      return { error: error instanceof Error ? error : new Error('Authentication failed') };
+      return { error: error instanceof Error ? error : new Error('登录失败') };
     }
   };
 
   const signUp = async (email: string, password: string) => {
     setLoading(true);
     try {
-      // Basic email validation
+      // 基本验证
       if (!email || !email.includes('@')) {
-        setLoading(false);
-        return { error: new Error('Invalid email format') };
+        throw new Error('请输入有效的邮箱地址');
       }
       
-      // Basic password validation
       if (!password || password.length < 6) {
-        setLoading(false);
-        return { error: new Error('Password must be at least 6 characters') };
+        throw new Error('密码至少需要6个字符');
       }
+
+      // 模拟注册过程（实际应用中应该调用D1数据库）
+      const newUser = {
+        id: Date.now().toString(),
+        email,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // 创建会话
+      const session = createSession(newUser);
       
-      // Check if user already exists
-      const existingUser = localStorage.getItem('66do_user');
-      if (existingUser) {
-        const userData = JSON.parse(existingUser);
-        if (userData.email === email) {
-          setLoading(false);
-          return { error: new Error('User already exists') };
-        }
-      }
+      // 存储到localStorage
+      localStorage.setItem('66do_user', JSON.stringify(newUser));
+      localStorage.setItem('66do_session', JSON.stringify(session));
       
-      // Generate verification code
-      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-      
-      // Send verification email
-      try {
-        const emailResponse = await fetch('/api/send-verification', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email,
-            verificationCode,
-            language: localStorage.getItem('66do-language') || 'en'
-          })
-        });
-        
-        if (!emailResponse.ok) {
-          setLoading(false);
-          return { error: new Error('Failed to send verification email') };
-        }
-        
-        // Store verification data temporarily
-        const verificationData = {
-          email,
-          code: verificationCode,
-          timestamp: Date.now(),
-          password: password, // Store password temporarily for verification
-          language: localStorage.getItem('66do-language') || 'en' // Save user's language preference
-        };
-        
-        localStorage.setItem('66do_verification', JSON.stringify(verificationData));
-        
-        setLoading(false);
-        return { 
-          error: null, 
-          requiresVerification: true,
-          message: '验证码已发送到您的邮箱，请查收并输入验证码完成注册'
-        };
-        
-      } catch (emailError) {
-        console.error('Email sending error:', emailError);
-        setLoading(false);
-        return { error: new Error('Email service unavailable') };
-      }
-      
-    } catch (error) {
+      setUser(newUser);
+      setSession(session);
       setLoading(false);
-      return { error: error instanceof Error ? error : new Error('Registration failed') };
+      
+      return { error: null };
+    } catch (error: unknown) {
+      setLoading(false);
+      return { error: error instanceof Error ? error : new Error('注册失败') };
     }
   };
 
-  const completeRegistration = async (email: string) => {
+  const completeRegistration = async (email: string, password: string) => {
     setLoading(true);
     try {
-      // Generate a secure user ID based on email
-      const userId = btoa(email).replace(/[^a-zA-Z0-9]/g, '').substring(0, 16);
+      // 完成注册（实际应用中应该验证邮箱）
+      const user = await validateUser(email, password);
       
-      // Create session token
-      const sessionToken = btoa(`${email}:${Date.now()}`).replace(/[^a-zA-Z0-9]/g, '');
+      if (!user) {
+        throw new Error('用户验证失败');
+      }
+
+      const session = createSession(user);
       
-      // Store in localStorage for persistence
-      localStorage.setItem('66do_user', JSON.stringify({ email, id: userId }));
-      localStorage.setItem('66do_session', sessionToken);
+      localStorage.setItem('66do_user', JSON.stringify(user));
+      localStorage.setItem('66do_session', JSON.stringify(session));
       
-      setUser({ email, id: userId });
-      setSession({ user: { email, id: userId }, token: sessionToken });
+      setUser(user);
+      setSession(session);
       setLoading(false);
+      
       return { error: null };
-    } catch (error) {
+    } catch (error: unknown) {
       setLoading(false);
-      return { error: error instanceof Error ? error : new Error('Registration completion failed') };
+      return { error: error instanceof Error ? error : new Error('注册完成失败') };
     }
   };
 
   const signOut = async () => {
-    // Clear localStorage
-    localStorage.removeItem('66do_user');
-    localStorage.removeItem('66do_session');
-    
-    setUser(null);
-    setSession(null);
+    setLoading(true);
+    try {
+      // 清理localStorage
+      localStorage.removeItem('66do_user');
+      localStorage.removeItem('66do_session');
+      
+      setUser(null);
+      setSession(null);
+    } catch (error) {
+      console.error('Error signing out:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const value = {
@@ -198,7 +187,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
