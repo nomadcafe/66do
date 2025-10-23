@@ -50,20 +50,20 @@ export default function ShareModal({ isOpen, onClose, shareData }: ShareModalPro
     ctx.fillStyle = '#1f2937';
     ctx.font = 'bold 36px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('🎉 我的域名投资成果 🎉', 400, 120);
+    ctx.fillText('🎉 My Domain Investment Results 🎉', 400, 120);
 
     // 绘制统计数据
     ctx.font = 'bold 24px Arial';
-    ctx.fillText(`💰 总收益: $${shareData.totalProfit.toLocaleString()}`, 400, 180);
+    ctx.fillText(`💰 Total Profit: $${shareData.totalProfit.toLocaleString()}`, 400, 180);
     ctx.fillText(`📈 ROI: ${shareData.roi.toFixed(1)}%`, 400, 220);
-    ctx.fillText(`🏆 最佳域名: ${shareData.bestDomain}`, 400, 260);
-    ctx.fillText(`📊 投资域名: ${shareData.domainCount}个`, 400, 300);
-    ctx.fillText(`⏰ 投资周期: ${shareData.investmentPeriod}`, 400, 340);
+    ctx.fillText(`🏆 Best Domain: ${shareData.bestDomain}`, 400, 260);
+    ctx.fillText(`📊 Domains: ${shareData.domainCount}`, 400, 300);
+    ctx.fillText(`⏰ Investment Period: ${shareData.investmentPeriod}`, 400, 340);
 
     // 绘制品牌信息
     ctx.font = '18px Arial';
     ctx.fillStyle = '#6b7280';
-    ctx.fillText('Powered by 66Do.com - 专业域名投资管理平台', 400, 480);
+    ctx.fillText('Powered by 66Do.com - Professional Domain Investment Platform', 400, 480);
 
     // 绘制装饰元素
     ctx.fillStyle = '#fbbf24';
@@ -89,7 +89,7 @@ export default function ShareModal({ isOpen, onClose, shareData }: ShareModalPro
     const imageData = canvasRef.current?.toDataURL();
     if (!imageData) return;
 
-    const text = `我在66Do平台的投资成果：总收益$${shareData.totalProfit.toLocaleString()}，ROI ${shareData.roi.toFixed(1)}%！🚀 #域名投资 #66Do`;
+    const text = `My domain investment results on 66Do platform: Total profit $${shareData.totalProfit.toLocaleString()}, ROI ${shareData.roi.toFixed(1)}%! 🚀 #DomainInvestment #66Do`;
     
     let url = '';
     switch (platform) {

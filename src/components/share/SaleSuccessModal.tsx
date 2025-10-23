@@ -92,7 +92,7 @@ export default function SaleSuccessModal({ isOpen, onClose, domain, transaction 
     ctx.fillStyle = '#1f2937';
     ctx.font = 'bold 36px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('🎉 域名出售成功！🎉', 400, 120);
+    ctx.fillText('🎉 Domain Sale Success! 🎉', 400, 120);
 
     // 绘制域名信息
     ctx.font = 'bold 28px Arial';
@@ -107,15 +107,15 @@ export default function SaleSuccessModal({ isOpen, onClose, domain, transaction 
     
     ctx.font = 'bold 24px Arial';
     ctx.fillStyle = '#1f2937';
-    ctx.fillText(`💰 净利润: $${profit.toLocaleString()}`, 400, 220);
+    ctx.fillText(`💰 Net Profit: $${profit.toLocaleString()}`, 400, 220);
     ctx.fillText(`📈 ROI: ${roi.toFixed(1)}%`, 400, 260);
-    ctx.fillText(`⏰ 持有时间: ${holdingPeriod}`, 400, 300);
-    ctx.fillText(`💵 出售价格: $${salePrice.toLocaleString()}`, 400, 340);
+    ctx.fillText(`⏰ Holding Period: ${holdingPeriod}`, 400, 300);
+    ctx.fillText(`💵 Sale Price: $${salePrice.toLocaleString()}`, 400, 340);
 
     // 绘制品牌信息
     ctx.font = '18px Arial';
     ctx.fillStyle = '#6b7280';
-    ctx.fillText('Powered by 66Do.com - 专业域名投资管理平台', 400, 480);
+    ctx.fillText('Powered by 66Do.com - Professional Domain Investment Platform', 400, 480);
 
     // 绘制装饰元素
     ctx.fillStyle = '#fbbf24';
@@ -149,7 +149,7 @@ export default function SaleSuccessModal({ isOpen, onClose, domain, transaction 
 
     const profit = calculateProfit();
     const roi = calculateROI();
-    const text = `🎉 刚刚在66Do平台成功出售域名 ${domain.domain_name}！净利润$${profit.toLocaleString()}，ROI ${roi.toFixed(1)}%！🚀 #域名投资 #66Do #${domain.domain_name.replace('.', '')}`;
+    const text = `🎉 Just sold ${domain.domain_name} on 66Do platform! Net profit $${profit.toLocaleString()}, ROI ${roi.toFixed(1)}%! 🚀 #DomainInvestment #66Do #${domain.domain_name.replace('.', '')}`;
     
     let url = '';
     switch (platform) {

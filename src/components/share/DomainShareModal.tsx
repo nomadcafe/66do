@@ -85,7 +85,7 @@ export default function DomainShareModal({ isOpen, onClose, domain }: DomainShar
     ctx.fillStyle = '#1f2937';
     ctx.font = 'bold 36px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('🎉 域名投资成功 🎉', 400, 120);
+    ctx.fillText('🎉 Domain Investment Success 🎉', 400, 120);
 
     // 绘制域名信息
     ctx.font = 'bold 28px Arial';
@@ -99,15 +99,15 @@ export default function DomainShareModal({ isOpen, onClose, domain }: DomainShar
     
     ctx.font = 'bold 24px Arial';
     ctx.fillStyle = '#1f2937';
-    ctx.fillText(`💰 投资回报: $${profit.toLocaleString()}`, 400, 220);
+    ctx.fillText(`💰 Net Profit: $${profit.toLocaleString()}`, 400, 220);
     ctx.fillText(`📈 ROI: ${roi.toFixed(1)}%`, 400, 260);
-    ctx.fillText(`⏰ 持有时间: ${holdingPeriod}`, 400, 300);
-    ctx.fillText(`💵 出售价格: $${domain.sale_price?.toLocaleString()}`, 400, 340);
+    ctx.fillText(`⏰ Holding Period: ${holdingPeriod}`, 400, 300);
+    ctx.fillText(`💵 Sale Price: $${domain.sale_price?.toLocaleString()}`, 400, 340);
 
     // 绘制品牌信息
     ctx.font = '18px Arial';
     ctx.fillStyle = '#6b7280';
-    ctx.fillText('Powered by 66Do.com - 专业域名投资管理平台', 400, 480);
+    ctx.fillText('Powered by 66Do.com - Professional Domain Investment Platform', 400, 480);
 
     // 绘制装饰元素
     ctx.fillStyle = '#fbbf24';
@@ -140,7 +140,7 @@ export default function DomainShareModal({ isOpen, onClose, domain }: DomainShar
 
     const profit = calculateDomainProfit();
     const roi = calculateROI();
-    const text = `我在66Do平台成功投资域名 ${domain.domain_name}！投资回报$${profit.toLocaleString()}，ROI ${roi.toFixed(1)}%！🚀 #域名投资 #66Do #${domain.domain_name.replace('.', '')}`;
+    const text = `Successfully invested in ${domain.domain_name} on 66Do platform! Net profit $${profit.toLocaleString()}, ROI ${roi.toFixed(1)}%! 🚀 #DomainInvestment #66Do #${domain.domain_name.replace('.', '')}`;
     
     let url = '';
     switch (platform) {
