@@ -50,18 +50,18 @@ export default function HomePage() {
   const benefits = [
     {
       icon: <Zap className="h-6 w-6" />,
-      title: "Portfolio Tracking",
-      description: "Monitor all your domains with automated renewal alerts and cost tracking"
+      title: t('benefits.portfolio.title'),
+      description: t('benefits.portfolio.desc')
     },
     {
       icon: <Target className="h-6 w-6" />,
-      title: "ROI Analysis",
-      description: "Track investment returns, calculate profits, and optimize your domain strategy"
+      title: t('benefits.analytics.title'),
+      description: t('benefits.analytics.desc')
     },
     {
       icon: <Users className="h-6 w-6" />,
-      title: "Market Insights",
-      description: "Access domain valuation data and market trends to make informed decisions"
+      title: t('benefits.market.title'),
+      description: t('benefits.market.desc')
     }
   ];
 
@@ -70,7 +70,7 @@ export default function HomePage() {
     { label: t('stats.totalUsers'), value: "500+" },
     { label: t('stats.portfolioValue'), value: "$2.5M+" },
     { label: t('stats.investmentCount'), value: "1,200+" },
-    { label: t('stats.successRate'), value: "85%" }
+    { label: t('stats.successRate'), value: "100% Free" }
   ];
 
   const handleGetStarted = () => {
@@ -222,10 +222,10 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-white mb-6">
-              Complete Domain Investment Solution
+              {t('benefits.title')}
             </h2>
             <p className="text-xl text-blue-100 max-w-3xl mx-auto">
-              From portfolio tracking to ROI analysis, 66Do provides everything you need to succeed in domain investing
+              {t('benefits.subtitle')}
             </p>
           </div>
           

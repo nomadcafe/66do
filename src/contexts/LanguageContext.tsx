@@ -31,15 +31,26 @@ const translations = {
     
     // Features
     'features.title': 'Core Features',
-    'features.subtitle': 'Comprehensive domain investment management solutions',
-    'features.portfolio.title': 'Domain Portfolio Management',
-    'features.portfolio.desc': 'Easily manage your domain portfolio with detailed tracking of purchase costs, renewal fees, and market values',
-    'features.analytics.title': 'Domain Performance Analytics',
-    'features.analytics.desc': 'Track domain investment returns with ROI calculations, renewal cost analysis, and market value tracking',
-    'features.data.title': 'Domain Data Analytics',
-    'features.data.desc': 'Comprehensive domain statistics, trend analysis, and market insights to optimize your domain investments',
-    'features.security.title': 'Data Security',
-    'features.security.desc': 'Enterprise-grade encryption to ensure your investment data remains secure',
+    'features.subtitle': 'Everything you need to succeed in domain investing',
+    'features.portfolio.title': 'Portfolio Management',
+    'features.portfolio.desc': 'Track all your domains with automated renewal alerts, cost monitoring, and status updates',
+    'features.analytics.title': 'Investment Analytics',
+    'features.analytics.desc': 'Calculate ROI, track profits, and analyze performance with detailed financial reports',
+    'features.data.title': 'Market Intelligence',
+    'features.data.desc': 'Get domain valuations, market trends, and pricing insights to make smart investment decisions',
+    'features.security.title': 'Secure & Reliable',
+    'features.security.desc': 'Your data is protected with enterprise-grade security and automatic backups',
+    
+    // Benefits
+    'benefits.title': 'Complete Domain Investment Solution',
+    'benefits.subtitle': 'From portfolio tracking to ROI analysis, 66Do provides everything you need to succeed in domain investing',
+    'benefits.portfolio.title': 'Portfolio Tracking',
+    'benefits.portfolio.desc': 'Monitor all your domains with automated renewal alerts and cost tracking',
+    'benefits.analytics.title': 'ROI Analysis',
+    'benefits.analytics.desc': 'Track investment returns, calculate profits, and optimize your domain strategy',
+    'benefits.market.title': 'Market Insights',
+    'benefits.market.desc': 'Access domain valuation data and market trends to make informed decisions',
+    'benefits.startTrial': 'Start Free Trial',
     
     // Stats
     'stats.totalUsers': 'Active Users',
@@ -121,15 +132,26 @@ const translations = {
     
     // Features
     'features.title': '核心功能',
-    'features.subtitle': '为域名投资者提供全方位的投资管理解决方案',
-    'features.portfolio.title': '域名投资组合管理',
-    'features.portfolio.desc': '轻松管理您的域名投资组合，详细追踪购买成本、续费费用和市场价值',
-    'features.analytics.title': '域名收益分析',
-    'features.analytics.desc': '追踪域名投资收益，计算ROI、续费成本分析和市场价值追踪',
-    'features.data.title': '域名数据分析',
-    'features.data.desc': '全面的域名统计数据、趋势分析和市场洞察，优化您的域名投资决策',
-    'features.security.title': '数据安全',
-    'features.security.desc': '企业级数据加密，确保您的投资数据安全',
+    'features.subtitle': '域名投资成功所需的一切功能',
+    'features.portfolio.title': '投资组合管理',
+    'features.portfolio.desc': '追踪所有域名，自动续费提醒，成本监控和状态更新',
+    'features.analytics.title': '投资分析',
+    'features.analytics.desc': '计算ROI，追踪利润，通过详细财务报告分析投资表现',
+    'features.data.title': '市场情报',
+    'features.data.desc': '获取域名估值、市场趋势和定价洞察，做出明智的投资决策',
+    'features.security.title': '安全可靠',
+    'features.security.desc': '企业级安全保护和自动备份，确保您的数据安全',
+    
+    // Benefits
+    'benefits.title': '完整的域名投资解决方案',
+    'benefits.subtitle': '从投资组合追踪到ROI分析，66Do提供域名投资成功所需的一切',
+    'benefits.portfolio.title': '投资组合追踪',
+    'benefits.portfolio.desc': '监控所有域名，自动续费提醒和成本追踪',
+    'benefits.analytics.title': 'ROI分析',
+    'benefits.analytics.desc': '追踪投资回报，计算利润，优化您的域名投资策略',
+    'benefits.market.title': '市场洞察',
+    'benefits.market.desc': '获取域名估值数据和市场趋势，做出明智的投资决策',
+    'benefits.startTrial': '免费开始',
     
     // Stats
     'stats.totalUsers': '活跃用户',
