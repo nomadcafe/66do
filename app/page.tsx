@@ -298,7 +298,6 @@ export default function HomePage() {
                 <li><a href="#" className="hover:text-white transition-colors">{t('footer.investmentManagement')}</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">{t('footer.dataAnalytics')}</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">{t('footer.performanceTracking')}</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Pricing</a></li>
               </ul>
             </div>
             
