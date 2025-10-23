@@ -733,10 +733,10 @@ export default function DashboardPage() {
           <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-lg shadow-lg text-white">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-100 text-sm font-medium">总域名数</p>
+                <p className="text-blue-100 text-sm font-medium">{t('dashboard.totalDomains')}</p>
                 <p className="text-3xl font-bold">{stats.totalDomains}</p>
                 <p className="text-blue-200 text-xs mt-1">
-                  活跃: {stats.activeDomains} | 出售: {stats.forSaleDomains}
+                  {t('dashboard.active')}: {stats.activeDomains} | {t('dashboard.sold')}: {stats.forSaleDomains}
                 </p>
           </div>
               <Globe className="h-8 w-8 text-blue-200" />
@@ -746,10 +746,10 @@ export default function DashboardPage() {
           <div className="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-lg shadow-lg text-white">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 text-sm font-medium">总投资</p>
+                <p className="text-green-100 text-sm font-medium">{t('dashboard.totalInvestment')}</p>
                 <p className="text-3xl font-bold">${stats.totalCost.toFixed(2)}</p>
                 <p className="text-green-200 text-xs mt-1">
-                  平均: ${stats.avgPurchasePrice.toFixed(2)}
+                  {t('dashboard.average')}: ${stats.avgPurchasePrice.toFixed(2)}
                 </p>
               </div>
               <DollarSign className="h-8 w-8 text-green-200" />
@@ -759,10 +759,10 @@ export default function DashboardPage() {
           <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-lg shadow-lg text-white">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-100 text-sm font-medium">总收益</p>
+                <p className="text-purple-100 text-sm font-medium">{t('dashboard.totalRevenue')}</p>
                 <p className="text-3xl font-bold">${stats.totalRevenue.toFixed(2)}</p>
                 <p className="text-purple-200 text-xs mt-1">
-                  平均售价: ${stats.avgSalePrice.toFixed(2)}
+                  {t('dashboard.averageSalePrice')}: ${stats.avgSalePrice.toFixed(2)}
                 </p>
               </div>
               <TrendingUp className="h-8 w-8 text-purple-200" />
@@ -772,10 +772,10 @@ export default function DashboardPage() {
           <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 p-6 rounded-lg shadow-lg text-white">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-yellow-100 text-sm font-medium">续费成本</p>
+                <p className="text-yellow-100 text-sm font-medium">{t('dashboard.renewalCost')}</p>
                 <p className="text-3xl font-bold">${stats.totalRenewalCost.toFixed(2)}</p>
                 <p className="text-yellow-200 text-xs mt-1">
-                  年度成本: ${stats.annualRenewalCost.toFixed(2)}
+                  {t('dashboard.annualCost')}: ${stats.annualRenewalCost.toFixed(2)}
                 </p>
               </div>
               <RefreshCw className="h-8 w-8 text-yellow-200" />
@@ -785,10 +785,10 @@ export default function DashboardPage() {
           <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 p-6 rounded-lg shadow-lg text-white">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-indigo-100 text-sm font-medium">总持有成本</p>
+                <p className="text-indigo-100 text-sm font-medium">{t('dashboard.totalHoldingCost')}</p>
                 <p className="text-3xl font-bold">${stats.totalHoldingCost.toFixed(2)}</p>
                 <p className="text-indigo-200 text-xs mt-1">
-                  购买 + 续费
+                  {t('dashboard.purchaseRenewal')}
                 </p>
               </div>
               <Database className="h-8 w-8 text-indigo-200" />
@@ -931,7 +931,7 @@ export default function DashboardPage() {
                 className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-pink-700 flex items-center space-x-2 shadow-lg hover:shadow-xl transition-all duration-300"
               >
                 <Share2 className="h-5 w-5" />
-                <span>分享投资成果</span>
+                <span>{t('dashboard.shareResults')}</span>
               </button>
             </div>
             
@@ -940,10 +940,10 @@ export default function DashboardPage() {
               <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 p-6 rounded-lg shadow-lg text-white">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-cyan-100 text-sm font-medium">总销售额</p>
+                    <p className="text-cyan-100 text-sm font-medium">{t('financial.totalSales')}</p>
                     <p className="text-3xl font-bold">{formatCurrencyEnhanced(enhancedFinancialMetrics.totalSales)}</p>
                     <p className="text-cyan-200 text-xs mt-1">
-                      未扣除任何费用
+                      {t('financial.totalSalesDesc')}
                     </p>
                   </div>
                   <DollarSign className="h-8 w-8 text-cyan-200" />
@@ -953,10 +953,10 @@ export default function DashboardPage() {
               <div className="bg-gradient-to-br from-red-500 to-red-600 p-6 rounded-lg shadow-lg text-white">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-red-100 text-sm font-medium">平台手续费</p>
+                    <p className="text-red-100 text-sm font-medium">{t('financial.platformFees')}</p>
                     <p className="text-3xl font-bold">{formatCurrencyEnhanced(enhancedFinancialMetrics.totalPlatformFees)}</p>
                     <p className="text-red-200 text-xs mt-1">
-                      总手续费
+                      {t('financial.platformFeesDesc')}
                     </p>
                   </div>
                   <TrendingDown className="h-8 w-8 text-red-200" />
@@ -966,10 +966,10 @@ export default function DashboardPage() {
               <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 p-6 rounded-lg shadow-lg text-white">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-emerald-100 text-sm font-medium">年度销售额</p>
+                    <p className="text-emerald-100 text-sm font-medium">{t('financial.annualSales')}</p>
                     <p className="text-3xl font-bold">{formatCurrencyEnhanced(enhancedFinancialMetrics.annualSales)}</p>
                     <p className="text-emerald-200 text-xs mt-1">
-                      今年销售额
+                      {t('financial.annualSalesDesc')}
                     </p>
                   </div>
                   <Calendar className="h-8 w-8 text-emerald-200" />
@@ -979,10 +979,10 @@ export default function DashboardPage() {
               <div className={`bg-gradient-to-br p-6 rounded-lg shadow-lg text-white ${enhancedFinancialMetrics.annualProfit >= 0 ? 'from-green-500 to-green-600' : 'from-red-500 to-red-600'}`}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className={`text-sm font-medium ${enhancedFinancialMetrics.annualProfit >= 0 ? 'text-green-100' : 'text-red-100'}`}>年度净利润</p>
+                    <p className={`text-sm font-medium ${enhancedFinancialMetrics.annualProfit >= 0 ? 'text-green-100' : 'text-red-100'}`}>{t('financial.annualProfit')}</p>
                     <p className="text-3xl font-bold">{formatCurrencyEnhanced(enhancedFinancialMetrics.annualProfit)}</p>
                     <p className={`text-xs mt-1 ${enhancedFinancialMetrics.annualProfit >= 0 ? 'text-green-200' : 'text-red-200'}`}>
-                      扣除所有成本后
+                      {t('financial.annualProfitDesc')}
                     </p>
                   </div>
                   <Target className={`h-8 w-8 ${enhancedFinancialMetrics.annualProfit >= 0 ? 'text-green-200' : 'text-red-200'}`} />
@@ -992,12 +992,12 @@ export default function DashboardPage() {
 
             {/* 续费分析卡片 */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">年度续费分析</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('renewal.analysis')}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <div className="flex items-center justify-between">
                       <div>
-                      <p className="text-sm font-medium text-blue-600">今年续费成本</p>
+                      <p className="text-sm font-medium text-blue-600">{t('renewal.thisYearCost')}</p>
                       <p className="text-2xl font-bold text-blue-900">
                         ¥{renewalAnalysis.totalAnnualCost.toLocaleString()}
                       </p>
@@ -1009,7 +1009,7 @@ export default function DashboardPage() {
                 <div className="bg-green-50 p-4 rounded-lg">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-green-600">需要续费域名</p>
+                      <p className="text-sm font-medium text-green-600">{t('renewal.needRenewal')}</p>
                       <p className="text-2xl font-bold text-green-900">
                         {renewalAnalysis.domainsNeedingRenewal.length}
                       </p>
@@ -1021,7 +1021,7 @@ export default function DashboardPage() {
                 <div className="bg-purple-50 p-4 rounded-lg">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-purple-600">无需续费域名</p>
+                      <p className="text-sm font-medium text-purple-600">{t('renewal.noRenewal')}</p>
                       <p className="text-2xl font-bold text-purple-900">
                         {renewalAnalysis.domainsNotNeedingRenewal.length}
                       </p>
@@ -1033,7 +1033,7 @@ export default function DashboardPage() {
                 <div className="bg-orange-50 p-4 rounded-lg">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-orange-600">平均成本/域名</p>
+                      <p className="text-sm font-medium text-orange-600">{t('renewal.averageCostPerDomain')}</p>
                       <p className="text-2xl font-bold text-orange-900">
                         ¥{renewalAnalysis.domainsNeedingRenewal.length > 0 
                           ? (renewalAnalysis.totalAnnualCost / renewalAnalysis.domainsNeedingRenewal.length).toFixed(0)
@@ -1048,7 +1048,7 @@ export default function DashboardPage() {
               {/* 续费周期分布 */}
               {Object.keys(renewalAnalysis.costByCycle).length > 0 && (
                 <div className="mt-6">
-                  <h4 className="text-md font-medium text-gray-900 mb-3">续费周期分布</h4>
+                  <h4 className="text-md font-medium text-gray-900 mb-3">{t('renewal.cycleDistribution')}</h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {Object.entries(renewalAnalysis.costByCycle).map(([cycle, cost]) => (
                       <div key={cycle} className="bg-gray-50 p-3 rounded-lg">
@@ -1062,7 +1062,7 @@ export default function DashboardPage() {
               
               {/* 续费优化建议 */}
               <div className="mt-6">
-                <h4 className="text-md font-medium text-gray-900 mb-3">续费优化建议</h4>
+                <h4 className="text-md font-medium text-gray-900 mb-3">{t('renewal.optimizationSuggestions')}</h4>
                 <div className="space-y-2">
                   {getRenewalOptimizationSuggestions(renewalAnalysis).map((suggestion, index) => (
                     <div key={index} className="flex items-start space-x-2 p-3 bg-yellow-50 rounded-lg">
@@ -1101,23 +1101,23 @@ export default function DashboardPage() {
 
               <div className="bg-white p-6 rounded-lg shadow-sm border">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">最佳表现</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">{t('dashboard.bestPerformance')}</h3>
                   <Award className="h-5 w-5 text-green-500" />
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-bold text-green-600">{stats.bestPerformingDomain}</p>
-                  <p className="text-sm text-gray-600 mt-1">最佳投资域名</p>
+                  <p className="text-sm text-gray-600 mt-1">{t('dashboard.bestInvestment')}</p>
                 </div>
               </div>
 
               <div className="bg-white p-6 rounded-lg shadow-sm border">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">需要关注</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">{t('dashboard.needAttention')}</h3>
                   <AlertTriangle className="h-5 w-5 text-red-500" />
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-bold text-red-600">{expiringDomains.length}</p>
-                  <p className="text-sm text-gray-600 mt-1">即将到期</p>
+                  <p className="text-sm text-gray-600 mt-1">{t('dashboard.expiringSoon')}</p>
                 </div>
               </div>
             </div>
