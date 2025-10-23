@@ -278,12 +278,40 @@ export default function TransactionForm({
                 max="100"
                 step="0.01"
                 value={formData.platform_fee_percentage}
-                onChange={(e) => setFormData({ ...formData, platform_fee_percentage: parseFloat(e.target.value) || 0 })}
+                onChange={(e) => {
+                  const percentage = parseFloat(e.target.value) || 0;
+                  const calculatedFee = (formData.amount * percentage) / 100;
+                  setFormData({ 
+                    ...formData, 
+                    platform_fee_percentage: percentage,
+                    platform_fee: calculatedFee
+                  });
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="0.00"
               />
             </div>
           </div>
+
+          {/* 净收入显示 */}
+          {formData.type === 'sell' && (
+            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-green-800">净收入计算</p>
+                  <p className="text-lg font-semibold text-green-900">
+                    ¥{(formData.amount - formData.platform_fee).toFixed(2)}
+                  </p>
+                  <p className="text-xs text-green-600 mt-1">
+                    总金额: ¥{formData.amount.toFixed(2)} - 手续费: ¥{formData.platform_fee.toFixed(2)}
+                  </p>
+                </div>
+                <div className="p-2 bg-green-100 rounded-full">
+                  <DollarSign className="h-6 w-6 text-green-600" />
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
