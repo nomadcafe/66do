@@ -8,7 +8,43 @@ import DomainList from '../../src/components/domain/DomainList';
 import DomainForm from '../../src/components/domain/DomainForm';
 import TransactionList from '../../src/components/transaction/TransactionList';
 import TransactionForm from '../../src/components/transaction/TransactionForm';
-import { Globe, Plus, DollarSign, TrendingUp, BarChart3, LogOut, User, FileText } from 'lucide-react';
+import { 
+  Globe, 
+  Plus, 
+  DollarSign, 
+  TrendingUp, 
+  BarChart3, 
+  LogOut, 
+  User, 
+  FileText,
+  AlertTriangle,
+  Calendar,
+  Target,
+  Award,
+  PieChart,
+  LineChart,
+  Activity,
+  Bell,
+  Settings,
+  Eye,
+  Edit,
+  Trash,
+  Filter,
+  Search,
+  Download,
+  Upload,
+  RefreshCw,
+  Star,
+  TrendingDown,
+  Zap,
+  Shield,
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Info,
+  List
+} from 'lucide-react';
 
 interface Domain {
   id: string;
@@ -40,24 +76,75 @@ interface DomainStats {
   totalRevenue: number;
   totalProfit: number;
   roi: number;
+  activeDomains: number;
+  forSaleDomains: number;
+  soldDomains: number;
+  expiredDomains: number;
+  avgPurchasePrice: number;
+  avgSalePrice: number;
+  bestPerformingDomain: string;
+  worstPerformingDomain: string;
+}
+
+interface Alert {
+  id: string;
+  domain_id: string;
+  domain_name: string;
+  type: 'renewal' | 'expiry' | 'price_drop' | 'sale_opportunity';
+  message: string;
+  priority: 'high' | 'medium' | 'low';
+  date: string;
+  isRead: boolean;
+}
+
+interface ChartData {
+  month: string;
+  domains: number;
+  cost: number;
+  revenue: number;
+  profit: number;
+}
+
+interface PerformanceData {
+  domain_name: string;
+  purchase_price: number;
+  current_value: number;
+  profit_loss: number;
+  roi_percentage: number;
+  days_held: number;
 }
 
 export default function DashboardPage() {
   const [domains, setDomains] = useState<Domain[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [chartData, setChartData] = useState<ChartData[]>([]);
+  const [performanceData, setPerformanceData] = useState<PerformanceData[]>([]);
   const [stats, setStats] = useState<DomainStats>({
     totalDomains: 0,
     totalCost: 0,
     totalRevenue: 0,
     totalProfit: 0,
-    roi: 0
+    roi: 0,
+    activeDomains: 0,
+    forSaleDomains: 0,
+    soldDomains: 0,
+    expiredDomains: 0,
+    avgPurchasePrice: 0,
+    avgSalePrice: 0,
+    bestPerformingDomain: '',
+    worstPerformingDomain: ''
   });
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'domains' | 'transactions'>('domains');
+  const [activeTab, setActiveTab] = useState<'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts'>('overview');
   const [showDomainForm, setShowDomainForm] = useState(false);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [editingDomain, setEditingDomain] = useState<Domain | undefined>();
   const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('date');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const { user, signOut } = useAuth();
   const { t, language, setLanguage } = useLanguage();
   const router = useRouter();
@@ -102,18 +189,56 @@ export default function DashboardPage() {
   useEffect(() => {
     const totalDomains = domains.length;
     const totalCost = domains.reduce((sum, domain) => sum + domain.purchase_cost, 0);
-    const totalRevenue = 0; // Will be calculated from transactions
+    const totalRevenue = transactions.filter(t => t.type === 'sell').reduce((sum, t) => sum + t.amount, 0);
     const totalProfit = totalRevenue - totalCost;
     const roi = totalCost > 0 ? (totalProfit / totalCost) * 100 : 0;
+    
+    const activeDomains = domains.filter(d => d.status === 'active').length;
+    const forSaleDomains = domains.filter(d => d.status === 'for_sale').length;
+    const soldDomains = domains.filter(d => d.status === 'sold').length;
+    const expiredDomains = domains.filter(d => d.status === 'expired').length;
+    
+    const avgPurchasePrice = totalDomains > 0 ? totalCost / totalDomains : 0;
+    const avgSalePrice = soldDomains > 0 ? totalRevenue / soldDomains : 0;
+    
+    // Find best and worst performing domains
+    const domainPerformance = domains.map(domain => {
+      const domainTransactions = transactions.filter(t => t.domain_id === domain.id);
+      const totalSpent = domainTransactions.filter(t => t.type === 'buy' || t.type === 'renew' || t.type === 'fee').reduce((sum, t) => sum + t.amount, 0);
+      const totalEarned = domainTransactions.filter(t => t.type === 'sell').reduce((sum, t) => sum + t.amount, 0);
+      const profit = totalEarned - totalSpent;
+      const roi = totalSpent > 0 ? (profit / totalSpent) * 100 : 0;
+      return { domain, profit, roi };
+    });
+    
+    const bestPerforming = domainPerformance.reduce((best, current) => 
+      current.profit > best.profit ? current : best, domainPerformance[0] || { domain: { domain_name: 'N/A' } });
+    const worstPerforming = domainPerformance.reduce((worst, current) => 
+      current.profit < worst.profit ? current : worst, domainPerformance[0] || { domain: { domain_name: 'N/A' } });
 
     setStats({
       totalDomains,
       totalCost,
       totalRevenue,
       totalProfit,
-      roi
+      roi,
+      activeDomains,
+      forSaleDomains,
+      soldDomains,
+      expiredDomains,
+      avgPurchasePrice,
+      avgSalePrice,
+      bestPerformingDomain: bestPerforming.domain.domain_name,
+      worstPerformingDomain: worstPerforming.domain.domain_name
     });
-  }, [domains]);
+  }, [domains, transactions]);
+
+  // Generate alerts, chart data, and performance data when data changes
+  useEffect(() => {
+    generateAlerts();
+    generateChartData();
+    generatePerformanceData();
+  }, [domains, transactions]);
 
   // Domain management functions
   const handleAddDomain = () => {
@@ -212,6 +337,159 @@ export default function DashboardPage() {
     await signOut();
     router.push('/');
   };
+
+  // Generate alerts based on domain data
+  const generateAlerts = () => {
+    const newAlerts: Alert[] = [];
+    const now = new Date();
+    
+    domains.forEach(domain => {
+      // Renewal alerts
+      if (domain.next_renewal_date) {
+        const renewalDate = new Date(domain.next_renewal_date);
+        const daysUntilRenewal = Math.ceil((renewalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (daysUntilRenewal <= 30 && daysUntilRenewal > 0) {
+          newAlerts.push({
+            id: `renewal-${domain.id}`,
+            domain_id: domain.id,
+            domain_name: domain.domain_name,
+            type: 'renewal',
+            message: `域名 ${domain.domain_name} 将在 ${daysUntilRenewal} 天后到期，续费费用：$${domain.renewal_cost}`,
+            priority: daysUntilRenewal <= 7 ? 'high' : daysUntilRenewal <= 14 ? 'medium' : 'low',
+            date: now.toISOString(),
+            isRead: false
+          });
+        }
+      }
+      
+      // Expiry alerts
+      if (domain.next_renewal_date) {
+        const renewalDate = new Date(domain.next_renewal_date);
+        const daysUntilRenewal = Math.ceil((renewalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (daysUntilRenewal <= 0) {
+          newAlerts.push({
+            id: `expiry-${domain.id}`,
+            domain_id: domain.id,
+            domain_name: domain.domain_name,
+            type: 'expiry',
+            message: `域名 ${domain.domain_name} 已过期！请立即续费以避免丢失`,
+            priority: 'high',
+            date: now.toISOString(),
+            isRead: false
+          });
+        }
+      }
+      
+      // Sale opportunity alerts
+      if (domain.status === 'active' && domain.estimated_value > domain.purchase_cost * 2) {
+        newAlerts.push({
+          id: `sale-${domain.id}`,
+          domain_id: domain.id,
+          domain_name: domain.domain_name,
+          type: 'sale_opportunity',
+          message: `域名 ${domain.domain_name} 估值 ${domain.estimated_value}，是购买价格的 ${Math.round((domain.estimated_value / domain.purchase_cost) * 100)}% 倍，考虑出售？`,
+          priority: 'medium',
+          date: now.toISOString(),
+          isRead: false
+        });
+      }
+    });
+    
+    setAlerts(newAlerts);
+  };
+
+  // Generate chart data for analytics
+  const generateChartData = () => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const currentYear = new Date().getFullYear();
+    const chartData: ChartData[] = [];
+    
+    for (let i = 0; i < 12; i++) {
+      const monthStart = new Date(currentYear, i, 1);
+      const monthEnd = new Date(currentYear, i + 1, 0);
+      
+      const monthDomains = domains.filter(d => {
+        const purchaseDate = new Date(d.purchase_date);
+        return purchaseDate >= monthStart && purchaseDate <= monthEnd;
+      });
+      
+      const monthTransactions = transactions.filter(t => {
+        const transactionDate = new Date(t.date);
+        return transactionDate >= monthStart && transactionDate <= monthEnd;
+      });
+      
+      const cost = monthTransactions.filter(t => t.type === 'buy' || t.type === 'renew' || t.type === 'fee').reduce((sum, t) => sum + t.amount, 0);
+      const revenue = monthTransactions.filter(t => t.type === 'sell').reduce((sum, t) => sum + t.amount, 0);
+      
+      chartData.push({
+        month: months[i],
+        domains: monthDomains.length,
+        cost,
+        revenue,
+        profit: revenue - cost
+      });
+    }
+    
+    setChartData(chartData);
+  };
+
+  // Generate performance data
+  const generatePerformanceData = () => {
+    const performance: PerformanceData[] = domains.map(domain => {
+      const domainTransactions = transactions.filter(t => t.domain_id === domain.id);
+      const totalSpent = domainTransactions.filter(t => t.type === 'buy' || t.type === 'renew' || t.type === 'fee').reduce((sum, t) => sum + t.amount, 0);
+      const totalEarned = domainTransactions.filter(t => t.type === 'sell').reduce((sum, t) => sum + t.amount, 0);
+      const profitLoss = totalEarned - totalSpent;
+      const roiPercentage = totalSpent > 0 ? (profitLoss / totalSpent) * 100 : 0;
+      
+      const purchaseDate = new Date(domain.purchase_date);
+      const daysHeld = Math.ceil((Date.now() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      return {
+        domain_name: domain.domain_name,
+        purchase_price: domain.purchase_cost,
+        current_value: domain.estimated_value,
+        profit_loss: profitLoss,
+        roi_percentage: roiPercentage,
+        days_held: daysHeld
+      };
+    });
+    
+    setPerformanceData(performance.sort((a, b) => b.roi_percentage - a.roi_percentage));
+  };
+
+  // Mark alert as read
+  const markAlertAsRead = (alertId: string) => {
+    setAlerts(alerts.map(alert => 
+      alert.id === alertId ? { ...alert, isRead: true } : alert
+    ));
+  };
+
+  // Filter domains based on search and status
+  const filteredDomains = domains.filter(domain => {
+    const matchesSearch = domain.domain_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         domain.registrar.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = filterStatus === 'all' || domain.status === filterStatus;
+    return matchesSearch && matchesStatus;
+  });
+
+  // Sort domains
+  const sortedDomains = [...filteredDomains].sort((a, b) => {
+    switch (sortBy) {
+      case 'name':
+        return a.domain_name.localeCompare(b.domain_name);
+      case 'date':
+        return new Date(b.purchase_date).getTime() - new Date(a.purchase_date).getTime();
+      case 'value':
+        return b.estimated_value - a.estimated_value;
+      case 'cost':
+        return b.purchase_cost - a.purchase_cost;
+      default:
+        return 0;
+    }
+  });
 
   if (loading) {
     return (
@@ -327,45 +605,292 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Enhanced Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-lg shadow-lg text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-blue-100 text-sm font-medium">总域名数</p>
+                <p className="text-3xl font-bold">{stats.totalDomains}</p>
+                <p className="text-blue-200 text-xs mt-1">
+                  活跃: {stats.activeDomains} | 出售: {stats.forSaleDomains}
+                </p>
+              </div>
+              <Globe className="h-8 w-8 text-blue-200" />
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-lg shadow-lg text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-green-100 text-sm font-medium">总投资</p>
+                <p className="text-3xl font-bold">${stats.totalCost.toFixed(2)}</p>
+                <p className="text-green-200 text-xs mt-1">
+                  平均: ${stats.avgPurchasePrice.toFixed(2)}
+                </p>
+              </div>
+              <DollarSign className="h-8 w-8 text-green-200" />
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-lg shadow-lg text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-purple-100 text-sm font-medium">总收益</p>
+                <p className="text-3xl font-bold">${stats.totalRevenue.toFixed(2)}</p>
+                <p className="text-purple-200 text-xs mt-1">
+                  平均售价: ${stats.avgSalePrice.toFixed(2)}
+                </p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-purple-200" />
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-6 rounded-lg shadow-lg text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-orange-100 text-sm font-medium">ROI</p>
+                <p className="text-3xl font-bold">{stats.roi.toFixed(1)}%</p>
+                <p className="text-orange-200 text-xs mt-1">
+                  利润: ${stats.totalProfit.toFixed(2)}
+                </p>
+              </div>
+              <BarChart3 className="h-8 w-8 text-orange-200" />
+            </div>
+          </div>
+        </div>
+
         {/* Tabs */}
         <div className="bg-white rounded-lg shadow-sm border mb-6">
           <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8 px-6">
+            <nav className="-mb-px flex space-x-8 px-6 overflow-x-auto">
+              <button
+                onClick={() => setActiveTab('overview')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                  activeTab === 'overview'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Activity className="h-4 w-4 inline mr-2" />
+                概览
+              </button>
               <button
                 onClick={() => setActiveTab('domains')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                   activeTab === 'domains'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
                 <Globe className="h-4 w-4 inline mr-2" />
-                Domains
+                域名管理
               </button>
               <button
                 onClick={() => setActiveTab('transactions')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                   activeTab === 'transactions'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
                 <FileText className="h-4 w-4 inline mr-2" />
-                Transactions
+                交易记录
+              </button>
+              <button
+                onClick={() => setActiveTab('analytics')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                  activeTab === 'analytics'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <PieChart className="h-4 w-4 inline mr-2" />
+                数据分析
+              </button>
+              <button
+                onClick={() => setActiveTab('alerts')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                  activeTab === 'alerts'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Bell className="h-4 w-4 inline mr-2" />
+                提醒通知
+                {alerts.filter(a => !a.isRead).length > 0 && (
+                  <span className="ml-1 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
+                    {alerts.filter(a => !a.isRead).length}
+                  </span>
+                )}
               </button>
             </nav>
           </div>
         </div>
 
         {/* Tab Content */}
+        {activeTab === 'overview' && (
+          <div className="space-y-6">
+            {/* Quick Actions */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white p-6 rounded-lg shadow-sm border">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">快速操作</h3>
+                  <Zap className="h-5 w-5 text-yellow-500" />
+                </div>
+                <div className="space-y-3">
+                  <button
+                    onClick={handleAddDomain}
+                    className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center space-x-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>添加域名</span>
+                  </button>
+                  <button
+                    onClick={handleAddTransaction}
+                    className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center justify-center space-x-2"
+                  >
+                    <FileText className="h-4 w-4" />
+                    <span>记录交易</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-white p-6 rounded-lg shadow-sm border">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">最佳表现</h3>
+                  <Award className="h-5 w-5 text-green-500" />
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-green-600">{stats.bestPerformingDomain}</p>
+                  <p className="text-sm text-gray-600 mt-1">最佳投资域名</p>
+                </div>
+              </div>
+
+              <div className="bg-white p-6 rounded-lg shadow-sm border">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">需要关注</h3>
+                  <AlertTriangle className="h-5 w-5 text-red-500" />
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-red-600">{alerts.filter(a => !a.isRead).length}</p>
+                  <p className="text-sm text-gray-600 mt-1">未读提醒</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Transactions */}
+            <div className="bg-white rounded-lg shadow-sm border">
+              <div className="p-6 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">最近交易</h3>
+              </div>
+              <div className="p-6">
+                {transactions.slice(0, 5).length > 0 ? (
+                  <div className="space-y-4">
+                    {transactions.slice(0, 5).map((transaction) => (
+                      <div key={transaction.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                            transaction.type === 'buy' ? 'bg-blue-100' :
+                            transaction.type === 'sell' ? 'bg-green-100' :
+                            transaction.type === 'renew' ? 'bg-yellow-100' : 'bg-gray-100'
+                          }`}>
+                            {transaction.type === 'buy' ? <Plus className="h-4 w-4 text-blue-600" /> :
+                             transaction.type === 'sell' ? <TrendingUp className="h-4 w-4 text-green-600" /> :
+                             transaction.type === 'renew' ? <RefreshCw className="h-4 w-4 text-yellow-600" /> :
+                             <FileText className="h-4 w-4 text-gray-600" />}
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {domains.find(d => d.id === transaction.domain_id)?.domain_name || 'Unknown Domain'}
+                            </p>
+                            <p className="text-sm text-gray-600">{transaction.type} - {transaction.date}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className={`font-semibold ${
+                            transaction.type === 'sell' ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {transaction.type === 'sell' ? '+' : '-'}${transaction.amount.toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <p>暂无交易记录</p>
+                    <button
+                      onClick={handleAddTransaction}
+                      className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                    >
+                      添加第一笔交易
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'domains' && (
-          <DomainList
-            domains={domains}
-            onEdit={handleEditDomain}
-            onDelete={handleDeleteDomain}
-            onView={handleViewDomain}
-            onAdd={handleAddDomain}
-          />
+          <div className="space-y-6">
+            {/* Search and Filter */}
+            <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="搜索域名..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">所有状态</option>
+                    <option value="active">活跃</option>
+                    <option value="for_sale">出售中</option>
+                    <option value="sold">已售出</option>
+                    <option value="expired">已过期</option>
+                  </select>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="date">按日期</option>
+                    <option value="name">按名称</option>
+                    <option value="value">按价值</option>
+                    <option value="cost">按成本</option>
+                  </select>
+                  <button
+                    onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+                    className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  >
+                    {viewMode === 'grid' ? <Eye className="h-4 w-4" /> : <List className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <DomainList
+              domains={sortedDomains}
+              onEdit={handleEditDomain}
+              onDelete={handleDeleteDomain}
+              onView={handleViewDomain}
+              onAdd={handleAddDomain}
+            />
+          </div>
         )}
 
         {activeTab === 'transactions' && (
@@ -376,6 +901,141 @@ export default function DashboardPage() {
             onDelete={handleDeleteTransaction}
             onAdd={handleAddTransaction}
           />
+        )}
+
+        {activeTab === 'analytics' && (
+          <div className="space-y-6">
+            {/* Performance Chart */}
+            <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">域名表现分析</h3>
+              <div className="space-y-4">
+                {performanceData.slice(0, 10).map((domain, index) => (
+                  <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-blue-600 font-semibold">{index + 1}</span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{domain.domain_name}</p>
+                        <p className="text-sm text-gray-600">持有 {domain.days_held} 天</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={`font-semibold ${domain.roi_percentage >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {domain.roi_percentage >= 0 ? '+' : ''}{domain.roi_percentage.toFixed(1)}%
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {domain.profit_loss >= 0 ? '+' : ''}${domain.profit_loss.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Monthly Chart */}
+            <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">月度投资趋势</h3>
+              <div className="space-y-4">
+                {chartData.slice(-6).map((data, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">{data.month}</span>
+                    <div className="flex items-center space-x-4">
+                      <div className="text-right">
+                        <p className="text-sm text-gray-600">成本</p>
+                        <p className="font-semibold text-red-600">${data.cost.toFixed(2)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-600">收益</p>
+                        <p className="font-semibold text-green-600">${data.revenue.toFixed(2)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-600">利润</p>
+                        <p className={`font-semibold ${data.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          ${data.profit.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'alerts' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow-sm border">
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-900">提醒通知</h3>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-600">
+                      共 {alerts.length} 条提醒
+                    </span>
+                    <button
+                      onClick={() => setAlerts(alerts.map(a => ({ ...a, isRead: true })))}
+                      className="text-blue-600 hover:text-blue-700 text-sm"
+                    >
+                      全部标记为已读
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="p-6">
+                {alerts.length > 0 ? (
+                  <div className="space-y-4">
+                    {alerts.map((alert) => (
+                      <div
+                        key={alert.id}
+                        className={`p-4 rounded-lg border-l-4 ${
+                          alert.priority === 'high' ? 'border-red-500 bg-red-50' :
+                          alert.priority === 'medium' ? 'border-yellow-500 bg-yellow-50' :
+                          'border-blue-500 bg-blue-50'
+                        } ${alert.isRead ? 'opacity-60' : ''}`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start space-x-3">
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                              alert.type === 'renewal' ? 'bg-orange-100' :
+                              alert.type === 'expiry' ? 'bg-red-100' :
+                              alert.type === 'sale_opportunity' ? 'bg-green-100' : 'bg-blue-100'
+                            }`}>
+                              {alert.type === 'renewal' ? <Calendar className="h-4 w-4 text-orange-600" /> :
+                               alert.type === 'expiry' ? <AlertTriangle className="h-4 w-4 text-red-600" /> :
+                               alert.type === 'sale_opportunity' ? <TrendingUp className="h-4 w-4 text-green-600" /> :
+                               <Info className="h-4 w-4 text-blue-600" />}
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900">{alert.domain_name}</p>
+                              <p className="text-sm text-gray-600 mt-1">{alert.message}</p>
+                              <p className="text-xs text-gray-500 mt-1">{new Date(alert.date).toLocaleString()}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            {!alert.isRead && (
+                              <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                            )}
+                            <button
+                              onClick={() => markAlertAsRead(alert.id)}
+                              className="text-gray-400 hover:text-gray-600"
+                            >
+                              {alert.isRead ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Bell className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <p>暂无提醒通知</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         )}
       </div>
 
