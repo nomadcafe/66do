@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../src/contexts/AuthContext';
+// import { useAuth } from '../../src/contexts/AuthContext';
 import { useI18nContext } from '../../src/contexts/I18nProvider';
 import { Mail, ArrowLeft } from 'lucide-react';
 
@@ -10,7 +10,7 @@ export default function VerifyPage() {
   const [verificationCode, setVerificationCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  // const [success, setSuccess] = useState('');
   const [email, setEmail] = useState('');
   // completeRegistration不再需要，验证成功后用户重新登录
   const { t, locale, setLocale } = useI18nContext();
@@ -98,7 +98,7 @@ export default function VerifyPage() {
       }
 
       // 验证成功后，用户需要重新登录
-      setSuccess('邮箱验证成功！请重新登录');
+      // setSuccess('邮箱验证成功！请重新登录');
       setTimeout(() => {
         // 清理sessionStorage
         sessionStorage.removeItem('66do_verification_email');
@@ -140,7 +140,7 @@ export default function VerifyPage() {
 
       const result = await response.json();
       if (result.success) {
-        setSuccess('验证码已重新发送');
+        // setSuccess('验证码已重新发送');
         // 生产环境不应在控制台显示验证码
       } else {
         throw new Error(result.error || '发送失败');

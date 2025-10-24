@@ -289,9 +289,6 @@ const translations: Record<Locale, Translations> = {
       joinThousands: '加入域名投资者使用66Do追踪他们的域名投资组合',
       startFree: '免费开始'
     },
-    nav: {
-      goToDashboard: '进入仪表板'
-    },
     features: {
       title: '核心功能',
       subtitle: '为域名投资者量身定制的专业工具',
@@ -619,9 +616,6 @@ const translations: Record<Locale, Translations> = {
       startJourney: 'Start Your Domain Investment Journey',
       joinThousands: 'Join domain investors using 66Do to track their domain portfolios',
       startFree: 'Start Free'
-    },
-    nav: {
-      goToDashboard: 'Go to Dashboard'
     },
     features: {
       title: 'Core Features',

@@ -1,12 +1,12 @@
 // 邮箱验证功能
 import { auditLogger } from './security';
 
-interface VerificationToken {
-  token: string;
-  email: string;
-  expires_at: string;
-  created_at: string;
-}
+// interface VerificationToken {
+//   token: string;
+//   email: string;
+//   expires_at: string;
+//   created_at: string;
+// }
 
 // 生成验证令牌
 function generateVerificationToken(): string {

@@ -168,7 +168,7 @@ export class DomainExpiryService {
   /**
    * 生成提醒消息
    */
-  private generateMessage(domainName: string, daysUntilExpiry: number, _priority: string): string {
+  private generateMessage(domainName: string, daysUntilExpiry: number, _priority: string): string { // _priority 故意未使用
     // const priorityText = {
     //   critical: '紧急',
     //   high: '重要',
