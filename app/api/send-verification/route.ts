@@ -27,23 +27,25 @@ export async function POST(request: NextRequest) {
     // 设置过期时间（10分钟）
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
 
-    // 首先查找用户，如果不存在则跳过用户创建，直接保存验证码
+    // 首先查找用户，如果不存在则使用email作为临时标识符
     let userId = null
     try {
-      const { data: existingUser } = await supabase
+      const { data: existingUser, error: userError } = await supabase
         .from('users')
         .select('id')
         .eq('email', email)
-        .single()
+        .maybeSingle() // 使用maybeSingle()避免单行错误
       
-      if (existingUser) {
+      if (userError) {
+        console.log('Error fetching user:', userError)
+        userId = email
+      } else if (existingUser) {
         userId = existingUser.id
         console.log('Found existing user:', userId)
       } else {
         // 如果用户不存在，使用email作为临时标识符
-        // 等用户完成注册后再关联到正式用户记录
         console.log('User not found, using email as temporary identifier')
-        userId = email // 临时使用email，稍后会在注册时更新
+        userId = email
       }
     } catch (userError) {
       console.error('Error handling user:', userError)

@@ -15,6 +15,11 @@ interface Session {
   expires_at: string;
 }
 
+// 生成UUID v4
+function generateUUID(): string {
+  return crypto.randomUUID();
+}
+
 // 生成安全的会话令牌
 function generateSecureToken(): string {
   const array = new Uint8Array(32);
@@ -139,7 +144,7 @@ export async function createUser(email: string, password: string): Promise<{ use
     // 创建新用户
     const passwordHash = await hashPassword(password);
     const newUser: User = {
-      id: generateSecureToken(),
+      id: generateUUID(),
       email,
       password_hash: passwordHash,
       email_verified: false,
