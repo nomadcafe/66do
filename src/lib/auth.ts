@@ -99,9 +99,30 @@ async function saveUserToDatabase(user: User): Promise<boolean> {
 // 验证用户凭据
 export async function validateUser(email: string, password: string): Promise<User | null> {
   try {
-    const user = await getUserFromDatabase(email);
+    let user = await getUserFromDatabase(email);
+    
+    // 如果用户不存在，创建新用户
     if (!user) {
-      return null;
+      console.log('User not found, creating new user during login');
+      const passwordHash = await hashPassword(password);
+      const newUser: User = {
+        id: generateUUID(),
+        email,
+        password_hash: passwordHash,
+        email_verified: true, // 假设邮箱已验证（通过验证码）
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      // 尝试保存到数据库
+      const saved = await saveUserToDatabase(newUser);
+      if (saved) {
+        user = newUser;
+      } else {
+        console.log('Failed to save user to database, using local storage fallback');
+        // 如果数据库保存失败，使用localStorage作为备用
+        return newUser;
+      }
     }
 
     const isValidPassword = await verifyPassword(password, user.password_hash);
