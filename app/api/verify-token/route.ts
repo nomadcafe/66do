@@ -6,7 +6,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { token } = body
 
+    console.log('Verify token request:', { token: token?.substring(0, 2) + '****' })
+
     if (!token) {
+      console.log('Error: Token is required')
       return NextResponse.json({ error: 'Token is required' }, { 
         status: 400,
         headers: { 'Content-Type': 'application/json' }
@@ -23,7 +26,9 @@ export async function POST(request: NextRequest) {
     // 验证令牌
     let tokenData = null
     try {
+      console.log('Attempting to get token from database...')
       tokenData = await VerificationTokenService.getToken(token)
+      console.log('Token data retrieved:', tokenData ? 'Found' : 'Not found')
     } catch (error) {
       console.log('Warning: Supabase connection failed for token verification:', error)
       // 如果Supabase连接失败，返回错误
@@ -36,6 +41,7 @@ export async function POST(request: NextRequest) {
     }
     
     if (!tokenData) {
+      console.log('Error: Token not found in database')
       return NextResponse.json({ 
         error: 'Invalid or expired token' 
       }, { 

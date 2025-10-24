@@ -36,10 +36,18 @@ export async function POST(request: NextRequest) {
 
     // 尝试保存到Supabase，如果失败则记录错误但继续执行
     try {
+      console.log('Saving token to database:', { 
+        id: tokenData.id, 
+        user_id: tokenData.user_id, 
+        token: tokenData.token.substring(0, 2) + '****',
+        expires_at: tokenData.expires_at 
+      })
       const savedToken = await VerificationTokenService.createToken(tokenData)
       
       if (!savedToken) {
         console.log('Warning: Failed to save verification token to database')
+      } else {
+        console.log('Token saved successfully to database')
       }
     } catch (error) {
       console.log('Warning: Supabase connection failed:', error)
