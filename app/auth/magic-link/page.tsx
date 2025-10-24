@@ -40,7 +40,7 @@ function MagicLinkContent() {
         }
 
         if (data.user && data.session) {
-          setSuccess('登录成功！正在跳转...');
+          setSuccess('登录成功！正在跳转到您的仪表板...');
           
           // 跳转到仪表板
           setTimeout(() => {
@@ -75,7 +75,7 @@ function MagicLinkContent() {
           {loading && (
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-4 text-gray-600">正在验证登录链接...</p>
+              <p className="mt-4 text-gray-600">正在验证您的登录链接...</p>
             </div>
           )}
 

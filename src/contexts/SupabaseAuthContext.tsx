@@ -57,18 +57,27 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
   const signInWithMagicLink = async (email: string) => {
     setLoading(true);
     try {
+      console.log('Sending magic link to:', email);
+      console.log('Redirect URL:', 'https://www.66do.com/auth/magic-link');
+      
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/magic-link`,
+          emailRedirectTo: `https://www.66do.com/auth/magic-link`,
+          shouldCreateUser: true, // 自动创建用户
         }
       });
 
       if (error) {
         console.error('Magic link error:', error);
+        console.error('Error details:', {
+          message: error.message,
+          status: error.status
+        });
         return { error };
       }
 
+      console.log('Magic link sent successfully');
       return { error: null };
     } catch (error) {
       console.error('Magic link error:', error);

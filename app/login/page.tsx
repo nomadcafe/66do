@@ -25,10 +25,10 @@ export default function LoginPage() {
       if (error) {
         setError(error.message);
       } else {
-        setSuccess('验证码已发送到您的邮箱，请查收并点击链接登录');
+        setSuccess('登录链接已发送到您的邮箱，请查收并点击链接登录');
       }
     } catch {
-      setError('发送验证码失败，请重试');
+      setError('发送登录链接失败，请重试');
     }
     
     setLoading(false);
@@ -53,8 +53,11 @@ export default function LoginPage() {
           </select>
         </div>
         <h2 className="mt-6 text-center text-2xl font-bold text-gray-900">
-          {t('auth.signIn.title')}
+          使用邮箱登录
         </h2>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          输入您的邮箱地址，我们将发送登录链接到您的邮箱
+        </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
@@ -116,10 +119,7 @@ export default function LoginPage() {
 
             <div className="text-center">
               <p className="text-sm text-gray-600">
-                {t('auth.noAccount')}{' '}
-                <a href="/register" className="font-medium text-blue-600 hover:text-blue-500">
-                  {t('auth.signUpNow')}
-                </a>
+                首次使用？直接输入邮箱即可，我们会自动为您创建账户
               </p>
             </div>
           </form>

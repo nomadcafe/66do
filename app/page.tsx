@@ -115,20 +115,12 @@ export default function HomePage() {
                   {t('nav.goToDashboard')}
                 </button>
               ) : (
-                <>
-                  <a
-                    href="/login"
-                    className="text-gray-600 hover:text-gray-900 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                  >
-                    {t('nav.signIn')}
-                  </a>
-                  <a
-                    href="/register"
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
-                  >
-                    {t('nav.signUp')}
-                  </a>
-                </>
+                <a
+                  href="/login"
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                >
+                  登录
+                </a>
               )}
             </div>
           </div>
