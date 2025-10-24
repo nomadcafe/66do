@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { supabase } from '../../../src/lib/supabase'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // 设置CORS头
     const corsHeaders = {
@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 测试Supabase连接
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('users')
       .select('count')
       .limit(1)

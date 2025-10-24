@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { supabase } from '../../../src/lib/supabase'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // 设置CORS头
     const corsHeaders = {
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
     // 检查所有必要的表是否存在
     const tables = ['users', 'domains', 'domain_transactions', 'verification_tokens']
-    const tableStatus = {}
+    const tableStatus: Record<string, { exists: boolean; error?: string; count?: number }> = {}
 
     for (const table of tables) {
       try {
