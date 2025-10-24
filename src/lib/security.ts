@@ -111,6 +111,7 @@ export class AccessControl {
   private isResourceOwner(_userId: string, _resourceId: string): boolean {
     // 这里应该查询数据库检查资源所有权
     // 暂时返回true，实际应用中需要数据库查询
+    // 使用下划线前缀表示参数暂时未使用
     return true;
   }
 }

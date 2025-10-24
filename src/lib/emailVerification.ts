@@ -21,14 +21,6 @@ export async function sendVerificationEmail(email: string, userId: string): Prom
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24); // 24小时过期
 
-    // 存储验证令牌
-    const verificationData: VerificationToken = {
-      token,
-      email,
-      expires_at: expiresAt.toISOString(),
-      created_at: new Date().toISOString()
-    };
-
     // 验证令牌将通过API保存到数据库，这里不需要localStorage
 
     // 调用邮件服务发送验证邮件

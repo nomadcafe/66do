@@ -10,8 +10,9 @@ export default function VerifyPage() {
   const [verificationCode, setVerificationCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [email, setEmail] = useState('');
-  const { completeRegistration } = useAuth();
+  // completeRegistration不再需要，验证成功后用户重新登录
   const { t, locale, setLocale } = useI18nContext();
   const router = useRouter();
 
@@ -77,17 +78,32 @@ export default function VerifyPage() {
         return;
       }
 
-      // 完成注册
-      const { error } = await completeRegistration(email);
-      
-      if (error) {
-        setError(error.message);
-      } else {
+      // 更新用户邮箱验证状态
+      const updateResponse = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'updateUserEmailVerification',
+          email: email,
+          user: { email_verified: true }
+        })
+      });
+
+      if (!updateResponse.ok) {
+        setError('邮箱验证状态更新失败');
+        setLoading(false);
+        return;
+      }
+
+      // 验证成功后，用户需要重新登录
+      setSuccess('邮箱验证成功！请重新登录');
+      setTimeout(() => {
         // 清理sessionStorage
         sessionStorage.removeItem('66do_verification_email');
-        // 跳转到仪表板
-        router.push('/dashboard');
-      }
+        router.push('/login');
+      }, 2000);
       
     } catch {
       setError('验证失败，请重试');
