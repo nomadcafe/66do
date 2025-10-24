@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { AuthProvider } from "../src/contexts/AuthContext";
+import { SupabaseAuthProvider } from "../src/contexts/SupabaseAuthContext";
 import { I18nProvider } from "../src/contexts/I18nProvider";
 
 const geistSans = Geist({
@@ -30,9 +30,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <I18nProvider>
-          <AuthProvider>
+          <SupabaseAuthProvider>
             {children}
-          </AuthProvider>
+          </SupabaseAuthProvider>
         </I18nProvider>
       </body>
     </html>

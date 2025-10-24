@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '../../src/contexts/AuthContext';
+import { useSupabaseAuth } from '../../src/contexts/SupabaseAuthContext';
 import { useI18nContext } from '../../src/contexts/I18nProvider';
 import { Mail, Send } from 'lucide-react';
 
@@ -10,7 +10,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const { signInWithMagicLink } = useAuth();
+  const { signInWithMagicLink } = useSupabaseAuth();
   const { t, locale, setLocale } = useI18nContext();
 
   const handleSubmit = async (e: React.FormEvent) => {

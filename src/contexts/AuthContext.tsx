@@ -22,6 +22,7 @@ interface AuthContextType {
   loading: boolean;
   signInWithMagicLink: (email: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  updateAuthState: (user: User, session: Session) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -121,12 +122,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateAuthState = (user: User, session: Session) => {
+    setUser(user);
+    setSession(session);
+  };
+
   const value = {
     user,
     session,
     loading,
     signInWithMagicLink,
     signOut,
+    updateAuthState,
   };
 
   return (

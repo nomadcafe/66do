@@ -2,14 +2,15 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '../../../src/contexts/AuthContext';
+import { useSupabaseAuth } from '../../../src/contexts/SupabaseAuthContext';
 import { useI18nContext } from '../../../src/contexts/I18nProvider';
+import { supabase } from '../../../src/lib/supabase';
 
 function MagicLinkContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const { } = useAuth();
+  const { user, session } = useSupabaseAuth();
   const { t } = useI18nContext();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -18,6 +19,7 @@ function MagicLinkContent() {
     const handleMagicLink = async () => {
       try {
         const token = searchParams.get('token');
+        const type = searchParams.get('type');
         
         if (!token) {
           setError('无效的登录链接');
@@ -25,59 +27,34 @@ function MagicLinkContent() {
           return;
         }
 
-        // 验证Magic Link令牌
-        const response = await fetch('/api/verify-magic-link', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ token })
+        // 使用Supabase原生认证处理魔法链接
+        const { data, error } = await supabase.auth.verifyOtp({
+          token_hash: token,
+          type: type as any || 'magiclink'
         });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          setError(errorData.error || '登录链接验证失败');
+        if (error) {
+          console.error('Magic link verification error:', error);
+          setError(error.message || '登录链接验证失败');
           setLoading(false);
           return;
         }
 
-        const result = await response.json();
-        if (!result.success) {
-          setError(result.error || '登录链接无效或已过期');
+        if (data.user && data.session) {
+          setSuccess('登录成功！正在跳转...');
+          
+          // 跳转到仪表板
+          setTimeout(() => {
+            router.push('/dashboard');
+          }, 2000);
+        } else {
+          setError('登录失败，请重试');
           setLoading(false);
-          return;
         }
-
-        // 登录成功，创建用户会话
-        const user = {
-          id: result.user.id,
-          email: result.user.email,
-          email_verified: true,
-          created_at: result.user.created_at,
-          updated_at: result.user.updated_at
-        };
-
-        const session = {
-          user,
-          token: result.session_token,
-          expires_at: result.expires_at
-        };
-
-        // 存储到localStorage
-        localStorage.setItem('66do_user', JSON.stringify(user));
-        localStorage.setItem('66do_session', JSON.stringify(session));
-
-        setSuccess('登录成功！正在跳转...');
-        
-        // 跳转到仪表板
-        setTimeout(() => {
-          router.push('/dashboard');
-        }, 2000);
 
       } catch (error) {
         console.error('Magic link verification error:', error);
         setError('登录失败，请重试');
-      } finally {
         setLoading(false);
       }
     };

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../src/contexts/AuthContext';
+import { useSupabaseAuth } from '../../src/contexts/SupabaseAuthContext';
 import { useI18nContext } from '../../src/contexts/I18nProvider';
 import DomainList from '../../src/components/domain/DomainList';
 import DomainForm from '../../src/components/domain/DomainForm';
@@ -193,7 +193,7 @@ export default function DashboardPage() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showSaleSuccessModal, setShowSaleSuccessModal] = useState(false);
   const [saleSuccessData, setSaleSuccessData] = useState<{domain: Domain, transaction: Transaction} | null>(null);
-  const { user, signOut } = useAuth();
+  const { user, signOut } = useSupabaseAuth();
   const { t, locale, setLocale } = useI18nContext();
   const router = useRouter();
 
