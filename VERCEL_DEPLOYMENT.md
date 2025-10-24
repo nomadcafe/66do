@@ -18,19 +18,21 @@
 - **Output Directory**: `.next` (默认)
 
 ### 4. 环境变量配置
-在Vercel Dashboard中设置以下环境变量：
+**重要**: 在Vercel Dashboard的 "Settings" → "Environment Variables" 中设置，不要使用vercel.json
 
 #### 必需的环境变量：
 ```
-NEXT_PUBLIC_APP_NAME=66Do
-NEXT_PUBLIC_APP_URL=https://66do.com
+NEXT_PUBLIC_APP_NAME = 66Do
+NEXT_PUBLIC_APP_URL = https://66do.com
+NEXT_PUBLIC_SUPABASE_URL = https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY = your-supabase-anon-key
 ```
 
-#### 数据库配置（可选）：
-```
-DATABASE_URL=your_database_url
-RESEND_API_KEY=your_resend_api_key
-```
+#### 设置步骤：
+1. 进入项目设置 → Environment Variables
+2. 点击 "Add New"
+3. 逐个添加上述环境变量
+4. 选择环境：Production, Preview, Development
 
 ### 5. 部署
 - 点击 "Deploy" 开始部署

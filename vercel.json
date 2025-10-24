@@ -11,9 +11,7 @@
   },
   "env": {
     "NEXT_PUBLIC_APP_NAME": "66Do",
-    "NEXT_PUBLIC_APP_URL": "https://66do.com",
-    "NEXT_PUBLIC_SUPABASE_URL": "@next_public_supabase_url",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@next_public_supabase_anon_key"
+    "NEXT_PUBLIC_APP_URL": "https://66do.com"
   },
   "build": {
     "env": {
