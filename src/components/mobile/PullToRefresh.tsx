@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { RefreshCw } from 'lucide-react';
-import { useLanguage } from '../../contexts/LanguageContext';
+// 移除翻译依赖，使用固定文本
 
 interface PullToRefreshProps {
   children: React.ReactNode;
@@ -23,7 +23,7 @@ export default function PullToRefresh({
   const [startY, setStartY] = useState(0);
   const [canPull, setCanPull] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { t } = useLanguage();
+  // 移除翻译依赖
 
   useEffect(() => {
     const container = containerRef.current;
@@ -105,7 +105,7 @@ export default function PullToRefresh({
           style={{ transform: `rotate(${refreshIconRotation}deg)` }}
         />
         <span className="text-xs text-gray-600 mt-1">
-          {isRefreshing ? t('mobile.pullToRefresh') : t('mobile.pullToRefresh')}
+          {isRefreshing ? '刷新中...' : '下拉刷新'}
         </span>
       </div>
 

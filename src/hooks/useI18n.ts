@@ -15,6 +15,11 @@ const translations: Record<Locale, Translations> = {
       name: '66Do',
       subtitle: '域名投资平台'
     },
+    nav: {
+      signIn: '登录',
+      signUp: '注册',
+      goToDashboard: '进入仪表板',
+    },
     navigation: {
       signIn: '登录',
       signUp: '注册',
@@ -340,6 +345,11 @@ const translations: Record<Locale, Translations> = {
     platform: {
       name: '66Do',
       subtitle: 'Domain Investment Platform'
+    },
+    nav: {
+      signIn: 'Sign In',
+      signUp: 'Sign Up',
+      goToDashboard: 'Go to Dashboard',
     },
     navigation: {
       signIn: 'Sign In',
