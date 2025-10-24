@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect } from 'react';
-import { createSession, validateStoredSession, cleanupExpiredSessions } from '../lib/auth';
+import { validateStoredSession, cleanupExpiredSessions } from '../lib/auth';
 
 interface User {
   id: string;

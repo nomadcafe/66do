@@ -10,7 +10,7 @@ function MagicLinkContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const { user, session } = useSupabaseAuth();
+  const { } = useSupabaseAuth();
   const { t } = useI18nContext();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -19,7 +19,6 @@ function MagicLinkContent() {
     const handleMagicLink = async () => {
       try {
         const token = searchParams.get('token');
-        const type = searchParams.get('type');
         
         if (!token) {
           setError('无效的登录链接');
@@ -30,7 +29,7 @@ function MagicLinkContent() {
         // 使用Supabase原生认证处理魔法链接
         const { data, error } = await supabase.auth.verifyOtp({
           token_hash: token,
-          type: type as any || 'magiclink'
+          type: 'magiclink'
         });
 
         if (error) {

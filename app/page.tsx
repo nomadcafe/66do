@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../src/contexts/AuthContext';
+import { useSupabaseAuth } from '../src/contexts/SupabaseAuthContext';
 import { useI18nContext } from '../src/contexts/I18nProvider';
 import { 
   Globe, 
@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 export default function HomePage() {
-  const { user } = useAuth();
+  const { user } = useSupabaseAuth();
   const { t, locale, setLocale } = useI18nContext();
   const router = useRouter();
 
