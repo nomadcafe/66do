@@ -18,7 +18,12 @@ function MagicLinkContent() {
   useEffect(() => {
     const handleMagicLink = async () => {
       try {
+        // 检查URL参数
         const token = searchParams.get('token');
+        const type = searchParams.get('type');
+        const email = searchParams.get('email');
+        
+        console.log('Magic link params:', { token, type, email });
         
         if (!token) {
           setError('无效的登录链接');
@@ -26,7 +31,7 @@ function MagicLinkContent() {
           return;
         }
 
-        // 使用Supabase原生认证处理魔法链接
+        // Supabase魔法链接验证
         const { data, error } = await supabase.auth.verifyOtp({
           token_hash: token,
           type: 'magiclink'
@@ -34,12 +39,14 @@ function MagicLinkContent() {
 
         if (error) {
           console.error('Magic link verification error:', error);
+          console.error('Error details:', error);
           setError(error.message || '登录链接验证失败');
           setLoading(false);
           return;
         }
 
         if (data.user && data.session) {
+          console.log('Magic link verification successful:', data);
           setSuccess('登录成功！正在跳转到您的仪表板...');
           
           // 跳转到仪表板
@@ -47,6 +54,7 @@ function MagicLinkContent() {
             router.push('/dashboard');
           }, 2000);
         } else {
+          console.log('No user or session in response:', data);
           setError('登录失败，请重试');
           setLoading(false);
         }
