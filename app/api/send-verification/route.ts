@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     // 设置过期时间（10分钟）
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
 
-    // 首先查找或创建用户
+    // 首先查找用户，如果不存在则跳过用户创建，直接保存验证码
     let userId = null
     try {
       const { data: existingUser } = await supabase
@@ -38,45 +38,23 @@ export async function POST(request: NextRequest) {
       
       if (existingUser) {
         userId = existingUser.id
+        console.log('Found existing user:', userId)
       } else {
-        // 如果用户不存在，创建一个临时用户记录
-        const { data: newUser, error: userError } = await supabase
-          .from('users')
-          .insert({
-            email: email,
-            password_hash: 'temp', // 临时密码，验证后会被更新
-            email_verified: false
-          })
-          .select('id')
-          .single()
-        
-        if (userError) {
-          console.error('Error creating temporary user:', userError)
-          return NextResponse.json({ 
-            error: 'Failed to create user record',
-            details: userError.message
-          }, { 
-            status: 500,
-            headers: corsHeaders
-          })
-        }
-        userId = newUser.id
+        // 如果用户不存在，使用email作为临时标识符
+        // 等用户完成注册后再关联到正式用户记录
+        console.log('User not found, using email as temporary identifier')
+        userId = email // 临时使用email，稍后会在注册时更新
       }
     } catch (userError) {
       console.error('Error handling user:', userError)
-      return NextResponse.json({ 
-        error: 'Failed to process user',
-        details: 'User lookup/creation failed'
-      }, { 
-        status: 500,
-        headers: corsHeaders
-      })
+      // 继续执行，使用email作为临时标识符
+      userId = email
     }
 
     // 保存验证令牌到数据库
     const tokenData = {
       id: crypto.randomUUID(), // 生成唯一ID
-      user_id: userId, // 使用实际的用户ID
+      user_id: userId, // 使用用户ID或email
       token: verificationCode,
       expires_at: expiresAt
     }
