@@ -119,7 +119,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(createError || '用户创建失败');
       }
 
-      // 创建会话
+      setLoading(false);
+      
+      // 如果需要邮箱验证，不创建会话，直接跳转验证页面
+      if (requiresVerification) {
+        return { error: null, requiresVerification: true };
+      }
+
+      // 只有在邮箱验证通过后才创建会话
       const session = createSession(newUser);
       
       // 存储到localStorage
@@ -128,12 +135,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       setUser(newUser);
       setSession(session);
-      setLoading(false);
-      
-      // 如果需要邮箱验证，重定向到验证页面
-      if (requiresVerification) {
-        return { error: null, requiresVerification: true };
-      }
       
       return { error: null };
     } catch (error: unknown) {

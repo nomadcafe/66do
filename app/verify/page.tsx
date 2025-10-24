@@ -125,8 +125,7 @@ export default function VerifyPage() {
       const result = await response.json();
       if (result.success) {
         setSuccess('验证码已重新发送');
-        // 显示验证码用于测试（生产环境应该移除）
-        console.log('New verification code:', result.verificationCode);
+        // 生产环境不应在控制台显示验证码
       } else {
         throw new Error(result.error || '发送失败');
       }

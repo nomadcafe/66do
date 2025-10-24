@@ -47,8 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 发送邮件（这里需要配置邮件服务）
-    // 暂时返回验证码用于测试
-    console.log(`Verification code for ${email}: ${verificationCode}`)
+    // 生产环境不应记录验证码到日志
     
     return NextResponse.json({ 
       success: true, 
