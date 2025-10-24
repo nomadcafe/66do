@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect } from 'react';
-import { validateUser, createUser, createSession, validateStoredSession, cleanupExpiredSessions } from '../lib/auth';
+import { createSession, validateStoredSession, cleanupExpiredSessions } from '../lib/auth';
 
 interface User {
   id: string;
@@ -20,9 +20,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
-  completeRegistration: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInWithMagicLink: (email: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -81,93 +79,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkExistingSession();
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signInWithMagicLink = async (email: string) => {
     setLoading(true);
     try {
-      // 验证用户凭据
-      const user = await validateUser(email, password);
-      
-      if (!user) {
-        throw new Error('邮箱或密码错误');
+      // 发送Magic Link邮件
+      const response = await fetch('/api/send-magic-link', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '发送登录链接失败');
       }
 
-      // 创建会话
-      const session = createSession(user);
-      
-      // 存储到localStorage
-      localStorage.setItem('66do_user', JSON.stringify(user));
-      localStorage.setItem('66do_session', JSON.stringify(session));
-      
-      setUser(user);
-      setSession(session);
       setLoading(false);
-      
       return { error: null };
     } catch (error: unknown) {
       setLoading(false);
-      return { error: error instanceof Error ? error : new Error('登录失败') };
+      return { error: error instanceof Error ? error : new Error('发送登录链接失败') };
     }
   };
 
-  const signUp = async (email: string, password: string) => {
-    setLoading(true);
-    try {
-      // 使用真实的用户创建功能
-      const { user: newUser, error: createError, requiresVerification } = await createUser(email, password);
-      
-      if (createError || !newUser) {
-        throw new Error(createError || '用户创建失败');
-      }
-
-      setLoading(false);
-      
-      // 如果需要邮箱验证，不创建会话，直接跳转验证页面
-      if (requiresVerification) {
-        return { error: null, requiresVerification: true };
-      }
-
-      // 只有在邮箱验证通过后才创建会话
-      const session = createSession(newUser);
-      
-      // 存储到localStorage
-      localStorage.setItem('66do_user', JSON.stringify(newUser));
-      localStorage.setItem('66do_session', JSON.stringify(session));
-      
-      setUser(newUser);
-      setSession(session);
-      
-      return { error: null };
-    } catch (error: unknown) {
-      setLoading(false);
-      return { error: error instanceof Error ? error : new Error('注册失败') };
-    }
-  };
-
-  const completeRegistration = async (email: string, password: string) => {
-    setLoading(true);
-    try {
-      // 完成注册（实际应用中应该验证邮箱）
-      const user = await validateUser(email, password);
-      
-      if (!user) {
-        throw new Error('用户验证失败');
-      }
-
-      const session = createSession(user);
-      
-      localStorage.setItem('66do_user', JSON.stringify(user));
-      localStorage.setItem('66do_session', JSON.stringify(session));
-      
-      setUser(user);
-      setSession(session);
-      setLoading(false);
-      
-      return { error: null };
-    } catch (error: unknown) {
-      setLoading(false);
-      return { error: error instanceof Error ? error : new Error('注册完成失败') };
-    }
-  };
 
   const signOut = async () => {
     setLoading(true);
@@ -189,9 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     session,
     loading,
-    signIn,
-    signUp,
-    completeRegistration,
+    signInWithMagicLink,
     signOut,
   };
 

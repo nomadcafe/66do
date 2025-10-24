@@ -1,0 +1,146 @@
+'use client';
+
+import { useEffect, useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '../../../src/contexts/AuthContext';
+import { useI18nContext } from '../../../src/contexts/I18nProvider';
+
+function MagicLinkContent() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const { } = useAuth();
+  const { t } = useI18nContext();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const handleMagicLink = async () => {
+      try {
+        const token = searchParams.get('token');
+        
+        if (!token) {
+          setError('无效的登录链接');
+          setLoading(false);
+          return;
+        }
+
+        // 验证Magic Link令牌
+        const response = await fetch('/api/verify-magic-link', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          setError(errorData.error || '登录链接验证失败');
+          setLoading(false);
+          return;
+        }
+
+        const result = await response.json();
+        if (!result.success) {
+          setError(result.error || '登录链接无效或已过期');
+          setLoading(false);
+          return;
+        }
+
+        // 登录成功，创建用户会话
+        const user = {
+          id: result.user.id,
+          email: result.user.email,
+          email_verified: true,
+          created_at: result.user.created_at,
+          updated_at: result.user.updated_at
+        };
+
+        const session = {
+          user,
+          token: result.session_token,
+          expires_at: result.expires_at
+        };
+
+        // 存储到localStorage
+        localStorage.setItem('66do_user', JSON.stringify(user));
+        localStorage.setItem('66do_session', JSON.stringify(session));
+
+        setSuccess('登录成功！正在跳转...');
+        
+        // 跳转到仪表板
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 2000);
+
+      } catch (error) {
+        console.error('Magic link verification error:', error);
+        setError('登录失败，请重试');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    handleMagicLink();
+  }, [searchParams, router]);
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-900">{t('platform.name')}</h1>
+          <p className="mt-2 text-gray-600">{t('platform.subtitle')}</p>
+        </div>
+      </div>
+
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          {loading && (
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600">正在验证登录链接...</p>
+            </div>
+          )}
+
+          {error && (
+            <div className="text-center">
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md mb-4">
+                {error}
+              </div>
+              <button
+                onClick={() => router.push('/login')}
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                返回登录页面
+              </button>
+            </div>
+          )}
+
+          {success && (
+            <div className="text-center">
+              <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-md mb-4">
+                {success}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function MagicLinkPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">加载中...</p>
+        </div>
+      </div>
+    }>
+      <MagicLinkContent />
+    </Suspense>
+  );
+}
