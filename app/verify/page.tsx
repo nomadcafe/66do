@@ -16,21 +16,23 @@ export default function VerifyPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Get email from verification data
-    const verificationData = localStorage.getItem('66do_verification');
-    if (verificationData) {
-      const data = JSON.parse(verificationData);
-      setEmail(data.email);
-      
-      // 保持用户选择的语言
-      if (data.language) {
-        setLocale(data.language);
-      }
+    // 从URL参数或sessionStorage获取邮箱
+    const urlParams = new URLSearchParams(window.location.search);
+    const emailParam = urlParams.get('email');
+    
+    if (emailParam) {
+      setEmail(emailParam);
     } else {
-      // No verification data, redirect to register
-      router.push('/register');
+      // 尝试从sessionStorage获取
+      const storedEmail = sessionStorage.getItem('66do_verification_email');
+      if (storedEmail) {
+        setEmail(storedEmail);
+      } else {
+        // No verification data, redirect to register
+        router.push('/register');
+      }
     }
-  }, [router, setLocale]);
+  }, [router]);
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();

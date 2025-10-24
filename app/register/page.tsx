@@ -41,7 +41,8 @@ export default function RegisterPage() {
     if (result.error) {
       setError(result.error.message);
     } else if ((result as { requiresVerification?: boolean }).requiresVerification) {
-      // 需要验证码，跳转到验证页面
+      // 需要验证码，保存邮箱到sessionStorage并跳转到验证页面
+      sessionStorage.setItem('66do_verification_email', email);
       router.push('/verify');
     } else {
       setSuccess(true);

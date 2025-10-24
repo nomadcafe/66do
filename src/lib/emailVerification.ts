@@ -65,25 +65,29 @@ export async function sendVerificationEmail(email: string, userId: string): Prom
 // 验证邮箱令牌
 export async function verifyEmailToken(token: string, email: string): Promise<{ success: boolean; error?: string }> {
   try {
-    // 从localStorage获取验证令牌
-    const tokens = JSON.parse(localStorage.getItem('66do_verification_tokens') || '[]');
-    const verificationToken = tokens.find((t: VerificationToken) => 
-      t.token === token && t.email === email
-    );
+    // 调用API验证令牌
+    const response = await fetch('/api/verify-token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        token: token
+      })
+    });
 
-    if (!verificationToken) {
-      return { success: false, error: 'Invalid verification token' };
+    if (!response.ok) {
+      const errorData = await response.json();
+      return { success: false, error: errorData.error || 'Token verification failed' };
     }
 
-    // 检查令牌是否过期
-    const now = new Date();
-    const expiresAt = new Date(verificationToken.expires_at);
-    if (now > expiresAt) {
-      return { success: false, error: 'Verification token has expired' };
+    const result = await response.json();
+    if (!result.success) {
+      return { success: false, error: result.error || 'Invalid token' };
     }
 
     // 更新用户邮箱验证状态 - 调用D1数据库API
-    const response = await fetch('/api/users', {
+    const updateResponse = await fetch('/api/users', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -91,17 +95,13 @@ export async function verifyEmailToken(token: string, email: string): Promise<{ 
       body: JSON.stringify({
         action: 'updateUserEmailVerification',
         email: email,
-        email_verified: true
+        user: { email_verified: true }
       })
     });
 
-    if (!response.ok) {
+    if (!updateResponse.ok) {
       throw new Error('Failed to update email verification status');
     }
-
-    // 删除已使用的令牌
-    const updatedTokens = tokens.filter((t: VerificationToken) => t.token !== token);
-    localStorage.setItem('66do_verification_tokens', JSON.stringify(updatedTokens));
 
     // 记录审计日志
     auditLogger.log('unknown', 'email_verified', 'auth', { email });
