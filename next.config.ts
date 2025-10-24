@@ -1,17 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Cloudflare Pages with Functions support
-  trailingSlash: true,
+  // Vercel optimized configuration
+  trailingSlash: false,
   images: {
-    unoptimized: true,
+    unoptimized: false, // Enable Vercel image optimization
   },
   
-  // Output directory for Cloudflare Pages
-  distDir: 'dist',
-  
-  // Cloudflare Pages with Functions support (no static export)
-  // output: 'export', // Disabled to support API routes
+  // Remove distDir for Vercel (uses .next by default)
+  // distDir: 'dist', // Not needed for Vercel
   
   // Optimize for production
   compress: true,
@@ -21,85 +18,24 @@ const nextConfig: NextConfig = {
   //   optimizeCss: true, // Requires critters package
   // },
   
-  // Webpack optimization
+  // Vercel optimized webpack configuration
   webpack: (config: any, { isServer }: any) => {
+    // Vercel handles optimization automatically, minimal custom config
     if (!isServer) {
-      // Optimize client bundle
+      // Basic client optimization
       config.optimization.splitChunks = {
         chunks: 'all',
-        maxSize: 200000, // 200KB per chunk
         cacheGroups: {
           default: {
             minChunks: 2,
             priority: -20,
             reuseExistingChunk: true,
-            maxSize: 200000,
           },
           vendor: {
             test: /[\\/]node_modules[\\/]/,
             name: 'vendors',
             priority: -10,
             chunks: 'all',
-            maxSize: 200000,
-          },
-          common: {
-            name: 'common',
-            minChunks: 2,
-            priority: -5,
-            reuseExistingChunk: true,
-            maxSize: 200000,
-          },
-        },
-      };
-    }
-    
-    // Exclude large packages from server bundle
-    if (isServer) {
-      config.externals = config.externals || [];
-      config.externals.push({
-        'sharp': 'commonjs sharp',
-        'canvas': 'commonjs canvas',
-        'recharts': 'commonjs recharts',
-        'lucide-react': 'commonjs lucide-react',
-        'crypto-js': 'commonjs crypto-js',
-        'date-fns': 'commonjs date-fns',
-      });
-      
-      // Optimize server bundle - extremely aggressive splitting
-      config.optimization = {
-        ...config.optimization,
-        splitChunks: {
-          chunks: 'all',
-          maxSize: 10000, // 10KB per chunk
-          minSize: 1000, // 1KB minimum
-          cacheGroups: {
-            server: {
-              test: /[\\/]node_modules[\\/]/,
-              name: 'server-vendor',
-              chunks: 'all',
-              maxSize: 10000,
-              minSize: 1000,
-            },
-            serverCommon: {
-              name: 'server-common',
-              chunks: 'all',
-              maxSize: 10000,
-              minSize: 1000,
-            },
-            serverUtils: {
-              test: /[\\/]src[\\/]lib[\\/]/,
-              name: 'server-utils',
-              chunks: 'all',
-              maxSize: 10000,
-              minSize: 1000,
-            },
-            serverComponents: {
-              test: /[\\/]src[\\/]components[\\/]/,
-              name: 'server-components',
-              chunks: 'all',
-              maxSize: 10000,
-              minSize: 1000,
-            },
           },
         },
       };
