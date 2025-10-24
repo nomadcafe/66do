@@ -10,8 +10,8 @@ const nextConfig: NextConfig = {
   // Output directory for Cloudflare Pages
   distDir: 'dist',
   
-  // Static export for Cloudflare Pages
-  output: 'export',
+  // Cloudflare Pages with Functions support (no static export)
+  // output: 'export', // Disabled to support API routes
   
   // Optimize for production
   compress: true,
@@ -65,26 +65,40 @@ const nextConfig: NextConfig = {
         'date-fns': 'commonjs date-fns',
       });
       
-      // Optimize server bundle - more aggressive splitting
+      // Optimize server bundle - extremely aggressive splitting
       config.optimization = {
         ...config.optimization,
         splitChunks: {
           chunks: 'all',
-          maxSize: 50000, // 50KB per chunk
-          minSize: 10000, // 10KB minimum
+          maxSize: 10000, // 10KB per chunk
+          minSize: 1000, // 1KB minimum
           cacheGroups: {
             server: {
               test: /[\\/]node_modules[\\/]/,
               name: 'server-vendor',
               chunks: 'all',
-              maxSize: 50000,
-              minSize: 10000,
+              maxSize: 10000,
+              minSize: 1000,
             },
             serverCommon: {
               name: 'server-common',
               chunks: 'all',
-              maxSize: 50000,
-              minSize: 10000,
+              maxSize: 10000,
+              minSize: 1000,
+            },
+            serverUtils: {
+              test: /[\\/]src[\\/]lib[\\/]/,
+              name: 'server-utils',
+              chunks: 'all',
+              maxSize: 10000,
+              minSize: 1000,
+            },
+            serverComponents: {
+              test: /[\\/]src[\\/]components[\\/]/,
+              name: 'server-components',
+              chunks: 'all',
+              maxSize: 10000,
+              minSize: 1000,
             },
           },
         },
