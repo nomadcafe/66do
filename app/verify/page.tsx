@@ -46,41 +46,46 @@ export default function VerifyPage() {
     }
 
     try {
-      const verificationData = localStorage.getItem('66do_verification');
-      if (!verificationData) {
-        setError('验证数据不存在，请重新注册');
+      if (!email) {
+        setError('邮箱地址不存在，请重新注册');
         setLoading(false);
         return;
       }
 
-      const data = JSON.parse(verificationData);
-      
-      // Check if code is correct
-      if (data.code !== verificationCode) {
-        setError('验证码错误，请重新输入');
+      // 调用API验证验证码
+      const response = await fetch('/api/verify-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token: verificationCode
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        setError(errorData.error || '验证失败');
         setLoading(false);
         return;
       }
 
-      // Check if code is expired (10 minutes)
-      const now = Date.now();
-      const codeAge = now - data.timestamp;
-      if (codeAge > 10 * 60 * 1000) { // 10 minutes
-        setError('验证码已过期，请重新注册');
-        localStorage.removeItem('66do_verification');
+      const result = await response.json();
+      if (!result.success) {
+        setError(result.error || '验证码错误');
         setLoading(false);
         return;
       }
 
-      // Complete registration
-      const { error } = await completeRegistration(data.email, data.password);
+      // 完成注册
+      const { error } = await completeRegistration(email);
       
       if (error) {
         setError(error.message);
       } else {
-        // Clear verification data
-        localStorage.removeItem('66do_verification');
-        // Redirect to dashboard
+        // 清理sessionStorage
+        sessionStorage.removeItem('66do_verification_email');
+        // 跳转到仪表板
         router.push('/dashboard');
       }
       
