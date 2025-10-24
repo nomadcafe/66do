@@ -41,14 +41,14 @@ export default function VerifyPage() {
     setError('');
 
     if (verificationCode.length !== 6) {
-      setError('请输入6位验证码');
+      setError(t('auth.verify.invalidCode'));
       setLoading(false);
       return;
     }
 
     try {
       if (!email) {
-        setError('邮箱地址不存在，请重新注册');
+        setError(t('auth.verify.emailNotFound'));
         setLoading(false);
         return;
       }
@@ -66,14 +66,14 @@ export default function VerifyPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        setError(errorData.error || '验证失败');
+        setError(errorData.error || t('auth.verify.verificationFailed'));
         setLoading(false);
         return;
       }
 
       const result = await response.json();
       if (!result.success) {
-        setError(result.error || '验证码错误');
+        setError(result.error || t('auth.verify.wrongCode'));
         setLoading(false);
         return;
       }
@@ -143,11 +143,11 @@ export default function VerifyPage() {
         // setSuccess('验证码已重新发送');
         // 生产环境不应在控制台显示验证码
       } else {
-        throw new Error(result.error || '发送失败');
+        throw new Error(result.error || t('auth.verify.sendFailed'));
       }
       
     } catch {
-      setError('重新发送失败，请重试');
+      setError(t('auth.verify.resendFailed'));
     } finally {
       setLoading(false);
     }
@@ -171,10 +171,10 @@ export default function VerifyPage() {
           </select>
         </div>
         <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-          邮箱验证
+          {t('auth.verify.title')}
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          我们已向 <span className="font-medium text-blue-600">{email}</span> 发送了验证码
+          {t('auth.verify.subtitle').replace('{email}', email)}
         </p>
       </div>
 
@@ -189,7 +189,7 @@ export default function VerifyPage() {
 
             <div>
               <label htmlFor="verificationCode" className="block text-sm font-medium text-gray-700">
-                验证码
+                {t('auth.verify.code')}
               </label>
               <div className="mt-1 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -208,7 +208,7 @@ export default function VerifyPage() {
                 />
               </div>
               <p className="mt-2 text-sm text-gray-500">
-                请输入6位数字验证码
+                {t('auth.verify.codeHint')}
               </p>
             </div>
 
@@ -218,7 +218,7 @@ export default function VerifyPage() {
                 disabled={loading || verificationCode.length !== 6}
                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? '验证中...' : '验证邮箱'}
+                {loading ? t('auth.verify.verifying') : t('auth.verify.submit')}
               </button>
             </div>
 
@@ -229,7 +229,7 @@ export default function VerifyPage() {
                 disabled={loading}
                 className="text-sm text-blue-600 hover:text-blue-500 disabled:opacity-50"
               >
-                没有收到验证码？重新发送
+                {t('auth.verify.resend')}
               </button>
             </div>
 
@@ -240,7 +240,7 @@ export default function VerifyPage() {
                 className="text-sm text-gray-600 hover:text-gray-500 flex items-center justify-center"
               >
                 <ArrowLeft className="h-4 w-4 mr-1" />
-                返回注册页面
+                {t('auth.verify.backToRegister')}
               </button>
             </div>
           </form>
