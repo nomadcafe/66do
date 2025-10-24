@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { VerificationTokenService } from '../../../src/lib/supabaseService'
+import { supabase } from '../../../src/lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,10 +27,56 @@ export async function POST(request: NextRequest) {
     // 设置过期时间（10分钟）
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
 
+    // 首先查找或创建用户
+    let userId = null
+    try {
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', email)
+        .single()
+      
+      if (existingUser) {
+        userId = existingUser.id
+      } else {
+        // 如果用户不存在，创建一个临时用户记录
+        const { data: newUser, error: userError } = await supabase
+          .from('users')
+          .insert({
+            email: email,
+            password_hash: 'temp', // 临时密码，验证后会被更新
+            email_verified: false
+          })
+          .select('id')
+          .single()
+        
+        if (userError) {
+          console.error('Error creating temporary user:', userError)
+          return NextResponse.json({ 
+            error: 'Failed to create user record',
+            details: userError.message
+          }, { 
+            status: 500,
+            headers: corsHeaders
+          })
+        }
+        userId = newUser.id
+      }
+    } catch (userError) {
+      console.error('Error handling user:', userError)
+      return NextResponse.json({ 
+        error: 'Failed to process user',
+        details: 'User lookup/creation failed'
+      }, { 
+        status: 500,
+        headers: corsHeaders
+      })
+    }
+
     // 保存验证令牌到数据库
     const tokenData = {
       id: crypto.randomUUID(), // 生成唯一ID
-      user_id: email, // 使用email作为user_id
+      user_id: userId, // 使用实际的用户ID
       token: verificationCode,
       expires_at: expiresAt
     }
