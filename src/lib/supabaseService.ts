@@ -36,11 +36,6 @@ export class UserService {
   }
 
   static async createUser(user: UserInsert): Promise<User | null> {
-    if (!supabase) {
-      console.error('Supabase client not initialized')
-      return null
-    }
-    
     const { data, error } = await supabase
       .from('users')
       .insert(user)
