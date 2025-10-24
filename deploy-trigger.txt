@@ -1,0 +1,6 @@
+# Deployment trigger file
+# This file helps ensure Vercel detects changes
+
+Deployment timestamp: 2025-01-24T12:00:00Z
+Configuration: Minimal vercel.json for Next.js
+Status: Ready for deployment
