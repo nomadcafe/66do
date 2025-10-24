@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
         const userData = await UserService.getUser(email)
         return NextResponse.json({ success: true, user: userData }, { headers: corsHeaders })
       
+      case 'create':
       case 'saveUser':
         const savedUser = await UserService.createUser(user)
         return NextResponse.json({ success: true, user: savedUser }, { headers: corsHeaders })
