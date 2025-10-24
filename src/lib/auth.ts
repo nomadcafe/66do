@@ -123,6 +123,20 @@ export async function validateUser(email: string, password: string): Promise<Use
         // 如果数据库保存失败，使用localStorage作为备用
         return newUser;
       }
+    } else if (!user.password_hash || user.password_hash === '') {
+      // 如果用户存在但没有密码（验证码验证后创建的用户），设置密码
+      console.log('User exists but has no password, setting password');
+      const passwordHash = await hashPassword(password);
+      const updatedUser = { ...user, password_hash: passwordHash };
+      
+      // 更新用户密码
+      const updated = await saveUserToDatabase(updatedUser);
+      if (updated) {
+        user = updatedUser;
+      } else {
+        console.log('Failed to update user password');
+        return null;
+      }
     }
 
     const isValidPassword = await verifyPassword(password, user.password_hash);

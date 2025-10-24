@@ -78,12 +78,42 @@ export default function VerifyPage() {
         return;
       }
 
-      // 验证成功后，用户需要重新登录
-      // 不需要更新用户记录，因为用户还没有正式注册
-      // 验证码验证成功就足够了
+      // 验证成功后，创建用户记录
+      try {
+        // 从sessionStorage获取用户信息
+        const userEmail = sessionStorage.getItem('66do_verification_email');
+        if (userEmail) {
+          // 创建用户记录
+          const createUserResponse = await fetch('/api/users', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'create',
+              user: {
+                id: crypto.randomUUID(),
+                email: userEmail,
+                password_hash: '', // 密码将在登录时设置
+                email_verified: true,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              }
+            })
+          });
+
+          if (createUserResponse.ok) {
+            console.log('User created successfully');
+          } else {
+            console.log('User creation failed, will be created during login');
+          }
+        }
+      } catch (error) {
+        console.log('User creation error:', error);
+        // 继续执行，用户将在登录时创建
+      }
 
       // 验证成功后，用户需要重新登录
-      // setSuccess('邮箱验证成功！请重新登录');
       setTimeout(() => {
         // 清理sessionStorage
         sessionStorage.removeItem('66do_verification_email');
