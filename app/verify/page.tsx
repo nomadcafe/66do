@@ -78,24 +78,9 @@ export default function VerifyPage() {
         return;
       }
 
-      // 更新用户邮箱验证状态
-      const updateResponse = await fetch('/api/users', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'updateUserEmailVerification',
-          email: email,
-          user: { email_verified: true }
-        })
-      });
-
-      if (!updateResponse.ok) {
-        setError('邮箱验证状态更新失败');
-        setLoading(false);
-        return;
-      }
+      // 验证成功后，用户需要重新登录
+      // 不需要更新用户记录，因为用户还没有正式注册
+      // 验证码验证成功就足够了
 
       // 验证成功后，用户需要重新登录
       // setSuccess('邮箱验证成功！请重新登录');
