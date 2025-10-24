@@ -1,0 +1,26 @@
+# Vercel ignore file
+# This file helps trigger new deployments
+
+# Ignore development files
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Ignore cache directories
+.cache/
+cache/
+node_modules/.cache/
+
+# Ignore build artifacts
+dist/
+build/
+.next/cache/
+
+# Ignore logs
+*.log
+logs/
+
+# Ignore temporary files
+*.tmp
+*.temp
