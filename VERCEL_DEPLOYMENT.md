@@ -23,7 +23,7 @@
 #### 必需的环境变量：
 ```
 NEXT_PUBLIC_APP_NAME=66Do
-NEXT_PUBLIC_APP_URL=https://66do.vercel.app
+NEXT_PUBLIC_APP_URL=https://66do.com
 ```
 
 #### 数据库配置（可选）：
