@@ -21,7 +21,19 @@ export async function POST(request: NextRequest) {
     }
 
     // 验证令牌
-    const tokenData = await VerificationTokenService.getToken(token)
+    let tokenData = null
+    try {
+      tokenData = await VerificationTokenService.getToken(token)
+    } catch (error) {
+      console.log('Warning: Supabase connection failed for token verification:', error)
+      // 如果Supabase连接失败，返回错误
+      return NextResponse.json({ 
+        error: 'Database connection failed. Please try again later.' 
+      }, { 
+        status: 500,
+        headers: corsHeaders
+      })
+    }
     
     if (!tokenData) {
       return NextResponse.json({ 
@@ -33,7 +45,12 @@ export async function POST(request: NextRequest) {
     }
 
     // 删除已使用的令牌
-    await VerificationTokenService.deleteToken(token)
+    try {
+      await VerificationTokenService.deleteToken(token)
+    } catch (error) {
+      console.log('Warning: Failed to delete token:', error)
+      // 继续执行，不中断流程
+    }
 
     return NextResponse.json({ 
       success: true, 

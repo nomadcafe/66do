@@ -34,15 +34,16 @@ export async function POST(request: NextRequest) {
       expires_at: expiresAt
     }
 
-    const savedToken = await VerificationTokenService.createToken(tokenData)
-    
-    if (!savedToken) {
-      return NextResponse.json({ 
-        error: 'Failed to save verification token' 
-      }, { 
-        status: 500,
-        headers: corsHeaders
-      })
+    // 尝试保存到Supabase，如果失败则记录错误但继续执行
+    try {
+      const savedToken = await VerificationTokenService.createToken(tokenData)
+      
+      if (!savedToken) {
+        console.log('Warning: Failed to save verification token to database')
+      }
+    } catch (error) {
+      console.log('Warning: Supabase connection failed:', error)
+      // 继续执行，不中断流程
     }
 
     // 发送邮件（这里需要配置邮件服务）
