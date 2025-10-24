@@ -10,6 +10,9 @@ const nextConfig: NextConfig = {
   // Output directory for Cloudflare Pages
   distDir: 'dist',
   
+  // Static export for Cloudflare Pages
+  output: 'export',
+  
   // Optimize for production
   compress: true,
   
@@ -56,14 +59,47 @@ const nextConfig: NextConfig = {
       config.externals.push({
         'sharp': 'commonjs sharp',
         'canvas': 'commonjs canvas',
+        'recharts': 'commonjs recharts',
+        'lucide-react': 'commonjs lucide-react',
+        'crypto-js': 'commonjs crypto-js',
+        'date-fns': 'commonjs date-fns',
       });
+      
+      // Optimize server bundle - more aggressive splitting
+      config.optimization = {
+        ...config.optimization,
+        splitChunks: {
+          chunks: 'all',
+          maxSize: 50000, // 50KB per chunk
+          minSize: 10000, // 10KB minimum
+          cacheGroups: {
+            server: {
+              test: /[\\/]node_modules[\\/]/,
+              name: 'server-vendor',
+              chunks: 'all',
+              maxSize: 50000,
+              minSize: 10000,
+            },
+            serverCommon: {
+              name: 'server-common',
+              chunks: 'all',
+              maxSize: 50000,
+              minSize: 10000,
+            },
+          },
+        },
+      };
     }
     
     return config;
   },
   
-  // External packages for server components
-  serverExternalPackages: ['@supabase/supabase-js'],
+  // External packages for server components (minimal set to avoid conflicts)
+  serverExternalPackages: [
+    '@supabase/supabase-js',
+    'sharp',
+    'canvas'
+  ],
   
   // Environment variables
   env: {
