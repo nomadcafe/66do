@@ -25,7 +25,7 @@ export class UserService {
       .from('users')
       .select('*')
       .eq('email', email)
-      .single()
+      .maybeSingle()
     
     if (error) {
       console.error('Error fetching user:', error)
