@@ -3,6 +3,5 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "installCommand": "npm install",
-  "devCommand": "npm run dev",
-  "version": 3
+  "devCommand": "npm run dev"
 }
