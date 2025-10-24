@@ -96,42 +96,34 @@ export default function VerifyPage() {
     setError('');
 
     try {
-      const verificationData = localStorage.getItem('66do_verification');
-      if (!verificationData) {
-        setError('验证数据不存在');
+      if (!email) {
+        setError('邮箱地址不存在');
         setLoading(false);
         return;
       }
-
-      const data = JSON.parse(verificationData);
       
-      // Generate new verification code
-      const newVerificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-      
-      // Send new verification email
-      const emailResponse = await fetch('/api/send-verification', {
+      // 调用API重新发送验证码
+      const response = await fetch('/api/send-verification', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: data.email,
-          verificationCode: newVerificationCode
+          email: email
         })
       });
-      
-      if (emailResponse.ok) {
-        // Update verification data
-        const updatedData = {
-          ...data,
-          code: newVerificationCode,
-          timestamp: Date.now()
-        };
-        localStorage.setItem('66do_verification', JSON.stringify(updatedData));
-        setError('');
-        alert('验证码已重新发送');
+
+      if (!response.ok) {
+        throw new Error('发送验证码失败');
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        setSuccess('验证码已重新发送');
+        // 显示验证码用于测试（生产环境应该移除）
+        console.log('New verification code:', result.verificationCode);
       } else {
-        setError('重新发送失败，请重试');
+        throw new Error(result.error || '发送失败');
       }
       
     } catch {
