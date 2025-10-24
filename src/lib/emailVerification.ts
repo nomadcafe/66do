@@ -29,10 +29,7 @@ export async function sendVerificationEmail(email: string, userId: string): Prom
       created_at: new Date().toISOString()
     };
 
-    // 保存到localStorage（实际应用中应该存储到数据库）
-    const existingTokens = JSON.parse(localStorage.getItem('66do_verification_tokens') || '[]');
-    existingTokens.push(verificationData);
-    localStorage.setItem('66do_verification_tokens', JSON.stringify(existingTokens));
+    // 验证令牌将通过API保存到数据库，这里不需要localStorage
 
     // 调用邮件服务发送验证邮件
     const response = await fetch('/api/send-verification', {
