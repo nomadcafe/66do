@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { VerificationTokenService } from '../../../src/lib/supabaseService'
-import { supabase } from '../../../src/lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,31 +26,10 @@ export async function POST(request: NextRequest) {
     // 设置过期时间（10分钟）
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
 
-    // 首先查找用户，如果不存在则使用email作为临时标识符
-    let userId = null
-    try {
-      const { data: existingUser, error: userError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', email)
-        .maybeSingle() // 使用maybeSingle()避免单行错误
-      
-      if (userError) {
-        console.log('Error fetching user:', userError)
-        userId = email
-      } else if (existingUser) {
-        userId = existingUser.id
-        console.log('Found existing user:', userId)
-      } else {
-        // 如果用户不存在，使用email作为临时标识符
-        console.log('User not found, using email as temporary identifier')
-        userId = email
-      }
-    } catch (userError) {
-      console.error('Error handling user:', userError)
-      // 继续执行，使用email作为临时标识符
-      userId = email
-    }
+    // 直接使用email作为用户标识符，不查询数据库
+    // 避免RLS策略问题和用户不存在的问题
+    const userId = email
+    console.log('Using email as user identifier:', email)
 
     // 保存验证令牌到数据库
     const tokenData = {
