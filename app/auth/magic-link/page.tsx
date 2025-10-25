@@ -34,12 +34,14 @@ function MagicLinkContent() {
           return;
         }
 
-        // 检查URL参数（Supabase Magic Link通常包含access_token和refresh_token）
+        // 检查URL参数（Supabase Magic Link可能包含不同的参数）
         const accessToken = searchParams.get('access_token');
         const refreshToken = searchParams.get('refresh_token');
         const tokenType = searchParams.get('token_type');
+        const token = searchParams.get('token');
+        const type = searchParams.get('type');
         
-        console.log('Magic link params:', { accessToken, refreshToken, tokenType });
+        console.log('Magic link params:', { accessToken, refreshToken, tokenType, token, type });
         console.log('Current URL:', window.location.href);
         console.log('All search params:', Object.fromEntries(searchParams.entries()));
         
@@ -67,6 +69,33 @@ function MagicLinkContent() {
             }, 2000);
           } else {
             console.log('No user or session after setting session');
+            setError('登录失败，请重试');
+            setLoading(false);
+          }
+        } else if (token && type) {
+          // 尝试使用OTP验证
+          const { data, error } = await supabase.auth.verifyOtp({
+            token_hash: token,
+            type: type as 'email'
+          });
+
+          console.log('OTP verification result:', { data, error });
+
+          if (error) {
+            console.error('OTP verification error:', error);
+            setError('登录失败：' + error.message);
+            setLoading(false);
+            return;
+          }
+
+          if (data.user && data.session) {
+            console.log('OTP authentication successful:', data);
+            setSuccess('登录成功！正在跳转到您的仪表板...');
+            setTimeout(() => {
+              router.push('/dashboard');
+            }, 2000);
+          } else {
+            console.log('No user or session after OTP verification');
             setError('登录失败，请重试');
             setLoading(false);
           }
