@@ -35,9 +35,11 @@ import { auditLogger } from '../../src/lib/security';
 import LoadingSpinner from '../../src/components/ui/LoadingSpinner';
 import ErrorMessage from '../../src/components/ui/ErrorMessage';
 import { 
-  loadDomainsFromD1, 
-  loadTransactionsFromD1
-} from '../../src/lib/dataService';
+  loadDomainsFromSupabase, 
+  loadTransactionsFromSupabase,
+  Domain,
+  Transaction
+} from '../../src/lib/supabaseService';
 import { 
   Globe, 
   Plus, 
@@ -66,43 +68,7 @@ import {
   Target
 } from 'lucide-react';
 
-interface Domain {
-  id: string;
-  domain_name: string;
-  registrar: string;
-  purchase_date: string;
-  purchase_cost: number;
-  renewal_cost: number;
-  renewal_cycle: number; // 续费周期（年数）：1, 2, 3等
-  renewal_count: number; // 已续费次数
-  next_renewal_date?: string;
-  expiry_date?: string; // 改为可选字段
-  status: 'active' | 'for_sale' | 'sold' | 'expired';
-  estimated_value: number;
-  sale_date?: string; // 出售日期
-  sale_price?: number; // 出售价格
-  platform_fee?: number; // 平台手续费
-  tags: string[];
-}
-
-interface Transaction {
-  id: string;
-  domain_id: string;
-  type: 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising';
-  amount: number;
-  currency: string;
-  exchange_rate?: number; // 汇率
-  base_amount?: number; // 基础货币金额
-  platform_fee?: number; // 平台手续费
-  platform_fee_percentage?: number; // 手续费百分比
-  net_amount?: number; // 净收入
-  date: string;
-  notes: string;
-  platform?: string;
-  category?: string; // 交易分类
-  tax_deductible?: boolean; // 是否可抵税
-  receipt_url?: string; // 收据链接
-}
+// Domain and Transaction types are now imported from supabaseService
 
 interface DomainStats {
   totalDomains: number;
@@ -154,7 +120,7 @@ export default function DashboardPage() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dataSource, setDataSource] = useState<'d1' | 'cache'>('cache');
+  const [dataSource, setDataSource] = useState<'supabase' | 'cache'>('cache');
   const [activeTab, setActiveTab] = useState<'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'marketplace' | 'settings' | 'data' | 'reports'>('overview');
   
   // 计算续费分析 - 使用缓存优化性能
@@ -227,28 +193,28 @@ export default function DashboardPage() {
           return;
         }
 
-        // Load from D1 database
-        console.log('Loading data from D1 database...');
+        // Load from Supabase database
+        console.log('Loading data from Supabase database...');
         
-        const domainsResult = await loadDomainsFromD1(userId);
-        const transactionsResult = await loadTransactionsFromD1(userId);
+        const domainsResult = await loadDomainsFromSupabase(userId);
+        const transactionsResult = await loadTransactionsFromSupabase(userId);
         
         if (domainsResult.success && transactionsResult.success) {
-          setDomains(domainsResult.data);
-          setTransactions(transactionsResult.data);
-          setDataSource('d1');
+          setDomains(domainsResult.data || []);
+          setTransactions(transactionsResult.data || []);
+          setDataSource('supabase');
           
           // Cache the data
-          domainCache.cacheDomains(userId, domainsResult.data);
-          domainCache.cacheTransactions(userId, transactionsResult.data);
+          domainCache.cacheDomains(userId, domainsResult.data || []);
+          domainCache.cacheTransactions(userId, transactionsResult.data || []);
           
-          console.log('Data loaded from D1 database successfully');
+          console.log('Data loaded from Supabase database successfully');
         } else {
-          throw new Error('Failed to load data from D1 database');
+          throw new Error('Failed to load data from Supabase database');
         }
         
       } catch (error) {
-        console.error('Error loading data from D1:', error);
+        console.error('Error loading data from Supabase:', error);
         setError('Failed to load data from database. Please try again.');
         auditLogger.log(user?.id || 'default', 'data_load_failed', 'dashboard', { 
           error: error instanceof Error ? error.message : 'Unknown error' 
@@ -275,7 +241,7 @@ export default function DashboardPage() {
     if (!user?.id) return;
     
     try {
-      console.log('Saving data to D1 database...');
+      console.log('Saving data to Supabase database...');
       
       // Save domains to D1
       for (const domain of newDomains) {
@@ -366,9 +332,9 @@ export default function DashboardPage() {
       domainCache.cacheDomains(user.id, newDomains);
       domainCache.cacheTransactions(user.id, newTransactions);
       
-      console.log('Data saved to D1 database successfully');
+      console.log('Data saved to Supabase database successfully');
     } catch (error) {
-      console.error('Error saving data to D1:', error);
+      console.error('Error saving data to Supabase:', error);
       setError('Failed to save data to database. Please try again.');
     }
   };
@@ -1684,7 +1650,7 @@ export default function DashboardPage() {
       {/* Data Source Indicator */}
       {dataSource && (
         <div className="fixed bottom-4 right-4 bg-gray-800 text-white px-3 py-2 rounded-lg text-sm">
-          数据源: {dataSource === 'd1' ? '云端数据库' : '缓存'}
+          数据源: {dataSource === 'supabase' ? '云端数据库' : '缓存'}
         </div>
       )}
 

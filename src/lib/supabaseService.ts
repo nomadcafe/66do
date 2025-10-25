@@ -18,6 +18,14 @@ export type UserUpdate = Tables['users']['Update']
 export type DomainUpdate = Tables['domains']['Update']
 export type TransactionUpdate = Tables['domain_transactions']['Update']
 
+// 数据服务结果类型
+export interface DataServiceResult<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  source: 'supabase' | 'cache';
+}
+
 // 用户相关操作
 export class UserService {
   static async getUser(email: string): Promise<User | null> {
@@ -297,5 +305,70 @@ export class VerificationTokenService {
     }
     
     return true
+  }
+}
+
+// 数据加载函数
+export async function loadDomainsFromSupabase(userId: string): Promise<DataServiceResult<Domain[]>> {
+  try {
+    const { data, error } = await supabase
+      .from('domains')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error loading domains from Supabase:', error)
+      return {
+        success: false,
+        error: error.message,
+        source: 'supabase'
+      }
+    }
+
+    return {
+      success: true,
+      data: data || [],
+      source: 'supabase'
+    }
+  } catch (error) {
+    console.error('Error loading domains from Supabase:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      source: 'supabase'
+    }
+  }
+}
+
+export async function loadTransactionsFromSupabase(userId: string): Promise<DataServiceResult<Transaction[]>> {
+  try {
+    const { data, error } = await supabase
+      .from('domain_transactions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error loading transactions from Supabase:', error)
+      return {
+        success: false,
+        error: error.message,
+        source: 'supabase'
+      }
+    }
+
+    return {
+      success: true,
+      data: data || [],
+      source: 'supabase'
+    }
+  } catch (error) {
+    console.error('Error loading transactions from Supabase:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      source: 'supabase'
+    }
   }
 }
