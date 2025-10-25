@@ -5,11 +5,9 @@
   "scripts": {
     "dev": "next dev --turbopack --port 3078",
     "build": "next build",
-    "build:cloudflare": "next build",
     "start": "next start",
     "lint": "eslint",
-    "deploy": "wrangler pages deploy out",
-    "dev:cloudflare": "wrangler pages dev"
+    "deploy": "vercel --prod"
   },
   "dependencies": {
     "@supabase/auth-helpers-nextjs": "^0.10.0",
@@ -27,7 +25,6 @@
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20251014.0",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/crypto-js": "^4.2.2",
@@ -38,6 +35,5 @@
     "eslint-config-next": "15.5.4",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "wrangler": "^4.44.0"
   }
 }

@@ -1,6 +1,0 @@
-# Cloudflare Pages Redirects
-# Handle client-side routing
-/*    /index.html   200
-
-# API routes (if needed)
-/api/*    https://your-api-domain.com/api/:splat    200
