@@ -170,7 +170,7 @@ export default function DashboardPage() {
     }
   }, [user, router]);
 
-  // Load data from D1 database only
+  // Load data from Supabase database only
   useEffect(() => {
     const loadData = async () => {
       if (!user?.id) return;
@@ -236,14 +236,14 @@ export default function DashboardPage() {
   }, [user?.id, dataSource, domains.length, transactions.length]);
 
 
-  // Save data to D1 database only
+  // Save data to Supabase database only
   const saveData = async (newDomains: Domain[], newTransactions: Transaction[]) => {
     if (!user?.id) return;
     
     try {
       console.log('Saving data to Supabase database...');
       
-      // Save domains to D1
+      // Save domains to Supabase
       for (const domain of newDomains) {
         if (domains.find(d => d.id === domain.id)) {
           // Update existing domain
@@ -286,7 +286,7 @@ export default function DashboardPage() {
         }
       }
       
-      // Save transactions to D1
+      // Save transactions to Supabase
       for (const transaction of newTransactions) {
         if (transactions.find(t => t.id === transaction.id)) {
           // Update existing transaction
@@ -1468,7 +1468,7 @@ export default function DashboardPage() {
                   setTransactions(importData.transactions);
                   domainCache.cacheTransactions(user?.id || 'default', importData.transactions);
                 }
-                // Save imported data to D1 database
+                // Save imported data to Supabase database
                 saveData(importData.domains || domains, importData.transactions || transactions);
                 auditLogger.log(user?.id || 'default', 'data_imported', 'dashboard', { 
                   domainsCount: importData.domains?.length || 0,
@@ -1518,7 +1518,7 @@ export default function DashboardPage() {
                   backupDate: new Date().toISOString(),
                   version: '1.0'
                 };
-                // Backup data to D1 database (implement backup API if needed)
+                // Backup data to Supabase database (implement backup API if needed)
                 console.log('Backup created:', backup);
                 auditLogger.log(user?.id || 'default', 'data_backed_up', 'dashboard', { 
                   domainsCount: domains.length,
@@ -1542,7 +1542,7 @@ export default function DashboardPage() {
                   setTransactions(restoreData.transactions);
                   domainCache.cacheTransactions(user?.id || 'default', restoreData.transactions);
                 }
-                // Save restored data to D1 database
+                // Save restored data to Supabase database
                 saveData(restoreData.domains || domains, restoreData.transactions || transactions);
                 auditLogger.log(user?.id || 'default', 'data_restored', 'dashboard', { 
                   domainsCount: restoreData.domains?.length || 0,
