@@ -168,6 +168,12 @@ export default function LoginPage() {
                   立即注册
                 </a>
               </p>
+              <p className="text-sm text-gray-600 mt-2">
+                忘记密码？{' '}
+                <a href="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
+                  重置密码
+                </a>
+              </p>
             </div>
           </form>
         </div>
