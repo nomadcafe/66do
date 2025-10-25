@@ -115,12 +115,20 @@ export default function HomePage() {
                   {t('nav.goToDashboard')}
                 </button>
               ) : (
-                <a
-                  href="/login"
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
-                >
-                  登录
-                </a>
+                <div className="flex space-x-3">
+                  <a
+                    href="/login"
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                  >
+                    登录
+                  </a>
+                  <a
+                    href="/register"
+                    className="bg-white text-blue-600 border border-blue-600 px-6 py-2 rounded-lg hover:bg-blue-50 transition-all duration-200 shadow-lg hover:shadow-xl"
+                  >
+                    注册
+                  </a>
+                </div>
               )}
             </div>
           </div>

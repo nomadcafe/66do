@@ -1,154 +1,94 @@
-// 邮箱验证功能
-import { auditLogger } from './security';
+import { createClient } from '@supabase/supabase-js'
 
-// interface VerificationToken {
-//   token: string;
-//   email: string;
-//   expires_at: string;
-//   created_at: string;
-// }
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabase = createClient(supabaseUrl, supabaseKey)
 
 // 生成验证令牌
-function generateVerificationToken(): string {
-  // 生成6位数字验证码
-  return Math.floor(100000 + Math.random() * 900000).toString();
+export function generateVerificationToken(): string {
+  return crypto.randomUUID()
 }
 
 // 发送验证邮件
-export async function sendVerificationEmail(email: string, userId: string): Promise<{ success: boolean; error?: string }> {
+export async function sendVerificationEmail(email: string, userId: string): Promise<void> {
   try {
-    const token = generateVerificationToken();
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 24); // 24小时过期
-
-    // 验证令牌将通过API保存到数据库，这里不需要localStorage
-
-    // 调用邮件服务发送验证邮件
-    const response = await fetch('/api/send-verification', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    const token = generateVerificationToken()
+    const verificationUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/verify?token=${token}&email=${encodeURIComponent(email)}`
+    
+    // 保存验证令牌到数据库
+    const { error: tokenError } = await supabase
+      .from('verification_tokens')
+      .insert({
+        user_id: userId,
+        token,
         email,
-        verificationCode: token,
-        userId,
-        type: 'email_verification'
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24小时后过期
+        created_at: new Date().toISOString()
       })
-    });
 
-    if (!response.ok) {
-      throw new Error('Failed to send verification email');
+    if (tokenError) {
+      console.error('Failed to save verification token:', tokenError)
+      throw new Error('Failed to save verification token')
     }
 
-    // 记录审计日志
-    auditLogger.log(userId, 'verification_email_sent', 'auth', { email });
+    // 发送邮件
+    const { error: emailError } = await supabase.functions.invoke('send-verification', {
+      body: {
+        email,
+        verificationUrl,
+        subject: '请验证您的邮箱地址',
+        template: 'verification'
+      }
+    })
 
-    return { success: true };
+    if (emailError) {
+      console.error('Failed to send verification email:', emailError)
+      throw new Error('Failed to send verification email')
+    }
+
+    console.log('Verification email sent successfully to:', email)
   } catch (error) {
-    console.error('Send verification email error:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to send verification email' 
-    };
+    console.error('Error sending verification email:', error)
+    throw error
   }
 }
 
-// 验证邮箱令牌
-export async function verifyEmailToken(token: string, email: string): Promise<{ success: boolean; error?: string }> {
+// 验证令牌
+export async function verifyToken(token: string, email: string): Promise<boolean> {
   try {
-    // 调用API验证令牌
-    const response = await fetch('/api/verify-token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        token: token
-      })
-    });
+    const { data, error } = await supabase
+      .from('verification_tokens')
+      .select('*')
+      .eq('token', token)
+      .eq('email', email)
+      .gt('expires_at', new Date().toISOString())
+      .single()
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      return { success: false, error: errorData.error || 'Token verification failed' };
+    if (error || !data) {
+      console.error('Invalid or expired token:', error)
+      return false
     }
 
-    const result = await response.json();
-    if (!result.success) {
-      return { success: false, error: result.error || 'Invalid token' };
+    // 更新用户验证状态
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ email_verified: true })
+      .eq('id', data.user_id)
+
+    if (updateError) {
+      console.error('Failed to update user verification status:', updateError)
+      return false
     }
 
-    // 更新用户邮箱验证状态 - 调用D1数据库API
-    const updateResponse = await fetch('/api/users', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        action: 'updateUserEmailVerification',
-        email: email,
-        user: { email_verified: true }
-      })
-    });
+    // 删除已使用的令牌
+    await supabase
+      .from('verification_tokens')
+      .delete()
+      .eq('token', token)
 
-    if (!updateResponse.ok) {
-      throw new Error('Failed to update email verification status');
-    }
-
-    // 记录审计日志
-    auditLogger.log('unknown', 'email_verified', 'auth', { email });
-
-    return { success: true };
+    return true
   } catch (error) {
-    console.error('Verify email token error:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to verify email' 
-    };
-  }
-}
-
-// 检查邮箱是否已验证
-export async function isEmailVerified(email: string): Promise<boolean> {
-  try {
-    const response = await fetch('/api/users', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        action: 'getUser',
-        email: email
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to check email verification status');
-    }
-
-    const result = await response.json();
-    return result.user?.email_verified || false;
-  } catch (error) {
-    console.error('Check email verification error:', error);
-    return false;
-  }
-}
-
-// 重新发送验证邮件
-export async function resendVerificationEmail(email: string, userId: string): Promise<{ success: boolean; error?: string }> {
-  try {
-    // 检查是否已经验证
-    if (await isEmailVerified(email)) {
-      return { success: false, error: 'Email is already verified' };
-    }
-
-    // 发送新的验证邮件
-    return await sendVerificationEmail(email, userId);
-  } catch (error) {
-    console.error('Resend verification email error:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to resend verification email' 
-    };
+    console.error('Error verifying token:', error)
+    return false
   }
 }

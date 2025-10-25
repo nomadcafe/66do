@@ -24,6 +24,8 @@ function MagicLinkContent() {
         const email = searchParams.get('email');
         
         console.log('Magic link params:', { token, type, email });
+        console.log('Current URL:', window.location.href);
+        console.log('All search params:', Object.fromEntries(searchParams.entries()));
         
         if (!token) {
           setError('无效的登录链接');
@@ -31,11 +33,15 @@ function MagicLinkContent() {
           return;
         }
 
-        // Supabase魔法链接验证
+        // 使用Supabase的魔法链接验证
+        console.log('Verifying magic link with token:', token);
+        
         const { data, error } = await supabase.auth.verifyOtp({
           token_hash: token,
           type: 'magiclink'
         });
+
+        console.log('Verification result:', { data, error });
 
         if (error) {
           console.error('Magic link verification error:', error);
