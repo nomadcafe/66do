@@ -58,7 +58,3 @@ export const preloadComponents = () => {
 // 路由级别的代码分割
 export const LazyDashboard = lazy(() => import('../../app/dashboard/page'));
 export const LazyLogin = lazy(() => import('../../app/login/page'));
-export const LazyRegister = lazy(() => import('../../app/register/page'));
-export const LazyForgotPassword = lazy(() => import('../../app/forgot-password/page'));
-export const LazyResetPassword = lazy(() => import('../../app/reset-password/page'));
-export const LazyVerify = lazy(() => import('../../app/verify/page'));

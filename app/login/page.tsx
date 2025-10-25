@@ -1,18 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useI18nContext } from '../../src/contexts/I18nProvider';
-import { Mail, Lock, LogIn } from 'lucide-react';
+import { Mail, Send } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const { t, locale, setLocale } = useI18nContext();
-  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,36 +18,27 @@ export default function LoginPage() {
     setSuccess('');
 
     try {
-      // 发送登录请求
-      const response = await fetch('/api/auth/login', {
+      // 发送Magic Link请求
+      const response = await fetch('/api/send-magic-link', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email,
-          password
+          email
         })
       });
 
       const result = await response.json();
 
       if (!response.ok) {
-        setError(result.error || '登录失败');
+        setError(result.error || '发送Magic Link失败');
       } else {
-        setSuccess('登录成功！正在跳转到仪表板...');
-        // 保存用户信息到localStorage
-        localStorage.setItem('user', JSON.stringify(result.user));
-        localStorage.setItem('isAuthenticated', 'true');
-        
-        // 跳转到仪表板
-        setTimeout(() => {
-          router.push('/dashboard');
-        }, 2000);
+        setSuccess('Magic Link已发送到您的邮箱！请检查邮件并点击链接登录。');
       }
     } catch (error) {
-      console.error('Login error:', error);
-      setError('登录失败，请重试');
+      console.error('Magic Link error:', error);
+      setError('发送Magic Link失败，请重试');
     }
     
     setLoading(false);
@@ -75,10 +63,10 @@ export default function LoginPage() {
           </select>
         </div>
         <h2 className="mt-6 text-center text-2xl font-bold text-gray-900">
-          登录账户
+          Magic Link 登录
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          输入您的邮箱和密码以登录系统
+          输入您的邮箱地址，我们将发送一个登录链接到您的邮箱
         </p>
       </div>
 
@@ -120,28 +108,6 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                密码
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="请输入您的密码"
-                />
-              </div>
-            </div>
-
-            <div>
               <button
                 type="submit"
                 disabled={loading}
@@ -150,12 +116,12 @@ export default function LoginPage() {
                 {loading ? (
                   <div className="flex items-center">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    登录中...
+                    发送中...
                   </div>
                 ) : (
                   <div className="flex items-center">
-                    <LogIn className="h-4 w-4 mr-2" />
-                    登录
+                    <Send className="h-4 w-4 mr-2" />
+                    发送 Magic Link
                   </div>
                 )}
               </button>
@@ -163,16 +129,7 @@ export default function LoginPage() {
 
             <div className="text-center">
               <p className="text-sm text-gray-600">
-                还没有账户？{' '}
-                <a href="/register" className="font-medium text-blue-600 hover:text-blue-500">
-                  立即注册
-                </a>
-              </p>
-              <p className="text-sm text-gray-600 mt-2">
-                忘记密码？{' '}
-                <a href="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
-                  重置密码
-                </a>
+                首次使用？Magic Link 会自动为您创建账户
               </p>
             </div>
           </form>
