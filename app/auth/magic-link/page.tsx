@@ -18,50 +18,61 @@ function MagicLinkContent() {
   useEffect(() => {
     const handleMagicLink = async () => {
       try {
-        // 检查URL参数
-        const token = searchParams.get('token');
-        const type = searchParams.get('type');
-        const email = searchParams.get('email');
+        // 检查当前会话状态
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        console.log('Magic link params:', { token, type, email });
-        console.log('Current URL:', window.location.href);
-        console.log('All search params:', Object.fromEntries(searchParams.entries()));
-        
-        if (!token) {
-          setError('无效的登录链接');
-          setLoading(false);
-          return;
+        if (sessionError) {
+          console.error('Session error:', sessionError);
         }
-
-        // 使用Supabase的魔法链接验证
-        console.log('Verifying magic link with token:', token);
         
-        const { data, error } = await supabase.auth.verifyOtp({
-          token_hash: token,
-          type: 'magiclink'
-        });
-
-        console.log('Verification result:', { data, error });
-
-        if (error) {
-          console.error('Magic link verification error:', error);
-          console.error('Error details:', error);
-          setError(error.message || '登录链接验证失败');
-          setLoading(false);
-          return;
-        }
-
-        if (data.user && data.session) {
-          console.log('Magic link verification successful:', data);
+        if (session) {
+          console.log('User already authenticated:', session.user);
           setSuccess('登录成功！正在跳转到您的仪表板...');
-          
-          // 跳转到仪表板
           setTimeout(() => {
             router.push('/dashboard');
           }, 2000);
+          return;
+        }
+
+        // 检查URL参数（Supabase Magic Link通常包含access_token和refresh_token）
+        const accessToken = searchParams.get('access_token');
+        const refreshToken = searchParams.get('refresh_token');
+        const tokenType = searchParams.get('token_type');
+        
+        console.log('Magic link params:', { accessToken, refreshToken, tokenType });
+        console.log('Current URL:', window.location.href);
+        console.log('All search params:', Object.fromEntries(searchParams.entries()));
+        
+        if (accessToken && refreshToken) {
+          // 使用Supabase的session设置
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+
+          console.log('Session set result:', { data, error });
+
+          if (error) {
+            console.error('Session setting error:', error);
+            setError('登录失败：' + error.message);
+            setLoading(false);
+            return;
+          }
+
+          if (data.user && data.session) {
+            console.log('Magic link authentication successful:', data);
+            setSuccess('登录成功！正在跳转到您的仪表板...');
+            setTimeout(() => {
+              router.push('/dashboard');
+            }, 2000);
+          } else {
+            console.log('No user or session after setting session');
+            setError('登录失败，请重试');
+            setLoading(false);
+          }
         } else {
-          console.log('No user or session in response:', data);
-          setError('登录失败，请重试');
+          // 如果没有token参数，可能是直接访问页面
+          setError('无效的登录链接。请通过邮件中的链接访问。');
           setLoading(false);
         }
 
