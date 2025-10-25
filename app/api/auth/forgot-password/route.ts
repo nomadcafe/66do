@@ -47,29 +47,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '保存重置令牌失败' }, { status: 500 })
     }
 
-    // 发送重置邮件 - 使用简单的邮件发送方式
+    // 发送重置邮件 - 使用Supabase内置邮件功能
     try {
-      // 这里我们暂时跳过实际的邮件发送，只记录日志
-      // 在生产环境中，您需要配置邮件服务（如Resend、SendGrid等）
-      console.log('Password reset email would be sent to:', email)
-      console.log('Reset URL:', resetUrl)
-      
-      // TODO: 集成实际的邮件服务
-      // 例如使用 Resend:
-      // const { Resend } = require('resend')
-      // const resend = new Resend(process.env.RESEND_API_KEY)
-      // await resend.emails.send({
-      //   from: 'noreply@66do.com',
-      //   to: email,
-      //   subject: '重置您的密码',
-      //   html: `<p>请点击以下链接重置您的密码：<a href="${resetUrl}">重置密码</a></p>`
-      // })
+      // 使用Supabase的Auth邮件发送功能
+      const { error: emailError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: resetUrl
+      })
 
-      console.log('Password reset email sent successfully to:', email)
+      if (emailError) {
+        console.error('Failed to send reset email:', emailError)
+        // 不阻止流程，只记录错误
+        console.log('Reset token saved, but email sending failed. Reset URL:', resetUrl)
+      } else {
+        console.log('Password reset email sent successfully to:', email)
+      }
     } catch (emailError) {
       console.error('Error sending reset email:', emailError)
-      // 不阻止重置流程，只记录错误
-      console.log('Email sending failed, but reset token was saved successfully')
+      // 不阻止流程，只记录错误
+      console.log('Reset token saved, but email sending failed. Reset URL:', resetUrl)
     }
 
     return NextResponse.json({ 
