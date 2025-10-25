@@ -24,11 +24,24 @@ export async function POST(request: NextRequest) {
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     }
 
+    // 检查环境变量
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      console.error('Missing Supabase environment variables')
+      return NextResponse.json({ 
+        error: 'Server configuration error',
+        details: 'Missing Supabase environment variables'
+      }, { 
+        status: 500,
+        headers: corsHeaders
+      })
+    }
+
     // 使用Supabase原生Magic Link
     const redirectUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.66do.com'}/auth/magic-link`
     
     console.log('Sending magic link to:', email)
     console.log('Redirect URL:', redirectUrl)
+    console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
 
     const { data, error } = await supabase.auth.signInWithOtp({
       email,
@@ -40,9 +53,16 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Supabase magic link error:', error)
+      console.error('Error details:', {
+        message: error.message,
+        status: error.status,
+        name: error.name
+      })
       return NextResponse.json({ 
         error: 'Failed to send magic link',
-        details: error.message
+        details: error.message,
+        errorCode: error.status,
+        errorName: error.name
       }, { 
         status: 500,
         headers: corsHeaders
@@ -62,7 +82,8 @@ export async function POST(request: NextRequest) {
     console.error('Send magic link error:', error)
     return NextResponse.json({ 
       error: 'Failed to send magic link email',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
     }, {
       status: 500,
       headers: {
