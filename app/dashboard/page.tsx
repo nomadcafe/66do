@@ -15,8 +15,6 @@ import DomainMarketplace from '../../src/components/marketplace/DomainMarketplac
 import DataImportExport from '../../src/components/data/DataImportExport';
 import { LazyDomainExpiryAlert, LazyWrapper } from '../../src/components/LazyComponents';
 import MobileNavigation from '../../src/components/layout/MobileNavigation';
-import ResponsiveGrid from '../../src/components/layout/ResponsiveGrid';
-import MobileCard from '../../src/components/ui/MobileCard';
 import AutoDomainMonitor from '../../src/components/monitoring/AutoDomainMonitor';
 // Mobile components for enhanced mobile experience
 import TouchGestures from '../../src/components/mobile/TouchGestures';
@@ -841,78 +839,85 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Desktop Header */}
-      <div className="hidden lg:block bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">{t('platform.name')}</h1>
-              <p className="mt-2 text-gray-600">{t('dashboard.title')}</p>
-            </div>
+    <div className="min-h-screen bg-white">
+      {/* Desktop Header - Clean & Modern */}
+      <div className="hidden lg:block bg-white border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="flex justify-between items-center py-8">
             <div className="flex items-center space-x-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-sm">
+                <Globe className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">{t('platform.name')}</h1>
+                <p className="text-sm text-gray-500 mt-1">{t('dashboard.title')}</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-6">
               {/* Language Selector */}
               <div className="relative">
                 <select
                   value={locale}
                   onChange={(e) => setLocale(e.target.value as 'en' | 'zh')}
-                  className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="appearance-none bg-gray-50 border-0 rounded-lg px-4 py-2 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200"
                 >
                   <option value="zh">中文</option>
                   <option value="en">English</option>
                 </select>
-                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+              </div>
+              
+              {/* User Info */}
+              <div className="flex items-center space-x-3 px-4 py-2 bg-gray-50 rounded-lg">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
+                  <User className="h-4 w-4 text-white" />
                 </div>
+                <span className="text-sm font-medium text-gray-700">{user?.email}</span>
               </div>
-              <div className="flex items-center space-x-2 text-gray-600">
-                <User size={20} />
-                <span>{user?.email}</span>
-              </div>
+              
+              {/* Action Buttons */}
               <button
                 onClick={handleAddDomain}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+                className="bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 flex items-center space-x-2 font-medium transition-all duration-200 shadow-sm hover:shadow-md"
               >
-                <Plus size={20} />
+                <Plus size={18} />
                 <span>{t('dashboard.addInvestment')}</span>
               </button>
+              
               <button
                 onClick={handleLogout}
-                className="text-gray-600 hover:text-gray-800 flex items-center space-x-2"
+                className="text-gray-500 hover:text-gray-700 flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-50 transition-all duration-200"
               >
-                <LogOut size={20} />
-                <span>{t('dashboard.signOut')}</span>
+                <LogOut size={18} />
+                <span className="text-sm font-medium">{t('dashboard.signOut')}</span>
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Mobile Header */}
-      <div className="lg:hidden bg-white shadow-sm border-b sticky top-0 z-40">
-        <div className="px-4 py-3">
+      {/* Mobile Header - Clean & Modern */}
+      <div className="lg:hidden bg-white border-b border-gray-100 sticky top-0 z-40">
+        <div className="px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+              <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-sm">
                 <Globe className="h-5 w-5 text-white" />
               </div>
               <div>
                 <h1 className="text-lg font-bold text-gray-900">{t('platform.name')}</h1>
-                <p className="text-xs text-gray-600">{t('dashboard.title')}</p>
+                <p className="text-xs text-gray-500">{t('dashboard.title')}</p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
               <button
                 onClick={handleAddDomain}
-                className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700"
+                className="bg-blue-600 text-white p-2.5 rounded-lg hover:bg-blue-700 shadow-sm transition-all duration-200"
               >
                 <Plus size={18} />
               </button>
               <button
                 onClick={handleLogout}
-                className="text-gray-600 hover:text-gray-800 p-2"
+                className="text-gray-500 hover:text-gray-700 p-2.5 rounded-lg hover:bg-gray-50 transition-all duration-200"
               >
                 <LogOut size={18} />
               </button>
@@ -921,77 +926,75 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Cards */}
-        <ResponsiveGrid 
-          cols={{ default: 1, sm: 2, lg: 4 }} 
-          gap="lg" 
-          className="mb-8"
-        >
-          <MobileCard>
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Globe className="h-6 w-6 text-blue-600" />
+      {/* Main Content - Clean White Design */}
+      <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
+        {/* Stats Cards - Modern Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          <div className="bg-white p-6 rounded-2xl border border-gray-100 hover:shadow-lg transition-all duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-1">{t('dashboard.totalInvestments')}</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.totalDomains}</p>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">{t('dashboard.totalInvestments')}</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalDomains}</p>
-              </div>
-            </div>
-          </MobileCard>
-
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <DollarSign className="h-6 w-6 text-red-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">{t('dashboard.totalCost')}</p>
-                <p className="text-2xl font-bold text-gray-900">${stats.totalCost.toFixed(2)}</p>
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                <Globe className="h-6 w-6 text-white" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-green-600" />
+          <div className="bg-white p-6 rounded-2xl border border-gray-100 hover:shadow-lg transition-all duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-1">{t('dashboard.totalCost')}</p>
+                <p className="text-3xl font-bold text-gray-900">${stats.totalCost.toFixed(2)}</p>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">{t('dashboard.totalRevenue')}</p>
-                <p className="text-2xl font-bold text-gray-900">${stats.totalRevenue.toFixed(2)}</p>
+              <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center">
+                <DollarSign className="h-6 w-6 text-white" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <BarChart3 className="h-6 w-6 text-purple-600" />
+          <div className="bg-white p-6 rounded-2xl border border-gray-100 hover:shadow-lg transition-all duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-1">{t('dashboard.totalRevenue')}</p>
+                <p className="text-3xl font-bold text-gray-900">${stats.totalRevenue.toFixed(2)}</p>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">ROI</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.roi.toFixed(1)}%</p>
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
+                <TrendingUp className="h-6 w-6 text-white" />
               </div>
             </div>
           </div>
-        </ResponsiveGrid>
 
-        {/* Auto Domain Monitor */}
-        <div className="mb-8">
-          <AutoDomainMonitor 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            domains={domains as any}
-            autoStart={true}
-            showNotifications={true}
-            onDomainExpiry={(expiryInfo) => {
-              console.log('域名到期提醒:', expiryInfo);
-            }}
-            onBulkExpiry={(expiryInfos) => {
-              console.log('批量域名到期提醒:', expiryInfos);
-            }}
-          />
+          <div className="bg-white p-6 rounded-2xl border border-gray-100 hover:shadow-lg transition-all duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-1">ROI</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.roi.toFixed(1)}%</p>
+              </div>
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
+                <BarChart3 className="h-6 w-6 text-white" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Auto Domain Monitor - Clean Section */}
+        <div className="mb-12">
+          <div className="bg-white rounded-2xl border border-gray-100 p-6">
+            <AutoDomainMonitor 
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              domains={domains as any}
+              autoStart={true}
+              showNotifications={true}
+              onDomainExpiry={(expiryInfo) => {
+                console.log('域名到期提醒:', expiryInfo);
+              }}
+              onBulkExpiry={(expiryInfos) => {
+                console.log('批量域名到期提醒:', expiryInfos);
+              }}
+            />
+          </div>
         </div>
 
         {/* Enhanced Stats Cards */}
