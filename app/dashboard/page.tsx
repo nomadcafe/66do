@@ -1366,7 +1366,7 @@ export default function DashboardPage() {
               <div className="mt-6">
                 <h4 className="text-md font-medium text-gray-900 mb-3">{t('renewal.optimizationSuggestions')}</h4>
                 <div className="space-y-2">
-                  {getRenewalOptimizationSuggestions(renewalAnalysis).map((suggestion, index) => (
+                  {getRenewalOptimizationSuggestions(renewalAnalysis, domains).map((suggestion, index) => (
                     <div key={index} className="flex items-start space-x-2 p-3 bg-yellow-50 rounded-lg">
                       <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
                       <p className="text-sm text-yellow-800">{suggestion}</p>

@@ -216,7 +216,16 @@ export function calculateMultiYearRenewalCost(
 
 // 计算续费成本优化建议
 export function getRenewalOptimizationSuggestions(
-  annualCost: AnnualRenewalCost
+  annualCost: AnnualRenewalCost,
+  domains?: Array<{
+    id: string;
+    domain_name: string;
+    renewal_cost: number | null;
+    renewal_cycle: number;
+    estimated_value?: number | null;
+    purchase_cost?: number | null;
+    status: string;
+  }>
 ): string[] {
   const suggestions: string[] = [];
   
@@ -225,33 +234,83 @@ export function getRenewalOptimizationSuggestions(
   const domainsCount = annualCost.domainsNeedingRenewal.length;
   
   if (domainsCount === 0) {
-    suggestions.push('今年没有域名需要续费，可以专注于新域名投资');
+    suggestions.push('🎯 今年没有域名需要续费，这是投资新域名的好时机！建议关注高价值域名机会。');
     return suggestions;
   }
   
-  // 检查月度分布是否均匀
+  // 计算平均域名价值（如果有数据）
+  let avgDomainValue = 0;
+  let highValueDomainsCount = 0;
+  if (domains) {
+    const validDomains = domains.filter(d => d.estimated_value && d.estimated_value > 0);
+    if (validDomains.length > 0) {
+      avgDomainValue = validDomains.reduce((sum, d) => sum + (d.estimated_value || 0), 0) / validDomains.length;
+      highValueDomainsCount = validDomains.filter(d => (d.estimated_value || 0) > avgDomainValue * 2).length;
+    }
+  }
+  
+  // 智能月度分布分析
   const monthlyCosts = Object.values(annualCost.monthlyDistribution);
   const maxMonthlyCost = Math.max(...monthlyCosts);
   const avgMonthlyCost = totalCost / 12;
+  const costConcentrationRatio = maxMonthlyCost / avgMonthlyCost;
   
-  if (maxMonthlyCost > avgMonthlyCost * 2) {
-    suggestions.push('续费成本在某些月份过于集中，考虑分散续费时间');
+  if (costConcentrationRatio > 2.5) {
+    const peakMonth = Object.entries(annualCost.monthlyDistribution)
+      .find(([_, cost]) => cost === maxMonthlyCost)?.[0];
+    const monthName = peakMonth ? new Date(2024, parseInt(peakMonth), 1).toLocaleDateString('zh-CN', { month: 'long' }) : '某月';
+    suggestions.push(`⚠️ 续费成本在${monthName}过于集中（${costConcentrationRatio.toFixed(1)}倍于平均值），建议提前续费或调整域名到期时间分散风险。`);
+  } else if (costConcentrationRatio < 1.2) {
+    suggestions.push('✅ 续费时间分布很均匀，这有助于现金流管理！');
   }
   
-  // 检查续费周期分布
+  // 智能续费周期分析
   const cycleEntries = Object.entries(annualCost.costByCycle);
   if (cycleEntries.length > 1) {
-    const dominantCycle = cycleEntries.reduce((a, b) => a[1] > b[1] ? a : b);
-    suggestions.push(`主要续费周期是${dominantCycle[0]}，占总成本的${((dominantCycle[1] / totalCost) * 100).toFixed(1)}%`);
+    const sortedCycles = cycleEntries.sort((a, b) => b[1] - a[1]);
+    const dominantCycle = sortedCycles[0];
+    const dominantPercentage = (dominantCycle[1] / totalCost) * 100;
+    
+    if (dominantPercentage > 70) {
+      suggestions.push(`📊 您的域名主要集中在${dominantCycle[0]}续费周期，占总成本的${dominantPercentage.toFixed(1)}%。考虑是否适合您的投资策略。`);
+    } else if (dominantPercentage < 40) {
+      suggestions.push(`🔄 续费周期分布较为分散，这提供了很好的灵活性，但可能增加管理复杂度。`);
+    }
   }
   
-  // 成本优化建议
-  if (totalCost > 10000) {
-    suggestions.push('续费成本较高，考虑批量续费折扣或更换注册商');
+  // 基于价值的智能建议
+  if (domains && avgDomainValue > 0) {
+    const renewalToValueRatio = totalCost / (avgDomainValue * domainsCount);
+    if (renewalToValueRatio > 0.1) {
+      suggestions.push(`💰 续费成本占域名平均价值的${(renewalToValueRatio * 100).toFixed(1)}%，建议评估低价值域名的续费必要性。`);
+    } else if (renewalToValueRatio < 0.02) {
+      suggestions.push(`💎 续费成本相对域名价值很低，这些域名值得长期持有！`);
+    }
   }
   
-  if (annualCost.domainsNeedingRenewal.length > 50) {
-    suggestions.push('需要续费的域名较多，建议使用批量续费工具');
+  // 成本优化建议（更智能的阈值）
+  const avgCostPerDomain = totalCost / domainsCount;
+  if (totalCost > 50000) {
+    suggestions.push(`💳 年度续费成本较高（$${totalCost.toLocaleString()}），建议联系注册商洽谈批量续费折扣，通常可获得5-15%优惠。`);
+  } else if (totalCost > 10000) {
+    suggestions.push(`💡 续费成本适中，考虑批量续费以获得更好价格，或评估是否所有域名都值得续费。`);
+  }
+  
+  // 基于域名数量的管理建议
+  if (domainsCount > 100) {
+    suggestions.push(`🔧 管理${domainsCount}个域名的续费确实需要系统化方法，建议使用域名管理工具或建立续费提醒系统。`);
+  } else if (domainsCount > 20) {
+    suggestions.push(`📅 建议设置续费提醒，避免域名意外过期造成损失。`);
+  }
+  
+  // 基于高价值域名的特殊建议
+  if (highValueDomainsCount > 0) {
+    suggestions.push(`⭐ 您有${highValueDomainsCount}个高价值域名需要续费，建议优先处理并考虑提前续费保护。`);
+  }
+  
+  // 如果没有其他建议，提供一般性建议
+  if (suggestions.length === 0) {
+    suggestions.push('📈 您的域名续费策略看起来不错！继续保持定期审查和优化。');
   }
   
   return suggestions;
