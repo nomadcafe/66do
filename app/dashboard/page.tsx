@@ -320,6 +320,16 @@ export default function DashboardPage() {
               userId: user.id,
               domain: {
                 ...domain,
+                registrar: domain.registrar || null,
+                purchase_date: domain.purchase_date || null,
+                purchase_cost: domain.purchase_cost || null,
+                renewal_cost: domain.renewal_cost || null,
+                next_renewal_date: domain.next_renewal_date || null,
+                expiry_date: domain.expiry_date || null,
+                estimated_value: domain.estimated_value || null,
+                sale_date: domain.sale_date || null,
+                sale_price: domain.sale_price || null,
+                platform_fee: domain.platform_fee || null,
                 tags: JSON.stringify(domain.tags)
               }
             })
@@ -334,19 +344,19 @@ export default function DashboardPage() {
               userId: user.id,
               domain: {
                 domain_name: domain.domain_name,
-                registrar: domain.registrar,
-                purchase_date: domain.purchase_date,
-                purchase_cost: domain.purchase_cost,
-                renewal_cost: domain.renewal_cost,
+                registrar: domain.registrar || null,
+                purchase_date: domain.purchase_date || null,
+                purchase_cost: domain.purchase_cost || null,
+                renewal_cost: domain.renewal_cost || null,
                 renewal_cycle: domain.renewal_cycle,
                 renewal_count: domain.renewal_count,
-                next_renewal_date: domain.next_renewal_date,
-                expiry_date: domain.expiry_date,
+                next_renewal_date: domain.next_renewal_date || null,
+                expiry_date: domain.expiry_date || null,
                 status: domain.status,
-                estimated_value: domain.estimated_value,
-                sale_date: domain.sale_date,
-                sale_price: domain.sale_price,
-                platform_fee: domain.platform_fee,
+                estimated_value: domain.estimated_value || null,
+                sale_date: domain.sale_date || null,
+                sale_price: domain.sale_price || null,
+                platform_fee: domain.platform_fee || null,
                 tags: JSON.stringify(domain.tags)
               }
             })
@@ -364,7 +374,17 @@ export default function DashboardPage() {
             body: JSON.stringify({
               action: 'updateTransaction',
               userId: user.id,
-              transaction
+              transaction: {
+                ...transaction,
+                base_amount: transaction.base_amount || null,
+                platform_fee: transaction.platform_fee || null,
+                platform_fee_percentage: transaction.platform_fee_percentage || null,
+                net_amount: transaction.net_amount || null,
+                category: transaction.category || null,
+                tax_deductible: transaction.tax_deductible || false,
+                receipt_url: transaction.receipt_url || null,
+                notes: transaction.notes || null
+              }
             })
           });
         } else {
@@ -381,14 +401,14 @@ export default function DashboardPage() {
                 amount: transaction.amount,
                 currency: transaction.currency,
                 exchange_rate: transaction.exchange_rate,
-                base_amount: transaction.base_amount,
-                platform_fee: transaction.platform_fee,
-                platform_fee_percentage: transaction.platform_fee_percentage,
-                net_amount: transaction.net_amount,
-                category: transaction.category,
-                tax_deductible: transaction.tax_deductible,
-                receipt_url: transaction.receipt_url,
-                notes: transaction.notes,
+                base_amount: transaction.base_amount || null,
+                platform_fee: transaction.platform_fee || null,
+                platform_fee_percentage: transaction.platform_fee_percentage || null,
+                net_amount: transaction.net_amount || null,
+                category: transaction.category || null,
+                tax_deductible: transaction.tax_deductible || false,
+                receipt_url: transaction.receipt_url || null,
+                notes: transaction.notes || null,
                 date: transaction.date
               }
             })
