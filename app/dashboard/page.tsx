@@ -280,7 +280,7 @@ export default function DashboardPage() {
         
       } catch (error) {
         console.error('Error loading data from Supabase:', error);
-        setError('Failed to load data from database. Please try again.');
+        setError(t('common.dataLoadFailed'));
         auditLogger.log(user?.id || 'default', 'data_load_failed', 'dashboard', { 
           error: error instanceof Error ? error.message : 'Unknown error' 
         });
@@ -403,7 +403,7 @@ export default function DashboardPage() {
       console.log('Data saved to Supabase database successfully');
     } catch (error) {
       console.error('Error saving data to Supabase:', error);
-      setError('Failed to save data to database. Please try again.');
+      setError(t('common.dataSaveFailed'));
     }
   };
 
@@ -633,7 +633,7 @@ export default function DashboardPage() {
       category: domain.registrar,
       tax_deductible: false,
       receipt_url: null,
-      notes: `域名 ${domain.domain_name} 续费 ${domain.renewal_cycle} 年`,
+      notes: t('common.renewalNote').replace('{domain}', domain.domain_name).replace('{cycle}', domain.renewal_cycle.toString()),
       date: new Date().toISOString().split('T')[0],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -750,7 +750,7 @@ export default function DashboardPage() {
       saveData(updatedDomains, transactions);
       
       // 显示成功消息
-      console.log(`域名状态已自动更新为"已出售"`);
+      console.log(t('common.domainStatusUpdated'));
     }
   };
 
@@ -846,7 +846,7 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">正在验证您的身份...</p>
+          <p className="mt-4 text-gray-600">{t('common.verifyingIdentity')}</p>
         </div>
       </div>
     );
@@ -1083,7 +1083,7 @@ export default function DashboardPage() {
                 <p className="text-orange-100 text-sm font-medium">ROI</p>
                 <p className="text-3xl font-bold">{stats.roi.toFixed(1)}%</p>
                 <p className="text-orange-200 text-xs mt-1">
-                  利润: ${stats.totalProfit.toFixed(2)}
+                  {t('common.profit')}: ${stats.totalProfit.toFixed(2)}
                 </p>
               </div>
               <BarChart3 className="h-8 w-8 text-orange-200" />
@@ -1407,7 +1407,7 @@ export default function DashboardPage() {
             {/* Recent Transactions */}
             <div className="bg-white rounded-lg shadow-sm border">
               <div className="p-6 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">最近交易</h3>
+                <h3 className="text-lg font-semibold text-gray-900">{t('common.recentTransactions')}</h3>
               </div>
               <div className="p-6">
                 {transactions.slice(0, 5).length > 0 ? (
@@ -1445,12 +1445,12 @@ export default function DashboardPage() {
                 ) : (
                   <div className="text-center py-8 text-gray-500">
                     <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p>暂无交易记录</p>
+                    <p>{t('common.noTransactions')}</p>
                     <button
                       onClick={handleAddTransaction}
                   className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
                 >
-                      添加第一笔交易
+                      {t('common.addFirstTransaction')}
                     </button>
                   </div>
                 )}
@@ -1476,9 +1476,9 @@ export default function DashboardPage() {
                 <div className="flex-1">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
+                  <input
                   type="text"
-                      placeholder="搜索域名..."
+                      placeholder={t('common.searchDomains')}
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -1491,21 +1491,21 @@ export default function DashboardPage() {
                     onChange={(e) => setFilterStatus(e.target.value)}
                     className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="all">所有状态</option>
-                    <option value="active">活跃</option>
-                    <option value="for_sale">出售中</option>
-                    <option value="sold">已售出</option>
-                    <option value="expired">已过期</option>
+                    <option value="all">{t('common.allStatus')}</option>
+                    <option value="active">{t('common.activeStatus')}</option>
+                    <option value="for_sale">{t('common.forSaleStatus')}</option>
+                    <option value="sold">{t('common.soldStatus')}</option>
+                    <option value="expired">{t('common.expiredStatus')}</option>
                   </select>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
                     className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="date">按日期</option>
-                    <option value="name">按名称</option>
-                    <option value="value">按价值</option>
-                    <option value="cost">按成本</option>
+                    <option value="date">{t('common.sortByDate')}</option>
+                    <option value="name">{t('common.sortByName')}</option>
+                    <option value="value">{t('common.sortByValue')}</option>
+                    <option value="cost">{t('common.sortByCost')}</option>
                   </select>
                   <button
                     onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
@@ -1547,7 +1547,7 @@ export default function DashboardPage() {
         {activeTab === 'alerts' && (
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-lg shadow-sm border">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">即将到期的域名</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('common.expiringDomains')}</h3>
               {expiringDomains.length > 0 ? (
                 <div className="space-y-4">
                   {expiringDomains.map((domain) => (
@@ -1574,18 +1574,18 @@ export default function DashboardPage() {
                                 ? 'bg-orange-100 text-orange-800' 
                                 : 'bg-yellow-100 text-yellow-800'
                             }`}>
-                              {domain.urgency === 'critical' ? '紧急' : 
-                               domain.urgency === 'urgent' ? '紧急' : '正常'}
+                              {domain.urgency === 'critical' ? t('common.critical') : 
+                               domain.urgency === 'urgent' ? t('common.urgent') : t('common.normal')}
                             </span>
                           </div>
                           <div className="mt-2 text-sm text-gray-600">
-                            <p>到期日期: {new Date(domain.expiry_date!).toLocaleDateString()}</p>
+                            <p>{t('common.daysUntilExpiry')}: {new Date(domain.expiry_date!).toLocaleDateString()}</p>
                             <p className="font-medium">
                               {domain.daysUntilExpiry === 0 
-                                ? '今天到期' 
+                                ? t('common.todayExpiry')
                                 : domain.daysUntilExpiry < 0 
-                                ? `已过期 ${Math.abs(domain.daysUntilExpiry)} 天`
-                                : `还有 ${domain.daysUntilExpiry} 天到期`}
+                                ? `${t('common.expiredDaysAgo')} ${Math.abs(domain.daysUntilExpiry)} ${t('common.daysLeft')}`
+                                : `${t('common.daysLeftExpiry')} ${domain.daysUntilExpiry} ${t('common.daysLeftExpiryEnd')}`}
                             </p>
                           </div>
                         </div>
@@ -1594,7 +1594,7 @@ export default function DashboardPage() {
                             onClick={() => handleEditDomain(domain)}
                             className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
                           >
-                            编辑
+                            {t('common.edit')}
                           </button>
                           <button
                             onClick={() => {
@@ -1603,7 +1603,7 @@ export default function DashboardPage() {
                             }}
                             className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200"
                           >
-                            续费
+                            {t('common.renew')}
                           </button>
                         </div>
                       </div>
@@ -1613,7 +1613,7 @@ export default function DashboardPage() {
               ) : (
                 <div className="text-center py-8 text-gray-500">
                   <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>暂无即将到期的域名</p>
+                  <p>{t('common.noExpiringDomains')}</p>
                 </div>
               )}
             </div>
@@ -1672,10 +1672,10 @@ export default function DashboardPage() {
                   domainsCount: importData.domains?.length || 0,
                   transactionsCount: importData.transactions?.length || 0
                 });
-                console.log('Data imported successfully');
+                console.log(t('common.dataImportedSuccessfully'));
               } catch (error) {
                 console.error('Import failed:', error);
-                setError('Failed to import data');
+                setError(t('common.dataImportFailed'));
                 auditLogger.log(user?.id || 'default', 'data_import_failed', 'dashboard', { error: (error as Error).message });
               }
             }}
@@ -1701,10 +1701,10 @@ export default function DashboardPage() {
                 }
                 
                 auditLogger.log(user?.id || 'default', 'data_exported', 'dashboard', { format, dataSize: JSON.stringify(data).length });
-                console.log('Data exported successfully');
+                console.log(t('common.dataExportedSuccessfully'));
               } catch (error) {
                 console.error('Export failed:', error);
-                setError('Failed to export data');
+                setError(t('common.dataExportFailed'));
                 auditLogger.log(user?.id || 'default', 'data_export_failed', 'dashboard', { error: (error as Error).message });
               }
             }}
@@ -1722,10 +1722,10 @@ export default function DashboardPage() {
                   domainsCount: domains.length,
                   transactionsCount: transactions.length
                 });
-                console.log('Data backed up successfully');
+                console.log(t('common.dataBackedUpSuccessfully'));
               } catch (error) {
                 console.error('Backup failed:', error);
-                setError('Failed to backup data');
+                setError(t('common.dataBackupFailed'));
                 auditLogger.log(user?.id || 'default', 'data_backup_failed', 'dashboard', { error: (error as Error).message });
               }
             }}
@@ -1751,10 +1751,10 @@ export default function DashboardPage() {
                   domainsCount: restoreData.domains?.length || 0,
                   transactionsCount: restoreData.transactions?.length || 0
                 });
-                console.log('Data restored successfully');
+                console.log(t('common.dataRestoredSuccessfully'));
               } catch (error) {
                 console.error('Restore failed:', error);
-                setError('Failed to restore data');
+                setError(t('common.dataRestoreFailed'));
                 auditLogger.log(user?.id || 'default', 'data_restore_failed', 'dashboard', { error: (error as Error).message });
               }
             }}
@@ -1766,15 +1766,15 @@ export default function DashboardPage() {
             {/* 报告类型选择器 */}
             <div className="bg-white p-4 rounded-lg shadow-sm border">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">财务报告</h3>
+                <h3 className="text-lg font-semibold text-gray-900">{t('common.financialReports')}</h3>
                 <div className="flex items-center space-x-4">
                   <select
                     value={viewMode}
                     onChange={(e) => setViewMode(e.target.value as 'grid' | 'list')}
                     className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="grid">网格视图</option>
-                    <option value="list">列表视图</option>
+                    <option value="grid">{t('common.gridView')}</option>
+                    <option value="list">{t('common.listView')}</option>
                   </select>
                 </div>
               </div>
@@ -1853,7 +1853,7 @@ export default function DashboardPage() {
       {/* Data Source Indicator */}
       {dataSource && (
         <div className="fixed bottom-4 right-4 bg-gray-800 text-white px-3 py-2 rounded-lg text-sm">
-          数据源: {dataSource === 'supabase' ? '云端数据库' : '缓存'}
+          {t('common.dataSource')}: {dataSource === 'supabase' ? t('common.cloudDatabase') : t('common.cache')}
         </div>
       )}
 
