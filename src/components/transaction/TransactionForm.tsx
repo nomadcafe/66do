@@ -381,10 +381,10 @@ export default function TransactionForm({
                 <div>
                   <p className="text-sm font-medium text-green-800">{t('transaction.netIncomeCalculation')}</p>
                   <p className="text-lg font-semibold text-green-900">
-                    ¥{(formData.amount - formData.platform_fee).toFixed(2)}
+                    {formatCurrencyAmount(formData.amount - formData.platform_fee, formData.currency)}
                   </p>
                   <p className="text-xs text-green-600 mt-1">
-                    {t('transaction.totalAmount')}: ¥{formData.amount.toFixed(2)} - {t('transaction.platformFeeDesc')}: ¥{formData.platform_fee.toFixed(2)}
+                    {t('transaction.totalAmount')}: {formatCurrencyAmount(formData.amount, formData.currency)} - {t('transaction.platformFeeDesc')}: {formatCurrencyAmount(formData.platform_fee, formData.currency)}
                   </p>
                 </div>
                 <div className="p-2 bg-green-100 rounded-full">

@@ -258,13 +258,19 @@ export function getRenewalOptimizationSuggestions(
 }
 
 // 格式化续费信息显示
-export function formatRenewalInfo(renewalInfo: RenewalInfo): string {
+export function formatRenewalInfo(renewalInfo: RenewalInfo, currency: string = 'USD'): string {
   const nextRenewalDate = new Date(renewalInfo.nextRenewalDate);
   const formattedDate = nextRenewalDate.toLocaleDateString('zh-CN');
   
+  // 格式化货币
+  const formattedCost = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency
+  }).format(renewalInfo.renewalCost);
+  
   if (renewalInfo.needsRenewalThisYear) {
-    return `${renewalInfo.domainName} - 今年需要续费 (${formattedDate}) - ¥${renewalInfo.renewalCost}`;
+    return `${renewalInfo.domainName} - 今年需要续费 (${formattedDate}) - ${formattedCost}`;
   } else {
-    return `${renewalInfo.domainName} - ${renewalInfo.yearsUntilRenewal.toFixed(1)}年后续费 (${formattedDate}) - ¥${renewalInfo.renewalCost}`;
+    return `${renewalInfo.domainName} - ${renewalInfo.yearsUntilRenewal.toFixed(1)}年后续费 (${formattedDate}) - ${formattedCost}`;
   }
 }
