@@ -224,6 +224,7 @@ const translations: Record<Locale, Translations> = {
       totalAmount: '总金额',
       platformFeeDesc: '手续费',
       addTransaction: '添加交易',
+      add: '添加交易',
       editTransaction: '编辑交易',
       saveTransaction: '保存交易',
       cancelTransaction: '取消交易',
@@ -347,7 +348,8 @@ const translations: Record<Locale, Translations> = {
       expiringDomains: '即将到期的域名',
       noExpiringDomains: '暂无即将到期的域名',
       registrar: '注册商',
-      renewNow: '立即续费'
+      renewNow: '立即续费',
+      add: '添加域名'
     },
     mobile: {
       menu: '菜单',
@@ -651,6 +653,7 @@ const translations: Record<Locale, Translations> = {
       totalAmount: 'Total Amount',
       platformFeeDesc: 'Platform Fee',
       addTransaction: 'Add Transaction',
+      add: 'Add Transaction',
       editTransaction: 'Edit Transaction',
       saveTransaction: 'Save Transaction',
       cancelTransaction: 'Cancel Transaction',
@@ -774,7 +777,8 @@ const translations: Record<Locale, Translations> = {
       expiringDomains: 'Expiring Domains',
       noExpiringDomains: 'No expiring domains',
       registrar: 'Registrar',
-      renewNow: 'Renew Now'
+      renewNow: 'Renew Now',
+      add: 'Add Domain'
     },
     mobile: {
       menu: 'Menu',
