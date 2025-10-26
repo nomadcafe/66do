@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { getCorsHeaders, getCorsHeadersForError } from '../../../src/lib/cors'
+import { logger, serverLogger } from '../../../src/lib/logger'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -17,16 +19,12 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // 设置CORS头
-    const corsHeaders = {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    }
+    // 设置安全的CORS头
+    const corsHeaders = getCorsHeaders(request)
 
     // 检查环境变量
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      console.error('Missing Supabase environment variables')
+      serverLogger.error('Missing Supabase environment variables')
       return NextResponse.json({ 
         error: 'Server configuration error',
         details: 'Missing Supabase environment variables'
@@ -39,9 +37,9 @@ export async function POST(request: NextRequest) {
     // 使用Supabase原生Magic Link
     const redirectUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.66do.com'}/auth/magic-link`
     
-    console.log('Sending magic link to:', email)
-    console.log('Redirect URL:', redirectUrl)
-    console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+    logger.log('Sending magic link to:', email)
+    logger.log('Redirect URL:', redirectUrl)
+    logger.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
 
     const { data, error } = await supabase.auth.signInWithOtp({
       email,
@@ -52,8 +50,8 @@ export async function POST(request: NextRequest) {
     })
 
     if (error) {
-      console.error('Supabase magic link error:', error)
-      console.error('Error details:', {
+      serverLogger.error('Supabase magic link error:', error)
+      serverLogger.error('Error details:', {
         message: error.message,
         status: error.status,
         name: error.name
@@ -69,7 +67,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    console.log('Magic link sent successfully:', data)
+    logger.log('Magic link sent successfully:', data)
     
     return NextResponse.json({ 
       success: true, 
@@ -79,18 +77,13 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Send magic link error:', error)
+    serverLogger.error('Send magic link error:', error)
     return NextResponse.json({ 
       error: 'Failed to send magic link email',
-      details: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
+      details: error instanceof Error ? error.message : 'Unknown error'
     }, {
       status: 500,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      }
+      headers: getCorsHeadersForError()
     })
   }
 }
@@ -98,10 +91,6 @@ export async function POST(request: NextRequest) {
 export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    }
+    headers: getCorsHeadersForError()
   })
 }
