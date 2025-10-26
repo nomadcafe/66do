@@ -207,16 +207,25 @@ export default function DashboardPage() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showSaleSuccessModal, setShowSaleSuccessModal] = useState(false);
   const [saleSuccessData, setSaleSuccessData] = useState<{domain: Domain, transaction: Transaction} | null>(null);
-  const { user, signOut } = useSupabaseAuth();
+  const { user, session, loading: authLoading, refreshSession, signOut } = useSupabaseAuth();
   const { t, locale, setLocale } = useI18nContext();
   const router = useRouter();
 
-  // Redirect if not authenticated
+  // Redirect if not authenticated (but wait for auth to load)
   useEffect(() => {
-    if (!user) {
+    if (!authLoading && !user) {
+      console.log('No user found, redirecting to login');
       router.push('/login');
     }
-  }, [user, router]);
+  }, [user, authLoading, router]);
+
+  // 页面刷新时尝试恢复会话
+  useEffect(() => {
+    if (authLoading && !user && !session) {
+      console.log('Page refreshed, attempting to restore session...');
+      refreshSession();
+    }
+  }, [authLoading, user, session, refreshSession]);
 
   // Load data from Supabase database only
   useEffect(() => {
@@ -817,6 +826,18 @@ export default function DashboardPage() {
 
   if (error) {
     return <ErrorMessage message={error} onRetry={() => window.location.reload()} />;
+  }
+
+  // 显示认证加载状态
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">正在验证您的身份...</p>
+        </div>
+      </div>
+    );
   }
 
   return (

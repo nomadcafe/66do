@@ -22,20 +22,34 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
 
   // 初始化认证状态
   useEffect(() => {
+    let mounted = true;
+
     // 获取当前会话
     const getInitialSession = async () => {
       try {
+        console.log('Getting initial session...');
         const { data: { session }, error } = await supabase.auth.getSession();
+        
         if (error) {
           console.error('Error getting session:', error);
         } else {
-          setSession(session);
-          setUser(session?.user ?? null);
+          console.log('Initial session:', { 
+            hasSession: !!session, 
+            userEmail: session?.user?.email,
+            expiresAt: session?.expires_at 
+          });
+          
+          if (mounted) {
+            setSession(session);
+            setUser(session?.user ?? null);
+          }
         }
       } catch (error) {
         console.error('Error in getInitialSession:', error);
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
@@ -45,13 +59,19 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
+        
+        if (mounted) {
+          setSession(session);
+          setUser(session?.user ?? null);
+          setLoading(false);
+        }
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signInWithMagicLink = async (email: string) => {
@@ -103,10 +123,20 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
 
   const refreshSession = async () => {
     try {
+      console.log('Refreshing session...');
       const { data: { session }, error } = await supabase.auth.refreshSession();
+      
       if (error) {
         console.error('Refresh session error:', error);
+        // 如果刷新失败，尝试获取当前会话
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
       } else {
+        console.log('Session refreshed successfully:', { 
+          userEmail: session?.user?.email,
+          expiresAt: session?.expires_at 
+        });
         setSession(session);
         setUser(session?.user ?? null);
       }
