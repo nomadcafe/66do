@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { X, Download, Share2, Twitter, Linkedin, Facebook, MessageCircle, CheckCircle, DollarSign, TrendingUp } from 'lucide-react';
+import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 
 interface Domain {
   id: string;
@@ -26,8 +27,8 @@ interface Transaction {
 interface SaleSuccessModalProps {
   isOpen: boolean;
   onClose: () => void;
-  domain: Domain;
-  transaction: Transaction;
+  domain: DomainWithTags;
+  transaction: TransactionWithRequiredFields;
 }
 
 export default function SaleSuccessModal({ isOpen, onClose, domain, transaction }: SaleSuccessModalProps) {
@@ -36,19 +37,19 @@ export default function SaleSuccessModal({ isOpen, onClose, domain, transaction 
   const [imageGenerated, setImageGenerated] = useState(false);
 
   const calculateProfit = () => {
-    const totalHoldingCost = domain.purchase_cost + (domain.renewal_count * domain.renewal_cost);
+    const totalHoldingCost = (domain.purchase_cost || 0) + (domain.renewal_count * (domain.renewal_cost || 0));
     const platformFee = transaction.platform_fee || 0;
     return (transaction.net_amount || transaction.amount) - totalHoldingCost - platformFee;
   };
 
   const calculateROI = () => {
-    const totalHoldingCost = domain.purchase_cost + (domain.renewal_count * domain.renewal_cost);
+    const totalHoldingCost = (domain.purchase_cost || 0) + (domain.renewal_count * (domain.renewal_cost || 0));
     const profit = calculateProfit();
     return totalHoldingCost > 0 ? (profit / totalHoldingCost) * 100 : 0;
   };
 
   const calculateHoldingPeriod = () => {
-    const purchaseDate = new Date(domain.purchase_date);
+    const purchaseDate = new Date(domain.purchase_date || '');
     const saleDate = new Date(transaction.date);
     const diffTime = Math.abs(saleDate.getTime() - purchaseDate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));

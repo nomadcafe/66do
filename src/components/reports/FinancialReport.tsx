@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 // 使用共享计算逻辑
 import { 
   TrendingUp, 
@@ -49,8 +50,8 @@ interface Transaction {
 }
 
 interface FinancialReportProps {
-  domains: Domain[];
-  transactions: Transaction[];
+  domains: DomainWithTags[];
+  transactions: TransactionWithRequiredFields[];
 }
 
 interface ReportPeriod {
@@ -128,7 +129,7 @@ export default function FinancialReport({ domains, transactions }: FinancialRepo
     if (!period) return { domains, transactions };
 
     const filteredDomains = domains.filter(domain => {
-      const domainDate = new Date(domain.purchase_date);
+      const domainDate = new Date(domain.purchase_date || '');
       return domainDate >= period.startDate && domainDate <= period.endDate;
     });
 
@@ -147,8 +148,8 @@ export default function FinancialReport({ domains, transactions }: FinancialRepo
     // 基础计算
     const totalInvestment = filteredDomains.reduce((sum, domain) => {
       const holdingCost = calculateDomainHoldingCost(
-        domain.purchase_cost,
-        domain.renewal_cost,
+        domain.purchase_cost || 0,
+        domain.renewal_cost || 0,
         domain.renewal_count
       );
       return sum + holdingCost;
@@ -170,7 +171,7 @@ export default function FinancialReport({ domains, transactions }: FinancialRepo
     const soldDomainsWithDates = filteredDomains.filter(d => d.status === 'sold');
     const avgHoldingPeriod = soldDomainsWithDates.length > 0 
       ? soldDomainsWithDates.reduce((sum, domain) => {
-          const purchaseDate = new Date(domain.purchase_date);
+          const purchaseDate = new Date(domain.purchase_date || '');
           const sellDate = new Date(); // 这里应该从交易记录中获取实际出售日期
           const days = Math.floor((sellDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
           return sum + days;

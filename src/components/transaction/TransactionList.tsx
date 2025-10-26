@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Search, Filter, Plus, Edit, Trash2, DollarSign, Calendar, FileText, TrendingUp, TrendingDown } from 'lucide-react';
 import { calculateDomainROI, getROIColor, getROIBgColor, formatPercentage } from '../../lib/enhancedFinancialMetrics';
 import { useI18nContext } from '../../contexts/I18nProvider';
+import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 
 // 计算持有时间
 function calculateHoldingTime(purchaseDate: string, saleDate: string, t: (key: string) => string): {
@@ -84,9 +85,9 @@ interface Domain {
 }
 
 interface TransactionListProps {
-  transactions: Transaction[];
-  domains: Domain[];
-  onEdit: (transaction: Transaction) => void;
+  transactions: TransactionWithRequiredFields[];
+  domains: DomainWithTags[];
+  onEdit: (transaction: TransactionWithRequiredFields) => void;
   onDelete: (id: string) => void;
   onAdd: () => void;
 }
@@ -155,8 +156,7 @@ export default function TransactionList({
   const filteredTransactions = transactions.filter(transaction => {
     const matchesSearch = 
       getDomainName(transaction.domain_id).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      transaction.notes.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      transaction.platform?.toLowerCase().includes(searchTerm.toLowerCase());
+      (transaction.notes || '').toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesType = typeFilter === 'all' || transaction.type === typeFilter;
     
@@ -319,7 +319,7 @@ export default function TransactionList({
                               if (!domain) return null;
                               
                               const domainROI = calculateDomainROI(domain, [transaction]);
-                              const holdingTime = calculateHoldingTime(domain.purchase_date, transaction.date, t);
+                              const holdingTime = calculateHoldingTime(domain.purchase_date || '', transaction.date, t);
                               
                               return (
                                 <div className="flex flex-col space-y-1">
@@ -358,7 +358,7 @@ export default function TransactionList({
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {transaction.platform || '-'}
+                      -
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-900 max-w-xs truncate">

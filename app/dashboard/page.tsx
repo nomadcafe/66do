@@ -210,7 +210,7 @@ export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showShareModal, setShowShareModal] = useState(false);
   const [showSaleSuccessModal, setShowSaleSuccessModal] = useState(false);
-  const [saleSuccessData, setSaleSuccessData] = useState<{domain: Domain, transaction: Transaction} | null>(null);
+  const [saleSuccessData, setSaleSuccessData] = useState<{domain: DomainWithTags, transaction: TransactionWithRequiredFields} | null>(null);
   const { user, session, loading: authLoading, refreshSession, signOut } = useSupabaseAuth();
   const { t, locale, setLocale } = useI18nContext();
   const router = useRouter();
@@ -548,8 +548,8 @@ export default function DashboardPage() {
     setShowSmartDomainForm(true);
   };
 
-  const handleEditDomain = (domain: Domain) => {
-    setEditingDomain(ensureDomainWithTags(domain));
+  const handleEditDomain = (domain: DomainWithTags) => {
+    setEditingDomain(domain);
     setShowDomainForm(true);
   };
 
@@ -565,7 +565,7 @@ export default function DashboardPage() {
     saveData(updatedDomains, updatedTransactions);
   };
 
-  const handleSaveDomain = (domainData: Omit<Domain, 'id'>) => {
+  const handleSaveDomain = (domainData: Omit<DomainWithTags, 'id'>) => {
     let updatedDomains: DomainWithTags[];
     
     if (editingDomain) {
@@ -591,7 +591,7 @@ export default function DashboardPage() {
     setEditingDomain(undefined);
   };
 
-  const handleViewDomain = (domain: Domain) => {
+  const handleViewDomain = (domain: DomainWithTags) => {
     // TODO: Implement domain details view
     console.log('View domain:', domain);
   };
@@ -602,8 +602,8 @@ export default function DashboardPage() {
     setShowTransactionForm(true);
   };
 
-  const handleEditTransaction = (transaction: Transaction) => {
-    setEditingTransaction(ensureTransactionWithRequiredFields(transaction));
+  const handleEditTransaction = (transaction: TransactionWithRequiredFields) => {
+    setEditingTransaction(transaction);
     setShowTransactionForm(true);
   };
 
@@ -703,7 +703,7 @@ export default function DashboardPage() {
   };
 
 
-  const handleSaveTransaction = (transactionData: Omit<Transaction, 'id'>) => {
+  const handleSaveTransaction = (transactionData: Omit<TransactionWithRequiredFields, 'id'>) => {
     if (editingTransaction) {
       // Update existing transaction
       const updatedTransactions = transactions.map(transaction => 
@@ -755,9 +755,9 @@ export default function DashboardPage() {
   };
 
   // 处理出售交易完成后的分享
-  const handleSaleComplete = (transaction: Omit<Transaction, 'id'>, domain: Domain) => {
+  const handleSaleComplete = (transaction: Omit<TransactionWithRequiredFields, 'id'>, domain: DomainWithTags) => {
     // 创建完整的Transaction对象
-    const fullTransaction: Transaction = {
+    const fullTransaction: TransactionWithRequiredFields = {
       ...transaction,
       id: Date.now().toString()
     };
@@ -1653,16 +1653,21 @@ export default function DashboardPage() {
             onImport={(data: unknown) => {
               try {
                 const importData = data as { domains?: Domain[]; transactions?: Transaction[] };
+                let typedDomains = domains;
+                let typedTransactions = transactions;
+                
                 if (importData.domains) {
-                  setDomains(importData.domains);
+                  typedDomains = importData.domains.map(ensureDomainWithTags);
+                  setDomains(typedDomains);
                   domainCache.cacheDomains(user?.id || 'default', importData.domains);
                 }
                 if (importData.transactions) {
-                  setTransactions(importData.transactions);
+                  typedTransactions = importData.transactions.map(ensureTransactionWithRequiredFields);
+                  setTransactions(typedTransactions);
                   domainCache.cacheTransactions(user?.id || 'default', importData.transactions);
                 }
                 // Save imported data to Supabase database
-                saveData(importData.domains || domains, importData.transactions || transactions);
+                saveData(typedDomains, typedTransactions);
                 auditLogger.log(user?.id || 'default', 'data_imported', 'dashboard', { 
                   domainsCount: importData.domains?.length || 0,
                   transactionsCount: importData.transactions?.length || 0
@@ -1727,16 +1732,21 @@ export default function DashboardPage() {
             onRestore={(backup: unknown) => {
               try {
                 const restoreData = backup as { domains?: Domain[]; transactions?: Transaction[] };
+                let typedDomains = domains;
+                let typedTransactions = transactions;
+                
                 if (restoreData.domains) {
-                  setDomains(restoreData.domains);
+                  typedDomains = restoreData.domains.map(ensureDomainWithTags);
+                  setDomains(typedDomains);
                   domainCache.cacheDomains(user?.id || 'default', restoreData.domains);
                 }
                 if (restoreData.transactions) {
-                  setTransactions(restoreData.transactions);
+                  typedTransactions = restoreData.transactions.map(ensureTransactionWithRequiredFields);
+                  setTransactions(typedTransactions);
                   domainCache.cacheTransactions(user?.id || 'default', restoreData.transactions);
                 }
                 // Save restored data to Supabase database
-                saveData(restoreData.domains || domains, restoreData.transactions || transactions);
+                saveData(typedDomains, typedTransactions);
                 auditLogger.log(user?.id || 'default', 'data_restored', 'dashboard', { 
                   domainsCount: restoreData.domains?.length || 0,
                   transactionsCount: restoreData.transactions?.length || 0

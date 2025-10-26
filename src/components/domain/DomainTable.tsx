@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Search, Plus, Edit, Trash2, Eye, Share2, Calendar, Tag, Globe } from 'lucide-react';
 import DomainShareModal from '../share/DomainShareModal';
+import { DomainWithTags } from '../../types/dashboard';
 
 interface Domain {
   id: string;
@@ -24,10 +25,10 @@ interface Domain {
 }
 
 interface DomainTableProps {
-  domains: Domain[];
-  onEdit: (domain: Domain) => void;
+  domains: DomainWithTags[];
+  onEdit: (domain: DomainWithTags) => void;
   onDelete: (id: string) => void;
-  onView: (domain: Domain) => void;
+  onView: (domain: DomainWithTags) => void;
   onAdd: () => void;
 }
 
@@ -37,24 +38,12 @@ export default function DomainTable({ domains, onEdit, onDelete, onView, onAdd }
   const [sortField, setSortField] = useState('domain_name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [showShareModal, setShowShareModal] = useState(false);
-  const [selectedDomain, setSelectedDomain] = useState<Domain | null>(null);
+  const [selectedDomain, setSelectedDomain] = useState<DomainWithTags | null>(null);
 
   const filteredDomains = domains.filter(domain => {
-    // 处理tags字段，可能是字符串或数组
-    let tagsArray: string[] = [];
-    if (Array.isArray(domain.tags)) {
-      tagsArray = domain.tags;
-    } else if (typeof domain.tags === 'string' && domain.tags.trim()) {
-      try {
-        tagsArray = JSON.parse(domain.tags);
-      } catch {
-        tagsArray = domain.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
-      }
-    }
-    
     const matchesSearch = domain.domain_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         domain.registrar.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         tagsArray.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+                         (domain.registrar || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         domain.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesStatus = statusFilter === 'all' || domain.status === statusFilter;
     
@@ -109,9 +98,9 @@ export default function DomainTable({ domains, onEdit, onDelete, onView, onAdd }
     }
   };
 
-  const calculateTotalHoldingCost = (domain: Domain) => {
-    const totalRenewalCost = domain.renewal_count * domain.renewal_cost;
-    return domain.purchase_cost + totalRenewalCost;
+  const calculateTotalHoldingCost = (domain: DomainWithTags) => {
+    const totalRenewalCost = domain.renewal_count * (domain.renewal_cost || 0);
+    return (domain.purchase_cost || 0) + totalRenewalCost;
   };
 
   const formatCurrency = (amount: number) => {
@@ -131,7 +120,7 @@ export default function DomainTable({ domains, onEdit, onDelete, onView, onAdd }
     return diffDays;
   };
 
-  const getExpiryStatus = (domain: Domain) => {
+  const getExpiryStatus = (domain: DomainWithTags) => {
     if (!domain.expiry_date) return null;
     const days = getDaysUntilExpiry(domain.expiry_date);
     if (days === null) return null;
@@ -262,8 +251,8 @@ export default function DomainTable({ domains, onEdit, onDelete, onView, onAdd }
                 const totalHoldingCost = calculateTotalHoldingCost(domain);
                 const roi = domain.status === 'sold' && domain.sale_price 
                   ? ((domain.sale_price - totalHoldingCost) / totalHoldingCost * 100)
-                  : domain.estimated_value > 0 
-                    ? ((domain.estimated_value - totalHoldingCost) / totalHoldingCost * 100)
+                  : (domain.estimated_value || 0) > 0 
+                    ? (((domain.estimated_value || 0) - totalHoldingCost) / totalHoldingCost * 100)
                     : 0;
                 
                 const expiryStatus = getExpiryStatus(domain);
@@ -285,7 +274,7 @@ export default function DomainTable({ domains, onEdit, onDelete, onView, onAdd }
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="text-sm text-gray-900">{formatCurrency(domain.purchase_cost)}</div>
+                      <div className="text-sm text-gray-900">{formatCurrency(domain.purchase_cost || 0)}</div>
                       {domain.renewal_count > 0 && (
                         <div className="text-xs text-gray-500">
                           +{domain.renewal_count} renewals
@@ -299,7 +288,7 @@ export default function DomainTable({ domains, onEdit, onDelete, onView, onAdd }
                           <div className="text-xs text-gray-500">Sold</div>
                         </div>
                       ) : (
-                        <div className="text-sm text-gray-900">{formatCurrency(domain.estimated_value)}</div>
+                        <div className="text-sm text-gray-900">{formatCurrency(domain.estimated_value || 0)}</div>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -321,35 +310,15 @@ export default function DomainTable({ domains, onEdit, onDelete, onView, onAdd }
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
-                        {(() => {
-                          // 处理tags字段，可能是字符串或数组
-                          let tagsArray: string[] = [];
-                          if (Array.isArray(domain.tags)) {
-                            tagsArray = domain.tags;
-                          } else if (typeof domain.tags === 'string' && domain.tags.trim()) {
-                            // 如果是字符串，尝试解析为数组
-                            try {
-                              tagsArray = JSON.parse(domain.tags);
-                            } catch {
-                              // 如果解析失败，按逗号分割
-                              tagsArray = domain.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
-                            }
-                          }
-                          
-                          return (
-                            <>
-                              {tagsArray.slice(0, 2).map((tag, index) => (
-                                <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800">
-                                  <Tag className="w-3 h-3 mr-1" />
-                                  {tag}
-                                </span>
-                              ))}
-                              {tagsArray.length > 2 && (
-                                <span className="text-xs text-gray-500">+{tagsArray.length - 2}</span>
-                              )}
-                            </>
-                          );
-                        })()}
+                        {domain.tags.slice(0, 2).map((tag, index) => (
+                          <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800">
+                            <Tag className="w-3 h-3 mr-1" />
+                            {tag}
+                          </span>
+                        ))}
+                        {domain.tags.length > 2 && (
+                          <span className="text-xs text-gray-500">+{domain.tags.length - 2}</span>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3">

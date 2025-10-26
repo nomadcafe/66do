@@ -1,4 +1,5 @@
 import { Domain, DomainTransaction as Transaction } from '../types/domain';
+import { DomainWithTags, TransactionWithRequiredFields } from '../types/dashboard';
 
 // 基础财务计算接口
 export interface BasicFinancialMetrics {
@@ -11,7 +12,7 @@ export interface BasicFinancialMetrics {
 
 // 域名表现接口
 export interface DomainPerformance {
-  domain: Domain;
+  domain: DomainWithTags;
   profit: number;
   roi: number;
   totalCost: number;
@@ -41,13 +42,13 @@ export function calculateDomainHoldingCost(
 
 // 计算基础财务指标
 export function calculateBasicFinancialMetrics(
-  domains: Domain[],
-  transactions: Transaction[]
+  domains: DomainWithTags[],
+  transactions: TransactionWithRequiredFields[]
 ): BasicFinancialMetrics {
   const totalInvestment = domains.reduce((sum, domain) => {
     return sum + calculateDomainHoldingCost(
-      domain.purchase_cost,
-      domain.renewal_cost,
+      domain.purchase_cost || 0,
+      domain.renewal_cost || 0,
       domain.renewal_count
     );
   }, 0);
@@ -71,13 +72,13 @@ export function calculateBasicFinancialMetrics(
 
 // 计算域名表现
 export function calculateDomainPerformance(
-  domains: Domain[],
-  transactions: Transaction[]
+  domains: DomainWithTags[],
+  transactions: TransactionWithRequiredFields[]
 ): DomainPerformance[] {
   return domains.map(domain => {
     const totalCost = calculateDomainHoldingCost(
-      domain.purchase_cost,
-      domain.renewal_cost,
+      domain.purchase_cost || 0,
+      domain.renewal_cost || 0,
       domain.renewal_count
     );
     
@@ -114,24 +115,24 @@ export function calculateAnnualizedReturn(
 }
 
 // 计算投资年限
-export function calculateInvestmentYears(domains: Domain[]): number {
+export function calculateInvestmentYears(domains: DomainWithTags[]): number {
   if (domains.length === 0) return 1;
   
   const oldestDomain = domains.reduce((oldest, domain) => {
-    const domainDate = new Date(domain.purchase_date);
-    const oldestDate = new Date(oldest.purchase_date);
+    const domainDate = new Date(domain.purchase_date || '');
+    const oldestDate = new Date(oldest.purchase_date || '');
     return domainDate < oldestDate ? domain : oldest;
   }, domains[0]);
   
   if (!oldestDomain) return 1;
   
-  return (new Date().getTime() - new Date(oldestDomain.purchase_date).getTime()) / (1000 * 60 * 60 * 24 * 365);
+  return (new Date().getTime() - new Date(oldestDomain.purchase_date || '').getTime()) / (1000 * 60 * 60 * 24 * 365);
 }
 
 // 计算月度收益
 export function calculateMonthlyReturns(
-  domains: Domain[],
-  transactions: Transaction[]
+  domains: DomainWithTags[],
+  transactions: TransactionWithRequiredFields[]
 ): number[] {
   return Array.from({ length: 12 }, (_, i) => {
     const date = new Date();
@@ -188,14 +189,14 @@ export function calculateSharpeRatio(
 }
 
 // 计算胜率
-export function calculateWinRate(domains: Domain[]): number {
+export function calculateWinRate(domains: DomainWithTags[]): number {
   const soldDomains = domains.filter(d => d.status === 'sold');
   if (soldDomains.length === 0) return 0;
   
   const profitableDomains = soldDomains.filter(d => {
     const totalCost = calculateDomainHoldingCost(
-      d.purchase_cost,
-      d.renewal_cost,
+      d.purchase_cost || 0,
+      d.renewal_cost || 0,
       d.renewal_count
     );
     return (d.sale_price || 0) > totalCost;
@@ -205,13 +206,13 @@ export function calculateWinRate(domains: Domain[]): number {
 }
 
 // 计算平均持有期
-export function calculateAvgHoldingPeriod(domains: Domain[]): number {
+export function calculateAvgHoldingPeriod(domains: DomainWithTags[]): number {
   const soldDomains = domains.filter(d => d.status === 'sold');
   if (soldDomains.length === 0) return 0;
   
   const totalDays = soldDomains.reduce((sum, domain) => {
-    const purchaseDate = new Date(domain.purchase_date);
-    const saleDate = new Date(domain.sale_date || domain.purchase_date);
+    const purchaseDate = new Date(domain.purchase_date || '');
+    const saleDate = new Date(domain.sale_date || domain.purchase_date || '');
     return sum + (saleDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24);
   }, 0);
   
@@ -220,8 +221,8 @@ export function calculateAvgHoldingPeriod(domains: Domain[]): number {
 
 // 计算高级财务指标
 export function calculateAdvancedFinancialMetrics(
-  domains: Domain[],
-  transactions: Transaction[]
+  domains: DomainWithTags[],
+  transactions: TransactionWithRequiredFields[]
 ): AdvancedFinancialMetrics {
   const basicMetrics = calculateBasicFinancialMetrics(domains, transactions);
   const years = calculateInvestmentYears(domains);
@@ -274,7 +275,7 @@ export function calculateRiskLevel(
 }
 
 // 计算成功率
-export function calculateSuccessRate(domains: Domain[]): number {
+export function calculateSuccessRate(domains: DomainWithTags[]): number {
   const soldDomains = domains.filter(d => d.status === 'sold');
   return domains.length > 0 ? (soldDomains.length / domains.length) * 100 : 0;
 }

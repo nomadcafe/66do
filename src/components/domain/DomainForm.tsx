@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, Save, Globe, Calendar, DollarSign, Tag } from 'lucide-react';
 import { validateDomain, sanitizeDomainData } from '../../lib/validation';
+import { DomainWithTags } from '../../types/dashboard';
 
 interface Domain {
   id: string;
@@ -21,10 +22,10 @@ interface Domain {
 }
 
 interface DomainFormProps {
-  domain?: Domain;
+  domain?: DomainWithTags;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (domain: Omit<Domain, 'id'>) => void;
+  onSave: (domain: Omit<DomainWithTags, 'id'>) => void;
 }
 
 export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFormProps) {
@@ -50,25 +51,17 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
     if (domain) {
       setFormData({
         domain_name: domain.domain_name,
-        registrar: domain.registrar,
-        purchase_date: domain.purchase_date,
-        purchase_cost: domain.purchase_cost,
-        renewal_cost: domain.renewal_cost,
+        registrar: domain.registrar || '',
+        purchase_date: domain.purchase_date || '',
+        purchase_cost: domain.purchase_cost || 0,
+        renewal_cost: domain.renewal_cost || 0,
         renewal_cycle: domain.renewal_cycle,
         renewal_count: domain.renewal_count,
         next_renewal_date: domain.next_renewal_date || '',
         expiry_date: domain.expiry_date || '',
-        status: domain.status,
-        estimated_value: domain.estimated_value,
-        tags: Array.isArray(domain.tags) ? domain.tags : 
-              typeof domain.tags === 'string' && domain.tags.trim() ? 
-                (() => {
-                  try {
-                    return JSON.parse(domain.tags);
-                  } catch {
-                    return domain.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
-                  }
-                })() : []
+        status: domain.status as 'active' | 'for_sale' | 'sold' | 'expired',
+        estimated_value: domain.estimated_value || 0,
+        tags: domain.tags
       });
     } else {
       setFormData({
@@ -101,7 +94,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
     }
     
     setValidationErrors([]);
-    onSave(sanitizedData as Omit<Domain, 'id'>);
+    onSave(sanitizedData as Omit<DomainWithTags, 'id'>);
     onClose();
   };
 

@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { useComprehensiveFinancialAnalysis } from '../../hooks/useFinancialCalculations';
 import { useI18nContext } from '../../contexts/I18nProvider';
+import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import { 
   LineChart, 
   Line, 
@@ -67,8 +68,8 @@ interface Transaction {
 }
 
 interface InvestmentAnalyticsProps {
-  domains: Domain[];
-  transactions: Transaction[];
+  domains: DomainWithTags[];
+  transactions: TransactionWithRequiredFields[];
 }
 
 interface PortfolioMetrics {
@@ -138,7 +139,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       const monthKey = date.toISOString().slice(0, 7);
 
       const monthDomains = domains.filter(d => 
-        new Date(d.purchase_date).toISOString().slice(0, 7) <= monthKey
+        d.purchase_date && new Date(d.purchase_date).toISOString().slice(0, 7) <= monthKey
       );
 
       const monthTransactions = transactions.filter(t => 
@@ -146,7 +147,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       );
 
       const investment = monthDomains.reduce((sum, domain) => {
-        const holdingCost = domain.purchase_cost + (domain.renewal_count * domain.renewal_cost);
+        const holdingCost = (domain.purchase_cost || 0) + (domain.renewal_count * (domain.renewal_cost || 0));
         return sum + holdingCost;
       }, 0);
 
@@ -174,7 +175,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
   // 计算风险分析
   const riskAnalysis: RiskAnalysis = useMemo(() => {
     const totalValue = portfolioMetrics.totalInvestment + portfolioMetrics.totalProfit;
-    const domainValues = domains.map(d => d.estimated_value);
+    const domainValues = domains.map(d => d.estimated_value || 0);
     const maxDomainValue = Math.max(...domainValues);
     const concentrationRisk = totalValue > 0 ? (maxDomainValue / totalValue) * 100 : 0;
 

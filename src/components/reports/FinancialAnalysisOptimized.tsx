@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import { 
   TrendingUp, 
   DollarSign, 
@@ -15,8 +16,8 @@ import { Domain } from '../../types/domain';
 import { DomainTransaction as Transaction } from '../../types/domain';
 
 interface FinancialAnalysisProps {
-  domains: Domain[];
-  transactions: Transaction[];
+  domains: DomainWithTags[];
+  transactions: TransactionWithRequiredFields[];
 }
 
 interface AnalysisResult {
@@ -37,7 +38,7 @@ interface AnalysisResult {
   };
   performance: {
     domainPerformance: Array<{
-      domain: Domain;
+      domain: DomainWithTags;
       profit: number;
       roi: number;
     }>;

@@ -3,31 +3,14 @@
 import { useState } from 'react';
 import { Globe, Calendar, DollarSign, Tag, Edit, Trash2, Eye, Share2 } from 'lucide-react';
 import DomainShareModal from '../share/DomainShareModal';
+import { DomainWithTags } from '../../types/dashboard';
 
-interface Domain {
-  id: string;
-  domain_name: string;
-  registrar: string;
-  purchase_date: string;
-  purchase_cost: number;
-  renewal_cost: number;
-  renewal_cycle: number; // 续费周期（年数）：1, 2, 3等
-  renewal_count: number; // 已续费次数
-  next_renewal_date?: string;
-  expiry_date?: string; // 改为可选字段
-  status: 'active' | 'for_sale' | 'sold' | 'expired';
-  estimated_value: number;
-  sale_date?: string; // 出售日期
-  sale_price?: number; // 出售价格
-  platform_fee?: number; // 平台手续费
-  tags: string[] | string;
-}
 
 interface DomainCardProps {
-  domain: Domain;
-  onEdit: (domain: Domain) => void;
+  domain: DomainWithTags;
+  onEdit: (domain: DomainWithTags) => void;
   onDelete: (id: string) => void;
-  onView: (domain: Domain) => void;
+  onView: (domain: DomainWithTags) => void;
 }
 
 export default function DomainCard({ domain, onEdit, onDelete, onView }: DomainCardProps) {
@@ -36,8 +19,8 @@ export default function DomainCard({ domain, onEdit, onDelete, onView }: DomainC
 
   // 计算总持有成本
   const calculateTotalHoldingCost = () => {
-    const totalRenewalCost = domain.renewal_count * domain.renewal_cost;
-    return domain.purchase_cost + totalRenewalCost;
+    const totalRenewalCost = domain.renewal_count * (domain.renewal_cost || 0);
+    return (domain.purchase_cost || 0) + totalRenewalCost;
   };
 
   const totalHoldingCost = calculateTotalHoldingCost();
@@ -88,18 +71,18 @@ export default function DomainCard({ domain, onEdit, onDelete, onView }: DomainC
             <div className="flex items-center space-x-4 mt-3">
               <div className="flex items-center space-x-1 text-sm text-gray-600">
                 <Calendar className="h-4 w-4" />
-                <span>{formatDate(domain.purchase_date)}</span>
+                <span>{formatDate(domain.purchase_date || '')}</span>
               </div>
               <div className="flex items-center space-x-1 text-sm text-gray-600">
                 <DollarSign className="h-4 w-4" />
-                <span>{formatCurrency(domain.purchase_cost)}</span>
+                <span>{formatCurrency(domain.purchase_cost || 0)}</span>
               </div>
             </div>
 
         <div className="flex items-center space-x-4 mt-2">
           <div className="flex items-center space-x-1 text-sm text-gray-600">
             <DollarSign className="h-4 w-4" />
-            <span>Renewal: {formatCurrency(domain.renewal_cost)}</span>
+            <span>Renewal: {formatCurrency(domain.renewal_cost || 0)}</span>
           </div>
           <div className="flex items-center space-x-1 text-sm text-gray-600">
             <Calendar className="h-4 w-4" />
@@ -146,19 +129,8 @@ export default function DomainCard({ domain, onEdit, onDelete, onView }: DomainC
         )}
 
             {(() => {
-              // 处理tags字段，可能是字符串或数组
-              let tagsArray: string[] = [];
-              if (Array.isArray(domain.tags)) {
-                tagsArray = domain.tags;
-              } else if (typeof domain.tags === 'string' && domain.tags.trim()) {
-                // 如果是字符串，尝试解析为数组
-                try {
-                  tagsArray = JSON.parse(domain.tags);
-                } catch {
-                  // 如果解析失败，按逗号分割
-                  tagsArray = domain.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
-                }
-              }
+              // DomainWithTags已经确保tags是string[]
+              const tagsArray = domain.tags;
               
               return tagsArray.length > 0 ? (
                 <div className="flex flex-wrap gap-1 mt-3">
@@ -182,7 +154,7 @@ export default function DomainCard({ domain, onEdit, onDelete, onView }: DomainC
               <div className="text-right">
                 <p className="text-sm text-gray-600">Estimated Value</p>
                 <p className="text-lg font-semibold text-gray-900">
-                  {formatCurrency(domain.estimated_value)}
+                  {formatCurrency(domain.estimated_value || 0)}
                 </p>
               </div>
             </div>

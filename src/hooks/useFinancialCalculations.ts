@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Domain, DomainTransaction as Transaction } from '../types/domain';
+import { DomainWithTags, TransactionWithRequiredFields } from '../types/dashboard';
 import {
   calculateBasicFinancialMetrics,
   calculateAdvancedFinancialMetrics,
@@ -16,8 +17,8 @@ import {
 
 // 基础财务计算hook
 export function useBasicFinancialMetrics(
-  domains: Domain[],
-  transactions: Transaction[]
+  domains: DomainWithTags[],
+  transactions: TransactionWithRequiredFields[]
 ): BasicFinancialMetrics {
   return useMemo(() => {
     return calculateBasicFinancialMetrics(domains, transactions);
@@ -26,8 +27,8 @@ export function useBasicFinancialMetrics(
 
 // 高级财务计算hook
 export function useAdvancedFinancialMetrics(
-  domains: Domain[],
-  transactions: Transaction[]
+  domains: DomainWithTags[],
+  transactions: TransactionWithRequiredFields[]
 ): AdvancedFinancialMetrics {
   return useMemo(() => {
     return calculateAdvancedFinancialMetrics(domains, transactions);
@@ -36,8 +37,8 @@ export function useAdvancedFinancialMetrics(
 
 // 域名表现计算hook
 export function useDomainPerformance(
-  domains: Domain[],
-  transactions: Transaction[]
+  domains: DomainWithTags[],
+  transactions: TransactionWithRequiredFields[]
 ): DomainPerformance[] {
   return useMemo(() => {
     return calculateDomainPerformance(domains, transactions);
@@ -46,8 +47,8 @@ export function useDomainPerformance(
 
 // 月度收益计算hook
 export function useMonthlyReturns(
-  domains: Domain[],
-  transactions: Transaction[]
+  domains: DomainWithTags[],
+  transactions: TransactionWithRequiredFields[]
 ): number[] {
   return useMemo(() => {
     return calculateMonthlyReturns(domains, transactions);
@@ -56,8 +57,8 @@ export function useMonthlyReturns(
 
 // 风险分析hook
 export function useRiskAnalysis(
-  domains: Domain[],
-  transactions: Transaction[]
+  domains: DomainWithTags[],
+  transactions: TransactionWithRequiredFields[]
 ) {
   return useMemo(() => {
     const monthlyReturns = calculateMonthlyReturns(domains, transactions);
@@ -78,8 +79,8 @@ export function useRiskAnalysis(
 
 // 综合财务分析hook
 export function useComprehensiveFinancialAnalysis(
-  domains: Domain[],
-  transactions: Transaction[]
+  domains: DomainWithTags[],
+  transactions: TransactionWithRequiredFields[]
 ) {
   const basicMetrics = useBasicFinancialMetrics(domains, transactions);
   const advancedMetrics = useAdvancedFinancialMetrics(domains, transactions);

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { X, Save, DollarSign, Calendar, FileText, TrendingUp, TrendingDown } from 'lucide-react';
 import { exchangeRateManager, formatCurrencyAmount, getRateTrend } from '../../lib/exchangeRates';
 import { useI18nContext } from '../../contexts/I18nProvider';
+import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 
 interface Transaction {
   id: string;
@@ -44,12 +45,12 @@ interface Domain {
 }
 
 interface TransactionFormProps {
-  transaction?: Transaction;
-  domains: Domain[];
+  transaction?: TransactionWithRequiredFields;
+  domains: DomainWithTags[];
   isOpen: boolean;
   onClose: () => void;
-  onSave: (transaction: Omit<Transaction, 'id'>) => void;
-  onSaleComplete?: (transaction: Omit<Transaction, 'id'>, domain: Domain) => void;
+  onSave: (transaction: Omit<TransactionWithRequiredFields, 'id'>) => void;
+  onSaleComplete?: (transaction: Omit<TransactionWithRequiredFields, 'id'>, domain: DomainWithTags) => void;
 }
 
 export default function TransactionForm({ 
@@ -63,7 +64,7 @@ export default function TransactionForm({
   const { t } = useI18nContext();
   const [formData, setFormData] = useState({
     domain_id: '',
-    type: 'buy' as 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising',
+    type: 'buy' as 'buy' | 'renew' | 'sell' | 'transfer' | 'fee',
     amount: 0,
     currency: 'USD',
     exchange_rate: 1,
@@ -99,8 +100,8 @@ export default function TransactionForm({
         platform_fee_percentage: transaction.platform_fee_percentage || 0,
         net_amount: transaction.net_amount || 0,
         date: transaction.date,
-        notes: transaction.notes,
-        platform: transaction.platform || '',
+        notes: transaction.notes || '',
+        platform: '',
         category: transaction.category || '',
         tax_deductible: transaction.tax_deductible || false,
         receipt_url: transaction.receipt_url || ''
@@ -108,7 +109,7 @@ export default function TransactionForm({
     } else {
       setFormData({
         domain_id: '',
-        type: 'buy' as 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising',
+        type: 'buy' as 'buy' | 'renew' | 'sell' | 'transfer' | 'fee',
         amount: 0,
         currency: 'USD',
         exchange_rate: 1,
@@ -153,7 +154,10 @@ export default function TransactionForm({
     const calculatedNetAmount = formData.amount - formData.platform_fee;
     const finalFormData = {
       ...formData,
-      net_amount: calculatedNetAmount
+      net_amount: calculatedNetAmount,
+      user_id: '',
+      created_at: '',
+      updated_at: ''
     };
     
     onSave(finalFormData);

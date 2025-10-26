@@ -50,18 +50,18 @@ export function calculateDomainROI(
   domain: {
     id: string;
     domain_name: string;
-    purchase_cost: number;
-    renewal_cost: number;
+    purchase_cost: number | null;
+    renewal_cost: number | null;
     renewal_count: number;
-    purchase_date: string;
+    purchase_date: string | null;
     status: string;
   },
   transactions: Array<{
     domain_id: string;
     type: string;
     amount: number;
-    platform_fee?: number;
-    net_amount?: number;
+    platform_fee?: number | null;
+    net_amount?: number | null;
     date: string;
   }>
 ): DomainROI {
@@ -69,8 +69,8 @@ export function calculateDomainROI(
   const domainTransactions = transactions.filter(t => t.domain_id === domain.id);
   
   // 投资成本
-  const purchaseCost = domain.purchase_cost;
-  const renewalCost = domain.renewal_count * domain.renewal_cost;
+  const purchaseCost = domain.purchase_cost || 0;
+  const renewalCost = domain.renewal_count * (domain.renewal_cost || 0);
   const totalInvestment = purchaseCost + renewalCost;
   
   // 销售收入
@@ -83,7 +83,7 @@ export function calculateDomainROI(
   const roi = totalInvestment > 0 ? (grossProfit / totalInvestment) * 100 : 0;
   
   // 持有期
-  const purchaseDate = new Date(domain.purchase_date);
+  const purchaseDate = new Date(domain.purchase_date || '');
   const currentDate = new Date();
   const holdingPeriod = Math.floor((currentDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
   
@@ -119,8 +119,8 @@ export function calculateAllDomainROIs(
     domain_id: string;
     type: string;
     amount: number;
-    platform_fee?: number;
-    net_amount?: number;
+    platform_fee?: number | null;
+    net_amount?: number | null;
     date: string;
   }>
 ): DomainROI[] {
@@ -142,8 +142,8 @@ export function calculateEnhancedFinancialMetrics(
     domain_id: string;
     type: string;
     amount: number;
-    platform_fee?: number;
-    net_amount?: number;
+    platform_fee?: number | null;
+    net_amount?: number | null;
     date: string;
     platform?: string;
   }>

@@ -2,20 +2,22 @@
 
 import { useState, useEffect } from 'react';
 import { Domain } from '../../types/domain';
+import { DomainWithTags } from '../../types/dashboard';
 import { domainExpiryManager } from '../../lib/domainExpiryManager';
 // import { useI18nContext } from '../../contexts/I18nProvider';
 import { Calendar, AlertCircle, CheckCircle, Info, RefreshCw } from 'lucide-react';
 
 interface SmartDomainFormProps {
-  domain?: Domain;
+  domain?: DomainWithTags;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (domain: Omit<Domain, 'id'>) => void;
+  onSave: (domain: Omit<DomainWithTags, 'id'>) => void;
 }
 
 export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: SmartDomainFormProps) {
   // const { t } = useI18nContext();
-  const [formData, setFormData] = useState<Omit<Domain, 'id'>>({
+  const [formData, setFormData] = useState<Omit<DomainWithTags, 'id'>>({
+    user_id: '',
     domain_name: '',
     registrar: '',
     purchase_date: new Date().toISOString().split('T')[0],
@@ -23,9 +25,16 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
     renewal_cost: 0,
     renewal_cycle: 1,
     renewal_count: 0,
+    next_renewal_date: '',
+    expiry_date: '',
     status: 'active',
     estimated_value: 0,
-    tags: []
+    sale_date: null,
+    sale_price: null,
+    platform_fee: null,
+    tags: [],
+    created_at: '',
+    updated_at: ''
   });
 
   const [suggestedExpiry, setSuggestedExpiry] = useState<string | null>(null);
@@ -43,6 +52,7 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
       setAutoCalculate(!domain.expiry_date); // 如果没有到期日期，启用自动计算
     } else {
       setFormData({
+        user_id: '',
         domain_name: '',
         registrar: '',
         purchase_date: new Date().toISOString().split('T')[0],
@@ -50,9 +60,16 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
         renewal_cost: 0,
         renewal_cycle: 1,
         renewal_count: 0,
+        next_renewal_date: '',
+        expiry_date: '',
         status: 'active',
         estimated_value: 0,
-        tags: []
+        sale_date: null,
+        sale_price: null,
+        platform_fee: null,
+        tags: [],
+        created_at: '',
+        updated_at: ''
       });
       setAutoCalculate(true);
     }
@@ -65,7 +82,10 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
       
       // 模拟计算延迟
       setTimeout(() => {
-        const calculated = domainExpiryManager.calculateExpiryDate(formData as Domain);
+        const calculated = domainExpiryManager.calculateExpiryDate({
+          ...formData,
+          id: 'temp'
+        } as Domain);
         setSuggestedExpiry(calculated);
         setIsCalculating(false);
       }, 500);
@@ -75,7 +95,10 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
   // 验证到期日期
   useEffect(() => {
     if (formData.expiry_date) {
-      const validation = domainExpiryManager.validateExpiryDate(formData as Domain, formData.expiry_date);
+      const validation = domainExpiryManager.validateExpiryDate({
+        ...formData,
+        id: 'temp'
+      } as Domain, formData.expiry_date);
       setExpiryValidation(validation);
     } else {
       setExpiryValidation(null);
@@ -96,7 +119,10 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
   const handleAutoCalculate = () => {
     setAutoCalculate(!autoCalculate);
     if (!autoCalculate) {
-      const calculated = domainExpiryManager.calculateExpiryDate(formData as Domain);
+      const calculated = domainExpiryManager.calculateExpiryDate({
+        ...formData,
+        id: 'temp'
+      } as Domain);
       if (calculated) {
         setFormData(prev => ({ ...prev, expiry_date: calculated }));
       }
@@ -156,7 +182,7 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
                 </label>
                 <input
                   type="text"
-                  value={formData.registrar}
+                  value={formData.registrar || ''}
                   onChange={(e) => handleInputChange('registrar', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="GoDaddy, Namecheap, etc."
@@ -172,7 +198,7 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
                 </label>
                 <input
                   type="date"
-                  value={formData.purchase_date}
+                  value={formData.purchase_date || ''}
                   onChange={(e) => handleInputChange('purchase_date', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
@@ -186,7 +212,7 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
                 <input
                   type="number"
                   step="0.01"
-                  value={formData.purchase_cost}
+                  value={formData.purchase_cost || 0}
                   onChange={(e) => handleInputChange('purchase_cost', parseFloat(e.target.value) || 0)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="0.00"
@@ -220,7 +246,7 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
                 <input
                   type="number"
                   step="0.01"
-                  value={formData.renewal_cost}
+                  value={formData.renewal_cost || 0}
                   onChange={(e) => handleInputChange('renewal_cost', parseFloat(e.target.value) || 0)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="0.00"
@@ -356,7 +382,7 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
                 <input
                   type="number"
                   step="0.01"
-                  value={formData.estimated_value}
+                  value={formData.estimated_value || 0}
                   onChange={(e) => handleInputChange('estimated_value', parseFloat(e.target.value) || 0)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="0.00"

@@ -120,7 +120,7 @@ export function ensureTransactionWithRequiredFields(transaction: Transaction | u
   return {
     ...t,
     domain_id: t.domain_id || '',
-    type: t.type || 'buy',
+    type: (t.type || 'buy') as 'buy' | 'sell' | 'renew' | 'transfer' | 'fee',
     amount: t.amount || 0,
     date: t.date || new Date().toISOString()
   };

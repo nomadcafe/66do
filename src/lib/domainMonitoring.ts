@@ -1,9 +1,9 @@
 'use client';
 
-import { Domain } from '../types/domain';
+import { DomainWithTags } from '../types/dashboard';
 
 export interface DomainExpiryInfo {
-  domain: Domain;
+  domain: DomainWithTags;
   daysUntilExpiry: number;
   urgency: 'critical' | 'urgent' | 'warning' | 'normal';
   isExpired: boolean;
@@ -37,7 +37,7 @@ export class DomainMonitor {
   }
 
   // 检查域名到期状态
-  checkDomainExpiry(domains: Domain[]): DomainExpiryInfo[] {
+  checkDomainExpiry(domains: DomainWithTags[]): DomainExpiryInfo[] {
     const now = new Date();
     const results: DomainExpiryInfo[] = [];
 
@@ -84,28 +84,28 @@ export class DomainMonitor {
   }
 
   // 获取需要提醒的域名
-  getExpiringDomains(domains: Domain[]): DomainExpiryInfo[] {
+  getExpiringDomains(domains: DomainWithTags[]): DomainExpiryInfo[] {
     return this.checkDomainExpiry(domains).filter(info => 
       info.isExpiringSoon || info.isExpired
     );
   }
 
   // 获取紧急域名（7天内到期）
-  getCriticalDomains(domains: Domain[]): DomainExpiryInfo[] {
+  getCriticalDomains(domains: DomainWithTags[]): DomainExpiryInfo[] {
     return this.checkDomainExpiry(domains).filter(info => 
       info.urgency === 'critical'
     );
   }
 
   // 获取过期域名
-  getExpiredDomains(domains: Domain[]): DomainExpiryInfo[] {
+  getExpiredDomains(domains: DomainWithTags[]): DomainExpiryInfo[] {
     return this.checkDomainExpiry(domains).filter(info => 
       info.isExpired
     );
   }
 
   // 启动自动监控
-  startMonitoring(domains: Domain[], onAlert: (alerts: DomainExpiryInfo[]) => void) {
+  startMonitoring(domains: DomainWithTags[], onAlert: (alerts: DomainExpiryInfo[]) => void) {
     if (this.checkInterval) {
       this.stopMonitoring();
     }

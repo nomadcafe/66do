@@ -2,24 +2,12 @@
 
 import { useState, useRef } from 'react';
 import { X, Download, Twitter, Linkedin, Facebook, MessageCircle } from 'lucide-react';
-
-interface Domain {
-  id: string;
-  domain_name: string;
-  purchase_date: string;
-  purchase_cost: number;
-  renewal_cost: number;
-  renewal_count: number;
-  sale_date?: string;
-  sale_price?: number;
-  platform_fee?: number;
-  status: 'active' | 'for_sale' | 'sold' | 'expired';
-}
+import { DomainWithTags } from '../../types/dashboard';
 
 interface DomainShareModalProps {
   isOpen: boolean;
   onClose: () => void;
-  domain: Domain;
+  domain: DomainWithTags;
 }
 
 export default function DomainShareModal({ isOpen, onClose, domain }: DomainShareModalProps) {
@@ -29,19 +17,19 @@ export default function DomainShareModal({ isOpen, onClose, domain }: DomainShar
   const calculateDomainProfit = () => {
     if (!domain.sale_price) return 0;
     
-    const totalHoldingCost = domain.purchase_cost + (domain.renewal_count * domain.renewal_cost);
+    const totalHoldingCost = (domain.purchase_cost || 0) + (domain.renewal_count * (domain.renewal_cost || 0));
     const platformFee = domain.platform_fee || 0;
     return domain.sale_price - totalHoldingCost - platformFee;
   };
 
   const calculateROI = () => {
-    const totalHoldingCost = domain.purchase_cost + (domain.renewal_count * domain.renewal_cost);
+    const totalHoldingCost = (domain.purchase_cost || 0) + (domain.renewal_count * (domain.renewal_cost || 0));
     const profit = calculateDomainProfit();
     return totalHoldingCost > 0 ? (profit / totalHoldingCost) * 100 : 0;
   };
 
   const calculateHoldingPeriod = () => {
-    const purchaseDate = new Date(domain.purchase_date);
+    const purchaseDate = new Date(domain.purchase_date || '');
     const saleDate = domain.sale_date ? new Date(domain.sale_date) : new Date();
     const diffTime = Math.abs(saleDate.getTime() - purchaseDate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
