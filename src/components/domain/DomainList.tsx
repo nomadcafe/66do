@@ -18,7 +18,7 @@ interface Domain {
   expiry_date?: string; // 改为可选字段
   status: 'active' | 'for_sale' | 'sold' | 'expired';
   estimated_value: number;
-  tags: string[];
+  tags: string[] | string;
 }
 
 interface DomainListProps {
@@ -35,9 +35,21 @@ export default function DomainList({ domains, onEdit, onDelete, onView, onAdd }:
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'table'>('table');
 
   const filteredDomains = domains.filter(domain => {
+    // 处理tags字段，可能是字符串或数组
+    let tagsArray: string[] = [];
+    if (Array.isArray(domain.tags)) {
+      tagsArray = domain.tags;
+    } else if (typeof domain.tags === 'string' && domain.tags.trim()) {
+      try {
+        tagsArray = JSON.parse(domain.tags);
+      } catch {
+        tagsArray = domain.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+      }
+    }
+    
     const matchesSearch = domain.domain_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          domain.registrar.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         domain.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+                         tagsArray.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesStatus = statusFilter === 'all' || domain.status === statusFilter;
     

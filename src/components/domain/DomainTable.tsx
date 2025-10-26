@@ -20,7 +20,7 @@ interface Domain {
   sale_date?: string;
   sale_price?: number;
   platform_fee?: number;
-  tags: string[];
+  tags: string[] | string;
 }
 
 interface DomainTableProps {
@@ -40,9 +40,21 @@ export default function DomainTable({ domains, onEdit, onDelete, onView, onAdd }
   const [selectedDomain, setSelectedDomain] = useState<Domain | null>(null);
 
   const filteredDomains = domains.filter(domain => {
+    // 处理tags字段，可能是字符串或数组
+    let tagsArray: string[] = [];
+    if (Array.isArray(domain.tags)) {
+      tagsArray = domain.tags;
+    } else if (typeof domain.tags === 'string' && domain.tags.trim()) {
+      try {
+        tagsArray = JSON.parse(domain.tags);
+      } catch {
+        tagsArray = domain.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+      }
+    }
+    
     const matchesSearch = domain.domain_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          domain.registrar.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         domain.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+                         tagsArray.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesStatus = statusFilter === 'all' || domain.status === statusFilter;
     
@@ -309,15 +321,35 @@ export default function DomainTable({ domains, onEdit, onDelete, onView, onAdd }
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
-                        {domain.tags.slice(0, 2).map((tag, index) => (
-                          <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800">
-                            <Tag className="w-3 h-3 mr-1" />
-                            {tag}
-                          </span>
-                        ))}
-                        {domain.tags.length > 2 && (
-                          <span className="text-xs text-gray-500">+{domain.tags.length - 2}</span>
-                        )}
+                        {(() => {
+                          // 处理tags字段，可能是字符串或数组
+                          let tagsArray: string[] = [];
+                          if (Array.isArray(domain.tags)) {
+                            tagsArray = domain.tags;
+                          } else if (typeof domain.tags === 'string' && domain.tags.trim()) {
+                            // 如果是字符串，尝试解析为数组
+                            try {
+                              tagsArray = JSON.parse(domain.tags);
+                            } catch {
+                              // 如果解析失败，按逗号分割
+                              tagsArray = domain.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+                            }
+                          }
+                          
+                          return (
+                            <>
+                              {tagsArray.slice(0, 2).map((tag, index) => (
+                                <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800">
+                                  <Tag className="w-3 h-3 mr-1" />
+                                  {tag}
+                                </span>
+                              ))}
+                              {tagsArray.length > 2 && (
+                                <span className="text-xs text-gray-500">+{tagsArray.length - 2}</span>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
                     </td>
                     <td className="px-4 py-3">

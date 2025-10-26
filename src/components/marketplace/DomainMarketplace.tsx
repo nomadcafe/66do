@@ -30,7 +30,7 @@ interface MarketplaceDomain {
     salesCount: number;
   };
   images: string[];
-  tags: string[];
+  tags: string[] | string;
   listedDate: string;
   views: number;
   likes: number;
@@ -223,11 +223,25 @@ export default function DomainMarketplace({
 
         {/* 标签 */}
         <div className="flex flex-wrap gap-1 mb-4">
-          {domain.tags.map((tag, index) => (
-            <span key={index} className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded">
-              {tag}
-            </span>
-          ))}
+          {(() => {
+            // 处理tags字段，可能是字符串或数组
+            let tagsArray: string[] = [];
+            if (Array.isArray(domain.tags)) {
+              tagsArray = domain.tags;
+            } else if (typeof domain.tags === 'string' && domain.tags.trim()) {
+              try {
+                tagsArray = JSON.parse(domain.tags);
+              } catch {
+                tagsArray = domain.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+              }
+            }
+            
+            return tagsArray.map((tag, index) => (
+              <span key={index} className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded">
+                {tag}
+              </span>
+            ));
+          })()}
         </div>
 
         {/* 卖家信息 */}

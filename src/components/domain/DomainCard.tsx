@@ -20,7 +20,7 @@ interface Domain {
   sale_date?: string; // 出售日期
   sale_price?: number; // 出售价格
   platform_fee?: number; // 平台手续费
-  tags: string[];
+  tags: string[] | string;
 }
 
 interface DomainCardProps {
@@ -145,19 +145,35 @@ export default function DomainCard({ domain, onEdit, onDelete, onView }: DomainC
           </div>
         )}
 
-            {domain.tags && domain.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-3">
-                {domain.tags.map((tag, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800"
-                  >
-                    <Tag className="h-3 w-3 mr-1" />
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
+            {(() => {
+              // 处理tags字段，可能是字符串或数组
+              let tagsArray: string[] = [];
+              if (Array.isArray(domain.tags)) {
+                tagsArray = domain.tags;
+              } else if (typeof domain.tags === 'string' && domain.tags.trim()) {
+                // 如果是字符串，尝试解析为数组
+                try {
+                  tagsArray = JSON.parse(domain.tags);
+                } catch {
+                  // 如果解析失败，按逗号分割
+                  tagsArray = domain.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+                }
+              }
+              
+              return tagsArray.length > 0 ? (
+                <div className="flex flex-wrap gap-1 mt-3">
+                  {tagsArray.map((tag, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800"
+                    >
+                      <Tag className="h-3 w-3 mr-1" />
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              ) : null;
+            })()}
 
             <div className="flex items-center justify-between mt-4">
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(domain.status)}`}>
