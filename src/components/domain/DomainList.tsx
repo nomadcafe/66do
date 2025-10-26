@@ -4,28 +4,13 @@ import { useState } from 'react';
 import { Search, Filter, Grid, List, Plus, Table } from 'lucide-react';
 import DomainCard from './DomainCard';
 import DomainTable from './DomainTable';
-
-interface Domain {
-  id: string;
-  domain_name: string;
-  registrar: string;
-  purchase_date: string;
-  purchase_cost: number;
-  renewal_cost: number;
-  renewal_cycle: number; // 续费周期（年数）：1, 2, 3等
-  renewal_count: number; // 已续费次数
-  next_renewal_date?: string;
-  expiry_date?: string; // 改为可选字段
-  status: 'active' | 'for_sale' | 'sold' | 'expired';
-  estimated_value: number;
-  tags: string[] | string;
-}
+import { DomainWithTags } from '../../types/dashboard';
 
 interface DomainListProps {
-  domains: Domain[];
-  onEdit: (domain: Domain) => void;
+  domains: DomainWithTags[];
+  onEdit: (domain: DomainWithTags) => void;
   onDelete: (id: string) => void;
-  onView: (domain: Domain) => void;
+  onView: (domain: DomainWithTags) => void;
   onAdd: () => void;
 }
 

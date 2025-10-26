@@ -38,6 +38,12 @@ import {
   Domain,
   Transaction
 } from '../../src/lib/supabaseService';
+import {
+  DomainWithTags,
+  TransactionWithRequiredFields,
+  ensureDomainWithTags,
+  ensureTransactionWithRequiredFields
+} from '../../src/types/dashboard';
 import { 
   Globe, 
   Plus, 
@@ -93,8 +99,8 @@ interface DomainStats {
 
 
 export default function DashboardPage() {
-  const [domains, setDomains] = useState<Domain[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [domains, setDomains] = useState<DomainWithTags[]>([]);
+  const [transactions, setTransactions] = useState<TransactionWithRequiredFields[]>([]);
   const [stats, setStats] = useState<DomainStats>({
     totalDomains: 0,
     totalCost: 0,
@@ -196,8 +202,8 @@ export default function DashboardPage() {
   const [showDomainForm, setShowDomainForm] = useState(false);
   const [showSmartDomainForm, setShowSmartDomainForm] = useState(false);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
-  const [editingDomain, setEditingDomain] = useState<Domain | undefined>();
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
+  const [editingDomain, setEditingDomain] = useState<DomainWithTags | undefined>();
+  const [editingTransaction, setEditingTransaction] = useState<TransactionWithRequiredFields | undefined>();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('date');
@@ -241,8 +247,10 @@ export default function DashboardPage() {
         const cachedTransactions = domainCache.getCachedTransactions(userId);
         
         if (cachedDomains && cachedTransactions) {
-          setDomains(cachedDomains as Domain[]);
-          setTransactions(cachedTransactions as Transaction[]);
+          const typedDomains = cachedDomains.map(ensureDomainWithTags);
+          const typedTransactions = cachedTransactions.map(ensureTransactionWithRequiredFields);
+          setDomains(typedDomains);
+          setTransactions(typedTransactions);
           setDataSource('cache');
           setLoading(false);
           return;
@@ -255,8 +263,10 @@ export default function DashboardPage() {
         const transactionsResult = await loadTransactionsFromSupabase(userId);
         
         if (domainsResult.success && transactionsResult.success) {
-          setDomains(domainsResult.data || []);
-          setTransactions(transactionsResult.data || []);
+          const typedDomains = (domainsResult.data || []).map(ensureDomainWithTags);
+          const typedTransactions = (transactionsResult.data || []).map(ensureTransactionWithRequiredFields);
+          setDomains(typedDomains);
+          setTransactions(typedTransactions);
           setDataSource('supabase');
           
           // Cache the data
@@ -292,7 +302,7 @@ export default function DashboardPage() {
 
 
   // Save data to Supabase database only
-  const saveData = async (newDomains: Domain[], newTransactions: Transaction[]) => {
+  const saveData = async (newDomains: DomainWithTags[], newTransactions: TransactionWithRequiredFields[]) => {
     if (!user?.id) return;
     
     try {
@@ -308,7 +318,10 @@ export default function DashboardPage() {
             body: JSON.stringify({
               action: 'updateDomain',
               userId: user.id,
-              domain
+              domain: {
+                ...domain,
+                tags: JSON.stringify(domain.tags)
+              }
             })
           });
         } else {
@@ -334,7 +347,7 @@ export default function DashboardPage() {
                 sale_date: domain.sale_date,
                 sale_price: domain.sale_price,
                 platform_fee: domain.platform_fee,
-                tags: domain.tags
+                tags: JSON.stringify(domain.tags)
               }
             })
           });
@@ -536,7 +549,7 @@ export default function DashboardPage() {
   };
 
   const handleEditDomain = (domain: Domain) => {
-    setEditingDomain(domain);
+    setEditingDomain(ensureDomainWithTags(domain));
     setShowDomainForm(true);
   };
 
@@ -553,20 +566,21 @@ export default function DashboardPage() {
   };
 
   const handleSaveDomain = (domainData: Omit<Domain, 'id'>) => {
-    let updatedDomains: Domain[];
+    let updatedDomains: DomainWithTags[];
     
     if (editingDomain) {
       // Update existing domain
       updatedDomains = domains.map(domain => 
         domain.id === editingDomain.id 
-          ? { ...domainData, id: editingDomain.id }
+          ? { ...domainData, id: editingDomain.id, tags: domain.tags }
           : domain
       );
     } else {
       // Add new domain
-      const newDomain: Domain = {
+      const newDomain: DomainWithTags = {
         ...domainData,
-        id: Date.now().toString()
+        id: Date.now().toString(),
+        tags: []
       };
       updatedDomains = [...domains, newDomain];
     }
@@ -589,7 +603,7 @@ export default function DashboardPage() {
   };
 
   const handleEditTransaction = (transaction: Transaction) => {
-    setEditingTransaction(transaction);
+    setEditingTransaction(ensureTransactionWithRequiredFields(transaction));
     setShowTransactionForm(true);
   };
 
@@ -604,7 +618,7 @@ export default function DashboardPage() {
     const domain = domains.find(d => d.id === domainId);
     if (!domain) return;
 
-    const renewalTransaction: Transaction = {
+    const renewalTransaction: TransactionWithRequiredFields = {
       id: Date.now().toString(),
       user_id: user?.id || '',
       domain_id: domainId,
@@ -682,7 +696,7 @@ export default function DashboardPage() {
     };
     
     const updatedDomains = domains.map(d => 
-      d.id === domainId ? updatedDomain : d
+      d.id === domainId ? ensureDomainWithTags(updatedDomain) : d
     );
     setDomains(updatedDomains);
     saveData(updatedDomains, transactions);
@@ -694,17 +708,17 @@ export default function DashboardPage() {
       // Update existing transaction
       const updatedTransactions = transactions.map(transaction => 
         transaction.id === editingTransaction.id 
-          ? { ...transactionData, id: editingTransaction.id }
+          ? ensureTransactionWithRequiredFields({ ...transactionData, id: editingTransaction.id })
           : transaction
       );
       setTransactions(updatedTransactions);
       saveData(domains, updatedTransactions);
     } else {
       // Add new transaction
-      const newTransaction: Transaction = {
+      const newTransaction: TransactionWithRequiredFields = ensureTransactionWithRequiredFields({
         ...transactionData,
         id: Date.now().toString()
-      };
+      });
       const updatedTransactions = [...transactions, newTransaction];
       setTransactions(updatedTransactions);
       saveData(domains, updatedTransactions);
@@ -983,8 +997,7 @@ export default function DashboardPage() {
         <div className="mb-12">
           <div className="bg-white rounded-2xl border border-gray-100 p-6">
             <AutoDomainMonitor 
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              domains={domains as any}
+              domains={domains}
               autoStart={true}
               showNotifications={true}
               onDomainExpiry={(expiryInfo) => {
@@ -1447,8 +1460,7 @@ export default function DashboardPage() {
             {/* Domain Expiry Alerts */}
             <LazyWrapper>
               <LazyDomainExpiryAlert 
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                domains={domains as any} 
+                domains={domains} 
                 onRenewDomain={handleRenewDomain}
               />
             </LazyWrapper>
@@ -1506,40 +1518,29 @@ export default function DashboardPage() {
             </div>
 
             <DomainList
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              domains={sortedDomains as any}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              onEdit={handleEditDomain as any}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              onDelete={handleDeleteDomain as any}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              onView={handleViewDomain as any}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              onAdd={handleAddDomain as any}
+              domains={sortedDomains}
+              onEdit={handleEditDomain}
+              onDelete={handleDeleteDomain}
+              onView={handleViewDomain}
+              onAdd={handleAddDomain}
                 />
               </div>
         )}
 
         {activeTab === 'transactions' && (
           <TransactionList
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            transactions={transactions as any}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            domains={domains as any}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            onEdit={handleEditTransaction as any}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            onDelete={handleDeleteTransaction as any}
+            transactions={transactions}
+            domains={domains}
+            onEdit={handleEditTransaction}
+            onDelete={handleDeleteTransaction}
             onAdd={handleAddTransaction}
           />
         )}
 
         {activeTab === 'analytics' && (
           <InvestmentAnalytics 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            domains={domains as any} 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            transactions={transactions as any} 
+            domains={domains} 
+            transactions={transactions} 
           />
         )}
 
@@ -1771,18 +1772,14 @@ export default function DashboardPage() {
 
             {/* 综合财务报告 */}
             <FinancialReport
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              domains={domains as any}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              transactions={transactions as any}
+              domains={domains}
+              transactions={transactions}
             />
-            
+
             {/* 投资分析 */}
             <FinancialAnalysis
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              domains={domains as any}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              transactions={transactions as any}
+              domains={domains}
+              transactions={transactions}
             />
           </div>
         )}
@@ -1790,45 +1787,37 @@ export default function DashboardPage() {
 
       {/* Domain Form Modal */}
       <DomainForm
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        domain={editingDomain as any}
+        domain={editingDomain}
         isOpen={showDomainForm}
         onClose={() => {
           setShowDomainForm(false);
           setEditingDomain(undefined);
         }}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onSave={handleSaveDomain as any}
+        onSave={handleSaveDomain}
       />
 
       {/* Smart Domain Form Modal */}
       <SmartDomainForm
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        domain={editingDomain as any}
+        domain={editingDomain}
         isOpen={showSmartDomainForm}
         onClose={() => {
           setShowSmartDomainForm(false);
           setEditingDomain(undefined);
         }}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onSave={handleSaveDomain as any}
+        onSave={handleSaveDomain}
       />
 
       {/* Transaction Form Modal */}
       <TransactionForm
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        transaction={editingTransaction as any}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        domains={domains as any}
+        transaction={editingTransaction}
+        domains={domains}
         isOpen={showTransactionForm}
         onClose={() => {
           setShowTransactionForm(false);
           setEditingTransaction(undefined);
         }}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onSave={handleSaveTransaction as any}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onSaleComplete={handleSaleComplete as any}
+        onSave={handleSaveTransaction}
+        onSaleComplete={handleSaleComplete}
       />
 
       {/* Share Modal */}
@@ -1846,10 +1835,8 @@ export default function DashboardPage() {
             setShowSaleSuccessModal(false);
             setSaleSuccessData(null);
           }}
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          domain={saleSuccessData.domain as any}
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          transaction={saleSuccessData.transaction as any}
+          domain={saleSuccessData.domain}
+          transaction={saleSuccessData.transaction}
         />
       )}
 

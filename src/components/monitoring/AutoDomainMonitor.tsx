@@ -2,12 +2,13 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { Domain } from '../../types/domain';
+import { DomainWithTags } from '../../types/dashboard';
 import { DomainMonitor, DomainExpiryInfo } from '../../lib/domainMonitoring';
 // import { useI18nContext } from '../../contexts/I18nProvider';
 import { AlertTriangle, Clock, CheckCircle, XCircle } from 'lucide-react';
 
 interface AutoDomainMonitorProps {
-  domains: Domain[];
+  domains: DomainWithTags[];
   onDomainExpiry?: (expiryInfo: DomainExpiryInfo) => void;
   onBulkExpiry?: (expiryInfos: DomainExpiryInfo[]) => void;
   autoStart?: boolean;

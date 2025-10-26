@@ -2,23 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Calendar, Clock, CheckCircle } from 'lucide-react';
-
-interface Domain {
-  id: string;
-  domain_name: string;
-  expiry_date?: string; // 改为可选字段
-  renewal_cost: number;
-  renewal_cycle: number;
-  status: 'active' | 'for_sale' | 'sold' | 'expired';
-}
+import { DomainWithTags } from '../../types/dashboard';
 
 interface DomainExpiryAlertProps {
-  domains: Domain[];
+  domains: DomainWithTags[];
   onRenewDomain: (domainId: string) => void;
 }
 
 interface ExpiryAlert {
-  domain: Domain;
+  domain: DomainWithTags;
   daysUntilExpiry: number;
   priority: 'high' | 'medium' | 'low';
   message: string;
