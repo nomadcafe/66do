@@ -17,7 +17,7 @@ interface Domain {
   expiry_date?: string; // 改为可选字段
   status: 'active' | 'for_sale' | 'sold' | 'expired';
   estimated_value: number;
-  tags: string[];
+  tags: string[] | string;
 }
 
 interface DomainFormProps {
@@ -60,7 +60,15 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
         expiry_date: domain.expiry_date || '',
         status: domain.status,
         estimated_value: domain.estimated_value,
-        tags: domain.tags
+        tags: Array.isArray(domain.tags) ? domain.tags : 
+              typeof domain.tags === 'string' && domain.tags.trim() ? 
+                (() => {
+                  try {
+                    return JSON.parse(domain.tags);
+                  } catch {
+                    return domain.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+                  }
+                })() : []
       });
     } else {
       setFormData({
