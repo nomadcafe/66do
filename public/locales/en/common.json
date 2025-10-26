@@ -26,6 +26,17 @@
       "noAccount": "Don't have an account?",
       "signUpLink": "Sign up now"
     },
+    "magicLink": {
+      "title": "Magic Link Login",
+      "subtitle": "Enter your email address and we'll send you a login link",
+      "email": "Email address",
+      "emailPlaceholder": "Enter your email address",
+      "submit": "Send Magic Link",
+      "sending": "Sending...",
+      "success": "Magic Link sent to your email! Please check your inbox and click the link to login.",
+      "error": "Failed to send Magic Link, please try again",
+      "firstTime": "First time? Magic Link will automatically create an account for you"
+    },
     "signUp": {
       "title": "Create your account",
       "subtitle": "Sign up for a new account",

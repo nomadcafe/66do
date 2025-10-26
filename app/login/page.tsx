@@ -32,13 +32,13 @@ export default function LoginPage() {
       const result = await response.json();
 
       if (!response.ok) {
-        setError(result.error || '发送Magic Link失败');
+        setError(result.error || t('auth.magicLink.error'));
       } else {
-        setSuccess('Magic Link已发送到您的邮箱！请检查邮件并点击链接登录。');
+        setSuccess(t('auth.magicLink.success'));
       }
     } catch (error) {
       console.error('Magic Link error:', error);
-      setError('发送Magic Link失败，请重试');
+      setError(t('auth.magicLink.error'));
     }
     
     setLoading(false);
@@ -63,10 +63,10 @@ export default function LoginPage() {
           </select>
         </div>
         <h2 className="mt-6 text-center text-2xl font-bold text-gray-900">
-          Magic Link 登录
+          {t('auth.magicLink.title')}
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          输入您的邮箱地址，我们将发送一个登录链接到您的邮箱
+          {t('auth.magicLink.subtitle')}
         </p>
       </div>
 
@@ -87,7 +87,7 @@ export default function LoginPage() {
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                邮箱地址
+                {t('auth.magicLink.email')}
               </label>
               <div className="mt-1 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -102,7 +102,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="请输入您的邮箱地址"
+                  placeholder={t('auth.magicLink.emailPlaceholder')}
                 />
               </div>
             </div>
@@ -116,12 +116,12 @@ export default function LoginPage() {
                 {loading ? (
                   <div className="flex items-center">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    发送中...
+                    {t('auth.magicLink.sending')}
                   </div>
                 ) : (
                   <div className="flex items-center">
                     <Send className="h-4 w-4 mr-2" />
-                    发送 Magic Link
+                    {t('auth.magicLink.submit')}
                   </div>
                 )}
               </button>
@@ -129,7 +129,7 @@ export default function LoginPage() {
 
             <div className="text-center">
               <p className="text-sm text-gray-600">
-                首次使用？Magic Link 会自动为您创建账户
+                {t('auth.magicLink.firstTime')}
               </p>
             </div>
           </form>

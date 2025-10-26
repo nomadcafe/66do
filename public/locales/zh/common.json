@@ -26,6 +26,17 @@
       "noAccount": "还没有账户？",
       "signUpLink": "立即注册"
     },
+    "magicLink": {
+      "title": "Magic Link 登录",
+      "subtitle": "输入您的邮箱地址，我们将发送一个登录链接到您的邮箱",
+      "email": "邮箱地址",
+      "emailPlaceholder": "请输入您的邮箱地址",
+      "submit": "发送 Magic Link",
+      "sending": "发送中...",
+      "success": "Magic Link已发送到您的邮箱！请检查邮件并点击链接登录。",
+      "error": "发送Magic Link失败，请重试",
+      "firstTime": "首次使用？Magic Link 会自动为您创建账户"
+    },
     "signUp": {
       "title": "创建账户",
       "subtitle": "注册新账户",
