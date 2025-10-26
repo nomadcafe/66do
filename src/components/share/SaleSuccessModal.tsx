@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { X, Download, Share2, Twitter, Linkedin, Facebook, MessageCircle, CheckCircle, DollarSign, TrendingUp } from 'lucide-react';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
+import { useI18nContext } from '../../contexts/I18nProvider';
 
 interface Domain {
   id: string;
@@ -32,6 +33,7 @@ interface SaleSuccessModalProps {
 }
 
 export default function SaleSuccessModal({ isOpen, onClose, domain, transaction }: SaleSuccessModalProps) {
+  const { t } = useI18nContext();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [imageGenerated, setImageGenerated] = useState(false);
@@ -55,13 +57,13 @@ export default function SaleSuccessModal({ isOpen, onClose, domain, transaction 
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
     if (diffDays < 30) {
-      return `${diffDays}天`;
+      return `${diffDays}${t('common.days')}`;
     } else if (diffDays < 365) {
-      return `${Math.floor(diffDays / 30)}个月`;
+      return `${Math.floor(diffDays / 30)}${t('common.months')}`;
     } else {
       const years = Math.floor(diffDays / 365);
       const months = Math.floor((diffDays % 365) / 30);
-      return months > 0 ? `${years}年${months}个月` : `${years}年`;
+      return months > 0 ? `${years}${t('common.years')}${months}${t('common.months')}` : `${years}${t('common.years')}`;
     }
   };
 
@@ -165,7 +167,7 @@ export default function SaleSuccessModal({ isOpen, onClose, domain, transaction 
         break;
       case 'wechat':
         navigator.clipboard.writeText(text);
-        alert('内容已复制到剪贴板，可以粘贴到微信分享');
+        alert(t('common.copiedToClipboard'));
         return;
     }
     
@@ -186,10 +188,10 @@ export default function SaleSuccessModal({ isOpen, onClose, domain, transaction 
             </div>
             <div>
               <h2 className="text-xl font-semibold text-gray-900">
-                出售成功！
+                {t('common.saleSuccess')}
               </h2>
               <p className="text-sm text-gray-500">
-                {domain.domain_name} 已成功出售
+                {domain.domain_name} {t('common.domainSoldSuccessfully')}
               </p>
             </div>
           </div>
@@ -212,7 +214,7 @@ export default function SaleSuccessModal({ isOpen, onClose, domain, transaction 
                 <p className="text-2xl font-bold text-green-600">
                   ${calculateProfit().toLocaleString()}
                 </p>
-                <p className="text-sm text-gray-600">净利润</p>
+                <p className="text-sm text-gray-600">{t('common.netProfit')}</p>
               </div>
               <div className="text-center">
                 <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full mx-auto mb-2">
@@ -221,7 +223,7 @@ export default function SaleSuccessModal({ isOpen, onClose, domain, transaction 
                 <p className="text-2xl font-bold text-blue-600">
                   {calculateROI().toFixed(1)}%
                 </p>
-                <p className="text-sm text-gray-600">投资回报率</p>
+                <p className="text-sm text-gray-600">{t('common.returnOnInvestment')}</p>
               </div>
               <div className="text-center">
                 <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-full mx-auto mb-2">
@@ -230,14 +232,14 @@ export default function SaleSuccessModal({ isOpen, onClose, domain, transaction 
                 <p className="text-2xl font-bold text-purple-600">
                   {calculateHoldingPeriod()}
                 </p>
-                <p className="text-sm text-gray-600">持有时间</p>
+                <p className="text-sm text-gray-600">{t('common.holdingPeriod')}</p>
               </div>
             </div>
           </div>
 
           {/* 分享图片预览 */}
           <div className="mb-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">分享图片预览</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">{t('common.shareImagePreview')}</h3>
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50">
               <canvas
                 ref={canvasRef}
@@ -254,12 +256,12 @@ export default function SaleSuccessModal({ isOpen, onClose, domain, transaction 
                 {isGenerating ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>生成中...</span>
+                    <span>{t('common.generating')}</span>
                   </>
                 ) : (
                   <>
                     <Share2 className="h-4 w-4" />
-                    <span>生成分享图片</span>
+                    <span>{t('common.generateShareImage')}</span>
                   </>
                 )}
               </button>
@@ -269,7 +271,7 @@ export default function SaleSuccessModal({ isOpen, onClose, domain, transaction 
           {/* 分享选项 */}
           {imageGenerated && (
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-900">分享到社交媒体</h3>
+              <h3 className="text-lg font-medium text-gray-900">{t('common.shareToSocialMedia')}</h3>
               
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <button
@@ -301,7 +303,7 @@ export default function SaleSuccessModal({ isOpen, onClose, domain, transaction 
                   className="flex items-center justify-center space-x-2 bg-green-500 text-white px-4 py-3 rounded-lg hover:bg-green-600"
                 >
                   <MessageCircle className="h-5 w-5" />
-                  <span>微信</span>
+                  <span>{t('common.wechat')}</span>
                 </button>
               </div>
 
@@ -311,7 +313,7 @@ export default function SaleSuccessModal({ isOpen, onClose, domain, transaction 
                   className="flex items-center space-x-2 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700"
                 >
                   <Download className="h-5 w-5" />
-                  <span>下载图片</span>
+                  <span>{t('common.downloadImage')}</span>
                 </button>
               </div>
             </div>
