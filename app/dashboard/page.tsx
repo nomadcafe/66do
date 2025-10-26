@@ -1301,7 +1301,7 @@ export default function DashboardPage() {
                       <div>
                       <p className="text-sm font-medium text-blue-600">{t('renewal.thisYearCost')}</p>
                       <p className="text-2xl font-bold text-blue-900">
-                        ¥{renewalAnalysis.totalAnnualCost.toLocaleString()}
+                        {formatCurrencyEnhanced(renewalAnalysis.totalAnnualCost, 'USD')}
                       </p>
                       </div>
                     <Calendar className="h-8 w-8 text-blue-600" />
@@ -1337,9 +1337,9 @@ export default function DashboardPage() {
                     <div>
                       <p className="text-sm font-medium text-orange-600">{t('renewal.averageCostPerDomain')}</p>
                       <p className="text-2xl font-bold text-orange-900">
-                        ¥{renewalAnalysis.domainsNeedingRenewal.length > 0 
-                          ? (renewalAnalysis.totalAnnualCost / renewalAnalysis.domainsNeedingRenewal.length).toFixed(0)
-                          : '0'}
+                        {renewalAnalysis.domainsNeedingRenewal.length > 0 
+                          ? formatCurrencyEnhanced(renewalAnalysis.totalAnnualCost / renewalAnalysis.domainsNeedingRenewal.length, 'USD')
+                          : formatCurrencyEnhanced(0, 'USD')}
                       </p>
                     </div>
                     <DollarSign className="h-8 w-8 text-orange-600" />
@@ -1355,7 +1355,7 @@ export default function DashboardPage() {
                     {Object.entries(renewalAnalysis.costByCycle).map(([cycle, cost]) => (
                       <div key={cycle} className="bg-gray-50 p-3 rounded-lg">
                         <p className="text-sm text-gray-600">{cycle}</p>
-                        <p className="text-lg font-semibold text-gray-900">¥{cost.toLocaleString()}</p>
+                        <p className="text-lg font-semibold text-gray-900">{formatCurrencyEnhanced(cost, 'USD')}</p>
                   </div>
                 ))}
                   </div>
