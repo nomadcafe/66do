@@ -423,7 +423,7 @@ const translations: Record<Locale, Translations> = {
       },
       security: {
         title: '安全可靠',
-        desc: '企业级安全保障，保护您的投资数据安全'
+        desc: '安全认证 + 数据隔离，确保投资信息私密安全'
       }
     },
     benefits: {
@@ -868,7 +868,7 @@ const translations: Record<Locale, Translations> = {
       },
       security: {
         title: 'Secure & Reliable',
-        desc: 'Enterprise-grade security to protect your investment data'
+        desc: 'Secure authentication + data isolation ensures your investment privacy'
       }
     },
     benefits: {
