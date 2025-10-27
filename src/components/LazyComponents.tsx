@@ -1,7 +1,6 @@
 'use client';
 
 import React, { lazy, Suspense } from 'react';
-import { useI18nContext } from '../contexts/I18nProvider';
 
 // 懒加载组件
 export const LazyFinancialReport = lazy(() => import('./reports/FinancialReport'));
