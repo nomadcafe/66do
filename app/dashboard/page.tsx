@@ -479,10 +479,10 @@ export default function DashboardPage() {
     const financialMetrics = calculateFinancialMetrics(validDomains, validTransactions);
     
     const totalDomains = financialMetrics.totalDomains;
-    const totalCost = financialMetrics.totalInvestment;
+    const totalCost = financialMetrics.totalInvestment; // 购买成本
     const totalRevenue = financialMetrics.totalRevenue;
     const totalRenewalCost = financialMetrics.totalRenewalCost;
-    const totalHoldingCost = financialMetrics.totalHoldingCost;
+    const totalHoldingCost = financialMetrics.totalHoldingCost; // 购买成本 + 续费成本
     const totalProfit = financialMetrics.totalProfit;
     const roi = financialMetrics.roi;
     
@@ -1213,7 +1213,7 @@ export default function DashboardPage() {
           <div className="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-lg shadow-lg text-white">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 text-sm font-medium">{t('dashboard.totalInvestment')}</p>
+                <p className="text-green-100 text-sm font-medium">{t('dashboard.purchaseCost')}</p>
                 <p className="text-3xl font-bold">${stats.totalCost.toFixed(2)}</p>
                 <p className="text-green-200 text-xs mt-1">
                   {t('dashboard.average')}: ${stats.avgPurchasePrice.toFixed(2)}
@@ -1252,7 +1252,7 @@ export default function DashboardPage() {
           <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 p-6 rounded-lg shadow-lg text-white">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-indigo-100 text-sm font-medium">{t('dashboard.totalHoldingCost')}</p>
+                <p className="text-indigo-100 text-sm font-medium">{t('dashboard.totalInvestment')}</p>
                 <p className="text-3xl font-bold">${stats.totalHoldingCost.toFixed(2)}</p>
                 <p className="text-indigo-200 text-xs mt-1">
                   {t('dashboard.purchaseRenewal')}
