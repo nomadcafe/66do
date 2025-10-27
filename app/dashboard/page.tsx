@@ -12,7 +12,6 @@ import TransactionForm from '../../src/components/transaction/TransactionForm';
 import InvestmentAnalytics from '../../src/components/analytics/InvestmentAnalytics';
 import UserPreferencesPanel from '../../src/components/settings/UserPreferencesPanel';
 import DataImportExport from '../../src/components/data/DataImportExport';
-import { LazyDomainExpiryAlert, LazyWrapper } from '../../src/components/LazyComponents';
 import MobileNavigation from '../../src/components/layout/MobileNavigation';
 import AutoDomainMonitor from '../../src/components/monitoring/AutoDomainMonitor';
 // Mobile components for enhanced mobile experience
@@ -1617,13 +1616,6 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Domain Expiry Alerts */}
-            <LazyWrapper>
-              <LazyDomainExpiryAlert 
-                domains={domains} 
-                onRenewDomain={handleRenewDomain}
-              />
-            </LazyWrapper>
 
           </div>
         )}
@@ -1659,8 +1651,65 @@ export default function DashboardPage() {
 
         {activeTab === 'alerts' && (
           <div className="space-y-6">
+            {/* 过期域名统计概览 */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-white p-4 rounded-lg shadow-sm border">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">{t('common.totalExpiring')}</p>
+                    <p className="text-2xl font-bold text-gray-900">{expiringDomains.length}</p>
+                  </div>
+                  <Calendar className="h-8 w-8 text-blue-500" />
+                </div>
+              </div>
+              
+              <div className="bg-white p-4 rounded-lg shadow-sm border">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">{t('common.critical')}</p>
+                    <p className="text-2xl font-bold text-red-600">
+                      {expiringDomains.filter(d => d.urgency === 'critical').length}
+                    </p>
+                  </div>
+                  <AlertTriangle className="h-8 w-8 text-red-500" />
+                </div>
+              </div>
+              
+              <div className="bg-white p-4 rounded-lg shadow-sm border">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">{t('common.urgent')}</p>
+                    <p className="text-2xl font-bold text-orange-600">
+                      {expiringDomains.filter(d => d.urgency === 'urgent').length}
+                    </p>
+                  </div>
+                  <AlertTriangle className="h-8 w-8 text-orange-500" />
+                </div>
+              </div>
+              
+              <div className="bg-white p-4 rounded-lg shadow-sm border">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">{t('common.normal')}</p>
+                    <p className="text-2xl font-bold text-yellow-600">
+                      {expiringDomains.filter(d => d.urgency === 'normal').length}
+                    </p>
+                  </div>
+                  <Calendar className="h-8 w-8 text-yellow-500" />
+                </div>
+              </div>
+            </div>
+
+            {/* 过期域名详细列表 */}
             <div className="bg-white p-6 rounded-lg shadow-sm border">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('common.expiringDomains')}</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">{t('common.expiringDomains')}</h3>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-500">
+                    {expiringDomains.length > 0 ? `${expiringDomains.length} ${t('common.domains')}` : ''}
+                  </span>
+                </div>
+              </div>
               {expiringDomains.length > 0 ? (
                 <div className="space-y-4">
                   {expiringDomains.map((domain) => (
