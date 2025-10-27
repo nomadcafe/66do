@@ -1246,7 +1246,7 @@ export default function DashboardPage() {
                 <p className="text-orange-100 text-sm font-medium">ROI</p>
                 <p className="text-3xl font-bold">{stats.roi.toFixed(1)}%</p>
                 <p className="text-orange-200 text-xs mt-1">
-                  {t('common.profit')}: ${stats.totalProfit.toFixed(2)}
+                  {t('dashboard.totalProfit')}: ${stats.totalProfit.toFixed(2)}
                 </p>
               </div>
               <BarChart3 className="h-8 w-8 text-orange-200" />
