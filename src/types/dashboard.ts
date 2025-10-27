@@ -8,7 +8,7 @@ export interface DomainWithTags extends Omit<Domain, 'tags'> {
 // 扩展Transaction类型，确保所有必需字段存在
 export interface TransactionWithRequiredFields extends Transaction {
   domain_id: string;
-  type: 'buy' | 'sell' | 'renew' | 'transfer' | 'fee' | 'marketing' | 'advertising' | 'installment_payment';
+  type: 'buy' | 'sell' | 'renew' | 'transfer' | 'fee' | 'marketing' | 'advertising';
   amount: number;
   date: string;
   // 分期付款相关字段
@@ -18,6 +18,10 @@ export interface TransactionWithRequiredFields extends Transaction {
   installment_amount?: number;
   final_payment_amount?: number;
   total_installment_amount?: number;
+  // 分期进度跟踪
+  paid_periods?: number; // 已付期数
+  installment_status?: 'active' | 'completed' | 'cancelled' | 'paused'; // 分期状态
+  platform_fee_type?: 'standard' | 'afternic_installment' | 'atom_installment'; // 平台费用类型
 }
 
 // Dashboard组件props类型

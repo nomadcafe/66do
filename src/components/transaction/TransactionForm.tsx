@@ -30,7 +30,7 @@ export default function TransactionForm({
   const { t } = useI18nContext();
   const [formData, setFormData] = useState({
     domain_id: '',
-    type: 'buy' as 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising' | 'installment_payment',
+    type: 'buy' as 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising',
     amount: 0,
     currency: 'USD',
     exchange_rate: 1,
@@ -50,7 +50,11 @@ export default function TransactionForm({
     downpayment_amount: 0,
     installment_amount: 0,
     final_payment_amount: 0,
-    total_installment_amount: 0
+    total_installment_amount: 0,
+    // 分期进度跟踪
+    paid_periods: 0,
+    installment_status: 'active' as 'active' | 'completed' | 'cancelled' | 'paused',
+    platform_fee_type: 'standard' as 'standard' | 'afternic_installment' | 'atom_installment'
   });
 
   const [baseCurrency] = useState('USD');
@@ -93,12 +97,16 @@ export default function TransactionForm({
         downpayment_amount: transaction.downpayment_amount || 0,
         installment_amount: transaction.installment_amount || 0,
         final_payment_amount: transaction.final_payment_amount || 0,
-        total_installment_amount: transaction.total_installment_amount || 0
+        total_installment_amount: transaction.total_installment_amount || 0,
+        // 分期进度跟踪
+        paid_periods: transaction.paid_periods || 0,
+        installment_status: transaction.installment_status || 'active',
+        platform_fee_type: transaction.platform_fee_type || 'standard'
       });
     } else {
       setFormData({
         domain_id: '',
-        type: 'buy' as 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising' | 'installment_payment',
+        type: 'buy' as 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising',
         amount: 0,
         currency: 'USD',
         exchange_rate: 1,
@@ -118,7 +126,11 @@ export default function TransactionForm({
         downpayment_amount: 0,
         installment_amount: 0,
         final_payment_amount: 0,
-        total_installment_amount: 0
+        total_installment_amount: 0,
+        // 分期进度跟踪
+        paid_periods: 0,
+        installment_status: 'active' as 'active' | 'completed' | 'cancelled' | 'paused',
+        platform_fee_type: 'standard' as 'standard' | 'afternic_installment' | 'atom_installment'
       });
     }
   }, [transaction]);
@@ -221,7 +233,6 @@ export default function TransactionForm({
     { value: 'buy', label: 'Purchase' },
     { value: 'renew', label: 'Renewal' },
     { value: 'sell', label: 'Sale' },
-    { value: 'installment_payment', label: 'Installment Payment' },
     { value: 'transfer', label: 'Transfer' },
     { value: 'fee', label: 'Fee' },
     { value: 'marketing', label: 'Marketing' },
@@ -487,10 +498,10 @@ export default function TransactionForm({
           )}
 
           {/* 分期付款配置 */}
-          {(formData.type === 'sell' || formData.type === 'installment_payment') && (
+          {formData.type === 'sell' && (
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
               <h3 className="text-lg font-medium text-blue-900 mb-4">
-                {formData.type === 'installment_payment' ? t('transaction.installmentPayment') : t('transaction.installmentConfig')}
+                {t('transaction.installmentConfig')}
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -508,11 +519,11 @@ export default function TransactionForm({
                   </select>
                 </div>
 
-                {(formData.payment_plan === 'installment' || formData.type === 'installment_payment') && (
+                {formData.payment_plan === 'installment' && (
                   <>
                     <div>
                       <label className="block text-sm font-medium text-blue-800 mb-2">
-                        {formData.type === 'installment_payment' ? t('transaction.currentPeriod') : t('transaction.installmentPeriod')}
+                        {t('transaction.installmentPeriod')}
                       </label>
                       <input
                         type="number"
@@ -521,7 +532,7 @@ export default function TransactionForm({
                         value={formData.installment_period}
                         onChange={(e) => setFormData({ ...formData, installment_period: parseInt(e.target.value) || 1 })}
                         className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder={formData.type === 'installment_payment' ? "1" : "12"}
+                        placeholder="12"
                       />
                     </div>
 
@@ -569,6 +580,54 @@ export default function TransactionForm({
                         placeholder="0.00"
                       />
                     </div>
+
+                    {/* 平台费用类型 */}
+                    <div>
+                      <label className="block text-sm font-medium text-blue-800 mb-2">
+                        {t('transaction.platformFeeType')}
+                      </label>
+                      <select
+                        value={formData.platform_fee_type}
+                        onChange={(e) => setFormData({ ...formData, platform_fee_type: e.target.value as 'standard' | 'afternic_installment' | 'atom_installment' })}
+                        className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="standard">{t('transaction.standardFee')}</option>
+                        <option value="afternic_installment">{t('transaction.afternicInstallment')}</option>
+                        <option value="atom_installment">{t('transaction.atomInstallment')}</option>
+                      </select>
+                    </div>
+
+                    {/* 分期进度跟踪 */}
+                    <div>
+                      <label className="block text-sm font-medium text-blue-800 mb-2">
+                        {t('transaction.paidPeriods')}
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max={formData.installment_period}
+                        value={formData.paid_periods}
+                        onChange={(e) => setFormData({ ...formData, paid_periods: parseInt(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="0"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-blue-800 mb-2">
+                        {t('transaction.installmentStatus')}
+                      </label>
+                      <select
+                        value={formData.installment_status}
+                        onChange={(e) => setFormData({ ...formData, installment_status: e.target.value as 'active' | 'completed' | 'cancelled' | 'paused' })}
+                        className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="active">{t('transaction.active')}</option>
+                        <option value="completed">{t('transaction.completed')}</option>
+                        <option value="cancelled">{t('transaction.cancelled')}</option>
+                        <option value="paused">{t('transaction.paused')}</option>
+                      </select>
+                    </div>
                   </>
                 )}
               </div>
@@ -592,6 +651,32 @@ export default function TransactionForm({
                         formData.currency
                       )}
                     </p>
+                    
+                    {/* 分期进度信息 */}
+                    <div className="mt-2 pt-2 border-t border-blue-200">
+                      <p className="text-blue-700">
+                        {t('transaction.paidPeriods')}: {formData.paid_periods} / {formData.installment_period}
+                      </p>
+                      <p className="text-blue-700">
+                        {t('transaction.installmentStatus')}: {t(`transaction.${formData.installment_status}`)}
+                      </p>
+                      <p className="text-blue-700">
+                        {t('transaction.platformFeeType')}: {t(`transaction.${formData.platform_fee_type}`)}
+                      </p>
+                      
+                      {/* 进度条 */}
+                      <div className="mt-2">
+                        <div className="w-full bg-blue-200 rounded-full h-2">
+                          <div 
+                            className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                            style={{ width: `${(formData.paid_periods / formData.installment_period) * 100}%` }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-blue-600 mt-1">
+                          {Math.round((formData.paid_periods / formData.installment_period) * 100)}% {t('transaction.completed')}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

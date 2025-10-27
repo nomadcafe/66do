@@ -70,7 +70,7 @@ export function analyzeTransactions(transactions: Array<{
 }>): TransactionAnalysis {
   
   const salesTransactions = transactions
-    .filter(t => t.type === 'sell' || t.type === 'installment_payment')
+    .filter(t => t.type === 'sell')
     .map(t => {
       const grossAmount = t.amount;
       const platformFee = t.platform_fee || 0;
@@ -135,7 +135,7 @@ export function calculateAnnualMetrics(
     return transactionDate >= yearStart && transactionDate <= yearEnd;
   });
   
-  const salesTransactions = yearTransactions.filter(t => t.type === 'sell' || t.type === 'installment_payment');
+  const salesTransactions = yearTransactions.filter(t => t.type === 'sell');
   const costTransactions = yearTransactions.filter(t => 
     t.type === 'buy' || t.type === 'renew' || t.type === 'fee'
   );
