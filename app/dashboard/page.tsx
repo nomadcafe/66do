@@ -13,7 +13,6 @@ import InvestmentAnalytics from '../../src/components/analytics/InvestmentAnalyt
 import UserPreferencesPanel from '../../src/components/settings/UserPreferencesPanel';
 import DataImportExport from '../../src/components/data/DataImportExport';
 import MobileNavigation from '../../src/components/layout/MobileNavigation';
-import AutoDomainMonitor from '../../src/components/monitoring/AutoDomainMonitor';
 // Mobile components for enhanced mobile experience
 import TouchGestures from '../../src/components/mobile/TouchGestures';
 import PullToRefresh from '../../src/components/mobile/PullToRefresh';
@@ -28,6 +27,7 @@ import { calculateFinancialMetrics } from '../../src/lib/financialMetrics';
 import { calculateEnhancedFinancialMetrics, formatCurrency as formatCurrencyEnhanced } from '../../src/lib/enhancedFinancialMetrics';
 import { domainCache } from '../../src/lib/cache';
 import AdvancedRenewalAnalysis from '../../src/components/analytics/AdvancedRenewalAnalysis';
+import ExpiredDomainLossAnalysis from '../../src/components/analytics/ExpiredDomainLossAnalysis';
 import { auditLogger } from '../../src/lib/security';
 import LoadingSpinner from '../../src/components/ui/LoadingSpinner';
 import ErrorMessage from '../../src/components/ui/ErrorMessage';
@@ -1169,22 +1169,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Auto Domain Monitor - Clean Section */}
-        <div className="mb-12">
-          <div className="bg-white rounded-2xl border border-gray-100 p-6">
-            <AutoDomainMonitor 
-              domains={domains}
-              autoStart={true}
-              showNotifications={true}
-              onDomainExpiry={(expiryInfo) => {
-                console.log('域名到期提醒:', expiryInfo);
-              }}
-              onBulkExpiry={(expiryInfos) => {
-                console.log('批量域名到期提醒:', expiryInfos);
-              }}
-            />
-          </div>
-        </div>
 
         {/* Enhanced Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
