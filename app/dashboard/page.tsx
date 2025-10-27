@@ -74,7 +74,7 @@ import {
 
 interface DomainStats {
   totalDomains: number;
-  totalCost: number;
+  totalInvestment: number; // 购买成本
   totalRevenue: number;
   totalProfit: number;
   roi: number;
@@ -101,7 +101,7 @@ export default function DashboardPage() {
   const [transactions, setTransactions] = useState<TransactionWithRequiredFields[]>([]);
   const [stats, setStats] = useState<DomainStats>({
     totalDomains: 0,
-    totalCost: 0,
+    totalInvestment: 0,
     totalRevenue: 0,
     totalProfit: 0,
     roi: 0,
@@ -479,7 +479,6 @@ export default function DashboardPage() {
     const financialMetrics = calculateFinancialMetrics(validDomains, validTransactions);
     
     const totalDomains = financialMetrics.totalDomains;
-    const totalCost = financialMetrics.totalInvestment; // 购买成本
     const totalRevenue = financialMetrics.totalRevenue;
     const totalRenewalCost = financialMetrics.totalRenewalCost;
     const totalHoldingCost = financialMetrics.totalHoldingCost; // 购买成本 + 续费成本
@@ -537,7 +536,7 @@ export default function DashboardPage() {
 
     setStats({
       totalDomains,
-      totalCost,
+      totalInvestment: financialMetrics.totalInvestment,
       totalRevenue,
       totalProfit,
       roi,
@@ -1141,17 +1140,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 hover:shadow-lg transition-all duration-300">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">{t('dashboard.totalCost')}</p>
-                <p className="text-3xl font-bold text-gray-900">${stats.totalCost.toFixed(2)}</p>
-              </div>
-              <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center">
-                <DollarSign className="h-6 w-6 text-white" />
-              </div>
-            </div>
-          </div>
 
           <div className="bg-white p-6 rounded-2xl border border-gray-100 hover:shadow-lg transition-all duration-300">
             <div className="flex items-center justify-between">
@@ -1214,7 +1202,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-green-100 text-sm font-medium">{t('dashboard.purchaseCost')}</p>
-                <p className="text-3xl font-bold">${stats.totalCost.toFixed(2)}</p>
+                <p className="text-3xl font-bold">${stats.totalInvestment.toFixed(2)}</p>
                 <p className="text-green-200 text-xs mt-1">
                   {t('dashboard.average')}: ${stats.avgPurchasePrice.toFixed(2)}
                 </p>
