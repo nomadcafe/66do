@@ -28,6 +28,7 @@ import { domainExpiryManager } from '../../src/lib/domainExpiryManager';
 import { calculateFinancialMetrics } from '../../src/lib/financialMetrics';
 import { calculateEnhancedFinancialMetrics, formatCurrency as formatCurrencyEnhanced } from '../../src/lib/enhancedFinancialMetrics';
 import { domainCache } from '../../src/lib/cache';
+import AdvancedRenewalAnalysis from '../../src/components/analytics/AdvancedRenewalAnalysis';
 import { auditLogger } from '../../src/lib/security';
 import LoadingSpinner from '../../src/components/ui/LoadingSpinner';
 import ErrorMessage from '../../src/components/ui/ErrorMessage';
@@ -1524,6 +1525,9 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
+
+            {/* 高级续费分析 */}
+            <AdvancedRenewalAnalysis domains={domains} />
 
             {/* Quick Actions */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

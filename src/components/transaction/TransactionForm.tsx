@@ -52,6 +52,15 @@ export default function TransactionForm({
     changePercent: number;
   } | null>(null);
 
+  // 续费成本历史状态
+  const [renewalCostHistory, setRenewalCostHistory] = useState<Array<{
+    date: string;
+    cost: number;
+    currency: string;
+  }>>([]);
+  const [showCostHistory, setShowCostHistory] = useState(false);
+  const [suggestedRenewalCost, setSuggestedRenewalCost] = useState<number | null>(null);
+
   useEffect(() => {
     if (transaction) {
       setFormData({
@@ -91,6 +100,35 @@ export default function TransactionForm({
       });
     }
   }, [transaction]);
+
+  // 加载续费成本历史
+  useEffect(() => {
+    const loadRenewalCostHistory = async () => {
+      if (formData.domain_id && formData.type === 'renew') {
+        try {
+          const response = await fetch(`/api/renewal-cost-history?domain_id=${formData.domain_id}`);
+          if (response.ok) {
+            const history = await response.json();
+            setRenewalCostHistory(history.data || []);
+            
+            // 计算建议的续费成本
+            if (history.data && history.data.length > 0) {
+              const costs = history.data.map((item: { renewal_cost: number }) => item.renewal_cost);
+              const averageCost = costs.reduce((sum: number, cost: number) => sum + cost, 0) / costs.length;
+              setSuggestedRenewalCost(averageCost);
+            }
+          }
+        } catch (error) {
+          console.error('Error loading renewal cost history:', error);
+        }
+      } else {
+        setRenewalCostHistory([]);
+        setSuggestedRenewalCost(null);
+      }
+    };
+
+    loadRenewalCostHistory();
+  }, [formData.domain_id, formData.type]);
 
   // 汇率处理逻辑
   useEffect(() => {
@@ -212,6 +250,56 @@ export default function TransactionForm({
                 ))}
               </select>
             </div>
+
+            {/* 续费成本历史显示 */}
+            {formData.type === 'renew' && formData.domain_id && (
+              <div className="md:col-span-2">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-sm font-medium text-blue-900">Renewal Cost History</h4>
+                    <button
+                      type="button"
+                      onClick={() => setShowCostHistory(!showCostHistory)}
+                      className="text-blue-600 hover:text-blue-800 text-sm"
+                    >
+                      {showCostHistory ? 'Hide' : 'Show'} History
+                    </button>
+                  </div>
+                  
+                  {suggestedRenewalCost && (
+                    <div className="mb-2">
+                      <span className="text-sm text-blue-700">
+                        Suggested cost: {formatCurrencyAmount(suggestedRenewalCost, formData.currency)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, amount: suggestedRenewalCost })}
+                        className="ml-2 text-blue-600 hover:text-blue-800 text-sm underline"
+                      >
+                        Use suggested
+                      </button>
+                    </div>
+                  )}
+
+                  {showCostHistory && (
+                    <div className="max-h-32 overflow-y-auto">
+                      {renewalCostHistory.length > 0 ? (
+                        <div className="space-y-1">
+                          {renewalCostHistory.map((record, index) => (
+                            <div key={index} className="flex justify-between text-xs text-blue-700">
+                              <span>{new Date(record.date).toLocaleDateString()}</span>
+                              <span>{formatCurrencyAmount(record.cost, record.currency)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-blue-600">No renewal history found</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
