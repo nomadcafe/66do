@@ -185,7 +185,7 @@ export default function TransactionForm({
 
   const currencies = exchangeRateManager.getSupportedCurrencies().map(currency => ({
     value: currency.code,
-    label: `${currency.flag} ${currency.code} - ${currency.name}`
+    label: `${currency.flag} ${currency.code}`
   }));
 
   if (!isOpen) return null;
