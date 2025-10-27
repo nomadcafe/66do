@@ -40,9 +40,9 @@ export default function DateInput({
     return { year: '', month: '', day: '' };
   }, [value]);
 
-  const [year, setYear] = useState(parsedDate.year);
-  const [month, setMonth] = useState(parsedDate.month);
-  const [day, setDay] = useState(parsedDate.day);
+  const [year, setYear] = useState('');
+  const [month, setMonth] = useState('');
+  const [day, setDay] = useState('');
 
   // 同步外部 value 到内部状态
   useEffect(() => {
