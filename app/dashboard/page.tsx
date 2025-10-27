@@ -306,7 +306,7 @@ export default function DashboardPage() {
       for (const domain of newDomains) {
         if (domains.find(d => d.id === domain.id)) {
           // Update existing domain
-          await fetch('/api/domains', {
+          const response = await fetch('/api/domains', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -328,9 +328,14 @@ export default function DashboardPage() {
               }
             })
           });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`Failed to update domain: ${errorData.error || response.statusText}`);
+          }
         } else {
           // Add new domain
-          await fetch('/api/domains', {
+          const response = await fetch('/api/domains', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -355,6 +360,11 @@ export default function DashboardPage() {
               }
             })
           });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`Failed to add domain: ${errorData.error || response.statusText}`);
+          }
         }
       }
       
@@ -362,7 +372,7 @@ export default function DashboardPage() {
       for (const transaction of newTransactions) {
         if (transactions.find(t => t.id === transaction.id)) {
           // Update existing transaction
-          await fetch('/api/transactions', {
+          const response = await fetch('/api/transactions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -381,9 +391,14 @@ export default function DashboardPage() {
               }
             })
           });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`Failed to update transaction: ${errorData.error || response.statusText}`);
+          }
         } else {
           // Add new transaction
-          await fetch('/api/transactions', {
+          const response = await fetch('/api/transactions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -407,6 +422,11 @@ export default function DashboardPage() {
               }
             })
           });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`Failed to add transaction: ${errorData.error || response.statusText}`);
+          }
         }
       }
       
@@ -645,33 +665,51 @@ export default function DashboardPage() {
   };
 
   const handleSaveDomain = async (domainData: Omit<DomainWithTags, 'id'>) => {
+    // 保存当前状态以便回滚
+    const originalDomains = [...domains];
+    
     let updatedDomains: DomainWithTags[];
     
-    if (editingDomain) {
-      // Update existing domain
-      updatedDomains = domains.map(domain => 
-        domain.id === editingDomain.id 
-          ? { ...domainData, id: editingDomain.id, tags: domain.tags }
-          : domain
-      );
-    } else {
-      // Add new domain
-      const newDomain: DomainWithTags = {
-        ...domainData,
-        id: Date.now().toString(),
-        tags: []
-      };
-      updatedDomains = [...domains, newDomain];
+    try {
+      if (editingDomain) {
+        // Update existing domain
+        updatedDomains = domains.map(domain => 
+          domain.id === editingDomain.id 
+            ? { ...domainData, id: editingDomain.id, tags: domain.tags }
+            : domain
+        );
+      } else {
+        // Add new domain
+        const newDomain: DomainWithTags = {
+          ...domainData,
+          id: Date.now().toString(),
+          tags: []
+        };
+        updatedDomains = [...domains, newDomain];
+      }
+      
+      setDomains(updatedDomains);
+      await saveData(updatedDomains, transactions);
+      
+      // 重新加载数据以确保界面显示最新状态
+      await reloadData();
+      
+      setShowDomainForm(false);
+      setEditingDomain(undefined);
+      
+      console.log('Domain saved successfully');
+    } catch (error) {
+      console.error('Error saving domain:', error);
+      
+      // 回滚到原始状态
+      setDomains(originalDomains);
+      
+      // 显示错误信息
+      setError(`Failed to save domain: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // 3秒后清除错误信息
+      setTimeout(() => setError(null), 3000);
     }
-    
-    setDomains(updatedDomains);
-    await saveData(updatedDomains, transactions);
-    
-    // 重新加载数据以确保界面显示最新状态
-    await reloadData();
-    
-    setShowDomainForm(false);
-    setEditingDomain(undefined);
   };
 
   const handleViewDomain = (domain: DomainWithTags) => {
@@ -839,106 +877,126 @@ export default function DashboardPage() {
 
 
   const handleSaveTransaction = async (transactionData: Omit<TransactionWithRequiredFields, 'id'>) => {
+    // 保存当前状态以便回滚
+    const originalDomains = [...domains];
+    const originalTransactions = [...transactions];
+    
     let updatedTransactions: TransactionWithRequiredFields[];
     let updatedDomains = domains;
     
-    if (editingTransaction) {
-      // Update existing transaction
-      const oldTransaction = editingTransaction;
-      const newTransaction = ensureTransactionWithRequiredFields({ ...transactionData, id: editingTransaction.id });
-      
-      updatedTransactions = transactions.map(transaction => 
-        transaction.id === editingTransaction.id ? newTransaction : transaction
-      );
-      setTransactions(updatedTransactions);
-      
-      // 检查交易类型变化，更新域名状态
-      if (oldTransaction.type === 'sell' && newTransaction.type !== 'sell' && oldTransaction.domain_id) {
-        // 从出售交易改为其他类型，需要将域名状态改回 active
-        updatedDomains = domains.map(domain => {
-          if (domain.id === oldTransaction.domain_id) {
-            return {
-              ...domain,
-              status: 'active' as const,
-              sale_date: null,
-              sale_price: null,
-              platform_fee: null
-            };
-          }
-          return domain;
+    try {
+      if (editingTransaction) {
+        // Update existing transaction
+        const oldTransaction = editingTransaction;
+        const newTransaction = ensureTransactionWithRequiredFields({ ...transactionData, id: editingTransaction.id });
+        
+        updatedTransactions = transactions.map(transaction => 
+          transaction.id === editingTransaction.id ? newTransaction : transaction
+        );
+        setTransactions(updatedTransactions);
+        
+        // 检查交易类型变化，更新域名状态
+        if (oldTransaction.type === 'sell' && newTransaction.type !== 'sell' && oldTransaction.domain_id) {
+          // 从出售交易改为其他类型，需要将域名状态改回 active
+          updatedDomains = domains.map(domain => {
+            if (domain.id === oldTransaction.domain_id) {
+              return {
+                ...domain,
+                status: 'active' as const,
+                sale_date: null,
+                sale_price: null,
+                platform_fee: null
+              };
+            }
+            return domain;
+          });
+          setDomains(updatedDomains);
+          console.log('Domain status updated from sold to active');
+        } else if (oldTransaction.type !== 'sell' && newTransaction.type === 'sell' && newTransaction.domain_id) {
+          // 从其他类型改为出售交易，需要将域名状态改为 sold
+          updatedDomains = domains.map(domain => {
+            if (domain.id === newTransaction.domain_id) {
+              return {
+                ...domain,
+                status: 'sold' as const,
+                sale_date: newTransaction.date,
+                sale_price: newTransaction.amount,
+                platform_fee: newTransaction.platform_fee || 0
+              };
+            }
+            return domain;
+          });
+          setDomains(updatedDomains);
+          console.log('Domain status updated to sold');
+        } else if (oldTransaction.type === 'sell' && newTransaction.type === 'sell' && oldTransaction.domain_id === newTransaction.domain_id) {
+          // 出售交易信息更新，需要同步更新域名信息
+          updatedDomains = domains.map(domain => {
+            if (domain.id === newTransaction.domain_id) {
+              return {
+                ...domain,
+                sale_date: newTransaction.date,
+                sale_price: newTransaction.amount,
+                platform_fee: newTransaction.platform_fee || 0
+              };
+            }
+            return domain;
+          });
+          setDomains(updatedDomains);
+          console.log('Domain sale information updated');
+        }
+        
+        await saveData(updatedDomains, updatedTransactions);
+      } else {
+        // Add new transaction
+        const newTransaction: TransactionWithRequiredFields = ensureTransactionWithRequiredFields({
+          ...transactionData,
+          id: Date.now().toString()
         });
-        setDomains(updatedDomains);
-        console.log('Domain status updated from sold to active');
-      } else if (oldTransaction.type !== 'sell' && newTransaction.type === 'sell' && newTransaction.domain_id) {
-        // 从其他类型改为出售交易，需要将域名状态改为 sold
-        updatedDomains = domains.map(domain => {
-          if (domain.id === newTransaction.domain_id) {
-            return {
-              ...domain,
-              status: 'sold' as const,
-              sale_date: newTransaction.date,
-              sale_price: newTransaction.amount,
-              platform_fee: newTransaction.platform_fee || 0
-            };
-          }
-          return domain;
-        });
-        setDomains(updatedDomains);
-        console.log('Domain status updated to sold');
-      } else if (oldTransaction.type === 'sell' && newTransaction.type === 'sell' && oldTransaction.domain_id === newTransaction.domain_id) {
-        // 出售交易信息更新，需要同步更新域名信息
-        updatedDomains = domains.map(domain => {
-          if (domain.id === newTransaction.domain_id) {
-            return {
-              ...domain,
-              sale_date: newTransaction.date,
-              sale_price: newTransaction.amount,
-              platform_fee: newTransaction.platform_fee || 0
-            };
-          }
-          return domain;
-        });
-        setDomains(updatedDomains);
-        console.log('Domain sale information updated');
+        updatedTransactions = [...transactions, newTransaction];
+        setTransactions(updatedTransactions);
+        
+        // 先更新域名状态（如果适用）
+        if (newTransaction.type === 'sell' && newTransaction.domain_id) {
+          updatedDomains = domains.map(domain => {
+            if (domain.id === newTransaction.domain_id) {
+              return {
+                ...domain,
+                status: 'sold' as const,
+                sale_date: newTransaction.date,
+                sale_price: newTransaction.amount,
+                platform_fee: newTransaction.platform_fee || 0
+              };
+            }
+            return domain;
+          });
+          setDomains(updatedDomains);
+          console.log('Domain status updated to sold');
+        }
+        
+        // 保存交易和更新后的域名状态
+        await saveData(updatedDomains, updatedTransactions);
       }
       
-      await saveData(updatedDomains, updatedTransactions);
-    } else {
-      // Add new transaction
-      const newTransaction: TransactionWithRequiredFields = ensureTransactionWithRequiredFields({
-        ...transactionData,
-        id: Date.now().toString()
-      });
-      updatedTransactions = [...transactions, newTransaction];
-      setTransactions(updatedTransactions);
+      // 重新加载数据以确保界面显示最新状态
+      await reloadData();
       
-      // 先更新域名状态（如果适用）
-      if (newTransaction.type === 'sell' && newTransaction.domain_id) {
-        updatedDomains = domains.map(domain => {
-          if (domain.id === newTransaction.domain_id) {
-            return {
-              ...domain,
-              status: 'sold' as const,
-              sale_date: newTransaction.date,
-              sale_price: newTransaction.amount,
-              platform_fee: newTransaction.platform_fee || 0
-            };
-          }
-          return domain;
-        });
-        setDomains(updatedDomains);
-        console.log('Domain status updated to sold');
-      }
+      setShowTransactionForm(false);
+      setEditingTransaction(undefined);
       
-      // 保存交易和更新后的域名状态
-      await saveData(updatedDomains, updatedTransactions);
+      console.log('Transaction saved successfully');
+    } catch (error) {
+      console.error('Error saving transaction:', error);
+      
+      // 回滚到原始状态
+      setDomains(originalDomains);
+      setTransactions(originalTransactions);
+      
+      // 显示错误信息
+      setError(`Failed to save transaction: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // 3秒后清除错误信息
+      setTimeout(() => setError(null), 3000);
     }
-    
-    // 重新加载数据以确保界面显示最新状态
-    await reloadData();
-    
-    setShowTransactionForm(false);
-    setEditingTransaction(undefined);
   };
 
 
