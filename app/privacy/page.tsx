@@ -232,7 +232,7 @@ export default function PrivacyPage() {
               
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                 <p className="text-green-800">
-                  <strong>{t('privacy.contact.email')}:</strong> privacy@66do.com
+                  <strong>{t('privacy.contact.email')}:</strong> hello@66do.com
                 </p>
                 <p className="text-green-800 mt-2">
                   <strong>{t('privacy.contact.response')}</strong>
