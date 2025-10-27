@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { DomainService } from '../../../src/lib/supabaseService'
 import { validateDomain, sanitizeDomainData } from '../../../src/lib/validation'
-import { supabase } from '../../../src/lib/supabase'
+import { getUserIdFromRequest } from '../../../src/lib/auth-helper'
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,15 +9,13 @@ export async function POST(request: NextRequest) {
     const { action, domain, domains } = body
 
     // 验证用户身份
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !session) {
+    const userId = await getUserIdFromRequest(request);
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { 
         status: 401,
         headers: { 'Content-Type': 'application/json' }
       })
     }
-
-    const userId = session.user.id;
 
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',

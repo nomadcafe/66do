@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '../../../src/lib/supabase';
 import { getCorsHeaders, getCorsHeadersForError } from '../../../src/lib/cors';
+import { getUserIdFromRequest } from '../../../src/lib/auth-helper';
+import { supabase } from '../../../src/lib/supabase';
 
 export async function GET(request: NextRequest) {
   const corsHeaders = getCorsHeaders(request);
@@ -17,8 +18,8 @@ export async function GET(request: NextRequest) {
     }
 
     // 验证用户身份
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !session) {
+    const userId = await getUserIdFromRequest(request);
+    if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401, headers: corsHeaders }
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
       .from('domains')
       .select('id, user_id')
       .eq('id', domainId)
-      .eq('user_id', session.user.id)
+      .eq('user_id', userId)
       .single();
 
     if (domainError || !domain) {
@@ -87,8 +88,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 验证用户身份
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !session) {
+    const userId = await getUserIdFromRequest(request);
+    if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401, headers: corsHeaders }
@@ -100,7 +101,7 @@ export async function POST(request: NextRequest) {
       .from('domains')
       .select('id, user_id')
       .eq('id', domain_id)
-      .eq('user_id', session.user.id)
+      .eq('user_id', userId)
       .single();
 
     if (domainError || !domain) {
