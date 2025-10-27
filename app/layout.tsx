@@ -18,6 +18,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "66Do - Domain Investment Platform",
   description: "Professional domain investment management tools to help you track domain portfolios, monitor renewals, and maximize returns",
+  icons: {
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
