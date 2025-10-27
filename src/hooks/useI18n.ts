@@ -432,18 +432,18 @@ const translations: Record<Locale, Translations> = {
     },
     benefits: {
       title: '为什么选择我们',
-      subtitle: '专业的域名投资管理解决方案',
+      subtitle: '简单智能的域名管理与分析工具',
       portfolio: {
-        title: '投资组合追踪',
-        desc: '实时监控您的域名投资组合表现'
+        title: '域名管理',
+        desc: '统一记录与追踪所有域名状态'
       },
       analytics: {
-        title: '投资分析',
-        desc: '深度分析投资数据，提供专业洞察'
+        title: '数据概览',
+        desc: '一目了然地了解你的域名表现'
       },
       market: {
-        title: '市场洞察',
-        desc: '获取最新的域名市场趋势和机会'
+        title: '灵感与趋势',
+        desc: '优化成本，发现买卖机会'
       }
     },
     footer: {
@@ -881,18 +881,18 @@ const translations: Record<Locale, Translations> = {
     },
     benefits: {
       title: 'Why Choose Us',
-      subtitle: 'Professional domain investment management solution',
+      subtitle: 'Simple and intelligent domain management and analysis tools',
       portfolio: {
-        title: 'Portfolio Tracking',
-        desc: 'Real-time monitoring of your domain investment portfolio performance'
+        title: 'Domain Management',
+        desc: 'Unified recording and tracking of all domain statuses'
       },
       analytics: {
-        title: 'Investment Analytics',
-        desc: 'Deep analysis of investment data with professional insights'
+        title: 'Data Overview',
+        desc: 'Understand your domain performance at a glance'
       },
       market: {
-        title: 'Market Insights',
-        desc: 'Get the latest domain market trends and opportunities'
+        title: 'Inspiration & Trends',
+        desc: 'Optimize costs and discover buying and selling opportunities'
       }
     },
     footer: {
