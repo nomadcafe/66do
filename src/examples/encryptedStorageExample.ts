@@ -39,7 +39,7 @@ export class EncryptedDashboardExample {
   }
 
   // 创建加密的域名
-  async createDomain(domainData: any) {
+  async createDomain(domainData: Record<string, unknown>) {
     try {
       const newDomain = await EncryptedDomainService.createDomain(domainData, this.userId);
       console.log('Created encrypted domain:', newDomain);
@@ -63,7 +63,7 @@ export class EncryptedDashboardExample {
   }
 
   // 创建加密的交易
-  async createTransaction(transactionData: any) {
+  async createTransaction(transactionData: Record<string, unknown>) {
     try {
       const newTransaction = await EncryptedTransactionService.createTransaction(transactionData, this.userId);
       console.log('Created encrypted transaction:', newTransaction);
@@ -90,11 +90,11 @@ export async function exampleUsage() {
   await dashboard.initializeEncryption();
 
   // 2. 获取数据（自动解密）
-  const domains = await dashboard.getDomains();
-  const transactions = await dashboard.getTransactions();
+  await dashboard.getDomains();
+  await dashboard.getTransactions();
 
   // 3. 创建数据（自动加密）
-  const newDomain = await dashboard.createDomain({
+  await dashboard.createDomain({
     domain_name: 'example.com',
     registrar: 'GoDaddy',
     purchase_cost: 100,

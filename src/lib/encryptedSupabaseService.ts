@@ -1,7 +1,8 @@
 // 加密的Supabase服务
 import { supabase } from './supabase';
 import { encryptedStorage } from './encryptedStorage';
-import { Domain, DomainTransaction } from './supabaseService';
+import { Domain } from './supabaseService';
+import { DomainTransaction } from '../types/domain';
 
 export class EncryptedDomainService {
   // 获取加密的域名列表
@@ -18,11 +19,11 @@ export class EncryptedDomainService {
     }
     
     // 解密数据
-    return encryptedStorage.decryptDomains(data || [], userId);
+    return encryptedStorage.decryptDomains(data || [], userId) as unknown as Domain[];
   }
 
   // 创建加密的域名
-  static async createDomain(domain: any, userId: string): Promise<Domain | null> {
+  static async createDomain(domain: Record<string, unknown>, userId: string): Promise<Domain | null> {
     try {
       // 加密域名数据
       const encryptedDomain = encryptedStorage.encryptDomain(domain, userId);
@@ -39,7 +40,7 @@ export class EncryptedDomainService {
       }
       
       // 解密返回的数据
-      return encryptedStorage.decryptDomain(data, userId);
+      return encryptedStorage.decryptDomain(data, userId) as unknown as Domain;
     } catch (error) {
       console.error('Error creating domain:', error);
       return null;
@@ -47,7 +48,7 @@ export class EncryptedDomainService {
   }
 
   // 更新加密的域名
-  static async updateDomain(id: string, updates: any, userId: string): Promise<Domain | null> {
+  static async updateDomain(id: string, updates: Record<string, unknown>, userId: string): Promise<Domain | null> {
     try {
       // 加密更新数据
       const encryptedUpdates = encryptedStorage.encryptDomain(updates, userId);
@@ -65,7 +66,7 @@ export class EncryptedDomainService {
       }
       
       // 解密返回的数据
-      return encryptedStorage.decryptDomain(data, userId);
+      return encryptedStorage.decryptDomain(data, userId) as unknown as Domain;
     } catch (error) {
       console.error('Error updating domain:', error);
       return null;
@@ -106,11 +107,11 @@ export class EncryptedTransactionService {
     }
     
     // 解密数据
-    return encryptedStorage.decryptTransactions(data || [], userId);
+    return encryptedStorage.decryptTransactions(data || [], userId) as unknown as DomainTransaction[];
   }
 
   // 创建加密的交易
-  static async createTransaction(transaction: any, userId: string): Promise<DomainTransaction | null> {
+  static async createTransaction(transaction: Record<string, unknown>, userId: string): Promise<DomainTransaction | null> {
     try {
       // 加密交易数据
       const encryptedTransaction = encryptedStorage.encryptTransaction(transaction, userId);
@@ -127,7 +128,7 @@ export class EncryptedTransactionService {
       }
       
       // 解密返回的数据
-      return encryptedStorage.decryptTransaction(data, userId);
+      return encryptedStorage.decryptTransaction(data, userId) as unknown as DomainTransaction;
     } catch (error) {
       console.error('Error creating transaction:', error);
       return null;
@@ -135,7 +136,7 @@ export class EncryptedTransactionService {
   }
 
   // 更新加密的交易
-  static async updateTransaction(id: string, updates: any, userId: string): Promise<DomainTransaction | null> {
+  static async updateTransaction(id: string, updates: Record<string, unknown>, userId: string): Promise<DomainTransaction | null> {
     try {
       // 加密更新数据
       const encryptedUpdates = encryptedStorage.encryptTransaction(updates, userId);
@@ -153,7 +154,7 @@ export class EncryptedTransactionService {
       }
       
       // 解密返回的数据
-      return encryptedStorage.decryptTransaction(data, userId);
+      return encryptedStorage.decryptTransaction(data, userId) as unknown as DomainTransaction;
     } catch (error) {
       console.error('Error updating transaction:', error);
       return null;
