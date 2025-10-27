@@ -75,7 +75,7 @@ export function calculateDomainROI(
   const totalInvestment = purchaseCost + renewalCost;
   
   // 销售收入
-  const salesTransactions = domainTransactions.filter(t => t.type === 'sell');
+  const salesTransactions = domainTransactions.filter(t => t.type === 'sell' || t.type === 'installment_payment');
   const totalSales = salesTransactions.reduce((sum, t) => sum + t.amount, 0);
   const netRevenue = salesTransactions.reduce((sum, t) => sum + (t.net_amount || t.amount), 0);
   
@@ -172,7 +172,7 @@ export function calculateEnhancedFinancialMetrics(
 ): EnhancedFinancialMetrics {
   
   // 分析交易记录
-  const salesTransactions = transactions.filter(t => t.type === 'sell');
+  const salesTransactions = transactions.filter(t => t.type === 'sell' || t.type === 'installment_payment');
   const totalSales = salesTransactions.reduce((sum, t) => sum + t.amount, 0);
   const totalPlatformFees = salesTransactions.reduce((sum, t) => sum + (t.platform_fee || 0), 0);
   const totalNetRevenue = salesTransactions.reduce((sum, t) => sum + (t.net_amount || t.amount), 0);
@@ -195,7 +195,7 @@ export function calculateEnhancedFinancialMetrics(
     return transactionDate.getFullYear() === currentYear;
   });
   
-  const yearSalesTransactions = yearTransactions.filter(t => t.type === 'sell');
+  const yearSalesTransactions = yearTransactions.filter(t => t.type === 'sell' || t.type === 'installment_payment');
   const annualSales = yearSalesTransactions.reduce((sum, t) => sum + t.amount, 0);
   const annualNetRevenue = yearSalesTransactions.reduce((sum, t) => sum + (t.net_amount || t.amount), 0);
   const annualProfit = annualNetRevenue - totalHoldingCost; // 这里需要更精确的计算

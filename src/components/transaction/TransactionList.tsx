@@ -88,6 +88,10 @@ export default function TransactionList({
         return 'bg-red-100 text-red-800';
       case 'sell':
         return 'bg-green-100 text-green-800';
+      case 'installment_payment':
+        return 'bg-emerald-100 text-emerald-800';
+      case 'installment_refund':
+        return 'bg-orange-100 text-orange-800';
       case 'renew':
         return 'bg-blue-100 text-blue-800';
       case 'transfer':
@@ -105,13 +109,15 @@ export default function TransactionList({
 
   const getTypeLabel = (type: string) => {
     switch (type) {
-      case 'buy': return 'Purchase';
-      case 'sell': return 'Sale';
-      case 'renew': return 'Renewal';
-      case 'transfer': return 'Transfer';
-      case 'fee': return 'Fee';
-      case 'marketing': return 'Marketing';
-      case 'advertising': return 'Advertising';
+      case 'buy': return t('transaction.buy');
+      case 'sell': return t('transaction.sell');
+      case 'installment_payment': return t('transaction.installmentPayment');
+      case 'installment_refund': return t('transaction.installmentRefund');
+      case 'renew': return t('transaction.renew');
+      case 'transfer': return t('transaction.transfer');
+      case 'fee': return t('transaction.fee');
+      case 'marketing': return t('transaction.marketing');
+      case 'advertising': return t('transaction.advertising');
       default: return type;
     }
   };

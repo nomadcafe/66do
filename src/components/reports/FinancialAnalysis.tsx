@@ -39,7 +39,7 @@ interface Domain {
 interface Transaction {
   id: string;
   domain_id: string;
-  type: 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising';
+  type: 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising' | 'installment_payment' | 'installment_refund';
   amount: number;
   currency: string;
   exchange_rate?: number;
@@ -99,7 +99,7 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
     }, 0);
 
     const totalRevenue = transactions
-      .filter(t => t.type === 'sell')
+      .filter(t => t.type === 'sell' || t.type === 'installment_payment')
       .reduce((sum, t) => sum + (t.net_amount || t.amount), 0);
 
     const totalProfit = totalRevenue - totalInvestment;
@@ -125,7 +125,7 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
         .filter(t => t.type === 'buy' || t.type === 'renew' || t.type === 'fee')
         .reduce((sum, t) => sum + t.amount, 0);
       const totalEarned = domainTransactions
-        .filter(t => t.type === 'sell')
+        .filter(t => t.type === 'sell' || t.type === 'installment_payment')
         .reduce((sum, t) => sum + t.amount, 0);
       const profit = totalEarned - totalSpent;
       const roi = totalSpent > 0 ? (profit / totalSpent) * 100 : 0;
@@ -162,7 +162,7 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
                transactionDate.getFullYear() === date.getFullYear();
       });
       return monthTransactions
-        .filter(t => t.type === 'sell')
+        .filter(t => t.type === 'sell' || t.type === 'installment_payment')
         .reduce((sum, t) => sum + t.amount, 0);
     });
 

@@ -22,7 +22,7 @@ export interface Domain {
 export interface DomainTransaction {
   id: string;
   domain_id: string;
-  type: 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising';
+  type: 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising' | 'installment_payment' | 'installment_refund';
   amount: number;
   currency: string;
   exchange_rate?: number; // 汇率

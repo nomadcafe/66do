@@ -51,7 +51,7 @@ interface Domain {
 interface Transaction {
   id: string;
   domain_id: string;
-  type: 'buy' | 'sell' | 'renew' | 'transfer' | 'fee' | 'marketing' | 'advertising';
+  type: 'buy' | 'sell' | 'renew' | 'transfer' | 'fee' | 'marketing' | 'advertising' | 'installment_payment' | 'installment_refund';
   amount: number;
   currency: string;
   date: string;
@@ -152,7 +152,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       }, 0);
 
       const revenue = monthTransactions
-        .filter(t => t.type === 'sell')
+        .filter(t => t.type === 'sell' || t.type === 'installment_payment')
         .reduce((sum, t) => sum + (t.net_amount || t.amount), 0);
 
       const profit = revenue - investment;

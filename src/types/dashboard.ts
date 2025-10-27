@@ -8,7 +8,7 @@ export interface DomainWithTags extends Omit<Domain, 'tags'> {
 // 扩展Transaction类型，确保所有必需字段存在
 export interface TransactionWithRequiredFields extends Transaction {
   domain_id: string;
-  type: 'buy' | 'sell' | 'renew' | 'transfer' | 'fee';
+  type: 'buy' | 'sell' | 'renew' | 'transfer' | 'fee' | 'installment_payment' | 'installment_refund';
   amount: number;
   date: string;
 }

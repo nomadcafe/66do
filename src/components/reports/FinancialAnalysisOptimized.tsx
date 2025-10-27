@@ -85,11 +85,11 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
   // 年度增长计算
   const currentYear = new Date().getFullYear();
   const currentYearRevenue = transactions
-    .filter(t => t.type === 'sell' && new Date(t.date).getFullYear() === currentYear)
+    .filter(t => (t.type === 'sell' || t.type === 'installment_payment') && new Date(t.date).getFullYear() === currentYear)
     .reduce((sum, t) => sum + t.amount, 0);
   
   const lastYearRevenue = transactions
-    .filter(t => t.type === 'sell' && new Date(t.date).getFullYear() === currentYear - 1)
+    .filter(t => (t.type === 'sell' || t.type === 'installment_payment') && new Date(t.date).getFullYear() === currentYear - 1)
     .reduce((sum, t) => sum + t.amount, 0);
   
   const yearlyGrowth = lastYearRevenue > 0 ? ((currentYearRevenue - lastYearRevenue) / lastYearRevenue) * 100 : 0;
