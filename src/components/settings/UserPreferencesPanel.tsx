@@ -161,19 +161,19 @@ export default function UserPreferencesPanel() {
   const renderGeneralSettings = () => (
     <div className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">语言</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.language')}</label>
         <select
           value={preferences.language}
           onChange={(e) => updatePreference('language', e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <option value="zh">中文</option>
-          <option value="en">English</option>
+          <option value="zh">{t('settings.chinese')}</option>
+          <option value="en">{t('settings.english')}</option>
         </select>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">时区</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.timezone')}</label>
         <select
           value={preferences.timezone}
           onChange={(e) => updatePreference('timezone', e.target.value)}
@@ -187,12 +187,12 @@ export default function UserPreferencesPanel() {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">主题</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.theme')}</label>
         <div className="flex space-x-4">
           {[
-            { value: 'light', label: '浅色', icon: Sun },
-            { value: 'dark', label: '深色', icon: Moon },
-            { value: 'auto', label: '自动', icon: Monitor }
+            { value: 'light', label: t('settings.lightTheme'), icon: Sun },
+            { value: 'dark', label: t('settings.darkTheme'), icon: Moon },
+            { value: 'auto', label: t('settings.autoTheme'), icon: Monitor }
           ].map(({ value, label, icon: Icon }) => (
             <label key={value} className="flex items-center space-x-2 cursor-pointer">
               <input
@@ -215,15 +215,15 @@ export default function UserPreferencesPanel() {
   const renderNotificationSettings = () => (
     <div className="space-y-6">
       <div className="space-y-4">
-        <h4 className="text-sm font-medium text-gray-900">通知类型</h4>
+        <h4 className="text-sm font-medium text-gray-900">{t('settings.notificationTypes')}</h4>
         
         {[
-          { key: 'email', label: '邮件通知', icon: Mail },
-          { key: 'push', label: '推送通知', icon: Smartphone },
-          { key: 'renewalReminders', label: '续费提醒', icon: Calendar },
-          { key: 'saleOpportunities', label: '出售机会', icon: DollarSign },
-          { key: 'priceAlerts', label: '价格提醒', icon: Bell },
-          { key: 'weeklyReports', label: '周报', icon: Clock }
+          { key: 'email', label: t('settings.emailNotifications'), icon: Mail },
+          { key: 'push', label: t('settings.pushNotifications'), icon: Smartphone },
+          { key: 'renewalReminders', label: t('settings.renewalReminders'), icon: Calendar },
+          { key: 'saleOpportunities', label: t('settings.saleOpportunities'), icon: DollarSign },
+          { key: 'priceAlerts', label: t('settings.priceAlerts'), icon: Bell },
+          { key: 'weeklyReports', label: t('settings.weeklyReports'), icon: Clock }
         ].map(({ key, label, icon: Icon }) => (
           <div key={key} className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -248,23 +248,23 @@ export default function UserPreferencesPanel() {
   const renderPrivacySettings = () => (
     <div className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">资料可见性</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.profileVisibility')}</label>
         <select
           value={preferences.privacy.profileVisibility}
           onChange={(e) => updatePreference('privacy.profileVisibility', e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <option value="public">公开</option>
-          <option value="friends">仅好友</option>
-          <option value="private">私密</option>
+          <option value="public">{t('settings.public')}</option>
+          <option value="friends">{t('settings.friendsOnly')}</option>
+          <option value="private">{t('settings.private')}</option>
         </select>
       </div>
 
       <div className="space-y-4">
         {[
-          { key: 'showStats', label: '显示统计数据', description: '允许其他用户查看你的投资统计' },
-          { key: 'showPortfolio', label: '显示投资组合', description: '允许其他用户查看你的域名列表' },
-          { key: 'allowAnalytics', label: '允许数据分析', description: '帮助改进产品功能' }
+          { key: 'showStats', label: t('settings.showStats'), description: t('settings.showStatsDesc') },
+          { key: 'showPortfolio', label: t('settings.showPortfolio'), description: t('settings.showPortfolioDesc') },
+          { key: 'allowAnalytics', label: t('settings.allowAnalytics'), description: t('settings.allowAnalyticsDesc') }
         ].map(({ key, label, description }) => (
           <div key={key} className="flex items-start justify-between">
             <div className="flex-1">
@@ -289,7 +289,7 @@ export default function UserPreferencesPanel() {
   const renderInvestmentSettings = () => (
     <div className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">默认货币</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.defaultCurrency')}</label>
         <select
           value={preferences.investment.defaultCurrency}
           onChange={(e) => updatePreference('investment.defaultCurrency', e.target.value)}
@@ -303,12 +303,12 @@ export default function UserPreferencesPanel() {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">风险承受能力</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.riskTolerance')}</label>
         <div className="space-y-2">
           {[
-            { value: 'low', label: '保守型', description: '偏好稳定收益' },
-            { value: 'medium', label: '平衡型', description: '风险与收益平衡' },
-            { value: 'high', label: '激进型', description: '追求高收益' }
+            { value: 'low', label: t('settings.conservative'), description: t('settings.conservativeDesc') },
+            { value: 'medium', label: t('settings.balanced'), description: t('settings.balancedDesc') },
+            { value: 'high', label: t('settings.aggressive'), description: t('settings.aggressiveDesc') }
           ].map(({ value, label, description }) => (
             <label key={value} className="flex items-center space-x-3 cursor-pointer">
               <input
@@ -329,7 +329,7 @@ export default function UserPreferencesPanel() {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">价格提醒阈值 (%)</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.priceAlertThreshold')} (%)</label>
         <input
           type="number"
           min="1"
@@ -338,13 +338,13 @@ export default function UserPreferencesPanel() {
           onChange={(e) => updatePreference('investment.priceAlertThreshold', parseInt(e.target.value))}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <p className="text-xs text-gray-500 mt-1">当域名价值变化超过此百分比时提醒</p>
+        <p className="text-xs text-gray-500 mt-1">{t('settings.priceAlertThresholdDesc')}</p>
       </div>
 
       <div className="flex items-center justify-between">
         <div>
-          <span className="text-sm font-medium text-gray-900">自动续费</span>
-          <p className="text-xs text-gray-500">域名到期时自动续费</p>
+          <span className="text-sm font-medium text-gray-900">{t('settings.autoRenewal')}</span>
+          <p className="text-xs text-gray-500">{t('settings.autoRenewalDesc')}</p>
         </div>
         <label className="relative inline-flex items-center cursor-pointer">
           <input
@@ -362,11 +362,11 @@ export default function UserPreferencesPanel() {
   const renderDisplaySettings = () => (
     <div className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">默认视图</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.defaultView')}</label>
         <div className="flex space-x-4">
           {[
-            { value: 'grid', label: '网格视图', icon: Grid },
-            { value: 'list', label: '列表视图', icon: List }
+            { value: 'grid', label: t('settings.gridView'), icon: Grid },
+            { value: 'list', label: t('settings.listView'), icon: List }
           ].map(({ value, label, icon: Icon }) => (
             <label key={value} className="flex items-center space-x-2 cursor-pointer">
               <input
@@ -385,7 +385,7 @@ export default function UserPreferencesPanel() {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">每页显示数量</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.itemsPerPage')}</label>
         <select
           value={preferences.display.itemsPerPage}
           onChange={(e) => updatePreference('display.itemsPerPage', parseInt(e.target.value))}
@@ -400,8 +400,8 @@ export default function UserPreferencesPanel() {
 
       <div className="space-y-4">
         {[
-          { key: 'showAdvancedStats', label: '显示高级统计', description: '显示详细的投资分析数据' },
-          { key: 'compactMode', label: '紧凑模式', description: '减少界面间距，显示更多内容' }
+          { key: 'showAdvancedStats', label: t('settings.showAdvancedStats'), description: t('settings.showAdvancedStatsDesc') },
+          { key: 'compactMode', label: t('settings.compactMode'), description: t('settings.compactModeDesc') }
         ].map(({ key, label, description }) => (
           <div key={key} className="flex items-start justify-between">
             <div className="flex-1">
