@@ -100,7 +100,7 @@ export class DomainService {
     const { data, error } = await supabase
       .from('domains')
       .select('*')
-      .eq('user_id', userId)
+      .eq('owner_user_id', userId)
       .order('created_at', { ascending: false })
     
     if (error) {
@@ -176,7 +176,7 @@ export class TransactionService {
     const { data, error } = await supabase
       .from('domain_transactions')
       .select('*')
-      .eq('user_id', userId)
+      .eq('owner_user_id', userId)
       .order('date', { ascending: false })
     
     if (error) {
@@ -314,7 +314,7 @@ export async function loadDomainsFromSupabase(userId: string): Promise<DataServi
     const { data, error } = await supabase
       .from('domains')
       .select('*')
-      .eq('user_id', userId)
+      .eq('owner_user_id', userId)
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -346,7 +346,7 @@ export async function loadTransactionsFromSupabase(userId: string): Promise<Data
     const { data, error } = await supabase
       .from('domain_transactions')
       .select('*')
-      .eq('user_id', userId)
+      .eq('owner_user_id', userId)
       .order('created_at', { ascending: false })
 
     if (error) {

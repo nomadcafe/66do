@@ -18,7 +18,8 @@ export default function AdvancedRenewalAnalysis({ domains }: AdvancedRenewalAnal
     const loadAnalysis = async () => {
       setLoading(true);
       try {
-        const analysisData = await RenewalCostService.calculateAnnualRenewalCostAnalysis(selectedYear);
+        // 使用传入的domains数据而不是直接查询数据库
+        const analysisData = await RenewalCostService.calculateAnnualRenewalCostAnalysisFromDomains(domains, selectedYear);
         setAnalysis(analysisData);
       } catch (error) {
         console.error('Error loading renewal analysis:', error);
@@ -28,7 +29,7 @@ export default function AdvancedRenewalAnalysis({ domains }: AdvancedRenewalAnal
     };
 
     loadAnalysis();
-  }, [selectedYear]);
+  }, [selectedYear, domains]);
 
   if (loading) {
     return (

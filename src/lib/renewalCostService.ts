@@ -47,7 +47,7 @@ export interface AnnualRenewalCostAnalysis {
 }
 
 export class RenewalCostService {
-  // 获取域名的续费成本历史
+  // 获取域名的续费成本历史（通过RLS策略自动过滤）
   static async getDomainRenewalCostHistory(domainId: string): Promise<RenewalCostHistory[]> {
     const { data, error } = await supabase
       .from('renewal_cost_history')
@@ -117,17 +117,15 @@ export class RenewalCostService {
     };
   }
 
-  // 计算年度续费成本分析
-  static async calculateAnnualRenewalCostAnalysis(
+  // 计算年度续费成本分析（基于传入的域名数据）
+  static async calculateAnnualRenewalCostAnalysisFromDomains(
+    domains: any[],
     year: number = new Date().getFullYear()
   ): Promise<AnnualRenewalCostAnalysis> {
-    // 获取所有活跃域名
-    const { data: domains } = await supabase
-      .from('domains')
-      .select('id, domain_name, renewal_cost, renewal_cycle, expiry_date, registrar')
-      .eq('status', 'active');
+    // 过滤出活跃域名
+    const activeDomains = domains.filter(domain => domain.status === 'active');
 
-    if (!domains) {
+    if (activeDomains.length === 0) {
       return this.getEmptyAnnualAnalysis(year);
     }
 
@@ -154,7 +152,7 @@ export class RenewalCostService {
       costByMonth[month.toString()] = 0;
     }
 
-    domains.forEach(domain => {
+    activeDomains.forEach(domain => {
       if (!domain.expiry_date) return;
 
       const expiryDate = new Date(domain.expiry_date);
@@ -180,7 +178,7 @@ export class RenewalCostService {
     });
 
     // 计算成本趋势
-    const costTrends = await this.calculateCostTrends(domains);
+    const costTrends = await this.calculateCostTrends(activeDomains);
 
     return {
       year,
