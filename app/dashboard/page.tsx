@@ -513,6 +513,13 @@ export default function DashboardPage() {
     const soldDomains = financialMetrics.soldDomains;
     const expiredDomains = domains.filter(d => d.status === 'expired').length;
     
+    // 调试信息：检查 sold 域名统计
+    const actualSoldDomains = domains.filter(d => d.status === 'sold').length;
+    if (soldDomains !== actualSoldDomains) {
+      console.warn(`Sold domains count mismatch: financialMetrics.soldDomains=${soldDomains}, actual=${actualSoldDomains}`);
+      console.log('Domains with sold status:', domains.filter(d => d.status === 'sold').map(d => ({ id: d.id, name: d.domain_name, status: d.status })));
+    }
+    
     const avgPurchasePrice = financialMetrics.avgPurchasePrice;
     const avgSalePrice = financialMetrics.avgSalePrice;
     const avgRenewalCost = activeDomains > 0 ? totalRenewalCost / activeDomains : 0;
