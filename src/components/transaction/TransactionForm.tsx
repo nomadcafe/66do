@@ -30,7 +30,7 @@ export default function TransactionForm({
   const { t } = useI18nContext();
   const [formData, setFormData] = useState({
     domain_id: '',
-    type: 'buy' as 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising',
+    type: 'buy' as 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising' | 'installment_payment',
     amount: 0,
     currency: 'USD',
     exchange_rate: 1,
@@ -98,7 +98,7 @@ export default function TransactionForm({
     } else {
       setFormData({
         domain_id: '',
-        type: 'buy' as 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising',
+        type: 'buy' as 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising' | 'installment_payment',
         amount: 0,
         currency: 'USD',
         exchange_rate: 1,
@@ -221,6 +221,7 @@ export default function TransactionForm({
     { value: 'buy', label: 'Purchase' },
     { value: 'renew', label: 'Renewal' },
     { value: 'sell', label: 'Sale' },
+    { value: 'installment_payment', label: 'Installment Payment' },
     { value: 'transfer', label: 'Transfer' },
     { value: 'fee', label: 'Fee' },
     { value: 'marketing', label: 'Marketing' },
@@ -486,9 +487,11 @@ export default function TransactionForm({
           )}
 
           {/* 分期付款配置 */}
-          {formData.type === 'sell' && (
+          {(formData.type === 'sell' || formData.type === 'installment_payment') && (
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-              <h3 className="text-lg font-medium text-blue-900 mb-4">{t('transaction.installmentConfig')}</h3>
+              <h3 className="text-lg font-medium text-blue-900 mb-4">
+                {formData.type === 'installment_payment' ? t('transaction.installmentPayment') : t('transaction.installmentConfig')}
+              </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -505,11 +508,11 @@ export default function TransactionForm({
                   </select>
                 </div>
 
-                {formData.payment_plan === 'installment' && (
+                {(formData.payment_plan === 'installment' || formData.type === 'installment_payment') && (
                   <>
                     <div>
                       <label className="block text-sm font-medium text-blue-800 mb-2">
-                        {t('transaction.installmentPeriod')}
+                        {formData.type === 'installment_payment' ? t('transaction.currentPeriod') : t('transaction.installmentPeriod')}
                       </label>
                       <input
                         type="number"
@@ -518,7 +521,7 @@ export default function TransactionForm({
                         value={formData.installment_period}
                         onChange={(e) => setFormData({ ...formData, installment_period: parseInt(e.target.value) || 1 })}
                         className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="12"
+                        placeholder={formData.type === 'installment_payment' ? "1" : "12"}
                       />
                     </div>
 

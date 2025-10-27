@@ -54,7 +54,7 @@ export function calculateBasicFinancialMetrics(
   }, 0);
 
   const totalRevenue = transactions
-    .filter(t => t.type === 'sell')
+    .filter(t => t.type === 'sell' || t.type === 'installment_payment')
     .reduce((sum, t) => sum + (t.net_amount || t.amount), 0);
 
   const totalProfit = totalRevenue - totalInvestment;
@@ -85,7 +85,7 @@ export function calculateDomainPerformance(
     const domainTransactions = transactions.filter(t => t.domain_id === domain.id);
     
     const totalEarned = domainTransactions
-      .filter(t => t.type === 'sell')
+      .filter(t => t.type === 'sell' || t.type === 'installment_payment')
       .reduce((sum, t) => sum + (t.net_amount || t.amount), 0);
     
     const revenue = domain.sale_price || domain.estimated_value || totalEarned;
@@ -145,7 +145,7 @@ export function calculateMonthlyReturns(
     });
     
     return monthTransactions
-      .filter(t => t.type === 'sell')
+      .filter(t => t.type === 'sell' || t.type === 'installment_payment')
       .reduce((sum, t) => sum + (t.net_amount || t.amount), 0);
   });
 }
