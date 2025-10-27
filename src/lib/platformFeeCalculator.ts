@@ -274,10 +274,12 @@ export function calculateCustomerTotalFromInstallment(
 
 /**
  * 根据已付期数计算实际收到的金额和平台费用
+ * 正确的逻辑：先计算总费用结构，然后按已付期数比例计算
  */
 export function calculatePaidAmountFromInstallment(
   installmentAmount: number,
   paidPeriods: number,
+  totalPeriods: number,
   platformFeeType: string,
   customFeeRate?: number,
   escrowFee?: number,
@@ -285,16 +287,42 @@ export function calculatePaidAmountFromInstallment(
   userInputFeeRate?: number,
   userInputSurchargeRate?: number
 ): PlatformFeeResult {
-  const sellerAmount = installmentAmount * paidPeriods;
-  
-  return calculatePlatformFee({
+  // 先计算总的费用结构（基于总期数）
+  const totalSellerAmount = installmentAmount * totalPeriods;
+  const totalResult = calculatePlatformFee({
     type: platformFeeType as 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment',
-    installmentPeriod: paidPeriods, // 使用已付期数计算费用
-    sellerAmount,
+    installmentPeriod: totalPeriods,
+    sellerAmount: totalSellerAmount,
     customFeeRate,
     escrowFee,
     domainHoldingFee,
     userInputFeeRate,
     userInputSurchargeRate,
   });
+
+  // 计算已付期数的比例
+  const paidRatio = paidPeriods / totalPeriods;
+
+  // 按比例计算已付部分
+  const sellerAmount = installmentAmount * paidPeriods;
+  const customerTotalAmount = totalResult.customerTotalAmount * paidRatio;
+  const platformFee = totalResult.platformFee * paidRatio;
+  const platformFeeRate = totalResult.platformFeeRate; // 平台费用率保持不变
+
+  return {
+    customerTotalAmount,
+    platformFee,
+    platformFeeRate,
+    sellerNetAmount: sellerAmount,
+    breakdown: {
+      baseAmount: totalResult.breakdown.baseAmount * paidRatio,
+      feeAmount: platformFee,
+      surchargeAmount: totalResult.breakdown.surchargeAmount ? totalResult.breakdown.surchargeAmount * paidRatio : undefined,
+      serviceFee: totalResult.breakdown.serviceFee ? totalResult.breakdown.serviceFee * paidRatio : undefined,
+      commission: totalResult.breakdown.commission ? totalResult.breakdown.commission * paidRatio : undefined,
+      commissionRate: totalResult.breakdown.commissionRate,
+      commissionDiscount: totalResult.breakdown.commissionDiscount,
+      serviceFeeRate: totalResult.breakdown.serviceFeeRate,
+    }
+  };
 }

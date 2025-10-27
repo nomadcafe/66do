@@ -658,7 +658,6 @@ export default function TransactionForm({
                             className="flex-1 px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             placeholder="0.30"
                           />
-                          <span className="text-sm text-blue-600">%</span>
                         </div>
                         <p className="text-xs text-blue-600 mt-1">
                           {t('transaction.userInputFeeRateDesc')}
@@ -682,7 +681,6 @@ export default function TransactionForm({
                             className="flex-1 px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             placeholder="0.20"
                           />
-                          <span className="text-sm text-blue-600">%</span>
                         </div>
                         <p className="text-xs text-blue-600 mt-1">
                           {t('transaction.userInputSurchargeRateDesc')}
@@ -786,6 +784,7 @@ export default function TransactionForm({
                               const result = calculatePaidAmountFromInstallment(
                                 formData.installment_amount,
                                 formData.paid_periods,
+                                formData.installment_period, // 总期数
                                 formData.platform_fee_type || 'standard',
                                 undefined, // customFeeRate
                                 undefined, // escrowFee
