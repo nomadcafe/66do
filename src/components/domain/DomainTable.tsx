@@ -5,6 +5,7 @@ import { Edit, Trash2, Eye, Share2, Calendar, Tag, Globe } from 'lucide-react';
 import DomainShareModal from '../share/DomainShareModal';
 import { DomainWithTags } from '../../types/dashboard';
 import { useI18nContext } from '../../contexts/I18nProvider';
+import { calculateDomainROI } from '../../lib/financialCalculations';
 
 interface Domain {
   id: string;
@@ -196,12 +197,7 @@ export default function DomainTable({ domains, onEdit, onDelete, onView }: Domai
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {sortedDomains.map((domain) => {
-                const totalHoldingCost = calculateTotalHoldingCost(domain);
-                const roi = domain.status === 'sold' && domain.sale_price 
-                  ? ((domain.sale_price - totalHoldingCost) / totalHoldingCost * 100)
-                  : (domain.estimated_value || 0) > 0 
-                    ? (((domain.estimated_value || 0) - totalHoldingCost) / totalHoldingCost * 100)
-                    : 0;
+                const roi = calculateDomainROI(domain);
                 
                 const expiryStatus = getExpiryStatus(domain);
 

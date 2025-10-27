@@ -5,6 +5,7 @@ import { Globe, Calendar, DollarSign, Tag, Edit, Trash2, Eye, Share2 } from 'luc
 import DomainShareModal from '../share/DomainShareModal';
 import { DomainWithTags } from '../../types/dashboard';
 import { useI18nContext } from '../../contexts/I18nProvider';
+import { calculateDomainROI } from '../../lib/financialCalculations';
 
 
 interface DomainCardProps {
@@ -124,7 +125,7 @@ export default function DomainCard({ domain, onEdit, onDelete, onView }: DomainC
                 {t('domain.netProfit')}: {formatCurrency(domain.sale_price - totalHoldingCost - (domain.platform_fee || 0))}
               </span>
               <span className="ml-2 text-green-600">
-                (ROI: {(((domain.sale_price - totalHoldingCost - (domain.platform_fee || 0)) / totalHoldingCost) * 100).toFixed(1)}%)
+                (ROI: {calculateDomainROI(domain).toFixed(1)}%)
               </span>
             </div>
           </div>

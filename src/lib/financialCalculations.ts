@@ -51,6 +51,39 @@ export function calculateROI(
   return ((totalRevenue - totalInvestment) / totalInvestment) * 100;
 }
 
+// 计算单个域名的ROI（统一计算逻辑）
+export function calculateDomainROI(
+  domain: {
+    purchase_cost?: number | null;
+    renewal_cost?: number | null;
+    renewal_count: number;
+    status: string;
+    sale_price?: number | null;
+    platform_fee?: number | null;
+    estimated_value?: number | null;
+  }
+): number {
+  // 计算总持有成本
+  const purchaseCost = domain.purchase_cost || 0;
+  const renewalCost = domain.renewal_count * (domain.renewal_cost || 0);
+  const totalHoldingCost = purchaseCost + renewalCost;
+  
+  if (totalHoldingCost === 0) return 0;
+  
+  // 如果是已出售域名，使用实际售价和平台手续费
+  if (domain.status === 'sold' && domain.sale_price) {
+    const netRevenue = domain.sale_price - (domain.platform_fee || 0);
+    return ((netRevenue - totalHoldingCost) / totalHoldingCost) * 100;
+  }
+  
+  // 如果是其他状态，使用预估价值
+  if (domain.estimated_value && domain.estimated_value > 0) {
+    return (((domain.estimated_value - totalHoldingCost) / totalHoldingCost) * 100);
+  }
+  
+  return 0;
+}
+
 // 计算利润率
 export function calculateProfitMargin(
   revenue: number,
