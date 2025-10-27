@@ -426,6 +426,49 @@ export default function DashboardPage() {
     }
   };
 
+  // 重新加载数据的函数
+  const reloadData = async () => {
+    if (!user?.id) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const userId = user.id;
+      
+      // 清除缓存，强制从数据库重新加载
+      domainCache.clearUserCache(userId);
+      
+      // Load from Supabase database
+      console.log('Reloading data from Supabase database...');
+      
+      const domainsResult = await loadDomainsFromSupabase(userId);
+      const transactionsResult = await loadTransactionsFromSupabase(userId);
+      
+      if (domainsResult.success && transactionsResult.success) {
+        const typedDomains = (domainsResult.data || []).map(ensureDomainWithTags);
+        const typedTransactions = (transactionsResult.data || []).map(ensureTransactionWithRequiredFields);
+        setDomains(typedDomains);
+        setTransactions(typedTransactions);
+        setDataSource('supabase');
+        
+        // Cache the data
+        domainCache.cacheDomains(userId, domainsResult.data || []);
+        domainCache.cacheTransactions(userId, transactionsResult.data || []);
+        
+        console.log('Data reloaded from Supabase database successfully');
+      } else {
+        throw new Error('Failed to reload data from Supabase database');
+      }
+      
+    } catch (error) {
+      console.error('Error reloading data from Supabase:', error);
+      setError(t('common.dataLoadFailed'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Update stats when domains change
   useEffect(() => {
     // 使用新的财务指标计算
@@ -606,7 +649,7 @@ export default function DashboardPage() {
     }
   };
 
-  const handleSaveDomain = (domainData: Omit<DomainWithTags, 'id'>) => {
+  const handleSaveDomain = async (domainData: Omit<DomainWithTags, 'id'>) => {
     let updatedDomains: DomainWithTags[];
     
     if (editingDomain) {
@@ -627,7 +670,11 @@ export default function DashboardPage() {
     }
     
     setDomains(updatedDomains);
-    saveData(updatedDomains, transactions);
+    await saveData(updatedDomains, transactions);
+    
+    // 重新加载数据以确保界面显示最新状态
+    await reloadData();
+    
     setShowDomainForm(false);
     setEditingDomain(undefined);
   };
@@ -768,7 +815,7 @@ export default function DashboardPage() {
   };
 
 
-  const handleSaveTransaction = (transactionData: Omit<TransactionWithRequiredFields, 'id'>) => {
+  const handleSaveTransaction = async (transactionData: Omit<TransactionWithRequiredFields, 'id'>) => {
     if (editingTransaction) {
       // Update existing transaction
       const updatedTransactions = transactions.map(transaction => 
@@ -777,7 +824,7 @@ export default function DashboardPage() {
           : transaction
       );
       setTransactions(updatedTransactions);
-      saveData(domains, updatedTransactions);
+      await saveData(domains, updatedTransactions);
     } else {
       // Add new transaction
       const newTransaction: TransactionWithRequiredFields = ensureTransactionWithRequiredFields({
@@ -786,11 +833,15 @@ export default function DashboardPage() {
       });
       const updatedTransactions = [...transactions, newTransaction];
       setTransactions(updatedTransactions);
-      saveData(domains, updatedTransactions);
+      await saveData(domains, updatedTransactions);
       
       // 自动更新域名状态
       updateDomainStatusFromTransaction(newTransaction);
     }
+    
+    // 重新加载数据以确保界面显示最新状态
+    await reloadData();
+    
     setShowTransactionForm(false);
     setEditingTransaction(undefined);
   };
