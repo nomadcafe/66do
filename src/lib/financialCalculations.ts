@@ -336,18 +336,14 @@ export function calculateExpiredDomainLoss(
     let isExpired = false;
     let expiryDate: Date | null = null;
 
-    console.log(`Checking domain: ${domain.domain_name}, status: ${domain.status}, expiry_date: ${domain.expiry_date}`);
-
     if (domain.status === 'expired') {
       isExpired = true;
       if (domain.expiry_date) {
         expiryDate = new Date(domain.expiry_date);
       }
-      console.log(`Domain ${domain.domain_name} is marked as expired`);
     } else if (domain.expiry_date) {
       expiryDate = new Date(domain.expiry_date);
       isExpired = expiryDate < now && domain.status !== 'sold';
-      console.log(`Domain ${domain.domain_name} expiry check: ${expiryDate} < ${now} = ${isExpired}`);
     }
 
     if (isExpired && expiryDate) {

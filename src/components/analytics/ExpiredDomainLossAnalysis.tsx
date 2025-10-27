@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { calculateExpiredDomainLoss, formatCurrency } from '../../lib/financialCalculations';
 import { useI18nContext } from '../../contexts/I18nProvider';
-import { TrendingDown, Calendar, DollarSign, AlertTriangle, TestTube } from 'lucide-react';
+import { TrendingDown, Calendar, DollarSign, AlertTriangle } from 'lucide-react';
 
 interface ExpiredDomainLossAnalysisProps {
   domains: Array<{
@@ -20,35 +20,7 @@ interface ExpiredDomainLossAnalysisProps {
 
 export default function ExpiredDomainLossAnalysis({ domains }: ExpiredDomainLossAnalysisProps) {
   const { t } = useI18nContext();
-  const [showTestData, setShowTestData] = useState(false);
-  
-  // 创建测试数据
-  const testDomains = [
-    ...domains,
-    {
-      id: 'test-expired-1',
-      domain_name: 'test-expired.com',
-      purchase_cost: 100,
-      renewal_cost: 20,
-      renewal_count: 2,
-      status: 'expired',
-      expiry_date: '2023-12-31',
-      purchase_date: '2022-01-01'
-    },
-    {
-      id: 'test-expired-2',
-      domain_name: 'another-expired.net',
-      purchase_cost: 50,
-      renewal_cost: 15,
-      renewal_count: 1,
-      status: 'active',
-      expiry_date: '2022-06-30', // 已过期
-      purchase_date: '2021-01-01'
-    }
-  ];
-  
-  const domainsToAnalyze = showTestData ? testDomains : domains;
-  const lossAnalysis = calculateExpiredDomainLoss(domainsToAnalyze);
+  const lossAnalysis = calculateExpiredDomainLoss(domains);
 
   // 统计域名状态
   const statusCounts = domains.reduce((acc, domain) => {
@@ -73,13 +45,6 @@ export default function ExpiredDomainLossAnalysis({ domains }: ExpiredDomainLoss
               </p>
             </div>
           </div>
-          <button
-            onClick={() => setShowTestData(!showTestData)}
-            className="flex items-center space-x-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
-          >
-            <TestTube className="h-4 w-4" />
-            <span>{showTestData ? '隐藏测试数据' : '显示测试数据'}</span>
-          </button>
         </div>
 
         <div className="text-center py-8">
@@ -124,13 +89,6 @@ export default function ExpiredDomainLossAnalysis({ domains }: ExpiredDomainLoss
             </p>
           </div>
         </div>
-        <button
-          onClick={() => setShowTestData(!showTestData)}
-          className="flex items-center space-x-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
-        >
-          <TestTube className="h-4 w-4" />
-          <span>{showTestData ? '隐藏测试数据' : '显示测试数据'}</span>
-        </button>
       </div>
 
       {/* 总损失统计 */}
