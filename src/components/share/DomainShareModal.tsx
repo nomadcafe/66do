@@ -59,191 +59,126 @@ export default function DomainShareModal({ isOpen, onClose, domain }: DomainShar
     canvas.width = 800;
     canvas.height = 600;
 
-    // 绘制高能成交背景 - 电光炫彩
+    // 绘制极简科技风背景 - 深蓝渐变
     const gradient = ctx.createLinearGradient(0, 0, 800, 600);
-    gradient.addColorStop(0, '#0a0a0a');
-    gradient.addColorStop(0.2, '#1a0033');
-    gradient.addColorStop(0.4, '#330066');
-    gradient.addColorStop(0.6, '#6600cc');
-    gradient.addColorStop(0.8, '#9900ff');
-    gradient.addColorStop(1, '#ff00ff');
+    gradient.addColorStop(0, '#1e293b');
+    gradient.addColorStop(0.5, '#334155');
+    gradient.addColorStop(1, '#475569');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 800, 600);
 
-    // 添加爆裂纹理效果
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-    for (let i = 0; i < 200; i++) {
-      const x = Math.random() * 800;
-      const y = Math.random() * 600;
-      const size = Math.random() * 3 + 1;
+    // 添加网格线效果
+    ctx.strokeStyle = 'rgba(148, 163, 184, 0.1)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 800; i += 40) {
       ctx.beginPath();
-      ctx.arc(x, y, size, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i, 600);
+      ctx.stroke();
     }
-
-    // 添加电光线条效果
-    ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)';
-    ctx.lineWidth = 2;
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i <= 600; i += 40) {
       ctx.beginPath();
-      ctx.moveTo(Math.random() * 800, Math.random() * 600);
-      ctx.lineTo(Math.random() * 800, Math.random() * 600);
+      ctx.moveTo(0, i);
+      ctx.lineTo(800, i);
       ctx.stroke();
     }
 
-    // 绘制主标题 - 超大号震撼效果
-    ctx.font = 'bold 72px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#ff0000';
-    ctx.strokeStyle = '#ffff00';
-    ctx.lineWidth = 6;
-    ctx.strokeText('🔥 JUST SOLD! 🔥', 400, 80);
-    ctx.fillText('🔥 JUST SOLD! 🔥', 400, 80);
-
-    // 绘制域名 - 电光效果
-    ctx.font = 'bold 48px Arial';
-    ctx.fillStyle = '#00ffff';
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 4;
-    ctx.strokeText(domain.domain_name, 400, 140);
-    ctx.fillText(domain.domain_name, 400, 140);
-
-    // 绘制成交标签
-    ctx.font = 'bold 36px Arial';
-    ctx.fillStyle = '#ffff00';
-    ctx.strokeStyle = '#ff0000';
-    ctx.lineWidth = 3;
-    ctx.strokeText('⚡ DOMAIN DEAL ⚡', 400, 180);
-    ctx.fillText('⚡ DOMAIN DEAL ⚡', 400, 180);
-
-    // 绘制统计数据 - 高能展示
-    const profit = calculateDomainProfit();
-    const roi = calculateROI();
-    const holdingPeriod = calculateHoldingPeriod();
-    
-    // 绘制数据卡片 - 电光边框
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.strokeStyle = '#00ffff';
-    ctx.lineWidth = 4;
-    ctx.roundRect(50, 220, 700, 200, 20);
+    // 绘制模糊玻璃风主内容区域
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = 1;
+    ctx.roundRect(50, 50, 700, 500, 16);
     ctx.fill();
     ctx.stroke();
 
-    // 净利润 - 最震撼
-    ctx.font = 'bold 40px Arial';
-    ctx.fillStyle = '#00ff00';
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 3;
-    ctx.strokeText(`💰 PROFIT: $${profit.toLocaleString()} 💰`, 400, 270);
-    ctx.fillText(`💰 PROFIT: $${profit.toLocaleString()} 💰`, 400, 270);
-    
-    // ROI - 电光效果
-    ctx.font = 'bold 32px Arial';
-    ctx.fillStyle = '#ff00ff';
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 2;
-    ctx.strokeText(`📈 ROI: ${roi.toFixed(1)}% 📈`, 400, 310);
-    ctx.fillText(`📈 ROI: ${roi.toFixed(1)}% 📈`, 400, 310);
-    
-    // 售价 - 高亮显示
-    ctx.fillStyle = '#ffff00';
-    ctx.strokeStyle = '#ff0000';
-    ctx.strokeText(`💵 SOLD FOR: $${domain.sale_price?.toLocaleString()} 💵`, 400, 350);
-    ctx.fillText(`💵 SOLD FOR: $${domain.sale_price?.toLocaleString()} 💵`, 400, 350);
-
-    // 绘制Web3/Crypto元素
-    ctx.font = '60px Arial';
-    ctx.fillStyle = '#ffd700';
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 3;
-    
-    // 左上角 - 钻石
-    ctx.fillText('💎', 100, 100);
-    ctx.strokeText('💎', 100, 100);
-    
-    // 右上角 - 火箭
-    ctx.fillText('🚀', 700, 100);
-    ctx.strokeText('🚀', 700, 100);
-    
-    // 左下角 - 奖杯
-    ctx.fillText('🏆', 100, 500);
-    ctx.strokeText('🏆', 100, 500);
-    
-    // 右下角 - 目标
-    ctx.fillText('🎯', 700, 500);
-    ctx.strokeText('🎯', 700, 500);
-
-    // 绘制AI/Web3元素
-    ctx.font = '40px Arial';
-    ctx.fillStyle = '#00ffff';
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 2;
-    
-    // AI元素
-    ctx.fillText('🤖', 150, 300);
-    ctx.strokeText('🤖', 150, 300);
-    
-    // Web3元素
-    ctx.fillText('🌐', 650, 300);
-    ctx.strokeText('🌐', 650, 300);
-    
-    // Crypto元素
-    ctx.fillText('₿', 150, 400);
-    ctx.strokeText('₿', 150, 400);
-    
-    // 区块链元素
-    ctx.fillText('⛓️', 650, 400);
-    ctx.strokeText('⛓️', 650, 400);
-
-    // 绘制飘带效果
-    ctx.strokeStyle = '#ff00ff';
-    ctx.lineWidth = 8;
-    ctx.beginPath();
-    ctx.moveTo(0, 100);
-    ctx.quadraticCurveTo(200, 50, 400, 100);
-    ctx.quadraticCurveTo(600, 150, 800, 100);
-    ctx.stroke();
-    
-    ctx.strokeStyle = '#00ffff';
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.moveTo(0, 500);
-    ctx.quadraticCurveTo(200, 550, 400, 500);
-    ctx.quadraticCurveTo(600, 450, 800, 500);
-    ctx.stroke();
-
-    // 绘制成功标志 - 超大震撼
-    ctx.font = 'bold 80px Arial';
-    ctx.fillStyle = '#00ff00';
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 5;
-    ctx.strokeText('✅ SOLD! ✅', 400, 480);
-    ctx.fillText('✅ SOLD! ✅', 400, 480);
-
-    // 绘制品牌信息 - 电光效果
-    ctx.font = 'bold 24px Arial';
+    // 绘制居中大标题 - 极简风格
+    ctx.font = 'bold 64px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.textAlign = 'center';
     ctx.fillStyle = '#ffffff';
-    ctx.strokeStyle = '#000000';
+    ctx.fillText('Domain Sold', 400, 200);
+
+    // 绘制域名 - 突出显示
+    ctx.font = 'bold 48px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#60a5fa';
+    ctx.fillText(domain.domain_name, 400, 280);
+
+    // 绘制成交价格 - 大号显示
+    ctx.font = 'bold 56px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#10b981';
+    ctx.fillText(`$${domain.sale_price?.toLocaleString()}`, 400, 350);
+
+    // 绘制左下角信息区域
+    const profit = calculateDomainProfit();
+    const roi = calculateROI();
+    
+    // 左下角背景
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.roundRect(50, 450, 300, 100, 12);
+    ctx.fill();
+
+    // 净利润
+    ctx.font = 'bold 24px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'left';
+    ctx.fillText('Net Profit', 70, 480);
+    
+    ctx.font = 'bold 32px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#10b981';
+    ctx.fillText(`$${profit.toLocaleString()}`, 70, 510);
+
+    // ROI
+    ctx.font = 'bold 24px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('ROI', 200, 480);
+    
+    ctx.font = 'bold 32px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#3b82f6';
+    ctx.fillText(`${roi.toFixed(1)}%`, 200, 510);
+
+    // 绘制右下角Logo区域
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.roundRect(450, 450, 300, 100, 12);
+    ctx.fill();
+
+    // 66Do Logo
+    ctx.font = 'bold 28px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'right';
+    ctx.fillText('66Do', 720, 480);
+    
+    ctx.font = '16px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText('Domain Investment Platform', 720, 500);
+    
+    ctx.font = '14px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#64748b';
+    ctx.fillText('66do.com', 720, 520);
+
+    // 添加一些极简装饰元素
+    // 顶部装饰线
+    ctx.strokeStyle = 'rgba(96, 165, 250, 0.3)';
     ctx.lineWidth = 2;
-    ctx.strokeText('🔥 POWERED BY 66DO.COM 🔥', 400, 530);
-    ctx.fillText('🔥 POWERED BY 66DO.COM 🔥', 400, 530);
+    ctx.beginPath();
+    ctx.moveTo(200, 100);
+    ctx.lineTo(600, 100);
+    ctx.stroke();
 
-    // 添加闪光效果
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.font = '30px Arial';
-    for (let i = 0; i < 30; i++) {
-      const x = Math.random() * 800;
-      const y = Math.random() * 600;
-      ctx.fillText('✨', x, y);
-    }
+    // 底部装饰线
+    ctx.strokeStyle = 'rgba(16, 185, 129, 0.3)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(200, 500);
+    ctx.lineTo(600, 500);
+    ctx.stroke();
 
-    // 添加爆炸效果
-    ctx.fillStyle = '#ff0000';
-    ctx.font = '40px Arial';
-    for (let i = 0; i < 15; i++) {
-      const x = Math.random() * 800;
-      const y = Math.random() * 600;
-      ctx.fillText('💥', x, y);
+    // 添加一些微妙的点装饰
+    ctx.fillStyle = 'rgba(96, 165, 250, 0.2)';
+    for (let i = 0; i < 20; i++) {
+      const x = 100 + Math.random() * 600;
+      const y = 100 + Math.random() * 400;
+      ctx.beginPath();
+      ctx.arc(x, y, 2, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     setIsGenerating(false);
