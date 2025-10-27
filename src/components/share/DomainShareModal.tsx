@@ -59,187 +59,192 @@ export default function DomainShareModal({ isOpen, onClose, domain }: DomainShar
     canvas.width = 800;
     canvas.height = 600;
 
-    // 绘制深色炫酷背景
-    const gradient = ctx.createRadialGradient(400, 300, 0, 400, 300, 400);
-    gradient.addColorStop(0, '#1a1a2e');
-    gradient.addColorStop(0.5, '#16213e');
-    gradient.addColorStop(1, '#0f3460');
+    // 绘制高能成交背景 - 电光炫彩
+    const gradient = ctx.createLinearGradient(0, 0, 800, 600);
+    gradient.addColorStop(0, '#0a0a0a');
+    gradient.addColorStop(0.2, '#1a0033');
+    gradient.addColorStop(0.4, '#330066');
+    gradient.addColorStop(0.6, '#6600cc');
+    gradient.addColorStop(0.8, '#9900ff');
+    gradient.addColorStop(1, '#ff00ff');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 800, 600);
 
-    // 添加星空效果
-    ctx.fillStyle = '#ffffff';
-    for (let i = 0; i < 100; i++) {
+    // 添加爆裂纹理效果
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+    for (let i = 0; i < 200; i++) {
       const x = Math.random() * 800;
       const y = Math.random() * 600;
-      const size = Math.random() * 2 + 0.5;
+      const size = Math.random() * 3 + 1;
       ctx.beginPath();
       ctx.arc(x, y, size, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // 绘制主内容区域 - 深色卡片
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-    ctx.strokeStyle = '#00ffff';
-    ctx.lineWidth = 3;
-    ctx.roundRect(50, 50, 700, 500, 20);
-    ctx.fill();
-    ctx.stroke();
+    // 添加电光线条效果
+    ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 20; i++) {
+      ctx.beginPath();
+      ctx.moveTo(Math.random() * 800, Math.random() * 600);
+      ctx.lineTo(Math.random() * 800, Math.random() * 600);
+      ctx.stroke();
+    }
 
-    // 绘制霓虹灯效果标题
-    ctx.font = 'bold 42px Arial';
+    // 绘制主标题 - 超大号震撼效果
+    ctx.font = 'bold 72px Arial';
     ctx.textAlign = 'center';
+    ctx.fillStyle = '#ff0000';
+    ctx.strokeStyle = '#ffff00';
+    ctx.lineWidth = 6;
+    ctx.strokeText('🔥 JUST SOLD! 🔥', 400, 80);
+    ctx.fillText('🔥 JUST SOLD! 🔥', 400, 80);
+
+    // 绘制域名 - 电光效果
+    ctx.font = 'bold 48px Arial';
     ctx.fillStyle = '#00ffff';
-    ctx.strokeStyle = '#0080ff';
+    ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 4;
-    ctx.strokeText('DOMAIN INVESTMENT SUCCESS', 400, 100);
-    ctx.fillText('DOMAIN INVESTMENT SUCCESS', 400, 100);
+    ctx.strokeText(domain.domain_name, 400, 140);
+    ctx.fillText(domain.domain_name, 400, 140);
 
-    // 绘制域名信息 - 霓虹效果
-    ctx.font = 'bold 32px Arial';
-    ctx.fillStyle = '#ff00ff';
-    ctx.strokeStyle = '#ff0080';
+    // 绘制成交标签
+    ctx.font = 'bold 36px Arial';
+    ctx.fillStyle = '#ffff00';
+    ctx.strokeStyle = '#ff0000';
     ctx.lineWidth = 3;
-    ctx.strokeText(domain.domain_name, 400, 150);
-    ctx.fillText(domain.domain_name, 400, 150);
+    ctx.strokeText('⚡ DOMAIN DEAL ⚡', 400, 180);
+    ctx.fillText('⚡ DOMAIN DEAL ⚡', 400, 180);
 
-    // 绘制统计数据
+    // 绘制统计数据 - 高能展示
     const profit = calculateDomainProfit();
     const roi = calculateROI();
     const holdingPeriod = calculateHoldingPeriod();
     
-    // 绘制数据区域背景
-    ctx.fillStyle = 'rgba(0, 255, 255, 0.1)';
-    ctx.roundRect(80, 200, 640, 250, 15);
+    // 绘制数据卡片 - 电光边框
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.strokeStyle = '#00ffff';
+    ctx.lineWidth = 4;
+    ctx.roundRect(50, 220, 700, 200, 20);
     ctx.fill();
+    ctx.stroke();
 
-    // 净利润 - 最突出
-    ctx.font = 'bold 28px Arial';
+    // 净利润 - 最震撼
+    ctx.font = 'bold 40px Arial';
     ctx.fillStyle = '#00ff00';
-    ctx.strokeStyle = '#008000';
-    ctx.lineWidth = 2;
-    ctx.strokeText(`Net Profit: $${profit.toLocaleString()}`, 400, 240);
-    ctx.fillText(`Net Profit: $${profit.toLocaleString()}`, 400, 240);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 3;
+    ctx.strokeText(`💰 PROFIT: $${profit.toLocaleString()} 💰`, 400, 270);
+    ctx.fillText(`💰 PROFIT: $${profit.toLocaleString()} 💰`, 400, 270);
     
-    // ROI
+    // ROI - 电光效果
+    ctx.font = 'bold 32px Arial';
+    ctx.fillStyle = '#ff00ff';
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.strokeText(`📈 ROI: ${roi.toFixed(1)}% 📈`, 400, 310);
+    ctx.fillText(`📈 ROI: ${roi.toFixed(1)}% 📈`, 400, 310);
+    
+    // 售价 - 高亮显示
     ctx.fillStyle = '#ffff00';
-    ctx.strokeStyle = '#808000';
-    ctx.strokeText(`ROI: ${roi.toFixed(1)}%`, 400, 280);
-    ctx.fillText(`ROI: ${roi.toFixed(1)}%`, 400, 280);
-    
-    // 持有时间
-    ctx.fillStyle = '#ff8000';
-    ctx.strokeStyle = '#804000';
-    ctx.strokeText(`Holding Period: ${holdingPeriod}`, 400, 320);
-    ctx.fillText(`Holding Period: ${holdingPeriod}`, 400, 320);
-    
-    // 售价
-    ctx.fillStyle = '#ff0080';
-    ctx.strokeStyle = '#800040';
-    ctx.strokeText(`Sale Price: $${domain.sale_price?.toLocaleString()}`, 400, 360);
-    ctx.fillText(`Sale Price: $${domain.sale_price?.toLocaleString()}`, 400, 360);
+    ctx.strokeStyle = '#ff0000';
+    ctx.strokeText(`💵 SOLD FOR: $${domain.sale_price?.toLocaleString()} 💵`, 400, 350);
+    ctx.fillText(`💵 SOLD FOR: $${domain.sale_price?.toLocaleString()} 💵`, 400, 350);
 
-    // 绘制卡通人物 - 使用简单的几何图形
-    // 主要的炫耀人物 - 在右侧
-    const centerX = 600;
-    const centerY = 300;
-    
-    // 头部
-    ctx.fillStyle = '#ffdbac';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(centerX, centerY - 20, 30, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    
-    // 眼睛
-    ctx.fillStyle = '#000';
-    ctx.beginPath();
-    ctx.arc(centerX - 10, centerY - 25, 3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(centerX + 10, centerY - 25, 3, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // 嘴巴 - 笑容
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(centerX, centerY - 15, 15, 0, Math.PI);
-    ctx.stroke();
-    
-    // 身体
-    ctx.fillStyle = '#4a90e2';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2;
-    ctx.fillRect(centerX - 25, centerY + 10, 50, 60);
-    ctx.strokeRect(centerX - 25, centerY + 10, 50, 60);
-    
-    // 手臂 - 举起来庆祝
-    ctx.strokeStyle = '#ffdbac';
-    ctx.lineWidth = 8;
-    ctx.beginPath();
-    ctx.moveTo(centerX - 25, centerY + 20);
-    ctx.lineTo(centerX - 45, centerY - 10);
-    ctx.moveTo(centerX + 25, centerY + 20);
-    ctx.lineTo(centerX + 45, centerY - 10);
-    ctx.stroke();
-    
-    // 腿
-    ctx.strokeStyle = '#ffdbac';
-    ctx.lineWidth = 8;
-    ctx.beginPath();
-    ctx.moveTo(centerX - 10, centerY + 70);
-    ctx.lineTo(centerX - 15, centerY + 100);
-    ctx.moveTo(centerX + 10, centerY + 70);
-    ctx.lineTo(centerX + 15, centerY + 100);
-    ctx.stroke();
-
-    // 绘制装饰元素 - 不遮挡主要内容
-    // 左上角装饰
-    ctx.fillStyle = '#ffd700';
-    ctx.font = '40px Arial';
-    ctx.fillText('💎', 100, 100);
-    
-    // 右上角装饰
-    ctx.fillText('🚀', 700, 100);
-    
-    // 左下角装饰
-    ctx.fillText('🏆', 100, 500);
-    
-    // 右下角装饰
-    ctx.fillText('🎯', 700, 500);
-
-    // 绘制成功标志 - 在底部
+    // 绘制Web3/Crypto元素
     ctx.font = '60px Arial';
-    ctx.fillStyle = '#00ff00';
-    ctx.strokeStyle = '#008000';
+    ctx.fillStyle = '#ffd700';
+    ctx.strokeStyle = '#000000';
     ctx.lineWidth = 3;
-    ctx.strokeText('SUCCESS!', 400, 500);
-    ctx.fillText('SUCCESS!', 400, 500);
+    
+    // 左上角 - 钻石
+    ctx.fillText('💎', 100, 100);
+    ctx.strokeText('💎', 100, 100);
+    
+    // 右上角 - 火箭
+    ctx.fillText('🚀', 700, 100);
+    ctx.strokeText('🚀', 700, 100);
+    
+    // 左下角 - 奖杯
+    ctx.fillText('🏆', 100, 500);
+    ctx.strokeText('🏆', 100, 500);
+    
+    // 右下角 - 目标
+    ctx.fillText('🎯', 700, 500);
+    ctx.strokeText('🎯', 700, 500);
 
-    // 绘制品牌信息
-    ctx.font = 'bold 18px Arial';
+    // 绘制AI/Web3元素
+    ctx.font = '40px Arial';
+    ctx.fillStyle = '#00ffff';
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2;
+    
+    // AI元素
+    ctx.fillText('🤖', 150, 300);
+    ctx.strokeText('🤖', 150, 300);
+    
+    // Web3元素
+    ctx.fillText('🌐', 650, 300);
+    ctx.strokeText('🌐', 650, 300);
+    
+    // Crypto元素
+    ctx.fillText('₿', 150, 400);
+    ctx.strokeText('₿', 150, 400);
+    
+    // 区块链元素
+    ctx.fillText('⛓️', 650, 400);
+    ctx.strokeText('⛓️', 650, 400);
+
+    // 绘制飘带效果
+    ctx.strokeStyle = '#ff00ff';
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.moveTo(0, 100);
+    ctx.quadraticCurveTo(200, 50, 400, 100);
+    ctx.quadraticCurveTo(600, 150, 800, 100);
+    ctx.stroke();
+    
+    ctx.strokeStyle = '#00ffff';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(0, 500);
+    ctx.quadraticCurveTo(200, 550, 400, 500);
+    ctx.quadraticCurveTo(600, 450, 800, 500);
+    ctx.stroke();
+
+    // 绘制成功标志 - 超大震撼
+    ctx.font = 'bold 80px Arial';
+    ctx.fillStyle = '#00ff00';
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 5;
+    ctx.strokeText('✅ SOLD! ✅', 400, 480);
+    ctx.fillText('✅ SOLD! ✅', 400, 480);
+
+    // 绘制品牌信息 - 电光效果
+    ctx.font = 'bold 24px Arial';
     ctx.fillStyle = '#ffffff';
     ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 1;
-    ctx.strokeText('Powered by 66Do.com', 400, 540);
-    ctx.fillText('Powered by 66Do.com', 400, 540);
-
-    // 添加一些装饰线条
-    ctx.strokeStyle = '#00ffff';
     ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(100, 80);
-    ctx.lineTo(200, 80);
-    ctx.moveTo(600, 80);
-    ctx.lineTo(700, 80);
-    ctx.moveTo(100, 520);
-    ctx.lineTo(200, 520);
-    ctx.moveTo(600, 520);
-    ctx.lineTo(700, 520);
-    ctx.stroke();
+    ctx.strokeText('🔥 POWERED BY 66DO.COM 🔥', 400, 530);
+    ctx.fillText('🔥 POWERED BY 66DO.COM 🔥', 400, 530);
+
+    // 添加闪光效果
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.font = '30px Arial';
+    for (let i = 0; i < 30; i++) {
+      const x = Math.random() * 800;
+      const y = Math.random() * 600;
+      ctx.fillText('✨', x, y);
+    }
+
+    // 添加爆炸效果
+    ctx.fillStyle = '#ff0000';
+    ctx.font = '40px Arial';
+    for (let i = 0; i < 15; i++) {
+      const x = Math.random() * 800;
+      const y = Math.random() * 600;
+      ctx.fillText('💥', x, y);
+    }
 
     setIsGenerating(false);
   };
