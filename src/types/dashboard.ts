@@ -21,7 +21,7 @@ export interface TransactionWithRequiredFields extends Transaction {
   // 分期进度跟踪
   paid_periods?: number; // 已付期数
   installment_status?: 'active' | 'completed' | 'cancelled' | 'paused'; // 分期状态
-  platform_fee_type?: 'standard' | 'afternic_installment' | 'atom_installment'; // 平台费用类型
+  platform_fee_type?: 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment'; // 平台费用类型
 }
 
 // Dashboard组件props类型

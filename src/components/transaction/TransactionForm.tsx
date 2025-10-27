@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { X, Save, DollarSign, Calendar, FileText, TrendingUp, TrendingDown } from 'lucide-react';
 import { exchangeRateManager, formatCurrencyAmount, getRateTrend } from '../../lib/exchangeRates';
 import { useI18nContext } from '../../contexts/I18nProvider';
+import { calculateCustomerTotalFromInstallment } from '../../lib/platformFeeCalculator';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import { Domain, Transaction } from '../../lib/supabaseService';
 import DateInput from '../ui/DateInput';
@@ -54,7 +55,7 @@ export default function TransactionForm({
     // 分期进度跟踪
     paid_periods: 0,
     installment_status: 'active' as 'active' | 'completed' | 'cancelled' | 'paused',
-    platform_fee_type: 'standard' as 'standard' | 'afternic_installment' | 'atom_installment'
+    platform_fee_type: 'standard' as 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment'
   });
 
   const [baseCurrency] = useState('USD');
@@ -130,7 +131,7 @@ export default function TransactionForm({
         // 分期进度跟踪
         paid_periods: 0,
         installment_status: 'active' as 'active' | 'completed' | 'cancelled' | 'paused',
-        platform_fee_type: 'standard' as 'standard' | 'afternic_installment' | 'atom_installment'
+        platform_fee_type: 'standard' as 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment'
       });
     }
   }, [transaction]);
@@ -588,12 +589,14 @@ export default function TransactionForm({
                       </label>
                       <select
                         value={formData.platform_fee_type}
-                        onChange={(e) => setFormData({ ...formData, platform_fee_type: e.target.value as 'standard' | 'afternic_installment' | 'atom_installment' })}
+                        onChange={(e) => setFormData({ ...formData, platform_fee_type: e.target.value as 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment' })}
                         className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="standard">{t('transaction.standardFee')}</option>
                         <option value="afternic_installment">{t('transaction.afternicInstallment')}</option>
                         <option value="atom_installment">{t('transaction.atomInstallment')}</option>
+                        <option value="spaceship_installment">{t('transaction.spaceshipInstallment')}</option>
+                        <option value="escrow_installment">{t('transaction.escrowInstallment')}</option>
                       </select>
                     </div>
 
@@ -651,6 +654,43 @@ export default function TransactionForm({
                         formData.currency
                       )}
                     </p>
+                    
+                    {/* 平台费用计算 */}
+                    {formData.payment_plan === 'installment' && formData.installment_amount > 0 && (
+                      <div className="mt-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <h5 className="text-sm font-medium text-yellow-900 mb-2">{t('transaction.platformFeeCalculation')}</h5>
+                        {(() => {
+                          try {
+                            const result = calculateCustomerTotalFromInstallment(
+                              formData.installment_amount,
+                              formData.installment_period,
+                              formData.platform_fee_type || 'standard'
+                            );
+                            
+                            return (
+                              <div className="text-sm text-yellow-800 space-y-1">
+                                <p><strong>{t('transaction.customerTotalAmount')}:</strong> {formatCurrencyAmount(result.customerTotalAmount, formData.currency)}</p>
+                                <p><strong>{t('transaction.platformFee')}:</strong> {formatCurrencyAmount(result.platformFee, formData.currency)} ({(result.platformFeeRate * 100).toFixed(1)}%)</p>
+                                <p><strong>{t('transaction.sellerNetAmount')}:</strong> {formatCurrencyAmount(result.sellerNetAmount, formData.currency)}</p>
+                                
+                                {result.breakdown.surchargeAmount && (
+                                  <div className="mt-2 text-xs text-yellow-700">
+                                    <p>{t('transaction.baseAmount')}: {formatCurrencyAmount(result.breakdown.baseAmount, formData.currency)}</p>
+                                    <p>{t('transaction.surchargeAmount')}: {formatCurrencyAmount(result.breakdown.surchargeAmount, formData.currency)}</p>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          } catch (error) {
+                            return (
+                              <p className="text-sm text-yellow-700">
+                                {t('transaction.calculationError')}: {error instanceof Error ? error.message : 'Unknown error'}
+                              </p>
+                            );
+                          }
+                        })()}
+                      </div>
+                    )}
                     
                     {/* 分期进度信息 */}
                     <div className="mt-2 pt-2 border-t border-blue-200">
