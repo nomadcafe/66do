@@ -16,7 +16,31 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 获取续费成本历史
+    // 验证用户身份
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401, headers: corsHeaders }
+      );
+    }
+
+    // 验证域名是否属于当前用户
+    const { data: domain, error: domainError } = await supabase
+      .from('domains')
+      .select('id, owner_user_id')
+      .eq('id', domainId)
+      .eq('owner_user_id', session.user.id)
+      .single();
+
+    if (domainError || !domain) {
+      return NextResponse.json(
+        { error: 'Domain not found or access denied' },
+        { status: 403, headers: corsHeaders }
+      );
+    }
+
+    // 获取续费成本历史（通过RLS策略自动过滤）
     const { data: renewalHistory, error } = await supabase
       .from('renewal_cost_history')
       .select('*')
@@ -59,6 +83,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400, headers: corsHeaders }
+      );
+    }
+
+    // 验证用户身份
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401, headers: corsHeaders }
+      );
+    }
+
+    // 验证域名是否属于当前用户
+    const { data: domain, error: domainError } = await supabase
+      .from('domains')
+      .select('id, owner_user_id')
+      .eq('id', domain_id)
+      .eq('owner_user_id', session.user.id)
+      .single();
+
+    if (domainError || !domain) {
+      return NextResponse.json(
+        { error: 'Domain not found or access denied' },
+        { status: 403, headers: corsHeaders }
       );
     }
 

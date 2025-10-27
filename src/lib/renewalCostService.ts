@@ -63,7 +63,7 @@ export class RenewalCostService {
     return data || [];
   }
 
-  // 分析域名的续费成本趋势
+  // 分析域名的续费成本趋势（通过RLS策略自动过滤）
   static async analyzeDomainRenewalCost(domainId: string): Promise<DomainRenewalCostAnalysis | null> {
     const { data: domain } = await supabase
       .from('domains')

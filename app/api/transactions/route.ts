@@ -1,18 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { TransactionService } from '../../../src/lib/supabaseService'
 import { validateTransaction, sanitizeTransactionData } from '../../../src/lib/validation'
+import { supabase } from '../../../src/lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { action, userId, transaction, transactions } = body
+    const { action, transaction, transactions } = body
 
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID is required' }, { 
-        status: 400,
+    // 验证用户身份
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { 
+        status: 401,
         headers: { 'Content-Type': 'application/json' }
       })
     }
+
+    const userId = session.user.id;
 
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',

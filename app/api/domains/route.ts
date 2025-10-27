@@ -1,18 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { DomainService } from '../../../src/lib/supabaseService'
 import { validateDomain, sanitizeDomainData } from '../../../src/lib/validation'
+import { supabase } from '../../../src/lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { action, userId, domain, domains } = body
+    const { action, domain, domains } = body
 
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID is required' }, { 
-        status: 400,
+    // 验证用户身份
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { 
+        status: 401,
         headers: { 'Content-Type': 'application/json' }
       })
     }
+
+    const userId = session.user.id;
 
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
