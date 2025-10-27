@@ -24,7 +24,7 @@ import FinancialReport from '../../src/components/reports/FinancialReport';
 import FinancialAnalysis from '../../src/components/reports/FinancialAnalysisOptimized';
 import ShareModal from '../../src/components/share/ShareModal';
 import SaleSuccessModal from '../../src/components/share/SaleSuccessModal';
-import { calculateAnnualRenewalCost, getRenewalOptimizationSuggestions } from '../../src/lib/renewalCalculations';
+import { calculateAnnualRenewalCost } from '../../src/lib/renewalCalculations';
 import { domainExpiryManager } from '../../src/lib/domainExpiryManager';
 import { calculateFinancialMetrics } from '../../src/lib/financialMetrics';
 import { calculateEnhancedFinancialMetrics, formatCurrency as formatCurrencyEnhanced } from '../../src/lib/enhancedFinancialMetrics';
@@ -1356,29 +1356,16 @@ export default function DashboardPage() {
                       <div key={cycle} className="bg-gray-50 p-3 rounded-lg">
                         <p className="text-sm text-gray-600">{cycle}</p>
                         <p className="text-lg font-semibold text-gray-900">{formatCurrencyEnhanced(cost, 'USD')}</p>
+                      </div>
+                    ))}
                   </div>
-                ))}
-                  </div>
-              </div>
-            )}
-              
-              {/* 续费优化建议 */}
-              <div className="mt-6">
-                <h4 className="text-md font-medium text-gray-900 mb-3">{t('renewal.optimizationSuggestions')}</h4>
-                <div className="space-y-2">
-                  {getRenewalOptimizationSuggestions(renewalAnalysis, domains).map((suggestion, index) => (
-                    <div key={index} className="flex items-start space-x-2 p-3 bg-yellow-50 rounded-lg">
-                      <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-                      <p className="text-sm text-yellow-800">{suggestion}</p>
-                    </div>
-                  ))}
-          </div>
-        </div>
-      </div>
+                </div>
+              )}
+            </div>
 
             {/* Quick Actions */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white p-6 rounded-lg shadow-sm border">
+            <div className="bg-white p-6 rounded-lg shadow-sm border">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-900">{t('action.quickActions')}</h3>
                   <Zap className="h-5 w-5 text-yellow-500" />
