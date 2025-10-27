@@ -1,41 +1,6 @@
 // 数据服务 - D1数据库专用
-
-interface Domain {
-  id: string;
-  domain_name: string;
-  registrar: string;
-  purchase_date: string;
-  purchase_cost: number;
-  renewal_cost: number;
-  renewal_cycle: number;
-  renewal_count: number;
-  next_renewal_date?: string;
-  expiry_date?: string;
-  status: 'active' | 'for_sale' | 'sold' | 'expired';
-  estimated_value: number;
-  sale_date?: string;
-  sale_price?: number;
-  platform_fee?: number;
-  tags: string[];
-}
-
-interface Transaction {
-  id: string;
-  domain_id: string;
-  type: 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising';
-  amount: number;
-  currency: string;
-  exchange_rate?: number;
-  base_amount?: number;
-  platform_fee?: number;
-  platform_fee_percentage?: number;
-  net_amount?: number;
-  category?: string;
-  tax_deductible?: boolean;
-  receipt_url?: string;
-  notes: string;
-  date: string;
-}
+// 使用统一的类型定义
+import { Domain, Transaction } from './supabaseService';
 
 interface DataServiceResult<T> {
   success: boolean;

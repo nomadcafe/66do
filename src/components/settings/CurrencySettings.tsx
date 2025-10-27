@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Settings, RefreshCw, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 import { exchangeRateManager, getRateTrend } from '../../lib/exchangeRates';
+import { useI18nContext } from '../../contexts/I18nProvider';
 
 interface CurrencySettingsProps {
   baseCurrency: string;
@@ -18,6 +19,7 @@ export default function CurrencySettings({ baseCurrency, onBaseCurrencyChange }:
     previous: number;
   }>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const { t } = useI18nContext();
 
   const supportedCurrencies = exchangeRateManager.getSupportedCurrencies();
 
@@ -76,7 +78,7 @@ export default function CurrencySettings({ baseCurrency, onBaseCurrencyChange }:
         className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
       >
         <Settings className="h-4 w-4" />
-        <span className="font-medium">货币设置</span>
+        <span className="font-medium">{t('dashboard.currencySettings')}</span>
         <span className="text-sm text-gray-500">
           {supportedCurrencies.find(c => c.code === baseCurrency)?.flag} {baseCurrency}
         </span>
@@ -86,7 +88,7 @@ export default function CurrencySettings({ baseCurrency, onBaseCurrencyChange }:
         <div className="absolute top-full left-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
           <div className="p-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">货币设置</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{t('dashboard.currencySettings')}</h3>
               <button
                 onClick={loadRateTrends}
                 disabled={isLoading}
@@ -99,7 +101,7 @@ export default function CurrencySettings({ baseCurrency, onBaseCurrencyChange }:
             {/* 基础货币选择 */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                基础货币 (Base Currency)
+                {t('dashboard.baseCurrency')} (Base Currency)
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {supportedCurrencies.slice(0, 8).map((currency) => (

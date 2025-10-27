@@ -19,6 +19,7 @@ import {
   Grid,
   List
 } from 'lucide-react';
+import { useI18nContext } from '../../contexts/I18nProvider';
 
 interface UserPreferences {
   // 基本设置
@@ -99,6 +100,7 @@ export default function UserPreferencesPanel() {
   const [preferences, setPreferences] = useState<UserPreferences>(defaultPreferences);
   const [activeTab, setActiveTab] = useState('general');
   const [saving, setSaving] = useState(false);
+  const { t } = useI18nContext();
 
   useEffect(() => {
     loadPreferences();
@@ -149,11 +151,11 @@ export default function UserPreferencesPanel() {
   };
 
   const tabs = [
-    { id: 'general', label: '基本设置', icon: Settings },
-    { id: 'notifications', label: '通知设置', icon: Bell },
-    { id: 'privacy', label: '隐私设置', icon: Shield },
-    { id: 'investment', label: '投资偏好', icon: DollarSign },
-    { id: 'display', label: '显示设置', icon: Eye }
+    { id: 'general', label: t('dashboard.generalSettings'), icon: Settings },
+    { id: 'notifications', label: t('dashboard.notificationSettings'), icon: Bell },
+    { id: 'privacy', label: t('dashboard.privacySettings'), icon: Shield },
+    { id: 'investment', label: t('dashboard.investmentSettings'), icon: DollarSign },
+    { id: 'display', label: t('dashboard.displaySettings'), icon: Eye }
   ];
 
   const renderGeneralSettings = () => (
@@ -442,14 +444,14 @@ export default function UserPreferencesPanel() {
     <div className="bg-white rounded-lg shadow-sm border">
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">用户设置</h3>
+          <h3 className="text-lg font-semibold text-gray-900">{t('dashboard.userSettings')}</h3>
           <div className="flex items-center space-x-2">
             <button
               onClick={resetPreferences}
               className="text-gray-600 hover:text-gray-800 flex items-center space-x-1"
             >
               <RotateCcw className="h-4 w-4" />
-              <span className="text-sm">重置</span>
+              <span className="text-sm">{t('dashboard.reset')}</span>
             </button>
             <button
               onClick={savePreferences}
@@ -457,7 +459,7 @@ export default function UserPreferencesPanel() {
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2 disabled:opacity-50"
             >
               <Save className="h-4 w-4" />
-              <span>{saving ? '保存中...' : '保存设置'}</span>
+              <span>{saving ? t('dashboard.saving') : t('dashboard.saveSettings')}</span>
             </button>
           </div>
         </div>

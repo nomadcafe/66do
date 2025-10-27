@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Search, Plus, Edit, Trash2, Eye, Share2, Calendar, Tag, Globe } from 'lucide-react';
 import DomainShareModal from '../share/DomainShareModal';
 import { DomainWithTags } from '../../types/dashboard';
+import { useI18nContext } from '../../contexts/I18nProvider';
 
 interface Domain {
   id: string;
@@ -39,6 +40,7 @@ export default function DomainTable({ domains, onEdit, onDelete, onView, onAdd }
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [showShareModal, setShowShareModal] = useState(false);
   const [selectedDomain, setSelectedDomain] = useState<DomainWithTags | null>(null);
+  const { t } = useI18nContext();
 
   const filteredDomains = domains.filter(domain => {
     const matchesSearch = domain.domain_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -121,6 +123,9 @@ export default function DomainTable({ domains, onEdit, onDelete, onView, onAdd }
   };
 
   const getExpiryStatus = (domain: DomainWithTags) => {
+    // 已出售的域名不显示过期信息
+    if (domain.status === 'sold') return null;
+    
     if (!domain.expiry_date) return null;
     const days = getDaysUntilExpiry(domain.expiry_date);
     if (days === null) return null;
@@ -277,7 +282,7 @@ export default function DomainTable({ domains, onEdit, onDelete, onView, onAdd }
                       <div className="text-sm text-gray-900">{formatCurrency(domain.purchase_cost || 0)}</div>
                       {domain.renewal_count > 0 && (
                         <div className="text-xs text-gray-500">
-                          +{domain.renewal_count} renewals
+                          +{domain.renewal_count} {t('domain.renewals')}
                         </div>
                       )}
                     </td>

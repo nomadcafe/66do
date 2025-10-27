@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Globe, Calendar, DollarSign, Tag, Edit, Trash2, Eye, Share2 } from 'lucide-react';
 import DomainShareModal from '../share/DomainShareModal';
 import { DomainWithTags } from '../../types/dashboard';
+import { useI18nContext } from '../../contexts/I18nProvider';
 
 
 interface DomainCardProps {
@@ -16,6 +17,7 @@ interface DomainCardProps {
 export default function DomainCard({ domain, onEdit, onDelete, onView }: DomainCardProps) {
   const [showActions, setShowActions] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const { t } = useI18nContext();
 
   // 计算总持有成本
   const calculateTotalHoldingCost = () => {
@@ -92,11 +94,11 @@ export default function DomainCard({ domain, onEdit, onDelete, onView }: DomainC
 
         <div className="flex items-center space-x-4 mt-2">
           <div className="flex items-center space-x-1 text-sm text-blue-600">
-            <span>续费次数: {domain.renewal_count}</span>
+            <span>{t('domain.renewalCount')}: {domain.renewal_count}</span>
           </div>
           <div className="flex items-center space-x-1 text-sm text-purple-600 font-medium">
             <DollarSign className="h-4 w-4" />
-            <span>总持有成本: {formatCurrency(totalHoldingCost)}</span>
+            <span>{t('domain.totalHoldingCost')}: {formatCurrency(totalHoldingCost)}</span>
           </div>
         </div>
 
@@ -105,21 +107,21 @@ export default function DomainCard({ domain, onEdit, onDelete, onView }: DomainC
           <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
             <div className="flex items-center space-x-2 text-green-800">
               <DollarSign className="h-4 w-4" />
-              <span className="font-medium">已出售</span>
+              <span className="font-medium">{t('domain.sold')}</span>
             </div>
             <div className="mt-2 grid grid-cols-2 gap-4 text-sm">
               <div className="flex items-center space-x-1">
                 <Calendar className="h-4 w-4 text-green-600" />
-                <span className="text-green-700">出售日期: {formatDate(domain.sale_date)}</span>
+                <span className="text-green-700">{t('domain.saleDate')}: {formatDate(domain.sale_date)}</span>
               </div>
               <div className="flex items-center space-x-1">
                 <DollarSign className="h-4 w-4 text-green-600" />
-                <span className="text-green-700 font-medium">出售价格: {formatCurrency(domain.sale_price)}</span>
+                <span className="text-green-700 font-medium">{t('domain.salePrice')}: {formatCurrency(domain.sale_price)}</span>
               </div>
             </div>
             <div className="mt-2 text-sm">
               <span className="text-green-700">
-                净利润: {formatCurrency(domain.sale_price - totalHoldingCost - (domain.platform_fee || 0))}
+                {t('domain.netProfit')}: {formatCurrency(domain.sale_price - totalHoldingCost - (domain.platform_fee || 0))}
               </span>
               <span className="ml-2 text-green-600">
                 (ROI: {(((domain.sale_price - totalHoldingCost - (domain.platform_fee || 0)) / totalHoldingCost) * 100).toFixed(1)}%)

@@ -197,7 +197,6 @@ export function sanitizeTransactionData(transaction: unknown): Record<string, un
     platform_fee_percentage: Math.max(0, Math.min(100, Number(transactionObj.platform_fee_percentage) || 0)),
     net_amount: Math.max(0, Number(transactionObj.net_amount) || 0),
     notes: typeof transactionObj.notes === 'string' ? transactionObj.notes.trim() : '',
-    platform: typeof transactionObj.platform === 'string' ? transactionObj.platform.trim() : '',
     category: typeof transactionObj.category === 'string' ? transactionObj.category.trim() : '',
     tax_deductible: Boolean(transactionObj.tax_deductible),
     receipt_url: typeof transactionObj.receipt_url === 'string' ? transactionObj.receipt_url.trim() : ''

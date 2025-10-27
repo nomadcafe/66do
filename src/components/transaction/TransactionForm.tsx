@@ -5,44 +5,9 @@ import { X, Save, DollarSign, Calendar, FileText, TrendingUp, TrendingDown } fro
 import { exchangeRateManager, formatCurrencyAmount, getRateTrend } from '../../lib/exchangeRates';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
+import { Domain, Transaction } from '../../lib/supabaseService';
 
-interface Transaction {
-  id: string;
-  domain_id: string;
-  type: 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising';
-  amount: number;
-  currency: string;
-  exchange_rate?: number;
-  base_amount?: number;
-  platform_fee?: number;
-  platform_fee_percentage?: number;
-  net_amount?: number;
-  date: string;
-  notes: string;
-  platform?: string;
-  category?: string;
-  tax_deductible?: boolean;
-  receipt_url?: string;
-}
-
-interface Domain {
-  id: string;
-  domain_name: string;
-  registrar: string;
-  purchase_date: string;
-  purchase_cost: number;
-  renewal_cost: number;
-  renewal_cycle: number;
-  renewal_count: number;
-  next_renewal_date?: string;
-  expiry_date?: string;
-  status: 'active' | 'for_sale' | 'sold' | 'expired';
-  estimated_value: number;
-  sale_date?: string;
-  sale_price?: number;
-  platform_fee?: number;
-  tags: string[];
-}
+// 使用统一的类型定义，从 supabaseService 导入
 
 interface TransactionFormProps {
   transaction?: TransactionWithRequiredFields;
@@ -160,13 +125,17 @@ export default function TransactionForm({
       updated_at: ''
     };
     
-    onSave(finalFormData);
+    // 移除数据库中不存在的字段
+    const { platform, ...dataWithoutPlatform } = finalFormData;
+    const finalFormDataClean = dataWithoutPlatform;
+    
+    onSave(finalFormDataClean);
     
     // 如果是出售交易，触发分享功能
-    if (finalFormData.type === 'sell' && onSaleComplete) {
-      const selectedDomain = domains.find(d => d.id === finalFormData.domain_id);
+    if (finalFormDataClean.type === 'sell' && onSaleComplete) {
+      const selectedDomain = domains.find(d => d.id === finalFormDataClean.domain_id);
       if (selectedDomain) {
-        onSaleComplete(finalFormData, selectedDomain);
+        onSaleComplete(finalFormDataClean, selectedDomain);
       }
     }
     

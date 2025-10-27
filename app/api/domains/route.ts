@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { DomainService } from '../../../src/lib/supabaseService'
+import { validateDomain, sanitizeDomainData } from '../../../src/lib/validation'
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,7 +32,27 @@ export async function POST(request: NextRequest) {
             headers: corsHeaders
           })
         }
-        const newDomain = await DomainService.createDomain({ ...domain, user_id: userId })
+        
+        // 验证域名数据
+        const domainValidation = validateDomain(domain)
+        if (!domainValidation.valid) {
+          return NextResponse.json({ 
+            error: 'Domain validation failed', 
+            details: domainValidation.errors 
+          }, { 
+            status: 400,
+            headers: corsHeaders
+          })
+        }
+        
+        // 清理和标准化数据
+        const sanitizedDomain = sanitizeDomainData(domain)
+        const newDomain = await DomainService.createDomain({ 
+          ...sanitizedDomain, 
+          user_id: userId,
+          id: crypto.randomUUID(), // 生成唯一ID
+          domain_name: sanitizedDomain.domain_name as string
+        })
         return NextResponse.json({ success: true, data: newDomain }, { headers: corsHeaders })
       
       case 'updateDomain':
@@ -41,7 +62,22 @@ export async function POST(request: NextRequest) {
             headers: corsHeaders
           })
         }
-        const updatedDomain = await DomainService.updateDomain(domain.id, domain)
+        
+        // 验证域名数据
+        const updateDomainValidation = validateDomain(domain)
+        if (!updateDomainValidation.valid) {
+          return NextResponse.json({ 
+            error: 'Domain validation failed', 
+            details: updateDomainValidation.errors 
+          }, { 
+            status: 400,
+            headers: corsHeaders
+          })
+        }
+        
+        // 清理和标准化数据
+        const sanitizedUpdateDomain = sanitizeDomainData(domain)
+        const updatedDomain = await DomainService.updateDomain(domain.id, sanitizedUpdateDomain)
         return NextResponse.json({ success: true, data: updatedDomain }, { headers: corsHeaders })
       
       case 'deleteDomain':

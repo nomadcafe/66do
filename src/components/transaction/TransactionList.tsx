@@ -5,6 +5,7 @@ import { Search, Filter, Plus, Edit, Trash2, DollarSign, Calendar, FileText, Tre
 import { calculateDomainROI, getROIColor, getROIBgColor, formatPercentage } from '../../lib/enhancedFinancialMetrics';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
+import { Domain, Transaction } from '../../lib/supabaseService';
 
 // 计算持有时间
 function calculateHoldingTime(purchaseDate: string, saleDate: string, t: (key: string) => string): {
@@ -55,34 +56,7 @@ function getHoldingTimeBgColor(days: number): string {
   return 'bg-green-100';
 }
 
-interface Transaction {
-  id: string;
-  domain_id: string;
-  type: 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising';
-  amount: number;
-  currency: string;
-  exchange_rate?: number;
-  base_amount?: number;
-  platform_fee?: number;
-  platform_fee_percentage?: number;
-  net_amount?: number;
-  date: string;
-  notes: string;
-  platform?: string;
-  category?: string;
-  tax_deductible?: boolean;
-  receipt_url?: string;
-}
-
-interface Domain {
-  id: string;
-  domain_name: string;
-  purchase_cost: number;
-  renewal_cost: number;
-  renewal_count: number;
-  purchase_date: string;
-  status: string;
-}
+// 使用统一的类型定义，从 supabaseService 导入
 
 interface TransactionListProps {
   transactions: TransactionWithRequiredFields[];

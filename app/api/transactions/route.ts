@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { TransactionService } from '../../../src/lib/supabaseService'
+import { validateTransaction, sanitizeTransactionData } from '../../../src/lib/validation'
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,7 +32,31 @@ export async function POST(request: NextRequest) {
             headers: corsHeaders
           })
         }
-        const newTransaction = await TransactionService.createTransaction({ ...transaction, user_id: userId })
+        
+        // 验证交易数据
+        const transactionValidation = validateTransaction(transaction)
+        if (!transactionValidation.valid) {
+          return NextResponse.json({ 
+            error: 'Transaction validation failed', 
+            details: transactionValidation.errors 
+          }, { 
+            status: 400,
+            headers: corsHeaders
+          })
+        }
+        
+        // 清理和标准化数据
+        const sanitizedTransaction = sanitizeTransactionData(transaction)
+        const newTransaction = await TransactionService.createTransaction({ 
+          ...sanitizedTransaction, 
+          user_id: userId,
+          id: crypto.randomUUID(), // 生成唯一ID
+          domain_id: sanitizedTransaction.domain_id as string,
+          type: sanitizedTransaction.type as string,
+          amount: sanitizedTransaction.amount as number,
+          currency: sanitizedTransaction.currency as string,
+          date: sanitizedTransaction.date as string
+        })
         return NextResponse.json({ success: true, data: newTransaction }, { headers: corsHeaders })
       
       case 'updateTransaction':
@@ -41,7 +66,22 @@ export async function POST(request: NextRequest) {
             headers: corsHeaders
           })
         }
-        const updatedTransaction = await TransactionService.updateTransaction(transaction.id, transaction)
+        
+        // 验证交易数据
+        const updateTransactionValidation = validateTransaction(transaction)
+        if (!updateTransactionValidation.valid) {
+          return NextResponse.json({ 
+            error: 'Transaction validation failed', 
+            details: updateTransactionValidation.errors 
+          }, { 
+            status: 400,
+            headers: corsHeaders
+          })
+        }
+        
+        // 清理和标准化数据
+        const sanitizedUpdateTransaction = sanitizeTransactionData(transaction)
+        const updatedTransaction = await TransactionService.updateTransaction(transaction.id, sanitizedUpdateTransaction)
         return NextResponse.json({ success: true, data: updatedTransaction }, { headers: corsHeaders })
       
       case 'deleteTransaction':
