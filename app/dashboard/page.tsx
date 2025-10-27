@@ -726,7 +726,7 @@ export default function DashboardPage() {
   };
 
   // 处理域名续费
-  const handleRenewDomain = (domainId: string) => {
+  const handleRenewDomain = async (domainId: string) => {
     const domain = domains.find(d => d.id === domainId);
     if (!domain) return;
 
@@ -811,7 +811,10 @@ export default function DashboardPage() {
       d.id === domainId ? ensureDomainWithTags(updatedDomain) : d
     );
     setDomains(updatedDomains);
-    saveData(updatedDomains, transactions);
+    await saveData(updatedDomains, newTransactions);
+    
+    // 重新加载数据以确保界面显示最新状态
+    await reloadData();
   };
 
 
@@ -827,7 +830,7 @@ export default function DashboardPage() {
           : transaction
       );
       setTransactions(updatedTransactions);
-      await saveData(domains, updatedTransactions);
+      await saveData(updatedDomains, updatedTransactions);
     } else {
       // Add new transaction
       const newTransaction: TransactionWithRequiredFields = ensureTransactionWithRequiredFields({
