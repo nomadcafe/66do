@@ -323,6 +323,17 @@ const translations: Record<Locale, Translations> = {
         button: '注册',
         loading: '注册中...'
       },
+      magicLink: {
+        title: 'Magic Link 登录',
+        subtitle: '输入您的邮箱地址，我们将发送一个登录链接到您的邮箱',
+        email: '邮箱地址',
+        emailPlaceholder: '请输入您的邮箱地址',
+        submit: '发送 Magic Link',
+        sending: '发送中...',
+        success: 'Magic Link已发送到您的邮箱！请检查邮件并点击链接登录。',
+        error: '发送Magic Link失败，请重试',
+        firstTime: '首次使用？Magic Link 会自动为您创建账户'
+      },
       verify: {
         title: '验证邮箱',
         subtitle: '我们已向 {email} 发送了验证码',
@@ -802,6 +813,17 @@ const translations: Record<Locale, Translations> = {
         title: 'Create your account',
         button: 'Sign Up',
         loading: 'Creating account...'
+      },
+      magicLink: {
+        title: 'Magic Link Login',
+        subtitle: 'Enter your email address and we\'ll send you a login link',
+        email: 'Email address',
+        emailPlaceholder: 'Enter your email address',
+        submit: 'Send Magic Link',
+        sending: 'Sending...',
+        success: 'Magic Link sent to your email! Please check your inbox and click the link to login.',
+        error: 'Failed to send Magic Link, please try again',
+        firstTime: 'First time? Magic Link will automatically create an account for you'
       },
       verify: {
         title: 'Verify Email',
