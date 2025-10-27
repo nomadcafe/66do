@@ -1147,11 +1147,11 @@ export default function DashboardPage() {
           <div className="bg-white p-6 rounded-2xl border border-gray-100 hover:shadow-lg transition-all duration-300">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">{t('dashboard.totalRevenue')}</p>
-                <p className="text-3xl font-bold text-gray-900">${stats.totalRevenue.toFixed(2)}</p>
+                <p className="text-sm font-medium text-gray-500 mb-1">{t('analytics.totalLoss')}</p>
+                <p className="text-3xl font-bold text-gray-900">${domains.filter(d => d.status === 'expired').reduce((sum, domain) => sum + (domain.purchase_cost || 0) + (domain.renewal_count * (domain.renewal_cost || 0)), 0).toFixed(2)}</p>
               </div>
-              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
-                <TrendingUp className="h-6 w-6 text-white" />
+              <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center">
+                <TrendingDown className="h-6 w-6 text-white" />
               </div>
             </div>
           </div>
