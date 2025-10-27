@@ -61,6 +61,7 @@ export function calculateDomainROI(
     sale_price?: number | null;
     platform_fee?: number | null;
     estimated_value?: number | null;
+    expiry_date?: string | null;
   }
 ): number {
   // 计算总持有成本
@@ -74,6 +75,22 @@ export function calculateDomainROI(
   if (domain.status === 'sold' && domain.sale_price) {
     const netRevenue = domain.sale_price - (domain.platform_fee || 0);
     return ((netRevenue - totalHoldingCost) / totalHoldingCost) * 100;
+  }
+  
+  // 如果是过期域名，计算为100%损失（负ROI）
+  if (domain.status === 'expired') {
+    return -100; // 100%损失
+  }
+  
+  // 检查域名是否实际过期（即使状态不是'expired'）
+  if (domain.expiry_date) {
+    const now = new Date();
+    const expiryDate = new Date(domain.expiry_date);
+    const isExpired = expiryDate < now;
+    
+    if (isExpired && domain.status !== 'sold') {
+      return -100; // 100%损失
+    }
   }
   
   // 如果是其他状态，使用预估价值

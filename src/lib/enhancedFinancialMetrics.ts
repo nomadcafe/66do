@@ -55,6 +55,7 @@ export function calculateDomainROI(
     renewal_count: number;
     purchase_date: string | null;
     status: string;
+    expiry_date?: string | null;
   },
   transactions: Array<{
     domain_id: string;
@@ -78,9 +79,29 @@ export function calculateDomainROI(
   const totalSales = salesTransactions.reduce((sum, t) => sum + t.amount, 0);
   const netRevenue = salesTransactions.reduce((sum, t) => sum + (t.net_amount || t.amount), 0);
   
+  // 检查域名是否过期
+  let isExpired = false;
+  if (domain.status === 'expired') {
+    isExpired = true;
+  } else if (domain.expiry_date) {
+    const now = new Date();
+    const expiryDate = new Date(domain.expiry_date);
+    isExpired = expiryDate < now && domain.status !== 'sold';
+  }
+  
   // 利润和ROI
-  const grossProfit = netRevenue - totalInvestment;
-  const roi = totalInvestment > 0 ? (grossProfit / totalInvestment) * 100 : 0;
+  let grossProfit: number;
+  let roi: number;
+  
+  if (isExpired) {
+    // 过期域名：100%损失
+    grossProfit = -totalInvestment;
+    roi = -100;
+  } else {
+    // 正常计算
+    grossProfit = netRevenue - totalInvestment;
+    roi = totalInvestment > 0 ? (grossProfit / totalInvestment) * 100 : 0;
+  }
   
   // 持有期
   const purchaseDate = new Date(domain.purchase_date || '');
@@ -114,6 +135,7 @@ export function calculateAllDomainROIs(
     renewal_count: number;
     purchase_date: string;
     status: string;
+    expiry_date?: string | null;
   }>,
   transactions: Array<{
     domain_id: string;
