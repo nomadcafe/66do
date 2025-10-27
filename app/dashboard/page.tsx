@@ -28,7 +28,6 @@ import { calculateFinancialMetrics } from '../../src/lib/financialMetrics';
 import { calculateEnhancedFinancialMetrics, formatCurrency as formatCurrencyEnhanced } from '../../src/lib/enhancedFinancialMetrics';
 import { domainCache } from '../../src/lib/cache';
 import AdvancedRenewalAnalysis from '../../src/components/analytics/AdvancedRenewalAnalysis';
-import ExpiredDomainLossAnalysis from '../../src/components/analytics/ExpiredDomainLossAnalysis';
 import { auditLogger } from '../../src/lib/security';
 import LoadingSpinner from '../../src/components/ui/LoadingSpinner';
 import ErrorMessage from '../../src/components/ui/ErrorMessage';
