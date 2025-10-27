@@ -28,9 +28,9 @@ export async function GET(request: NextRequest) {
     // 验证域名是否属于当前用户
     const { data: domain, error: domainError } = await supabase
       .from('domains')
-      .select('id, owner_user_id')
+      .select('id, user_id')
       .eq('id', domainId)
-      .eq('owner_user_id', session.user.id)
+      .eq('user_id', session.user.id)
       .single();
 
     if (domainError || !domain) {
@@ -98,9 +98,9 @@ export async function POST(request: NextRequest) {
     // 验证域名是否属于当前用户
     const { data: domain, error: domainError } = await supabase
       .from('domains')
-      .select('id, owner_user_id')
+      .select('id, user_id')
       .eq('id', domain_id)
-      .eq('owner_user_id', session.user.id)
+      .eq('user_id', session.user.id)
       .single();
 
     if (domainError || !domain) {

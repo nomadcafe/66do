@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
         const sanitizedDomain = sanitizeDomainData(domain)
         const newDomain = await DomainService.createDomain({ 
           ...sanitizedDomain, 
-          owner_user_id: userId, // 使用正确的字段名
+          user_id: userId, // 使用正确的字段名
           id: crypto.randomUUID(), // 生成唯一ID
           domain_name: sanitizedDomain.domain_name as string
         })

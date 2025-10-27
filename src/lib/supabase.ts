@@ -36,7 +36,7 @@ export interface Database {
       domains: {
         Row: {
           id: string
-          owner_user_id: string
+          user_id: string
           domain_name: string
           registrar: string | null
           purchase_date: string | null
@@ -57,7 +57,7 @@ export interface Database {
         }
         Insert: {
           id: string
-          owner_user_id: string
+          user_id: string
           domain_name: string
           registrar?: string | null
           purchase_date?: string | null
@@ -78,7 +78,7 @@ export interface Database {
         }
         Update: {
           id?: string
-          owner_user_id?: string
+          user_id?: string
           domain_name?: string
           registrar?: string | null
           purchase_date?: string | null

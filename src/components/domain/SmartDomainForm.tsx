@@ -18,7 +18,7 @@ interface SmartDomainFormProps {
 export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: SmartDomainFormProps) {
   // const { t } = useI18nContext();
   const [formData, setFormData] = useState<Omit<DomainWithTags, 'id'>>({
-    owner_user_id: '',
+    user_id: '',
     domain_name: '',
     registrar: '',
     purchase_date: '',
@@ -49,7 +49,7 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
       setFormData(domain);
     } else {
       setFormData({
-        owner_user_id: '',
+        user_id: '',
         domain_name: '',
         registrar: '',
         purchase_date: '',

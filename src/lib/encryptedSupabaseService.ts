@@ -10,7 +10,7 @@ export class EncryptedDomainService {
     const { data, error } = await supabase
       .from('domains')
       .select('*')
-      .eq('owner_user_id', userId)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false });
     
     if (error) {
@@ -96,9 +96,9 @@ export class EncryptedTransactionService {
       .from('domain_transactions')
       .select(`
         *,
-        domains!inner(owner_user_id)
+        domains!inner(user_id)
       `)
-      .eq('domains.owner_user_id', userId)
+      .eq('domains.user_id', userId)
       .order('created_at', { ascending: false });
     
     if (error) {
