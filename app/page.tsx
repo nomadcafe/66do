@@ -119,7 +119,7 @@ export default function HomePage() {
                   href="/login"
                   className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-6 py-2 rounded-lg hover:from-cyan-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
-                  Magic Link 登录
+                  {t('auth.magicLink.title')}
                 </a>
               )}
             </div>
