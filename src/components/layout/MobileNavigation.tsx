@@ -11,13 +11,12 @@ import {
   Bell, 
   Settings, 
   Database,
-  TrendingUp
 } from 'lucide-react';
 import { useI18nContext } from '../../contexts/I18nProvider';
 
 interface MobileNavigationProps {
-  activeTab: 'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'marketplace' | 'settings' | 'data' | 'reports';
-  onTabChange: (tab: 'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'marketplace' | 'settings' | 'data' | 'reports') => void;
+  activeTab: 'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'settings' | 'data' | 'reports';
+  onTabChange: (tab: 'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'settings' | 'data' | 'reports') => void;
   expiringCount: number;
 }
 
@@ -31,7 +30,6 @@ export default function MobileNavigation({ activeTab, onTabChange, expiringCount
     { id: 'transactions', label: t('navigation.transactions'), icon: DollarSign },
     { id: 'analytics', label: t('navigation.analytics'), icon: BarChart3 },
     { id: 'alerts', label: t('navigation.alerts'), icon: Bell, badge: expiringCount },
-    { id: 'marketplace', label: t('navigation.marketplace'), icon: TrendingUp },
     { id: 'settings', label: t('navigation.settings'), icon: Settings },
     { id: 'data', label: t('navigation.data'), icon: Database }
   ];
@@ -74,7 +72,7 @@ export default function MobileNavigation({ activeTab, onTabChange, expiringCount
                   <button
                     key={item.id}
                     onClick={() => {
-                      onTabChange(item.id as 'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'marketplace' | 'settings' | 'data' | 'reports');
+                      onTabChange(item.id as 'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'settings' | 'data' | 'reports');
                       setIsOpen(false);
                     }}
                     className={`flex flex-col items-center p-4 rounded-xl transition-colors ${

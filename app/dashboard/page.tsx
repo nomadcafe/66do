@@ -11,7 +11,6 @@ import TransactionList from '../../src/components/transaction/TransactionList';
 import TransactionForm from '../../src/components/transaction/TransactionForm';
 import InvestmentAnalytics from '../../src/components/analytics/InvestmentAnalytics';
 import UserPreferencesPanel from '../../src/components/settings/UserPreferencesPanel';
-import DomainMarketplace from '../../src/components/marketplace/DomainMarketplace';
 import DataImportExport from '../../src/components/data/DataImportExport';
 import { LazyDomainExpiryAlert, LazyWrapper } from '../../src/components/LazyComponents';
 import MobileNavigation from '../../src/components/layout/MobileNavigation';
@@ -125,7 +124,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dataSource, setDataSource] = useState<'supabase' | 'cache'>('cache');
-  const [activeTab, setActiveTab] = useState<'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'marketplace' | 'settings' | 'data' | 'reports'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'settings' | 'data' | 'reports'>('overview');
   
   // 计算续费分析 - 使用缓存优化性能
   const renewalAnalysis = useMemo(() => {
@@ -1222,17 +1221,6 @@ export default function DashboardPage() {
                 )}
               </button>
               <button
-                onClick={() => setActiveTab('marketplace')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                  activeTab === 'marketplace'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <Globe className="h-4 w-4 inline mr-2" />
-                {t('dashboard.marketplace')}
-              </button>
-              <button
                 onClick={() => setActiveTab('settings')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                   activeTab === 'settings'
@@ -1673,29 +1661,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {activeTab === 'marketplace' && (
-          <DomainMarketplace
-            domains={[]} // TODO: 从市场数据API获取
-            onLike={(id) => {
-              console.log('Like domain:', id);
-              auditLogger.log(user?.id || 'default', 'domain_liked', 'marketplace', { domainId: id });
-            }}
-            onWatch={(id) => {
-              console.log('Watch domain:', id);
-              auditLogger.log(user?.id || 'default', 'domain_watched', 'marketplace', { domainId: id });
-            }}
-            onContact={(id) => {
-              console.log('Contact seller:', id);
-              auditLogger.log(user?.id || 'default', 'seller_contacted', 'marketplace', { domainId: id });
-            }}
-            onQuickBuy={(id) => {
-              console.log('Quick buy domain:', id);
-              auditLogger.log(user?.id || 'default', 'quick_buy_initiated', 'marketplace', { domainId: id });
-            }}
-            onFilter={(filters) => console.log('Filter domains:', filters)}
-            onSort={(sortBy) => console.log('Sort domains:', sortBy)}
-          />
-        )}
 
         {activeTab === 'settings' && (
           <UserPreferencesPanel />

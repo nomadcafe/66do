@@ -7,10 +7,6 @@ export const LazyDomainPerformanceChart = lazy(() =>
   import('./charts/DomainPerformanceChart')
 );
 
-// 懒加载市场组件
-export const LazyDomainMarketplace = lazy(() => 
-  import('./marketplace/DomainMarketplace')
-);
 
 // 懒加载数据管理组件
 export const LazyDataImportExport = lazy(() => 
@@ -51,7 +47,6 @@ export function LazyWrapper({ children, fallback }: LazyWrapperProps) {
 export const preloadComponents = () => {
   // 预加载关键组件
   import('./charts/DomainPerformanceChart');
-  import('./marketplace/DomainMarketplace');
   import('./data/DataImportExport');
 };
 

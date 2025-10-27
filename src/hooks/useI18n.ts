@@ -29,7 +29,6 @@ const translations: Record<Locale, Translations> = {
       transactions: '交易',
       analytics: '分析',
       alerts: '提醒',
-      marketplace: '市场',
       settings: '设置',
       data: '数据'
     },
@@ -60,7 +59,6 @@ const translations: Record<Locale, Translations> = {
       transactions: '交易',
       analytics: '分析',
       alerts: '提醒',
-      marketplace: '市场',
       settings: '设置',
       data: '数据',
       reports: '报告',
@@ -460,7 +458,6 @@ const translations: Record<Locale, Translations> = {
       transactions: 'Transactions',
       analytics: 'Analytics',
       alerts: 'Alerts',
-      marketplace: 'Marketplace',
       settings: 'Settings',
       data: 'Data'
     },
@@ -491,7 +488,6 @@ const translations: Record<Locale, Translations> = {
       transactions: 'Transactions',
       analytics: 'Analytics',
       alerts: 'Alerts',
-      marketplace: 'Marketplace',
       settings: 'Settings',
       data: 'Data',
       reports: 'Reports',
