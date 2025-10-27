@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { X, Save, DollarSign, Calendar, FileText, TrendingUp, TrendingDown } from 'lucide-react';
 import { exchangeRateManager, formatCurrencyAmount, getRateTrend } from '../../lib/exchangeRates';
 import { useI18nContext } from '../../contexts/I18nProvider';
-import { calculateCustomerTotalFromInstallment } from '../../lib/platformFeeCalculator';
+import { calculateCustomerTotalFromInstallment, calculatePaidAmountFromInstallment } from '../../lib/platformFeeCalculator';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import { Domain, Transaction } from '../../lib/supabaseService';
 import DateInput from '../ui/DateInput';
@@ -703,6 +703,43 @@ export default function TransactionForm({
                       <p className="text-blue-700">
                         {t('transaction.platformFeeType')}: {t(`transaction.${formData.platform_fee_type}`)}
                       </p>
+                      
+                      {/* 已付期数实际金额计算 */}
+                      {formData.paid_periods > 0 && formData.installment_amount > 0 && (
+                        <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                          <h5 className="text-sm font-medium text-green-900 mb-2">{t('transaction.paidAmountCalculation')}</h5>
+                          {(() => {
+                            try {
+                              const result = calculatePaidAmountFromInstallment(
+                                formData.installment_amount,
+                                formData.paid_periods,
+                                formData.platform_fee_type || 'standard'
+                              );
+                              
+                              return (
+                                <div className="text-sm text-green-800 space-y-1">
+                                  <p><strong>{t('transaction.actualPaidAmount')}:</strong> {formatCurrencyAmount(result.sellerNetAmount, formData.currency)}</p>
+                                  <p><strong>{t('transaction.customerPaidTotal')}:</strong> {formatCurrencyAmount(result.customerTotalAmount, formData.currency)}</p>
+                                  <p><strong>{t('transaction.platformFeePaid')}:</strong> {formatCurrencyAmount(result.platformFee, formData.currency)} ({(result.platformFeeRate * 100).toFixed(1)}%)</p>
+                                  
+                                  {result.breakdown.surchargeAmount && (
+                                    <div className="mt-2 text-xs text-green-700">
+                                      <p>{t('transaction.baseAmount')}: {formatCurrencyAmount(result.breakdown.baseAmount, formData.currency)}</p>
+                                      <p>{t('transaction.surchargeAmount')}: {formatCurrencyAmount(result.breakdown.surchargeAmount, formData.currency)}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            } catch (error) {
+                              return (
+                                <p className="text-sm text-green-700">
+                                  {t('transaction.calculationError')}: {error instanceof Error ? error.message : 'Unknown error'}
+                                </p>
+                              );
+                            }
+                          })()}
+                        </div>
+                      )}
                       
                       {/* 进度条 */}
                       <div className="mt-2">

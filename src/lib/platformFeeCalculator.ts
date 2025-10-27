@@ -77,6 +77,8 @@ function calculateStandardFee(sellerAmount: number, feeRate: number): PlatformFe
  * 13–24 months: 10% service fee
  * 25–36 months: 20% service fee
  * 37–60 months: 30% service fee
+ * 
+ * 注意：费用率基于实际已付期数，不是总期数
  */
 function calculateAfternicInstallmentFee(sellerAmount: number, installmentPeriod: number): PlatformFeeResult {
   let feeRate: number;
@@ -116,6 +118,8 @@ function calculateAfternicInstallmentFee(sellerAmount: number, installmentPeriod
  * 36期: 20% surcharge
  * 48期: 25% surcharge
  * 卖家获得65%的surcharge，平台获得35%
+ * 
+ * 注意：surcharge率基于实际已付期数，不是总期数
  */
 function calculateAtomInstallmentFee(sellerAmount: number, installmentPeriod: number): PlatformFeeResult {
   let surchargeRate: number;
@@ -200,6 +204,29 @@ export function calculateCustomerTotalFromInstallment(
   return calculatePlatformFee({
     type: platformFeeType as 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment',
     installmentPeriod,
+    sellerAmount,
+    customFeeRate,
+    escrowFee,
+    domainHoldingFee,
+  });
+}
+
+/**
+ * 根据已付期数计算实际收到的金额和平台费用
+ */
+export function calculatePaidAmountFromInstallment(
+  installmentAmount: number,
+  paidPeriods: number,
+  platformFeeType: string,
+  customFeeRate?: number,
+  escrowFee?: number,
+  domainHoldingFee?: number
+): PlatformFeeResult {
+  const sellerAmount = installmentAmount * paidPeriods;
+  
+  return calculatePlatformFee({
+    type: platformFeeType as 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment',
+    installmentPeriod: paidPeriods, // 使用已付期数计算费用
     sellerAmount,
     customFeeRate,
     escrowFee,
