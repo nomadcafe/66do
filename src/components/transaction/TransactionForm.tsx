@@ -736,12 +736,22 @@ export default function TransactionForm({
                                 <p><strong>{t('transaction.platformFee')}:</strong> {formatCurrencyAmount(result.platformFee, formData.currency)} ({(result.platformFeeRate * 100).toFixed(1)}%)</p>
                                 <p><strong>{t('transaction.sellerNetAmount')}:</strong> {formatCurrencyAmount(result.sellerNetAmount, formData.currency)}</p>
                                 
-                                {result.breakdown.surchargeAmount && (
-                                  <div className="mt-2 text-xs text-yellow-700">
-                                    <p>{t('transaction.baseAmount')}: {formatCurrencyAmount(result.breakdown.baseAmount, formData.currency)}</p>
-                                    <p>{t('transaction.surchargeAmount')}: {formatCurrencyAmount(result.breakdown.surchargeAmount, formData.currency)}</p>
-                                  </div>
-                                )}
+                                  {result.breakdown.surchargeAmount && (
+                                    <div className="mt-2 text-xs text-yellow-700">
+                                      <p>{t('transaction.baseAmount')}: {formatCurrencyAmount(result.breakdown.baseAmount, formData.currency)}</p>
+                                      <p>{t('transaction.surchargeAmount')}: {formatCurrencyAmount(result.breakdown.surchargeAmount, formData.currency)}</p>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Afternic详细分解 */}
+                                  {formData.platform_fee_type === 'afternic_installment' && result.breakdown.serviceFee !== undefined && (
+                                    <div className="mt-2 text-xs text-yellow-700">
+                                      <p><strong>{t('transaction.listPrice')}:</strong> {formatCurrencyAmount(result.breakdown.baseAmount, formData.currency)}</p>
+                                      <p><strong>{t('transaction.serviceFee')}:</strong> {formatCurrencyAmount(result.breakdown.serviceFee, formData.currency)} ({(result.breakdown.serviceFeeRate! * 100).toFixed(1)}%)</p>
+                                      <p><strong>{t('transaction.commission')}:</strong> {formatCurrencyAmount(result.breakdown.commission!, formData.currency)} ({(result.breakdown.commissionRate! * 100).toFixed(1)}%)</p>
+                                      <p><strong>{t('transaction.commissionDiscount')}:</strong> {(result.breakdown.commissionDiscount! * 100).toFixed(1)}%</p>
+                                    </div>
+                                  )}
                               </div>
                             );
                           } catch (error) {
@@ -794,6 +804,16 @@ export default function TransactionForm({
                                     <div className="mt-2 text-xs text-green-700">
                                       <p>{t('transaction.baseAmount')}: {formatCurrencyAmount(result.breakdown.baseAmount, formData.currency)}</p>
                                       <p>{t('transaction.surchargeAmount')}: {formatCurrencyAmount(result.breakdown.surchargeAmount, formData.currency)}</p>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Afternic详细分解 */}
+                                  {formData.platform_fee_type === 'afternic_installment' && result.breakdown.serviceFee !== undefined && (
+                                    <div className="mt-2 text-xs text-green-700">
+                                      <p><strong>{t('transaction.listPrice')}:</strong> {formatCurrencyAmount(result.breakdown.baseAmount, formData.currency)}</p>
+                                      <p><strong>{t('transaction.serviceFee')}:</strong> {formatCurrencyAmount(result.breakdown.serviceFee, formData.currency)} ({(result.breakdown.serviceFeeRate! * 100).toFixed(1)}%)</p>
+                                      <p><strong>{t('transaction.commission')}:</strong> {formatCurrencyAmount(result.breakdown.commission!, formData.currency)} ({(result.breakdown.commissionRate! * 100).toFixed(1)}%)</p>
+                                      <p><strong>{t('transaction.commissionDiscount')}:</strong> {(result.breakdown.commissionDiscount! * 100).toFixed(1)}%</p>
                                     </div>
                                   )}
                                 </div>

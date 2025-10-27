@@ -24,6 +24,12 @@ export interface PlatformFeeResult {
     baseAmount: number; // 基础金额
     feeAmount: number; // 费用金额
     surchargeAmount?: number; // 附加费用（Atom专用）
+    // Afternic新字段
+    serviceFee?: number; // 客户服务费
+    commission?: number; // 卖家佣金
+    commissionRate?: number; // 有效佣金率
+    commissionDiscount?: number; // 佣金折扣
+    serviceFeeRate?: number; // 服务费率
   };
 }
 
@@ -75,37 +81,61 @@ function calculateStandardFee(sellerAmount: number, feeRate: number): PlatformFe
 }
 
 /**
- * Afternic分期费用计算
- * 如果用户输入了费用率，使用用户输入的值
- * 否则根据期数自动计算：
- * 2–12 months: No service fee
- * 13–24 months: 10% service fee
- * 25–36 months: 20% service fee
- * 37–60 months: 30% service fee
+ * Afternic分期费用计算（新版本）
+ * 基于Afternic的实际业务模式：
+ * 1. 客户服务费（LTO服务费）：2-12月无费用，13-24月10%，25-36月20%，37-60月30%
+ * 2. 卖家佣金折扣：2-12月无折扣，13-24月5%折扣，25-36月10%折扣，37-60月15%折扣
+ * 3. 三部分结构：标价、服务费、佣金
  */
 function calculateAfternicInstallmentFee(sellerAmount: number, installmentPeriod: number, userInputFeeRate?: number): PlatformFeeResult {
-  let feeRate: number;
-
+  // 计算客户服务费比例
+  let serviceFeeRate: number;
   if (userInputFeeRate !== undefined) {
-    // 使用用户输入的费用率
-    feeRate = userInputFeeRate;
+    serviceFeeRate = userInputFeeRate;
   } else {
-    // 根据期数自动计算费用率
     if (installmentPeriod <= 12) {
-      feeRate = 0; // No service fee
+      serviceFeeRate = 0; // No service fee
     } else if (installmentPeriod <= 24) {
-      feeRate = 0.10; // 10% service fee
+      serviceFeeRate = 0.10; // 10% service fee
     } else if (installmentPeriod <= 36) {
-      feeRate = 0.20; // 20% service fee
+      serviceFeeRate = 0.20; // 20% service fee
     } else if (installmentPeriod <= 60) {
-      feeRate = 0.30; // 30% service fee
+      serviceFeeRate = 0.30; // 30% service fee
     } else {
-      feeRate = 0.30; // 超过60期按30%计算
+      serviceFeeRate = 0.30; // 超过60期按30%计算
     }
   }
 
-  const customerTotalAmount = sellerAmount / (1 - feeRate);
-  const platformFee = customerTotalAmount - sellerAmount;
+  // 计算卖家佣金折扣
+  let commissionDiscount: number;
+  if (installmentPeriod <= 12) {
+    commissionDiscount = 0; // no commission discount
+  } else if (installmentPeriod <= 24) {
+    commissionDiscount = 0.05; // 5% discount
+  } else if (installmentPeriod <= 36) {
+    commissionDiscount = 0.10; // 10% discount
+  } else if (installmentPeriod <= 60) {
+    commissionDiscount = 0.15; // 15% discount
+  } else {
+    commissionDiscount = 0.15; // 超过60期按15%折扣计算
+  }
+
+  // 假设标准佣金率为15%（Afternic标准）
+  const standardCommissionRate = 0.15;
+  const effectiveCommissionRate = Math.max(0, standardCommissionRate - commissionDiscount);
+
+  // 计算各部分金额
+  // sellerAmount = listPrice * (1 - effectiveCommissionRate)
+  // 所以 listPrice = sellerAmount / (1 - effectiveCommissionRate)
+  const listPrice = sellerAmount / (1 - effectiveCommissionRate);
+  
+  // 客户总付款 = 标价 + 服务费
+  const serviceFee = listPrice * serviceFeeRate;
+  const customerTotalAmount = listPrice + serviceFee;
+  
+  // 平台总收益 = 服务费 + 佣金
+  const commission = listPrice * effectiveCommissionRate;
+  const platformFee = serviceFee + commission;
   const platformFeeRate = platformFee / customerTotalAmount;
 
   return {
@@ -114,8 +144,13 @@ function calculateAfternicInstallmentFee(sellerAmount: number, installmentPeriod
     platformFeeRate,
     sellerNetAmount: sellerAmount,
     breakdown: {
-      baseAmount: customerTotalAmount,
+      baseAmount: listPrice,
       feeAmount: platformFee,
+      serviceFee: serviceFee,
+      commission: commission,
+      commissionRate: effectiveCommissionRate,
+      commissionDiscount: commissionDiscount,
+      serviceFeeRate: serviceFeeRate,
     }
   };
 }
