@@ -816,7 +816,7 @@ export default function DashboardPage() {
       notes: undefined, // Supabase Domain类型中没有此字段
       created_at: domain.created_at,
       updated_at: domain.updated_at,
-      user_id: domain.user_id,
+      user_id: domain.owner_user_id,
       tags: domain.tags || []
     };
     
@@ -826,7 +826,7 @@ export default function DashboardPage() {
     // 将renewedDomain转换回Supabase Domain类型
     const updatedDomain: Domain = {
       id: renewedDomain.id,
-      user_id: domain.user_id,
+      owner_user_id: domain.owner_user_id,
       domain_name: renewedDomain.domain_name,
       registrar: renewedDomain.registrar,
       purchase_date: renewedDomain.purchase_date,
