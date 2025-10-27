@@ -59,180 +59,187 @@ export default function DomainShareModal({ isOpen, onClose, domain }: DomainShar
     canvas.width = 800;
     canvas.height = 600;
 
-    // 绘制炫酷的渐变背景 - 彩虹色
-    const gradient = ctx.createLinearGradient(0, 0, 800, 600);
-    gradient.addColorStop(0, '#ff6b6b');
-    gradient.addColorStop(0.2, '#4ecdc4');
-    gradient.addColorStop(0.4, '#45b7d1');
-    gradient.addColorStop(0.6, '#96ceb4');
-    gradient.addColorStop(0.8, '#feca57');
-    gradient.addColorStop(1, '#ff9ff3');
+    // 绘制深色炫酷背景
+    const gradient = ctx.createRadialGradient(400, 300, 0, 400, 300, 400);
+    gradient.addColorStop(0, '#1a1a2e');
+    gradient.addColorStop(0.5, '#16213e');
+    gradient.addColorStop(1, '#0f3460');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 800, 600);
 
-    // 添加动态粒子效果背景
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-    for (let i = 0; i < 50; i++) {
+    // 添加星空效果
+    ctx.fillStyle = '#ffffff';
+    for (let i = 0; i < 100; i++) {
       const x = Math.random() * 800;
       const y = Math.random() * 600;
-      const size = Math.random() * 4 + 1;
+      const size = Math.random() * 2 + 0.5;
       ctx.beginPath();
       ctx.arc(x, y, size, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // 绘制主内容区域 - 玻璃拟态效果
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-    ctx.lineWidth = 2;
-    ctx.roundRect(40, 40, 720, 520, 30);
+    // 绘制主内容区域 - 深色卡片
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.strokeStyle = '#00ffff';
+    ctx.lineWidth = 3;
+    ctx.roundRect(50, 50, 700, 500, 20);
     ctx.fill();
     ctx.stroke();
 
-    // 绘制炫耀的标题 - 更大更炫酷
-    ctx.fillStyle = '#fff';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 3;
-    ctx.font = 'bold 48px Arial';
+    // 绘制霓虹灯效果标题
+    ctx.font = 'bold 42px Arial';
     ctx.textAlign = 'center';
-    ctx.strokeText('🚀 DOMAIN INVESTMENT LEGEND! 🚀', 400, 100);
-    ctx.fillText('🚀 DOMAIN INVESTMENT LEGEND! 🚀', 400, 100);
+    ctx.fillStyle = '#00ffff';
+    ctx.strokeStyle = '#0080ff';
+    ctx.lineWidth = 4;
+    ctx.strokeText('DOMAIN INVESTMENT SUCCESS', 400, 100);
+    ctx.fillText('DOMAIN INVESTMENT SUCCESS', 400, 100);
 
-    // 绘制域名信息 - 更突出
-    ctx.font = 'bold 36px Arial';
-    ctx.fillStyle = '#ffd700';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2;
-    ctx.strokeText(domain.domain_name, 400, 160);
-    ctx.fillText(domain.domain_name, 400, 160);
+    // 绘制域名信息 - 霓虹效果
+    ctx.font = 'bold 32px Arial';
+    ctx.fillStyle = '#ff00ff';
+    ctx.strokeStyle = '#ff0080';
+    ctx.lineWidth = 3;
+    ctx.strokeText(domain.domain_name, 400, 150);
+    ctx.fillText(domain.domain_name, 400, 150);
 
-    // 绘制统计数据 - 更炫酷的样式
+    // 绘制统计数据
     const profit = calculateDomainProfit();
     const roi = calculateROI();
     const holdingPeriod = calculateHoldingPeriod();
     
-    // 绘制数据卡片背景
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-    ctx.roundRect(50, 200, 700, 200, 15);
+    // 绘制数据区域背景
+    ctx.fillStyle = 'rgba(0, 255, 255, 0.1)';
+    ctx.roundRect(80, 200, 640, 250, 15);
     ctx.fill();
 
-    ctx.font = 'bold 28px Arial';
-    ctx.fillStyle = '#fff';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 1;
-    
     // 净利润 - 最突出
-    ctx.font = 'bold 32px Arial';
+    ctx.font = 'bold 28px Arial';
     ctx.fillStyle = '#00ff00';
-    ctx.strokeText(`💰 MASSIVE PROFIT: $${profit.toLocaleString()} 💰`, 400, 240);
-    ctx.fillText(`💰 MASSIVE PROFIT: $${profit.toLocaleString()} 💰`, 400, 240);
+    ctx.strokeStyle = '#008000';
+    ctx.lineWidth = 2;
+    ctx.strokeText(`Net Profit: $${profit.toLocaleString()}`, 400, 240);
+    ctx.fillText(`Net Profit: $${profit.toLocaleString()}`, 400, 240);
     
-    // ROI - 炫酷颜色
-    ctx.font = 'bold 24px Arial';
-    ctx.fillStyle = '#00ffff';
-    ctx.strokeText(`📈 INSANE ROI: ${roi.toFixed(1)}% 📈`, 400, 280);
-    ctx.fillText(`📈 INSANE ROI: ${roi.toFixed(1)}% 📈`, 400, 280);
+    // ROI
+    ctx.fillStyle = '#ffff00';
+    ctx.strokeStyle = '#808000';
+    ctx.strokeText(`ROI: ${roi.toFixed(1)}%`, 400, 280);
+    ctx.fillText(`ROI: ${roi.toFixed(1)}%`, 400, 280);
     
     // 持有时间
-    ctx.fillStyle = '#ffff00';
-    ctx.strokeText(`⏰ HOLDING TIME: ${holdingPeriod} ⏰`, 400, 320);
-    ctx.fillText(`⏰ HOLDING TIME: ${holdingPeriod} ⏰`, 400, 320);
+    ctx.fillStyle = '#ff8000';
+    ctx.strokeStyle = '#804000';
+    ctx.strokeText(`Holding Period: ${holdingPeriod}`, 400, 320);
+    ctx.fillText(`Holding Period: ${holdingPeriod}`, 400, 320);
     
     // 售价
-    ctx.fillStyle = '#ff69b4';
-    ctx.strokeText(`💵 SALE PRICE: $${domain.sale_price?.toLocaleString()} 💵`, 400, 360);
-    ctx.fillText(`💵 SALE PRICE: $${domain.sale_price?.toLocaleString()} 💵`, 400, 360);
+    ctx.fillStyle = '#ff0080';
+    ctx.strokeStyle = '#800040';
+    ctx.strokeText(`Sale Price: $${domain.sale_price?.toLocaleString()}`, 400, 360);
+    ctx.fillText(`Sale Price: $${domain.sale_price?.toLocaleString()}`, 400, 360);
 
-    // 绘制炫耀的卡通人物和装饰
-    ctx.font = '80px Arial';
-    ctx.fillStyle = '#ffd700';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 3;
+    // 绘制卡通人物 - 使用简单的几何图形
+    // 主要的炫耀人物 - 在右侧
+    const centerX = 600;
+    const centerY = 300;
     
-    // 左上角 - 炫耀的胜利者
-    ctx.fillText('🏆', 80, 120);
-    ctx.strokeText('🏆', 80, 120);
-    
-    // 右上角 - 火箭
-    ctx.fillText('🚀', 720, 120);
-    ctx.strokeText('🚀', 720, 120);
-    
-    // 左下角 - 钻石
-    ctx.fillText('💎', 80, 500);
-    ctx.strokeText('💎', 80, 500);
-    
-    // 右下角 - 目标
-    ctx.fillText('🎯', 720, 500);
-    ctx.strokeText('🎯', 720, 500);
-
-    // 中间炫耀的卡通人物
-    ctx.font = '100px Arial';
-    ctx.fillStyle = '#ff6b6b';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 4;
-    
-    // 主要的炫耀人物 - 在域名下方
-    ctx.fillText('😎', 400, 200);
-    ctx.strokeText('😎', 400, 200);
-    
-    // 两侧的庆祝人物
-    ctx.font = '60px Arial';
-    ctx.fillStyle = '#4ecdc4';
-    ctx.fillText('🎉', 200, 450);
-    ctx.strokeText('🎉', 200, 450);
-    
-    ctx.fillStyle = '#feca57';
-    ctx.fillText('🎊', 600, 450);
-    ctx.strokeText('🎊', 600, 450);
-
-    // 绘制炫酷的边框装饰
-    ctx.strokeStyle = '#ffd700';
-    ctx.lineWidth = 6;
-    ctx.strokeRect(20, 20, 760, 560);
-    
-    // 内层装饰
-    ctx.strokeStyle = '#ff6b6b';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(30, 30, 740, 540);
-
-    // 绘制品牌信息 - 更炫酷
-    ctx.font = 'bold 20px Arial';
-    ctx.fillStyle = '#fff';
+    // 头部
+    ctx.fillStyle = '#ffdbac';
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 2;
-    ctx.strokeText('🔥 POWERED BY 66DO.COM - THE DOMAIN INVESTMENT KING! 🔥', 400, 480);
-    ctx.fillText('🔥 POWERED BY 66DO.COM - THE DOMAIN INVESTMENT KING! 🔥', 400, 480);
-
-    // 添加一些炫酷的线条装饰
-    ctx.strokeStyle = '#ffd700';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY - 20, 30, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    
+    // 眼睛
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(centerX - 10, centerY - 25, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(centerX + 10, centerY - 25, 3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 嘴巴 - 笑容
+    ctx.strokeStyle = '#000';
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(100, 50);
-    ctx.lineTo(300, 50);
-    ctx.moveTo(500, 50);
-    ctx.lineTo(700, 50);
-    ctx.moveTo(100, 550);
-    ctx.lineTo(300, 550);
-    ctx.moveTo(500, 550);
-    ctx.lineTo(700, 550);
+    ctx.arc(centerX, centerY - 15, 15, 0, Math.PI);
+    ctx.stroke();
+    
+    // 身体
+    ctx.fillStyle = '#4a90e2';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.fillRect(centerX - 25, centerY + 10, 50, 60);
+    ctx.strokeRect(centerX - 25, centerY + 10, 50, 60);
+    
+    // 手臂 - 举起来庆祝
+    ctx.strokeStyle = '#ffdbac';
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.moveTo(centerX - 25, centerY + 20);
+    ctx.lineTo(centerX - 45, centerY - 10);
+    ctx.moveTo(centerX + 25, centerY + 20);
+    ctx.lineTo(centerX + 45, centerY - 10);
+    ctx.stroke();
+    
+    // 腿
+    ctx.strokeStyle = '#ffdbac';
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.moveTo(centerX - 10, centerY + 70);
+    ctx.lineTo(centerX - 15, centerY + 100);
+    ctx.moveTo(centerX + 10, centerY + 70);
+    ctx.lineTo(centerX + 15, centerY + 100);
     ctx.stroke();
 
-    // 添加成功标志 - 更夸张
-    ctx.font = '120px Arial';
-    ctx.fillStyle = '#00ff00';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 5;
-    ctx.fillText('✅', 400, 420);
-    ctx.strokeText('✅', 400, 420);
+    // 绘制装饰元素 - 不遮挡主要内容
+    // 左上角装饰
+    ctx.fillStyle = '#ffd700';
+    ctx.font = '40px Arial';
+    ctx.fillText('💎', 100, 100);
+    
+    // 右上角装饰
+    ctx.fillText('🚀', 700, 100);
+    
+    // 左下角装饰
+    ctx.fillText('🏆', 100, 500);
+    
+    // 右下角装饰
+    ctx.fillText('🎯', 700, 500);
 
-    // 添加一些闪烁的星星效果
-    ctx.fillStyle = '#fff';
-    ctx.font = '30px Arial';
-    for (let i = 0; i < 20; i++) {
-      const x = Math.random() * 800;
-      const y = Math.random() * 600;
-      ctx.fillText('✨', x, y);
-    }
+    // 绘制成功标志 - 在底部
+    ctx.font = '60px Arial';
+    ctx.fillStyle = '#00ff00';
+    ctx.strokeStyle = '#008000';
+    ctx.lineWidth = 3;
+    ctx.strokeText('SUCCESS!', 400, 500);
+    ctx.fillText('SUCCESS!', 400, 500);
+
+    // 绘制品牌信息
+    ctx.font = 'bold 18px Arial';
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+    ctx.strokeText('Powered by 66Do.com', 400, 540);
+    ctx.fillText('Powered by 66Do.com', 400, 540);
+
+    // 添加一些装饰线条
+    ctx.strokeStyle = '#00ffff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(100, 80);
+    ctx.lineTo(200, 80);
+    ctx.moveTo(600, 80);
+    ctx.lineTo(700, 80);
+    ctx.moveTo(100, 520);
+    ctx.lineTo(200, 520);
+    ctx.moveTo(600, 520);
+    ctx.lineTo(700, 520);
+    ctx.stroke();
 
     setIsGenerating(false);
   };
