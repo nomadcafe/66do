@@ -14,7 +14,6 @@ export interface Database {
         Row: {
           id: string
           email: string
-          password_hash: string
           email_verified: boolean
           created_at: string
           updated_at: string
@@ -22,7 +21,6 @@ export interface Database {
         Insert: {
           id: string
           email: string
-          password_hash: string
           email_verified?: boolean
           created_at?: string
           updated_at?: string
@@ -30,7 +28,6 @@ export interface Database {
         Update: {
           id?: string
           email?: string
-          password_hash?: string
           email_verified?: boolean
           created_at?: string
           updated_at?: string
