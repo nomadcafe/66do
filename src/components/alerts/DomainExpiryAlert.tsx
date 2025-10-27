@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Calendar, Clock, CheckCircle } from 'lucide-react';
 import { DomainWithTags } from '../../types/dashboard';
+import { useI18nContext } from '../../contexts/I18nProvider';
 
 interface DomainExpiryAlertProps {
   domains: DomainWithTags[];
@@ -17,6 +18,7 @@ interface ExpiryAlert {
 }
 
 export default function DomainExpiryAlert({ domains, onRenewDomain }: DomainExpiryAlertProps) {
+  const { t } = useI18nContext();
   const [alerts, setAlerts] = useState<ExpiryAlert[]>([]);
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
 
@@ -40,13 +42,13 @@ export default function DomainExpiryAlert({ domains, onRenewDomain }: DomainExpi
 
           if (daysUntilExpiry <= 7) {
             priority = 'high';
-            message = `域名 ${domain.domain_name} 将在 ${daysUntilExpiry} 天后到期！请立即续费。`;
+            message = t('alerts.domainExpiryCritical').replace('{domain}', domain.domain_name).replace('{days}', daysUntilExpiry.toString());
           } else if (daysUntilExpiry <= 14) {
             priority = 'medium';
-            message = `域名 ${domain.domain_name} 将在 ${daysUntilExpiry} 天后到期，建议尽快续费。`;
+            message = t('alerts.domainExpiryUrgent').replace('{domain}', domain.domain_name).replace('{days}', daysUntilExpiry.toString());
           } else {
             priority = 'low';
-            message = `域名 ${domain.domain_name} 将在 ${daysUntilExpiry} 天后到期。`;
+            message = t('alerts.domainExpiryWarning').replace('{domain}', domain.domain_name).replace('{days}', daysUntilExpiry.toString());
           }
 
           newAlerts.push({
@@ -101,7 +103,7 @@ export default function DomainExpiryAlert({ domains, onRenewDomain }: DomainExpi
       <div className="bg-green-50 border border-green-200 rounded-lg p-4">
         <div className="flex items-center">
           <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
-          <span className="text-green-800 font-medium">所有域名状态正常</span>
+          <span className="text-green-800 font-medium">{t('alerts.allDomainsNormal')}</span>
         </div>
       </div>
     );
@@ -120,8 +122,8 @@ export default function DomainExpiryAlert({ domains, onRenewDomain }: DomainExpi
               <div className="flex-1">
                 <p className="font-medium">{alert.message}</p>
                 <div className="mt-2 text-sm">
-                  <p>续费费用: ${alert.domain.renewal_cost}</p>
-                  <p>续费周期: {alert.domain.renewal_cycle} 年</p>
+                  <p>{t('alerts.renewalCost')}: ${alert.domain.renewal_cost}</p>
+                  <p>{t('alerts.renewalCycle')}: {alert.domain.renewal_cycle} {t('common.year')}</p>
                 </div>
               </div>
             </div>
@@ -130,13 +132,13 @@ export default function DomainExpiryAlert({ domains, onRenewDomain }: DomainExpi
                 onClick={() => onRenewDomain(alert.domain.id)}
                 className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
               >
-                立即续费
+                {t('alerts.renewNow')}
               </button>
               <button
                 onClick={() => dismissAlert(alert.domain.id)}
                 className="px-3 py-1 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300 transition-colors"
               >
-                稍后提醒
+                {t('alerts.remindLater')}
               </button>
             </div>
           </div>

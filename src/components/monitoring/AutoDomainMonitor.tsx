@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Domain } from '../../types/domain';
 import { DomainWithTags } from '../../types/dashboard';
 import { DomainMonitor, DomainExpiryInfo } from '../../lib/domainMonitoring';
-// import { useI18nContext } from '../../contexts/I18nProvider';
+import { useI18nContext } from '../../contexts/I18nProvider';
 import { AlertTriangle, Clock, CheckCircle, XCircle } from 'lucide-react';
 
 interface AutoDomainMonitorProps {
@@ -27,7 +27,7 @@ export default function AutoDomainMonitor({
   const [lastCheckTime, setLastCheckTime] = useState<Date | null>(null);
   const [expiryAlerts, setExpiryAlerts] = useState<DomainExpiryInfo[]>([]);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
-  // const { t } = useI18nContext();
+  const { t } = useI18nContext();
 
   // 请求通知权限
   useEffect(() => {
@@ -43,7 +43,7 @@ export default function AutoDomainMonitor({
   // 显示浏览器通知
   const showBrowserNotification = useCallback((message: string, icon?: string) => {
     if (notificationPermission === 'granted' && showNotifications) {
-      new Notification('66Do 域名提醒', {
+      new Notification(t('monitoring.notificationTitle'), {
         body: message,
         icon: icon || '/favicon.ico',
         tag: 'domain-expiry',
@@ -70,12 +70,12 @@ export default function AutoDomainMonitor({
       if (criticalAlerts.length > 0) {
         const message = criticalAlerts.length === 1 
           ? monitor.generateAlertMessage(criticalAlerts[0])
-          : `有 ${criticalAlerts.length} 个域名即将到期！`;
+          : t('monitoring.criticalDomainsAlert').replace('{count}', criticalAlerts.length.toString());
         showBrowserNotification(message);
       } else if (urgentAlerts.length > 0) {
         const message = urgentAlerts.length === 1
           ? monitor.generateAlertMessage(urgentAlerts[0])
-          : `有 ${urgentAlerts.length} 个域名需要关注！`;
+          : t('monitoring.urgentDomainsAlert').replace('{count}', urgentAlerts.length.toString());
         showBrowserNotification(message);
       }
 
@@ -151,7 +151,7 @@ export default function AutoDomainMonitor({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-2">
           <Clock className="h-5 w-5 text-blue-600" />
-          <h3 className="text-lg font-semibold text-gray-900">域名到期监控</h3>
+          <h3 className="text-lg font-semibold text-gray-900">{t('monitoring.title')}</h3>
         </div>
         <div className="flex items-center space-x-2">
           <button
@@ -162,13 +162,13 @@ export default function AutoDomainMonitor({
                 : 'bg-green-100 text-green-700 hover:bg-green-200'
             }`}
           >
-            {isMonitoring ? '停止监控' : '开始监控'}
+            {isMonitoring ? t('monitoring.stopMonitoring') : t('monitoring.startMonitoring')}
           </button>
           <button
             onClick={checkNow}
             className="px-3 py-1 bg-blue-100 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-200"
           >
-            立即检查
+            {t('monitoring.checkNow')}
           </button>
         </div>
       </div>
@@ -180,35 +180,35 @@ export default function AutoDomainMonitor({
             <XCircle className="h-4 w-4 text-red-500" />
           </div>
           <div className="text-2xl font-bold text-red-600">{stats.expired}</div>
-          <div className="text-xs text-gray-600">已过期</div>
+          <div className="text-xs text-gray-600">{t('monitoring.expired')}</div>
         </div>
         <div className="text-center">
           <div className="flex items-center justify-center mb-1">
             <AlertTriangle className="h-4 w-4 text-orange-500" />
           </div>
           <div className="text-2xl font-bold text-orange-600">{stats.critical}</div>
-          <div className="text-xs text-gray-600">紧急</div>
+          <div className="text-xs text-gray-600">{t('monitoring.critical')}</div>
         </div>
         <div className="text-center">
           <div className="flex items-center justify-center mb-1">
             <AlertTriangle className="h-4 w-4 text-yellow-500" />
           </div>
           <div className="text-2xl font-bold text-yellow-600">{stats.urgent}</div>
-          <div className="text-xs text-gray-600">重要</div>
+          <div className="text-xs text-gray-600">{t('monitoring.urgent')}</div>
         </div>
         <div className="text-center">
           <div className="flex items-center justify-center mb-1">
             <CheckCircle className="h-4 w-4 text-green-500" />
           </div>
           <div className="text-2xl font-bold text-green-600">{stats.warning}</div>
-          <div className="text-xs text-gray-600">提醒</div>
+          <div className="text-xs text-gray-600">{t('monitoring.warning')}</div>
         </div>
       </div>
 
       {/* 当前提醒 */}
       {expiryAlerts.length > 0 && (
         <div className="space-y-2">
-          <h4 className="text-sm font-medium text-gray-900">当前提醒</h4>
+          <h4 className="text-sm font-medium text-gray-900">{t('monitoring.currentAlerts')}</h4>
           <div className="space-y-1 max-h-32 overflow-y-auto">
             {expiryAlerts.map((alert, index) => (
               <div
@@ -230,7 +230,7 @@ export default function AutoDomainMonitor({
       {/* 最后检查时间 */}
       {lastCheckTime && (
         <div className="mt-4 text-xs text-gray-500">
-          最后检查：{lastCheckTime.toLocaleString()}
+          {t('monitoring.lastCheck')}: {lastCheckTime.toLocaleString()}
         </div>
       )}
     </div>

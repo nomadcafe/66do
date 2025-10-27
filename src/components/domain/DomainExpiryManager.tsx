@@ -44,7 +44,7 @@ export default function DomainExpiryManager({
       setStats(domainExpiryService.getExpiryStats(domains));
       setLastUpdate(new Date());
     } catch (error) {
-      console.error('分析域名到期情况失败:', error);
+      console.error(t('monitoring.analysisFailed'), error);
     } finally {
       setLoading(false);
     }
@@ -55,7 +55,7 @@ export default function DomainExpiryManager({
     setWhoisSyncing(true);
     try {
       const result = await domainExpiryService.syncWhoisData(domains);
-      console.log(`WHOIS同步完成: 更新 ${result.updated} 个域名, 错误 ${result.errors} 个`);
+      console.log(t('monitoring.whoisSyncComplete').replace('{updated}', result.updated.toString()).replace('{errors}', result.errors.toString()));
       
       // 重新分析到期情况
       await analyzeExpiry();
@@ -63,10 +63,10 @@ export default function DomainExpiryManager({
       // 通知父组件更新域名数据
       if (onUpdateDomain && result.updated > 0) {
         // 这里可以触发父组件重新加载域名数据
-        console.log('建议刷新域名数据以获取最新的WHOIS信息');
+        console.log(t('monitoring.suggestRefreshData'));
       }
     } catch (error) {
-      console.error('WHOIS同步失败:', error);
+      console.error(t('monitoring.whoisSyncFailed'), error);
     } finally {
       setWhoisSyncing(false);
     }

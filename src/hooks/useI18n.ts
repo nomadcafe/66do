@@ -351,6 +351,35 @@ const translations: Record<Locale, Translations> = {
       hasAccount: '已有账户？',
       signInNow: '立即登录'
     },
+    monitoring: {
+      title: '域名到期监控',
+      notificationTitle: '66Do 域名提醒',
+      startMonitoring: '开始监控',
+      stopMonitoring: '停止监控',
+      checkNow: '立即检查',
+      expired: '已过期',
+      critical: '紧急',
+      urgent: '重要',
+      warning: '提醒',
+      currentAlerts: '当前提醒',
+      lastCheck: '最后检查',
+      criticalDomainsAlert: '有 {count} 个域名即将到期！',
+      urgentDomainsAlert: '有 {count} 个域名需要关注！',
+      analysisFailed: '分析域名到期情况失败',
+      whoisSyncComplete: 'WHOIS同步完成: 更新 {updated} 个域名, 错误 {errors} 个',
+      whoisSyncFailed: 'WHOIS同步失败',
+      suggestRefreshData: '建议刷新域名数据以获取最新的WHOIS信息'
+    },
+    alerts: {
+      domainExpiryCritical: '域名 {domain} 将在 {days} 天后到期！请立即续费。',
+      domainExpiryUrgent: '域名 {domain} 将在 {days} 天后到期，建议尽快续费。',
+      domainExpiryWarning: '域名 {domain} 将在 {days} 天后到期。',
+      allDomainsNormal: '所有域名状态正常',
+      renewalCost: '续费费用',
+      renewalCycle: '续费周期',
+      renewNow: '立即续费',
+      remindLater: '稍后提醒'
+    },
     domain: {
       expiryMonitoring: '域名到期监控',
       syncWhois: '同步WHOIS',
@@ -799,6 +828,35 @@ const translations: Record<Locale, Translations> = {
       signUpButton: 'Sign Up',
       hasAccount: 'Already have an account?',
       signInNow: 'Sign in now'
+    },
+    monitoring: {
+      title: 'Domain Expiry Monitoring',
+      notificationTitle: '66Do Domain Alert',
+      startMonitoring: 'Start Monitoring',
+      stopMonitoring: 'Stop Monitoring',
+      checkNow: 'Check Now',
+      expired: 'Expired',
+      critical: 'Critical',
+      urgent: 'Urgent',
+      warning: 'Warning',
+      currentAlerts: 'Current Alerts',
+      lastCheck: 'Last Check',
+      criticalDomainsAlert: '{count} domains are about to expire!',
+      urgentDomainsAlert: '{count} domains need attention!',
+      analysisFailed: 'Failed to analyze domain expiry',
+      whoisSyncComplete: 'WHOIS sync completed: Updated {updated} domains, {errors} errors',
+      whoisSyncFailed: 'WHOIS sync failed',
+      suggestRefreshData: 'Suggest refreshing domain data to get latest WHOIS information'
+    },
+    alerts: {
+      domainExpiryCritical: 'Domain {domain} will expire in {days} days! Please renew immediately.',
+      domainExpiryUrgent: 'Domain {domain} will expire in {days} days, please renew soon.',
+      domainExpiryWarning: 'Domain {domain} will expire in {days} days.',
+      allDomainsNormal: 'All domains are in normal status',
+      renewalCost: 'Renewal Cost',
+      renewalCycle: 'Renewal Cycle',
+      renewNow: 'Renew Now',
+      remindLater: 'Remind Later'
     },
     domain: {
       expiryMonitoring: 'Domain Expiry Monitoring',
