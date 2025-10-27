@@ -6,6 +6,7 @@ import { exchangeRateManager, formatCurrencyAmount, getRateTrend } from '../../l
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import { Domain, Transaction } from '../../lib/supabaseService';
+import DateInput from '../ui/DateInput';
 
 // 使用统一的类型定义，从 supabaseService 导入
 
@@ -301,19 +302,14 @@ export default function TransactionForm({
               </div>
             )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Calendar className="h-4 w-4 inline mr-1" />
-                Date *
-              </label>
-              <input
-                type="date"
-                required
-                value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+            <DateInput
+              label="Date"
+              icon={<Calendar className="h-4 w-4" />}
+              value={formData.date}
+              onChange={(value) => setFormData({ ...formData, date: value })}
+              required
+              className="w-full"
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

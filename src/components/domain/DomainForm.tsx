@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { X, Save, Globe, Calendar, DollarSign, Tag } from 'lucide-react';
 import { validateDomain, sanitizeDomainData } from '../../lib/validation';
 import { DomainWithTags } from '../../types/dashboard';
+import DateInput from '../ui/DateInput';
 
 interface Domain {
   id: string;
@@ -180,19 +181,14 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Calendar className="h-4 w-4 inline mr-1" />
-                Purchase Date *
-              </label>
-              <input
-                type="date"
-                required
-                value={formData.purchase_date}
-                onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+            <DateInput
+              label="Purchase Date"
+              icon={<Calendar className="h-4 w-4" />}
+              value={formData.purchase_date}
+              onChange={(value) => setFormData({ ...formData, purchase_date: value })}
+              required
+              className="w-full"
+            />
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -207,18 +203,13 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Calendar className="h-4 w-4 inline mr-1" />
-                Expiry Date
-              </label>
-              <input
-                type="date"
-                value={formData.expiry_date}
-                onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+            <DateInput
+              label="Expiry Date"
+              icon={<Calendar className="h-4 w-4" />}
+              value={formData.expiry_date}
+              onChange={(value) => setFormData({ ...formData, expiry_date: value })}
+              className="w-full"
+            />
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

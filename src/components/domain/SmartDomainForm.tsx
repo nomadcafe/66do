@@ -6,6 +6,7 @@ import { DomainWithTags } from '../../types/dashboard';
 import { domainExpiryManager } from '../../lib/domainExpiryManager';
 // import { useI18nContext } from '../../contexts/I18nProvider';
 import { Calendar, AlertCircle, Info } from 'lucide-react';
+import DateInput from '../ui/DateInput';
 
 interface SmartDomainFormProps {
   domain?: DomainWithTags;
@@ -146,18 +147,13 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
 
             {/* 购买信息 */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  购买日期 *
-                </label>
-                <input
-                  type="date"
-                  value={formData.purchase_date || ''}
-                  onChange={(e) => handleInputChange('purchase_date', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
+              <DateInput
+                label="购买日期"
+                value={formData.purchase_date || ''}
+                onChange={(value) => handleInputChange('purchase_date', value)}
+                required
+                className="w-full"
+              />
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -233,20 +229,15 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
                 </p>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  到期日期
-                </label>
-                <input
-                  type="date"
-                  value={formData.expiry_date || ''}
-                  onChange={(e) => handleInputChange('expiry_date', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  建议查询域名注册商的WHOIS信息获取准确的到期日期
-                </p>
-              </div>
+              <DateInput
+                label="到期日期"
+                value={formData.expiry_date || ''}
+                onChange={(value) => handleInputChange('expiry_date', value)}
+                className="w-full"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                建议查询域名注册商的WHOIS信息获取准确的到期日期
+              </p>
 
               {/* 验证结果 */}
               {expiryValidation && (
