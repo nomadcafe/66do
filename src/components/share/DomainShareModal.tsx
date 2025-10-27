@@ -59,165 +59,127 @@ export default function DomainShareModal({ isOpen, onClose, domain }: DomainShar
     canvas.width = 800;
     canvas.height = 600;
 
-    // 绘制夸张炫酷背景 - 霓虹渐变
-    const gradient = ctx.createRadialGradient(400, 300, 0, 400, 300, 500);
-    gradient.addColorStop(0, '#ff0066');
-    gradient.addColorStop(0.3, '#6600ff');
-    gradient.addColorStop(0.6, '#00ffcc');
-    gradient.addColorStop(1, '#ff6600');
+    // 绘制简洁背景 - 浅灰渐变
+    const gradient = ctx.createLinearGradient(0, 0, 800, 600);
+    gradient.addColorStop(0, '#f8fafc');
+    gradient.addColorStop(0.5, '#f1f5f9');
+    gradient.addColorStop(1, '#e2e8f0');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 800, 600);
 
-    // 添加动态粒子效果
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-    for (let i = 0; i < 100; i++) {
-      const x = Math.random() * 800;
-      const y = Math.random() * 600;
-      const size = Math.random() * 6 + 2;
-      ctx.beginPath();
-      ctx.arc(x, y, size, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // 添加电光线条效果
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-    ctx.lineWidth = 3;
-    for (let i = 0; i < 30; i++) {
-      ctx.beginPath();
-      ctx.moveTo(Math.random() * 800, Math.random() * 600);
-      ctx.lineTo(Math.random() * 800, Math.random() * 600);
-      ctx.stroke();
-    }
-
-    // 绘制主内容区域 - 玻璃拟态效果
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-    ctx.lineWidth = 3;
-    ctx.roundRect(40, 40, 720, 520, 20);
+    // 绘制主内容区域 - 白色卡片
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 1;
+    ctx.roundRect(60, 60, 680, 480, 16);
     ctx.fill();
     ctx.stroke();
 
-    // 绘制震撼标题 - 超大号霓虹效果
-    ctx.font = 'bold 80px Arial, sans-serif';
-    ctx.textAlign = 'center';
+    // 添加微妙阴影
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+    ctx.shadowBlur = 20;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 4;
     ctx.fillStyle = '#ffffff';
-    ctx.strokeStyle = '#ff00ff';
-    ctx.lineWidth = 6;
-    ctx.strokeText('🚀 DOMAIN SOLD! 🚀', 400, 120);
-    ctx.fillText('🚀 DOMAIN SOLD! 🚀', 400, 120);
+    ctx.roundRect(60, 60, 680, 480, 16);
+    ctx.fill();
+    ctx.shadowColor = 'transparent';
 
-    // 绘制域名 - 电光效果
-    ctx.font = 'bold 60px Arial, sans-serif';
-    ctx.fillStyle = '#00ffff';
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 4;
-    ctx.strokeText(domain.domain_name, 400, 200);
+    // 绘制简洁标题
+    ctx.font = 'bold 48px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#1e293b';
+    ctx.fillText('Domain Sold Successfully', 400, 140);
+
+    // 绘制域名 - 突出显示
+    ctx.font = 'bold 36px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#3b82f6';
     ctx.fillText(domain.domain_name, 400, 200);
 
-    // 绘制成交价格 - 超大震撼
-    ctx.font = 'bold 72px Arial, sans-serif';
-    ctx.fillStyle = '#ffff00';
-    ctx.strokeStyle = '#ff0000';
-    ctx.lineWidth = 5;
-    ctx.strokeText(`$${domain.sale_price?.toLocaleString()}`, 400, 280);
-    ctx.fillText(`$${domain.sale_price?.toLocaleString()}`, 400, 280);
+    // 绘制成交价格 - 适中大小
+    ctx.font = 'bold 44px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#059669';
+    ctx.fillText(`$${domain.sale_price?.toLocaleString()}`, 400, 260);
 
-    // 绘制状态标签 - 夸张效果
-    ctx.fillStyle = '#00ff00';
-    ctx.fillRect(300, 320, 200, 50);
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(300, 320, 200, 50);
+    // 绘制状态标签 - 简洁设计
+    ctx.fillStyle = '#059669';
+    ctx.fillRect(350, 290, 100, 32);
+    ctx.strokeStyle = '#047857';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(350, 290, 100, 32);
     
-    ctx.font = 'bold 32px Arial, sans-serif';
-    ctx.fillStyle = '#000000';
-    ctx.fillText('SOLD!', 400, 350);
+    ctx.font = 'bold 16px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('SOLD', 400, 310);
 
-    // 绘制统计数据 - 炫酷展示
+    // 绘制统计数据 - 简洁展示
     const profit = calculateDomainProfit();
     const roi = calculateROI();
     
-    // 净利润 - 最震撼
-    ctx.font = 'bold 48px Arial, sans-serif';
-    ctx.fillStyle = '#00ff00';
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 4;
-    ctx.strokeText(`💰 PROFIT: $${profit.toLocaleString()} 💰`, 400, 400);
-    ctx.fillText(`💰 PROFIT: $${profit.toLocaleString()} 💰`, 400, 400);
+    // 净利润
+    ctx.font = 'bold 24px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#64748b';
+    ctx.textAlign = 'left';
+    ctx.fillText('Net Profit', 100, 380);
     
-    // ROI - 电光效果
-    ctx.font = 'bold 36px Arial, sans-serif';
-    ctx.fillStyle = '#ff00ff';
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 3;
-    ctx.strokeText(`📈 ROI: ${roi.toFixed(1)}% 📈`, 400, 450);
-    ctx.fillText(`📈 ROI: ${roi.toFixed(1)}% 📈`, 400, 450);
+    ctx.font = 'bold 32px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#059669';
+    ctx.fillText(`$${profit.toLocaleString()}`, 100, 410);
 
-    // 绘制夸张装饰元素
-    ctx.font = '80px Arial, sans-serif';
-    ctx.fillStyle = '#ffd700';
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 4;
+    // ROI
+    ctx.font = 'bold 24px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#64748b';
+    ctx.fillText('ROI', 300, 380);
     
-    // 四角装饰
-    ctx.fillText('💎', 80, 100);
-    ctx.strokeText('💎', 80, 100);
-    
-    ctx.fillText('🚀', 720, 100);
-    ctx.strokeText('🚀', 720, 100);
-    
-    ctx.fillText('🏆', 80, 500);
-    ctx.strokeText('🏆', 80, 500);
-    
-    ctx.fillText('🎯', 720, 500);
-    ctx.strokeText('🎯', 720, 500);
+    ctx.font = 'bold 32px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#3b82f6';
+    ctx.fillText(`${roi.toFixed(1)}%`, 300, 410);
 
-    // 绘制成功标志 - 超大震撼
-    ctx.font = 'bold 100px Arial, sans-serif';
-    ctx.fillStyle = '#00ff00';
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 6;
-    ctx.strokeText('✅', 400, 520);
-    ctx.fillText('✅', 400, 520);
-
-    // 绘制品牌信息 - 炫酷效果
-    ctx.font = 'bold 28px Arial, sans-serif';
-    ctx.fillStyle = '#ffffff';
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 3;
-    ctx.strokeText('🔥 POWERED BY 66DO.COM 🔥', 400, 570);
-    ctx.fillText('🔥 POWERED BY 66DO.COM 🔥', 400, 570);
-
-    // 添加爆炸效果
-    ctx.fillStyle = '#ff0000';
-    ctx.font = '60px Arial, sans-serif';
-    for (let i = 0; i < 20; i++) {
-      const x = Math.random() * 800;
-      const y = Math.random() * 600;
-      ctx.fillText('💥', x, y);
-    }
-
-    // 添加闪光效果
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.font = '40px Arial, sans-serif';
-    for (let i = 0; i < 40; i++) {
-      const x = Math.random() * 800;
-      const y = Math.random() * 600;
-      ctx.fillText('✨', x, y);
-    }
-
-    // 添加彩虹边框
-    ctx.strokeStyle = '#ff0000';
-    ctx.lineWidth = 8;
-    ctx.strokeRect(10, 10, 780, 580);
+    // 持有时间
+    const holdingPeriod = calculateHoldingPeriod();
+    ctx.font = 'bold 24px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#64748b';
+    ctx.fillText('Holding Period', 500, 380);
     
-    ctx.strokeStyle = '#ff6600';
-    ctx.lineWidth = 6;
-    ctx.strokeRect(15, 15, 770, 570);
+    ctx.font = 'bold 32px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#7c3aed';
+    ctx.fillText(holdingPeriod, 500, 410);
+
+    // 绘制品牌信息 - 简洁设计
+    ctx.font = 'bold 20px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#64748b';
+    ctx.textAlign = 'center';
+    ctx.fillText('Powered by 66Do.com', 400, 480);
     
-    ctx.strokeStyle = '#ffff00';
-    ctx.lineWidth = 4;
-    ctx.strokeRect(20, 20, 760, 560);
+    ctx.font = '14px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText('Domain Investment Platform', 400, 500);
+
+    // 添加简洁装饰线条
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(100, 320);
+    ctx.lineTo(700, 320);
+    ctx.stroke();
+
+    // 添加微妙的装饰点
+    ctx.fillStyle = '#cbd5e1';
+    ctx.beginPath();
+    ctx.arc(150, 150, 3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.arc(650, 150, 3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.arc(150, 450, 3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.arc(650, 450, 3, 0, Math.PI * 2);
+    ctx.fill();
 
     setIsGenerating(false);
   };
