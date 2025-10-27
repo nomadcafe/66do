@@ -573,16 +573,38 @@ export default function DashboardPage() {
     setShowDomainForm(true);
   };
 
-  const handleDeleteDomain = (id: string) => {
-    const updatedDomains = domains.filter(domain => domain.id !== id);
-    setDomains(updatedDomains);
+  const handleDeleteDomain = async (id: string) => {
+    if (!user?.id) return;
     
-    // Also remove related transactions
-    const updatedTransactions = transactions.filter(transaction => transaction.domain_id !== id);
-    setTransactions(updatedTransactions);
-    
-    // Save data using unified function
-    saveData(updatedDomains, updatedTransactions);
+    try {
+      // Call API to delete domain from database
+      const response = await fetch('/api/domains', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'deleteDomain',
+          userId: user.id,
+          domain: { id }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete domain');
+      }
+
+      // Update local state
+      const updatedDomains = domains.filter(domain => domain.id !== id);
+      setDomains(updatedDomains);
+      
+      // Also remove related transactions
+      const updatedTransactions = transactions.filter(transaction => transaction.domain_id !== id);
+      setTransactions(updatedTransactions);
+      
+      console.log('Domain deleted successfully');
+    } catch (error) {
+      console.error('Error deleting domain:', error);
+      // You might want to show an error message to the user here
+    }
   };
 
   const handleSaveDomain = (domainData: Omit<DomainWithTags, 'id'>) => {
@@ -627,10 +649,34 @@ export default function DashboardPage() {
     setShowTransactionForm(true);
   };
 
-  const handleDeleteTransaction = (id: string) => {
-    const updatedTransactions = transactions.filter(transaction => transaction.id !== id);
-    setTransactions(updatedTransactions);
-    saveData(domains, updatedTransactions);
+  const handleDeleteTransaction = async (id: string) => {
+    if (!user?.id) return;
+    
+    try {
+      // Call API to delete transaction from database
+      const response = await fetch('/api/transactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'deleteTransaction',
+          userId: user.id,
+          transaction: { id }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete transaction');
+      }
+
+      // Update local state
+      const updatedTransactions = transactions.filter(transaction => transaction.id !== id);
+      setTransactions(updatedTransactions);
+      
+      console.log('Transaction deleted successfully');
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      // You might want to show an error message to the user here
+    }
   };
 
   // 处理域名续费
