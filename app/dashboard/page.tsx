@@ -1206,6 +1206,9 @@ export default function DashboardPage() {
                 <p className="text-purple-200 text-xs mt-1">
                   {t('dashboard.averageSalePrice')}: ${stats.avgSalePrice.toFixed(2)}
                 </p>
+                <p className="text-purple-200 text-xs mt-1">
+                  {t('dashboard.afterFees')}
+                </p>
               </div>
               <TrendingUp className="h-8 w-8 text-purple-200" />
             </div>
