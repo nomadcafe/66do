@@ -293,7 +293,7 @@ export default function DashboardPage() {
     };
 
     loadData();
-  }, [user?.id, dataSource, domains.length, transactions.length]);
+  }, [user?.id, dataSource]);
 
 
   // Save data to Supabase database only
@@ -442,48 +442,6 @@ export default function DashboardPage() {
     }
   };
 
-  // 重新加载数据的函数
-  const reloadData = async () => {
-    if (!user?.id) return;
-    
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const userId = user.id;
-      
-      // 清除缓存，强制从数据库重新加载
-      domainCache.clearUserCache(userId);
-      
-      // Load from Supabase database
-      console.log('Reloading data from Supabase database...');
-      
-      const domainsResult = await loadDomainsFromSupabase(userId);
-      const transactionsResult = await loadTransactionsFromSupabase(userId);
-      
-      if (domainsResult.success && transactionsResult.success) {
-        const typedDomains = (domainsResult.data || []).map(ensureDomainWithTags);
-        const typedTransactions = (transactionsResult.data || []).map(ensureTransactionWithRequiredFields);
-        setDomains(typedDomains);
-        setTransactions(typedTransactions);
-        setDataSource('supabase');
-        
-        // Cache the data
-        domainCache.cacheDomains(userId, domainsResult.data || []);
-        domainCache.cacheTransactions(userId, transactionsResult.data || []);
-        
-        console.log('Data reloaded from Supabase database successfully');
-      } else {
-        throw new Error('Failed to reload data from Supabase database');
-      }
-      
-    } catch (error) {
-      console.error('Error reloading data from Supabase:', error);
-      setError(t('common.dataLoadFailed'));
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Update stats when domains change
   useEffect(() => {
@@ -692,9 +650,6 @@ export default function DashboardPage() {
       setDomains(updatedDomains);
       await saveData(updatedDomains, transactions);
       
-      // 重新加载数据以确保界面显示最新状态
-      await reloadData();
-      
       setShowDomainForm(false);
       setEditingDomain(undefined);
       
@@ -872,9 +827,6 @@ export default function DashboardPage() {
     );
     setDomains(updatedDomains);
     await saveData(updatedDomains, newTransactions);
-    
-    // 重新加载数据以确保界面显示最新状态
-    await reloadData();
   };
 
 
@@ -978,9 +930,6 @@ export default function DashboardPage() {
         // 保存交易和更新后的域名状态
         await saveData(updatedDomains, updatedTransactions);
       }
-      
-      // 重新加载数据以确保界面显示最新状态
-      await reloadData();
       
       setShowTransactionForm(false);
       setEditingTransaction(undefined);
