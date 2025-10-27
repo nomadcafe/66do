@@ -123,7 +123,6 @@ export default function DomainShareModal({ isOpen, onClose, domain }: DomainShar
 
     // 绘制状态标签
     ctx.font = 'bold 18px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.fillStyle = '#ffffff';
     ctx.fillStyle = '#059669';
     ctx.fillRect(350, 320, 100, 32);
     ctx.fillStyle = '#ffffff';
