@@ -25,29 +25,29 @@ END $$;
 
 -- 3. 为domains表创建RLS策略
 CREATE POLICY "Users can view own domains" ON public.domains
-  FOR SELECT USING (auth.uid()::text = user_id);
+  FOR SELECT USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can insert own domains" ON public.domains
-  FOR INSERT WITH CHECK (auth.uid()::text = user_id);
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Users can update own domains" ON public.domains
-  FOR UPDATE USING (auth.uid()::text = user_id);
+  FOR UPDATE USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can delete own domains" ON public.domains
-  FOR DELETE USING (auth.uid()::text = user_id);
+  FOR DELETE USING (auth.uid() = user_id);
 
 -- 4. 为domain_transactions表创建RLS策略
 CREATE POLICY "Users can view own transactions" ON public.domain_transactions
-  FOR SELECT USING (auth.uid()::text = user_id);
+  FOR SELECT USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can insert own transactions" ON public.domain_transactions
-  FOR INSERT WITH CHECK (auth.uid()::text = user_id);
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Users can update own transactions" ON public.domain_transactions
-  FOR UPDATE USING (auth.uid()::text = user_id);
+  FOR UPDATE USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can delete own transactions" ON public.domain_transactions
-  FOR DELETE USING (auth.uid()::text = user_id);
+  FOR DELETE USING (auth.uid() = user_id);
 
 -- 5. 验证RLS设置
 SELECT 

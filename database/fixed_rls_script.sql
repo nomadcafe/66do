@@ -52,8 +52,8 @@ BEGIN
         -- 创建基于user_id的策略
         CREATE POLICY "Users can access own domains" ON public.domains
           FOR ALL TO authenticated
-          USING (auth.uid()::text = user_id)
-          WITH CHECK (auth.uid()::text = user_id);
+          USING (auth.uid() = user_id)
+          WITH CHECK (auth.uid() = user_id);
         
         RAISE NOTICE 'Created RLS policy for domains using user_id field';
     ELSE
@@ -76,8 +76,8 @@ BEGIN
         -- 创建基于user_id的策略
         CREATE POLICY "Users can access own transactions" ON public.domain_transactions
           FOR ALL TO authenticated
-          USING (auth.uid()::text = user_id)
-          WITH CHECK (auth.uid()::text = user_id);
+          USING (auth.uid() = user_id)
+          WITH CHECK (auth.uid() = user_id);
         
         RAISE NOTICE 'Created RLS policy for domain_transactions using user_id field';
     ELSE
