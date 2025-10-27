@@ -26,8 +26,9 @@ export default function DateInput({
   const yearRef = useRef<HTMLInputElement>(null);
   const monthRef = useRef<HTMLInputElement>(null);
   const dayRef = useRef<HTMLInputElement>(null);
+  const isUpdatingFromProps = useRef(false);
 
-  // 初始化日期值
+  // 初始化日期值 - 只在 value 变化时更新
   useEffect(() => {
     if (value) {
       const date = new Date(value);
@@ -36,31 +37,30 @@ export default function DateInput({
         const newMonth = (date.getMonth() + 1).toString().padStart(2, '0');
         const newDay = date.getDate().toString().padStart(2, '0');
         
-        // 只有当值真正不同时才更新，避免循环
-        if (year !== newYear || month !== newMonth || day !== newDay) {
-          setYear(newYear);
-          setMonth(newMonth);
-          setDay(newDay);
-        }
+        isUpdatingFromProps.current = true;
+        setYear(newYear);
+        setMonth(newMonth);
+        setDay(newDay);
+        isUpdatingFromProps.current = false;
       }
     } else {
-      if (year !== '' || month !== '' || day !== '') {
-        setYear('');
-        setMonth('');
-        setDay('');
-      }
+      isUpdatingFromProps.current = true;
+      setYear('');
+      setMonth('');
+      setDay('');
+      isUpdatingFromProps.current = false;
     }
-  }, [value, year, month, day]);
+  }, [value]);
 
-  // 更新父组件的值
+  // 更新父组件的值 - 只在用户输入时更新
   useEffect(() => {
-    if (year && month && day) {
+    if (!isUpdatingFromProps.current && year && month && day) {
       const dateString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
       const date = new Date(dateString);
       if (!isNaN(date.getTime()) && dateString !== value) {
         onChange(dateString);
       }
-    } else if (!year && !month && !day && value !== '') {
+    } else if (!isUpdatingFromProps.current && !year && !month && !day && value !== '') {
       onChange('');
     }
   }, [year, month, day, onChange, value]);
