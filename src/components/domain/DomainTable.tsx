@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Plus, Edit, Trash2, Eye, Share2, Calendar, Tag, Globe } from 'lucide-react';
+import { Edit, Trash2, Eye, Share2, Calendar, Tag, Globe } from 'lucide-react';
 import DomainShareModal from '../share/DomainShareModal';
 import { DomainWithTags } from '../../types/dashboard';
 import { useI18nContext } from '../../contexts/I18nProvider';
@@ -30,29 +30,16 @@ interface DomainTableProps {
   onEdit: (domain: DomainWithTags) => void;
   onDelete: (id: string) => void;
   onView: (domain: DomainWithTags) => void;
-  onAdd: () => void;
 }
 
-export default function DomainTable({ domains, onEdit, onDelete, onView, onAdd }: DomainTableProps) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+export default function DomainTable({ domains, onEdit, onDelete, onView }: DomainTableProps) {
   const [sortField, setSortField] = useState('domain_name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [showShareModal, setShowShareModal] = useState(false);
   const [selectedDomain, setSelectedDomain] = useState<DomainWithTags | null>(null);
   const { t } = useI18nContext();
 
-  const filteredDomains = domains.filter(domain => {
-    const matchesSearch = domain.domain_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (domain.registrar || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         domain.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesStatus = statusFilter === 'all' || domain.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
-
-  const sortedDomains = [...filteredDomains].sort((a, b) => {
+  const sortedDomains = [...domains].sort((a, b) => {
     let aValue: string | number = a[sortField as keyof Domain] as string | number;
     let bValue: string | number = b[sortField as keyof Domain] as string | number;
 
@@ -67,14 +54,6 @@ export default function DomainTable({ domains, onEdit, onDelete, onView, onAdd }
       return aValue < bValue ? 1 : -1;
     }
   });
-
-  const statusOptions = [
-    { value: 'all', label: 'All Status' },
-    { value: 'active', label: 'Active' },
-    { value: 'for_sale', label: 'For Sale' },
-    { value: 'sold', label: 'Sold' },
-    { value: 'expired', label: 'Expired' }
-  ];
 
   const handleSort = (field: string) => {
     if (sortField === field) {
@@ -138,42 +117,6 @@ export default function DomainTable({ domains, onEdit, onDelete, onView, onAdd }
 
   return (
     <div className="space-y-4">
-      {/* Search and Filter Controls */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div className="flex flex-col sm:flex-row gap-2 flex-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search domains, registrar, or tags..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-64"
-            />
-          </div>
-          
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {statusOptions.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <button
-          onClick={onAdd}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Add Domain
-        </button>
-      </div>
-
       {/* Results Count */}
       <div className="text-sm text-gray-600">
         Showing {sortedDomains.length} of {domains.length} domains
@@ -377,10 +320,7 @@ export default function DomainTable({ domains, onEdit, onDelete, onView, onAdd }
           <Globe className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900">No domains found</h3>
           <p className="mt-1 text-sm text-gray-500">
-            {searchTerm || statusFilter !== 'all' 
-              ? 'Try adjusting your search or filter criteria.'
-              : 'Get started by adding your first domain.'
-            }
+            Get started by adding your first domain.
           </p>
         </div>
       )}

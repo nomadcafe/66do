@@ -122,11 +122,10 @@ export default function DomainList({ domains, onEdit, onDelete, onView, onAdd }:
       {/* Domains Display */}
       {viewMode === 'table' ? (
         <DomainTable
-          domains={domains}
+          domains={filteredDomains}
           onEdit={onEdit}
           onDelete={onDelete}
           onView={onView}
-          onAdd={onAdd}
         />
       ) : filteredDomains.length === 0 ? (
         <div className="text-center py-12">
