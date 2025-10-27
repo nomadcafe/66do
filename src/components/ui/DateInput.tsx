@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 
 interface DateInputProps {
   value: string;
@@ -19,51 +19,47 @@ export default function DateInput({
   label,
   icon
 }: DateInputProps) {
-  const [year, setYear] = useState('');
-  const [month, setMonth] = useState('');
-  const [day, setDay] = useState('');
-  
   const yearRef = useRef<HTMLInputElement>(null);
   const monthRef = useRef<HTMLInputElement>(null);
   const dayRef = useRef<HTMLInputElement>(null);
-  const isUpdatingFromProps = useRef(false);
-
-  // 初始化日期值 - 只在 value 变化时更新
-  useEffect(() => {
+  
+  // 从 value 解析出年月日
+  const parsedDate = useMemo(() => {
     if (value) {
       const date = new Date(value);
       if (!isNaN(date.getTime())) {
-        const newYear = date.getFullYear().toString();
-        const newMonth = (date.getMonth() + 1).toString().padStart(2, '0');
-        const newDay = date.getDate().toString().padStart(2, '0');
-        
-        isUpdatingFromProps.current = true;
-        setYear(newYear);
-        setMonth(newMonth);
-        setDay(newDay);
-        isUpdatingFromProps.current = false;
+        return {
+          year: date.getFullYear().toString(),
+          month: (date.getMonth() + 1).toString().padStart(2, '0'),
+          day: date.getDate().toString().padStart(2, '0')
+        };
       }
-    } else {
-      isUpdatingFromProps.current = true;
-      setYear('');
-      setMonth('');
-      setDay('');
-      isUpdatingFromProps.current = false;
     }
+    return { year: '', month: '', day: '' };
   }, [value]);
 
-  // 更新父组件的值 - 只在用户输入时更新
+  const [year, setYear] = useState(parsedDate.year);
+  const [month, setMonth] = useState(parsedDate.month);
+  const [day, setDay] = useState(parsedDate.day);
+
+  // 同步外部 value 到内部状态
   useEffect(() => {
-    if (!isUpdatingFromProps.current && year && month && day) {
-      const dateString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    setYear(parsedDate.year);
+    setMonth(parsedDate.month);
+    setDay(parsedDate.day);
+  }, [parsedDate.year, parsedDate.month, parsedDate.day]);
+
+  const updateParentValue = (newYear: string, newMonth: string, newDay: string) => {
+    if (newYear && newMonth && newDay) {
+      const dateString = `${newYear}-${newMonth.padStart(2, '0')}-${newDay.padStart(2, '0')}`;
       const date = new Date(dateString);
-      if (!isNaN(date.getTime()) && dateString !== value) {
+      if (!isNaN(date.getTime())) {
         onChange(dateString);
       }
-    } else if (!isUpdatingFromProps.current && !year && !month && !day && value !== '') {
+    } else if (!newYear && !newMonth && !newDay) {
       onChange('');
     }
-  }, [year, month, day, onChange, value]);
+  };
 
   const handleYearChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -72,6 +68,7 @@ export default function DateInput({
       if (val.length === 4) {
         monthRef.current?.focus();
       }
+      updateParentValue(val, month, day);
     }
   };
 
@@ -82,6 +79,7 @@ export default function DateInput({
       if (val.length === 2) {
         dayRef.current?.focus();
       }
+      updateParentValue(year, val, day);
     }
   };
 
@@ -89,6 +87,7 @@ export default function DateInput({
     const val = e.target.value;
     if (val.length <= 2) {
       setDay(val);
+      updateParentValue(year, month, val);
     }
   };
 
