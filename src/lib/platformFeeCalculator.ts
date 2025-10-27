@@ -124,10 +124,17 @@ function calculateAfternicInstallmentFee(sellerAmount: number, installmentPeriod
   const standardCommissionRate = 0.15;
   const effectiveCommissionRate = Math.max(0, standardCommissionRate - commissionDiscount);
 
-  // 计算各部分金额
-  // sellerAmount = listPrice * (1 - effectiveCommissionRate)
-  // 所以 listPrice = sellerAmount / (1 - effectiveCommissionRate)
-  const listPrice = sellerAmount / (1 - effectiveCommissionRate);
+  // 重新设计计算逻辑
+  // 当佣金为0时，卖家净收入 = 标价
+  // 当佣金不为0时，卖家净收入 = 标价 * (1 - 佣金率)
+  let listPrice: number;
+  if (effectiveCommissionRate === 0) {
+    // 佣金为0时，卖家净收入 = 标价
+    listPrice = sellerAmount;
+  } else {
+    // 佣金不为0时，从卖家净收入反推标价
+    listPrice = sellerAmount / (1 - effectiveCommissionRate);
+  }
   
   // 客户总付款 = 标价 + 服务费
   const serviceFee = listPrice * serviceFeeRate;
