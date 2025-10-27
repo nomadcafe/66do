@@ -580,8 +580,13 @@ export default function DashboardPage() {
 
   // Domain management functions
   const handleAddDomain = () => {
+    // 确保表单状态完全重置
     setEditingDomain(undefined);
-    setShowSmartDomainForm(true);
+    setShowSmartDomainForm(false);
+    // 使用 setTimeout 确保状态更新后再打开表单
+    setTimeout(() => {
+      setShowSmartDomainForm(true);
+    }, 0);
   };
 
   const handleEditDomain = (domain: DomainWithTags) => {
@@ -676,8 +681,13 @@ export default function DashboardPage() {
 
   // Transaction management functions
   const handleAddTransaction = () => {
+    // 确保表单状态完全重置
     setEditingTransaction(undefined);
-    setShowTransactionForm(true);
+    setShowTransactionForm(false);
+    // 使用 setTimeout 确保状态更新后再打开表单
+    setTimeout(() => {
+      setShowTransactionForm(true);
+    }, 0);
   };
 
   const handleEditTransaction = (transaction: TransactionWithRequiredFields) => {
@@ -1884,6 +1894,7 @@ export default function DashboardPage() {
 
       {/* Domain Form Modal */}
       <DomainForm
+        key={editingDomain?.id || 'new'}
         domain={editingDomain}
         isOpen={showDomainForm}
         onClose={() => {
@@ -1895,6 +1906,7 @@ export default function DashboardPage() {
 
       {/* Smart Domain Form Modal */}
       <SmartDomainForm
+        key={editingDomain?.id || 'new'}
         domain={editingDomain}
         isOpen={showSmartDomainForm}
         onClose={() => {
@@ -1906,6 +1918,7 @@ export default function DashboardPage() {
 
       {/* Transaction Form Modal */}
       <TransactionForm
+        key={editingTransaction?.id || 'new'}
         transaction={editingTransaction}
         domains={domains}
         isOpen={showTransactionForm}
