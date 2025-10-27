@@ -305,10 +305,10 @@ export default function TransactionList({
                         {transaction.type === 'sell' && transaction.platform_fee && transaction.platform_fee > 0 && (
                           <div className="mt-1">
                             <span className="text-xs text-green-600 font-medium">
-                              净收入: {formatCurrency(transaction.net_amount || (transaction.amount - transaction.platform_fee), transaction.currency)}
+                              {t('transaction.netIncome')}: {formatCurrency(transaction.net_amount || (transaction.amount - transaction.platform_fee), transaction.currency)}
                             </span>
                             <span className="text-xs text-gray-500 ml-2">
-                              (手续费: {formatCurrency(transaction.platform_fee, transaction.currency)})
+                              ({t('transaction.platformFeeDesc')}: {formatCurrency(transaction.platform_fee, transaction.currency)})
                             </span>
                           </div>
                         )}
@@ -339,7 +339,7 @@ export default function TransactionList({
                                   <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getHoldingTimeBgColor(holdingTime.days)}`}>
                                     <Calendar className="h-3 w-3 mr-1" />
                                     <span className={getHoldingTimeColor(holdingTime.days)}>
-                                      持有: {holdingTime.displayText}
+                                      {t('transaction.holding')}: {holdingTime.displayText}
                                     </span>
                                   </div>
                                 </div>
