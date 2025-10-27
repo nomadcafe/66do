@@ -68,7 +68,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
       setFormData({
         domain_name: '',
         registrar: '',
-        purchase_date: new Date().toISOString().split('T')[0],
+        purchase_date: '',
         purchase_cost: 0,
         renewal_cost: 0,
         renewal_cycle: 1,
