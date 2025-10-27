@@ -22,18 +22,24 @@ export function validateDomain(domain: unknown): ValidationResult {
     errors.push('域名格式不正确');
   }
 
-  if (!domainObj.purchase_date || typeof domainObj.purchase_date !== 'string') {
-    errors.push('购买日期是必需的');
-  } else if (isNaN(Date.parse(domainObj.purchase_date as string))) {
-    errors.push('购买日期格式不正确');
+  if (domainObj.purchase_date !== null && domainObj.purchase_date !== undefined) {
+    if (typeof domainObj.purchase_date !== 'string') {
+      errors.push('购买日期格式不正确');
+    } else if (isNaN(Date.parse(domainObj.purchase_date as string))) {
+      errors.push('购买日期格式不正确');
+    }
   }
 
-  if (typeof domainObj.purchase_cost !== 'number' || (domainObj.purchase_cost as number) < 0) {
-    errors.push('购买成本必须是非负数');
+  if (domainObj.purchase_cost !== null && domainObj.purchase_cost !== undefined) {
+    if (typeof domainObj.purchase_cost !== 'number' || (domainObj.purchase_cost as number) < 0) {
+      errors.push('购买成本必须是非负数');
+    }
   }
 
-  if (typeof domainObj.renewal_cost !== 'number' || (domainObj.renewal_cost as number) < 0) {
-    errors.push('续费成本必须是非负数');
+  if (domainObj.renewal_cost !== null && domainObj.renewal_cost !== undefined) {
+    if (typeof domainObj.renewal_cost !== 'number' || (domainObj.renewal_cost as number) < 0) {
+      errors.push('续费成本必须是非负数');
+    }
   }
 
   if (typeof domainObj.renewal_cycle !== 'number' || (domainObj.renewal_cycle as number) < 1) {
@@ -52,8 +58,10 @@ export function validateDomain(domain: unknown): ValidationResult {
     errors.push('域名状态不正确');
   }
 
-  if (typeof domainObj.estimated_value !== 'number' || (domainObj.estimated_value as number) < 0) {
-    errors.push('估值必须是非负数');
+  if (domainObj.estimated_value !== null && domainObj.estimated_value !== undefined) {
+    if (typeof domainObj.estimated_value !== 'number' || (domainObj.estimated_value as number) < 0) {
+      errors.push('估值必须是非负数');
+    }
   }
 
   return {
@@ -169,13 +177,13 @@ export function sanitizeDomainData(domain: unknown): Record<string, unknown> {
   return {
     ...domainObj,
     domain_name: typeof domainObj.domain_name === 'string' ? domainObj.domain_name.trim().toLowerCase() : '',
-    registrar: typeof domainObj.registrar === 'string' ? domainObj.registrar.trim() : '',
-    purchase_date: domainObj.purchase_date,
-    purchase_cost: Math.max(0, Number(domainObj.purchase_cost) || 0),
-    renewal_cost: Math.max(0, Number(domainObj.renewal_cost) || 0),
+    registrar: typeof domainObj.registrar === 'string' ? domainObj.registrar.trim() : null,
+    purchase_date: domainObj.purchase_date || null,
+    purchase_cost: domainObj.purchase_cost !== null && domainObj.purchase_cost !== undefined ? Math.max(0, Number(domainObj.purchase_cost) || 0) : null,
+    renewal_cost: domainObj.renewal_cost !== null && domainObj.renewal_cost !== undefined ? Math.max(0, Number(domainObj.renewal_cost) || 0) : null,
     renewal_cycle: Math.max(1, Number(domainObj.renewal_cycle) || 1),
     renewal_count: Math.max(0, Number(domainObj.renewal_count) || 0),
-    estimated_value: Math.max(0, Number(domainObj.estimated_value) || 0),
+    estimated_value: domainObj.estimated_value !== null && domainObj.estimated_value !== undefined ? Math.max(0, Number(domainObj.estimated_value) || 0) : null,
     tags: Array.isArray(domainObj.tags) ? domainObj.tags.map((tag: unknown) => String(tag).trim()).filter(Boolean) : []
   };
 }
