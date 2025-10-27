@@ -18,6 +18,7 @@ import {
   formatPercentage,
   calculateDomainHoldingCost
 } from '../../lib/financialCalculations';
+import { useI18nContext } from '../../contexts/I18nProvider';
 
 interface Domain {
   id: string;
@@ -82,6 +83,7 @@ interface FinancialMetrics {
 }
 
 export default function FinancialReport({ domains, transactions }: FinancialReportProps) {
+  const { t } = useI18nContext();
   const [selectedPeriod, setSelectedPeriod] = useState('all');
   // const [reportType, setReportType] = useState('overview');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -91,31 +93,31 @@ export default function FinancialReport({ domains, transactions }: FinancialRepo
     const now = new Date();
     return [
       {
-        label: 'All Time',
+        label: t('reports.allTime'),
         value: 'all',
         startDate: new Date(2020, 0, 1),
         endDate: now
       },
       {
-        label: 'This Year',
+        label: t('reports.thisYear'),
         value: 'year',
         startDate: new Date(now.getFullYear(), 0, 1),
         endDate: now
       },
       {
-        label: 'Last 6 Months',
+        label: t('reports.last6Months'),
         value: '6months',
         startDate: new Date(now.getFullYear(), now.getMonth() - 6, 1),
         endDate: now
       },
       {
-        label: 'Last 3 Months',
+        label: t('reports.last3Months'),
         value: '3months',
         startDate: new Date(now.getFullYear(), now.getMonth() - 3, 1),
         endDate: now
       },
       {
-        label: 'This Month',
+        label: t('reports.thisMonth'),
         value: 'month',
         startDate: new Date(now.getFullYear(), now.getMonth(), 1),
         endDate: now
@@ -221,7 +223,7 @@ export default function FinancialReport({ domains, transactions }: FinancialRepo
 
     // 分类分析
     const categoryBreakdown = filteredTransactions.reduce((acc, transaction) => {
-      const category = transaction.category || 'Uncategorized';
+      const category = transaction.category || t('reports.uncategorized');
       const existing = acc.find(item => item.category === category);
       if (existing) {
         existing.amount += transaction.amount;
@@ -403,20 +405,20 @@ export default function FinancialReport({ domains, transactions }: FinancialRepo
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 域名统计 */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Domain Statistics</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('reports.domainStatistics')}</h3>
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <span className="text-gray-600">Active Domains</span>
+              <span className="text-gray-600">{t('reports.activeDomains')}</span>
               <span className="font-semibold text-blue-600">{financialMetrics.activeDomains}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-gray-600">Sold Domains</span>
+              <span className="text-gray-600">{t('reports.soldDomains')}</span>
               <span className="font-semibold text-green-600">{financialMetrics.soldDomains}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-gray-600">Average Holding Period</span>
+              <span className="text-gray-600">{t('reports.averageHoldingPeriod')}</span>
               <span className="font-semibold text-gray-900">
-                {Math.round(financialMetrics.avgHoldingPeriod)} days
+                {Math.round(financialMetrics.avgHoldingPeriod)} {t('common.days')}
               </span>
             </div>
           </div>
@@ -424,14 +426,14 @@ export default function FinancialReport({ domains, transactions }: FinancialRepo
 
         {/* 表现分析 */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Analysis</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('reports.performanceAnalysis')}</h3>
           <div className="space-y-4">
             <div>
-              <span className="text-gray-600">Best Performing</span>
+              <span className="text-gray-600">{t('reports.bestPerforming')}</span>
               <p className="font-semibold text-green-600">{financialMetrics.bestPerformingDomain}</p>
             </div>
             <div>
-              <span className="text-gray-600">Worst Performing</span>
+              <span className="text-gray-600">{t('reports.worstPerforming')}</span>
               <p className="font-semibold text-red-600">{financialMetrics.worstPerformingDomain}</p>
             </div>
           </div>

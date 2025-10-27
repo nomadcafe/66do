@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { TrendingUp, TrendingDown, DollarSign, RefreshCw } from 'lucide-react';
 import { exchangeRateManager, convertCurrency, formatCurrencyAmount } from '../../lib/exchangeRates';
+import { useI18nContext } from '../../contexts/I18nProvider';
 
 interface HistoricalRatesReportProps {
   transactions: Array<{
@@ -15,6 +16,7 @@ interface HistoricalRatesReportProps {
 }
 
 export default function HistoricalRatesReport({ transactions }: HistoricalRatesReportProps) {
+  const { t } = useI18nContext();
   const [baseCurrency, setBaseCurrency] = useState('USD');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [convertedTransactions, setConvertedTransactions] = useState<Array<{
@@ -113,7 +115,7 @@ export default function HistoricalRatesReport({ transactions }: HistoricalRatesR
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-gray-900 flex items-center">
           <DollarSign className="h-5 w-5 mr-2" />
-          历史汇率分析
+{t('reports.historicalRatesAnalysis')}
         </h3>
         <button
           onClick={convertTransactionsToBaseCurrency}
@@ -121,7 +123,7 @@ export default function HistoricalRatesReport({ transactions }: HistoricalRatesR
           className="flex items-center space-x-2 px-3 py-2 text-sm bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 disabled:opacity-50"
         >
           <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          <span>刷新</span>
+          <span>{t('common.refresh')}</span>
         </button>
       </div>
 
@@ -129,7 +131,7 @@ export default function HistoricalRatesReport({ transactions }: HistoricalRatesR
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            基础货币
+{t('reports.baseCurrency')}
           </label>
           <select
             value={baseCurrency}
@@ -146,7 +148,7 @@ export default function HistoricalRatesReport({ transactions }: HistoricalRatesR
         
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            分析日期
+{t('reports.analysisDate')}
           </label>
           <input
             type="date"

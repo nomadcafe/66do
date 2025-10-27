@@ -20,6 +20,7 @@ import {
   formatCurrency,
   formatPercentage
 } from '../../lib/financialCalculations';
+import { useI18nContext } from '../../contexts/I18nProvider';
 
 interface Domain {
   id: string;
@@ -86,6 +87,7 @@ interface AnalysisResult {
 }
 
 export default function FinancialAnalysis({ domains, transactions }: FinancialAnalysisProps) {
+  const { t } = useI18nContext();
   const [selectedMetric, setSelectedMetric] = useState('overall');
 
   // 计算财务分析结果
@@ -266,8 +268,8 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Financial Analysis</h2>
-            <p className="text-gray-600">Advanced portfolio analysis and insights</p>
+            <h2 className="text-2xl font-bold text-gray-900">{t('reports.financialAnalysis')}</h2>
+            <p className="text-gray-600">{t('reports.advancedPortfolioAnalysis')}</p>
           </div>
           <div className="flex space-x-2">
             <button
@@ -278,7 +280,7 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              Overall
+{t('reports.overall')}
             </button>
             <button
               onClick={() => setSelectedMetric('performance')}
@@ -288,7 +290,7 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              Performance
+{t('reports.performance')}
             </button>
             <button
               onClick={() => setSelectedMetric('risk')}
@@ -298,7 +300,7 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              Risk
+{t('reports.risk')}
             </button>
           </div>
         </div>
