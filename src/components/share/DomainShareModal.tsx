@@ -59,127 +59,172 @@ export default function DomainShareModal({ isOpen, onClose, domain }: DomainShar
     canvas.width = 800;
     canvas.height = 600;
 
-    // 绘制极简科技风背景 - 深蓝渐变
+    // 绘制白色背景 - 参考it.ai风格
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, 800, 600);
+
+    // 添加微妙的渐变背景
     const gradient = ctx.createLinearGradient(0, 0, 800, 600);
-    gradient.addColorStop(0, '#1e293b');
-    gradient.addColorStop(0.5, '#334155');
-    gradient.addColorStop(1, '#475569');
+    gradient.addColorStop(0, '#ffffff');
+    gradient.addColorStop(0.5, '#fafafa');
+    gradient.addColorStop(1, '#f5f5f5');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 800, 600);
 
-    // 添加网格线效果
-    ctx.strokeStyle = 'rgba(148, 163, 184, 0.1)';
+    // 添加微妙的网格线效果
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.03)';
     ctx.lineWidth = 1;
-    for (let i = 0; i <= 800; i += 40) {
+    for (let i = 0; i <= 800; i += 50) {
       ctx.beginPath();
       ctx.moveTo(i, 0);
       ctx.lineTo(i, 600);
       ctx.stroke();
     }
-    for (let i = 0; i <= 600; i += 40) {
+    for (let i = 0; i <= 600; i += 50) {
       ctx.beginPath();
       ctx.moveTo(0, i);
       ctx.lineTo(800, i);
       ctx.stroke();
     }
 
-    // 绘制模糊玻璃风主内容区域
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    // 绘制主内容区域 - 白色卡片
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)';
     ctx.lineWidth = 1;
-    ctx.roundRect(50, 50, 700, 500, 16);
+    ctx.roundRect(60, 60, 680, 480, 12);
     ctx.fill();
     ctx.stroke();
 
-    // 绘制居中大标题 - 极简风格
-    ctx.font = 'bold 64px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.textAlign = 'center';
+    // 添加微妙的阴影效果
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+    ctx.shadowBlur = 20;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 4;
     ctx.fillStyle = '#ffffff';
-    ctx.fillText('Domain Sold', 400, 200);
+    ctx.roundRect(60, 60, 680, 480, 12);
+    ctx.fill();
+    ctx.shadowColor = 'transparent';
+
+    // 绘制居中大标题 - it.ai风格
+    ctx.font = 'bold 56px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillText('Domain Sold', 400, 180);
 
     // 绘制域名 - 突出显示
-    ctx.font = 'bold 48px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.fillStyle = '#60a5fa';
-    ctx.fillText(domain.domain_name, 400, 280);
+    ctx.font = 'bold 42px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#2563eb';
+    ctx.fillText(domain.domain_name, 400, 240);
 
     // 绘制成交价格 - 大号显示
-    ctx.font = 'bold 56px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.fillStyle = '#10b981';
-    ctx.fillText(`$${domain.sale_price?.toLocaleString()}`, 400, 350);
+    ctx.font = 'bold 48px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#059669';
+    ctx.fillText(`$${domain.sale_price?.toLocaleString()}`, 400, 300);
+
+    // 绘制状态标签
+    ctx.font = 'bold 18px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = '#059669';
+    ctx.fillRect(350, 320, 100, 32);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('SOLD', 400, 340);
 
     // 绘制左下角信息区域
     const profit = calculateDomainProfit();
     const roi = calculateROI();
     
     // 左下角背景
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-    ctx.roundRect(50, 450, 300, 100, 12);
+    ctx.fillStyle = '#f8fafc';
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.06)';
+    ctx.lineWidth = 1;
+    ctx.roundRect(80, 420, 280, 100, 8);
     ctx.fill();
+    ctx.stroke();
 
     // 净利润
-    ctx.font = 'bold 24px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 20px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#64748b';
     ctx.textAlign = 'left';
-    ctx.fillText('Net Profit', 70, 480);
+    ctx.fillText('Net Profit', 100, 450);
     
-    ctx.font = 'bold 32px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.fillStyle = '#10b981';
-    ctx.fillText(`$${profit.toLocaleString()}`, 70, 510);
+    ctx.font = 'bold 28px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#059669';
+    ctx.fillText(`$${profit.toLocaleString()}`, 100, 480);
 
     // ROI
-    ctx.font = 'bold 24px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText('ROI', 200, 480);
+    ctx.font = 'bold 20px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#64748b';
+    ctx.fillText('ROI', 200, 450);
     
-    ctx.font = 'bold 32px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.fillStyle = '#3b82f6';
-    ctx.fillText(`${roi.toFixed(1)}%`, 200, 510);
+    ctx.font = 'bold 28px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#2563eb';
+    ctx.fillText(`${roi.toFixed(1)}%`, 200, 480);
 
     // 绘制右下角Logo区域
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-    ctx.roundRect(450, 450, 300, 100, 12);
+    ctx.fillStyle = '#f8fafc';
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.06)';
+    ctx.lineWidth = 1;
+    ctx.roundRect(440, 420, 280, 100, 8);
     ctx.fill();
+    ctx.stroke();
 
     // 66Do Logo
-    ctx.font = 'bold 28px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 24px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#1a1a1a';
     ctx.textAlign = 'right';
-    ctx.fillText('66Do', 720, 480);
-    
-    ctx.font = '16px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.fillStyle = '#94a3b8';
-    ctx.fillText('Domain Investment Platform', 720, 500);
+    ctx.fillText('66Do', 700, 450);
     
     ctx.font = '14px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.fillStyle = '#64748b';
-    ctx.fillText('66do.com', 720, 520);
+    ctx.fillText('Domain Investment Platform', 700, 470);
+    
+    ctx.font = '12px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText('66do.com', 700, 485);
 
     // 添加一些极简装饰元素
     // 顶部装饰线
-    ctx.strokeStyle = 'rgba(96, 165, 250, 0.3)';
+    ctx.strokeStyle = 'rgba(37, 99, 235, 0.2)';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(200, 100);
-    ctx.lineTo(600, 100);
+    ctx.moveTo(200, 120);
+    ctx.lineTo(600, 120);
     ctx.stroke();
 
     // 底部装饰线
-    ctx.strokeStyle = 'rgba(16, 185, 129, 0.3)';
+    ctx.strokeStyle = 'rgba(5, 150, 105, 0.2)';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(200, 500);
-    ctx.lineTo(600, 500);
+    ctx.moveTo(200, 480);
+    ctx.lineTo(600, 480);
     ctx.stroke();
 
-    // 添加一些微妙的点装饰
-    ctx.fillStyle = 'rgba(96, 165, 250, 0.2)';
-    for (let i = 0; i < 20; i++) {
-      const x = 100 + Math.random() * 600;
-      const y = 100 + Math.random() * 400;
-      ctx.beginPath();
-      ctx.arc(x, y, 2, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    // 添加一些微妙的几何装饰
+    ctx.fillStyle = 'rgba(37, 99, 235, 0.1)';
+    ctx.beginPath();
+    ctx.arc(150, 150, 4, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.fillStyle = 'rgba(5, 150, 105, 0.1)';
+    ctx.beginPath();
+    ctx.arc(650, 150, 4, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.fillStyle = 'rgba(37, 99, 235, 0.1)';
+    ctx.beginPath();
+    ctx.arc(150, 450, 4, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.fillStyle = 'rgba(5, 150, 105, 0.1)';
+    ctx.beginPath();
+    ctx.arc(650, 450, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 添加微妙的文字装饰
+    ctx.font = '12px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.textAlign = 'center';
+    ctx.fillText('Investment Success', 400, 360);
 
     setIsGenerating(false);
   };
