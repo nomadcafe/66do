@@ -103,7 +103,7 @@ export class DomainExpiryService {
       // 只处理即将到期的域名
       if (daysUntilExpiry <= this.config.lowDays && daysUntilExpiry >= 0) {
         const priority = this.getPriority(daysUntilExpiry);
-        const message = this.generateMessage(domain.domain_name, daysUntilExpiry, priority);
+        const message = this.generateMessage(domain.domain_name, daysUntilExpiry);
 
         const expiryInfo: DomainExpiryInfo = {
           domain,
@@ -168,7 +168,7 @@ export class DomainExpiryService {
   /**
    * 生成提醒消息
    */
-  private generateMessage(domainName: string, daysUntilExpiry: number, _priority: string): string { // _priority 故意未使用
+  private generateMessage(domainName: string, daysUntilExpiry: number): string {
     // const priorityText = {
     //   critical: '紧急',
     //   high: '重要',

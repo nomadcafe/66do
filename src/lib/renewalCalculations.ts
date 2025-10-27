@@ -289,7 +289,7 @@ export function getRenewalOptimizationSuggestions(
   }
   
   // 成本优化建议（更智能的阈值）
-  const avgCostPerDomain = totalCost / domainsCount;
+  // const avgCostPerDomain = totalCost / domainsCount;
   if (totalCost > 50000) {
     suggestions.push(`💳 年度续费成本较高（$${totalCost.toLocaleString()}），建议联系注册商洽谈批量续费折扣，通常可获得5-15%优惠。`);
   } else if (totalCost > 10000) {

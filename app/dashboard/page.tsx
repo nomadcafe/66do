@@ -9,25 +9,30 @@ import DomainForm from '../../src/components/domain/DomainForm';
 import SmartDomainForm from '../../src/components/domain/SmartDomainForm';
 import TransactionList from '../../src/components/transaction/TransactionList';
 import TransactionForm from '../../src/components/transaction/TransactionForm';
-import InvestmentAnalytics from '../../src/components/analytics/InvestmentAnalytics';
-import UserPreferencesPanel from '../../src/components/settings/UserPreferencesPanel';
-import DataImportExport from '../../src/components/data/DataImportExport';
 import MobileNavigation from '../../src/components/layout/MobileNavigation';
 // Mobile components for enhanced mobile experience
 import TouchGestures from '../../src/components/mobile/TouchGestures';
 import PullToRefresh from '../../src/components/mobile/PullToRefresh';
 import { isMobile } from '../../src/lib/utils';
-import FinancialReport from '../../src/components/reports/FinancialReport';
-import FinancialAnalysis from '../../src/components/reports/FinancialAnalysisOptimized';
 import ShareModal from '../../src/components/share/ShareModal';
 import SaleSuccessModal from '../../src/components/share/SaleSuccessModal';
 import { calculateAnnualRenewalCost } from '../../src/lib/renewalCalculations';
-import { domainExpiryManager } from '../../src/lib/domainExpiryManager';
+// import { domainExpiryManager } from '../../src/lib/domainExpiryManager';
 import { calculateFinancialMetrics } from '../../src/lib/financialMetrics';
 import { calculateEnhancedFinancialMetrics, formatCurrency as formatCurrencyEnhanced } from '../../src/lib/enhancedFinancialMetrics';
 import { domainCache } from '../../src/lib/cache';
-import AdvancedRenewalAnalysis from '../../src/components/analytics/AdvancedRenewalAnalysis';
-import ExpiredDomainLossAnalysis from '../../src/components/analytics/ExpiredDomainLossAnalysis';
+// 懒加载组件
+import { 
+  LazyFinancialReport, 
+  LazyFinancialAnalysis, 
+  LazyInvestmentAnalytics, 
+  LazyAdvancedRenewalAnalysis, 
+  LazyExpiredDomainLossAnalysis,
+  LazyDataImportExport,
+  LazyUserPreferencesPanel,
+  LazyWrapper,
+  useSmartPreload
+} from '../../src/components/LazyComponents';
 import { auditLogger } from '../../src/lib/security';
 import LoadingSpinner from '../../src/components/ui/LoadingSpinner';
 import ErrorMessage from '../../src/components/ui/ErrorMessage';
@@ -95,6 +100,9 @@ interface DomainStats {
 
 
 export default function DashboardPage() {
+  // 智能预加载组件
+  useSmartPreload();
+  
   const [domains, setDomains] = useState<DomainWithTags[]>([]);
   const [transactions, setTransactions] = useState<TransactionWithRequiredFields[]>([]);
   const [stats, setStats] = useState<DomainStats>({
@@ -290,7 +298,7 @@ export default function DashboardPage() {
     };
 
     loadData();
-  }, [user?.id, dataSource]);
+  }, [user?.id, dataSource, domains.length, t, transactions.length]);
 
 
   // Save data to Supabase database only
@@ -764,94 +772,10 @@ export default function DashboardPage() {
     }
   };
 
-  // 处理域名续费
-  const handleRenewDomain = async (domainId: string) => {
-    const domain = domains.find(d => d.id === domainId);
-    if (!domain) return;
-
-    const renewalTransaction: TransactionWithRequiredFields = {
-      id: Date.now().toString(),
-      user_id: user?.id || '',
-      domain_id: domainId,
-      type: 'renew',
-      amount: domain.renewal_cost || 0,
-      currency: 'USD',
-      exchange_rate: 1,
-      base_amount: domain.renewal_cost || 0,
-      platform_fee: null,
-      platform_fee_percentage: null,
-      net_amount: domain.renewal_cost || 0,
-      category: domain.registrar,
-      tax_deductible: false,
-      receipt_url: null,
-      notes: t('common.renewalNote').replace('{domain}', domain.domain_name).replace('{cycle}', domain.renewal_cycle.toString()),
-      date: new Date().toISOString().split('T')[0],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-
-    const newTransactions = [...transactions, renewalTransaction];
-    setTransactions(newTransactions);
-    saveData(domains, newTransactions);
-
-    // 使用智能域名管理器处理续费
-    // 转换Supabase Domain类型为domainExpiryManager期望的类型
-    const domainForRenewal = {
-      id: domain.id,
-      domain_name: domain.domain_name,
-      registrar: domain.registrar || '',
-      purchase_date: domain.purchase_date || '',
-      purchase_cost: domain.purchase_cost || 0,
-      renewal_cost: domain.renewal_cost || 0,
-      renewal_cycle: domain.renewal_cycle,
-      renewal_count: domain.renewal_count,
-      next_renewal_date: domain.next_renewal_date || undefined,
-      expiry_date: domain.expiry_date || undefined,
-      status: domain.status,
-      estimated_value: domain.estimated_value,
-      sale_date: domain.sale_date || undefined,
-      sale_price: domain.sale_price || undefined,
-      platform_fee: domain.platform_fee || undefined,
-      net_profit: undefined, // Supabase Domain类型中没有此字段
-      notes: undefined, // Supabase Domain类型中没有此字段
-      created_at: domain.created_at,
-      updated_at: domain.updated_at,
-      user_id: domain.owner_user_id,
-      tags: domain.tags || []
-    };
-    
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const renewedDomain = domainExpiryManager.handleDomainRenewal(domainForRenewal as any);
-    
-    // 将renewedDomain转换回Supabase Domain类型
-    const updatedDomain: Domain = {
-      id: renewedDomain.id,
-      owner_user_id: domain.owner_user_id,
-      domain_name: renewedDomain.domain_name,
-      registrar: renewedDomain.registrar,
-      purchase_date: renewedDomain.purchase_date,
-      purchase_cost: renewedDomain.purchase_cost,
-      renewal_cost: renewedDomain.renewal_cost,
-      renewal_cycle: renewedDomain.renewal_cycle,
-      renewal_count: renewedDomain.renewal_count,
-      next_renewal_date: renewedDomain.next_renewal_date || null,
-      expiry_date: renewedDomain.expiry_date || null,
-      status: renewedDomain.status,
-      estimated_value: renewedDomain.estimated_value,
-      sale_date: renewedDomain.sale_date || null,
-      sale_price: renewedDomain.sale_price || null,
-      platform_fee: renewedDomain.platform_fee || null,
-      tags: Array.isArray(renewedDomain.tags) ? renewedDomain.tags.join(',') : renewedDomain.tags || null,
-      created_at: renewedDomain.created_at || new Date().toISOString(),
-      updated_at: renewedDomain.updated_at || new Date().toISOString()
-    };
-    
-    const updatedDomains = domains.map(d => 
-      d.id === domainId ? ensureDomainWithTags(updatedDomain) : d
-    );
-    setDomains(updatedDomains);
-    await saveData(updatedDomains, newTransactions);
-  };
+  // 处理域名续费 - 暂时注释掉，等待UI实现
+  // const handleRenewDomain = async (domainId: string) => {
+  //   // 续费逻辑将在UI实现后启用
+  // };
 
 
   const handleSaveTransaction = async (transactionData: Omit<TransactionWithRequiredFields, 'id'>) => {
@@ -1508,10 +1432,14 @@ export default function DashboardPage() {
             </div>
 
             {/* 高级续费分析 */}
-            <AdvancedRenewalAnalysis domains={domains} />
+            <LazyWrapper>
+              <LazyAdvancedRenewalAnalysis domains={domains} />
+            </LazyWrapper>
             
             {/* 过期域名损失分析 */}
-            <ExpiredDomainLossAnalysis domains={domains} />
+            <LazyWrapper>
+              <LazyExpiredDomainLossAnalysis domains={domains} />
+            </LazyWrapper>
 
             {/* Quick Actions */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1641,10 +1569,12 @@ export default function DashboardPage() {
         )}
 
         {activeTab === 'analytics' && (
-          <InvestmentAnalytics 
-            domains={domains} 
-            transactions={transactions} 
-          />
+          <LazyWrapper>
+            <LazyInvestmentAnalytics 
+              domains={domains} 
+              transactions={transactions} 
+            />
+          </LazyWrapper>
         )}
 
         {activeTab === 'alerts' && (
@@ -1782,11 +1712,14 @@ export default function DashboardPage() {
 
 
         {activeTab === 'settings' && (
-          <UserPreferencesPanel />
+          <LazyWrapper>
+            <LazyUserPreferencesPanel />
+          </LazyWrapper>
         )}
 
         {activeTab === 'data' && (
-          <DataImportExport
+          <LazyWrapper>
+            <LazyDataImportExport
             onImport={(data: unknown) => {
               try {
                 const importData = data as { domains?: Domain[]; transactions?: Transaction[] };
@@ -1896,6 +1829,7 @@ export default function DashboardPage() {
               }
             }}
           />
+          </LazyWrapper>
         )}
         
         {activeTab === 'reports' && (
@@ -1918,16 +1852,20 @@ export default function DashboardPage() {
             </div>
 
             {/* 综合财务报告 */}
-            <FinancialReport
-              domains={domains}
-              transactions={transactions}
-            />
+            <LazyWrapper>
+              <LazyFinancialReport
+                domains={domains}
+                transactions={transactions}
+              />
+            </LazyWrapper>
 
             {/* 投资分析 */}
-            <FinancialAnalysis
-              domains={domains}
-              transactions={transactions}
-            />
+            <LazyWrapper>
+              <LazyFinancialAnalysis
+                domains={domains}
+                transactions={transactions}
+              />
+            </LazyWrapper>
           </div>
         )}
         </div>

@@ -5,25 +5,25 @@ import { X, Download, Share2, Twitter, Linkedin, Facebook, MessageCircle, CheckC
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import { useI18nContext } from '../../contexts/I18nProvider';
 
-interface Domain {
-  id: string;
-  domain_name: string;
-  purchase_date: string;
-  purchase_cost: number;
-  renewal_cost: number;
-  renewal_count: number;
-  status: 'active' | 'for_sale' | 'sold' | 'expired';
-}
+// interface Domain {
+//   id: string;
+//   domain_name: string;
+//   purchase_date: string;
+//   purchase_cost: number;
+//   renewal_cost: number;
+//   renewal_count: number;
+//   status: 'active' | 'for_sale' | 'sold' | 'expired';
+// }
 
-interface Transaction {
-  domain_id: string;
-  type: 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising';
-  amount: number;
-  currency: string;
-  platform_fee?: number;
-  net_amount?: number;
-  date: string;
-}
+// interface Transaction {
+//   domain_id: string;
+//   type: 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising';
+//   amount: number;
+//   currency: string;
+//   platform_fee?: number;
+//   net_amount?: number;
+//   date: string;
+// }
 
 interface SaleSuccessModalProps {
   isOpen: boolean;

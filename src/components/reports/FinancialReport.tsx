@@ -20,35 +20,35 @@ import {
 } from '../../lib/financialCalculations';
 import { useI18nContext } from '../../contexts/I18nProvider';
 
-interface Domain {
-  id: string;
-  domain_name: string;
-  purchase_date: string;
-  purchase_cost: number;
-  renewal_cost: number;
-  renewal_cycle: number;
-  renewal_count: number;
-  expiry_date?: string; // 改为可选字段
-  status: 'active' | 'for_sale' | 'sold' | 'expired';
-  estimated_value: number;
-  tags: string[];
-}
+// interface Domain {
+//   id: string;
+//   domain_name: string;
+//   purchase_date: string;
+//   purchase_cost: number;
+//   renewal_cost: number;
+//   renewal_cycle: number;
+//   renewal_count: number;
+//   expiry_date?: string; // 改为可选字段
+//   status: 'active' | 'for_sale' | 'sold' | 'expired';
+//   estimated_value: number;
+//   tags: string[];
+// }
 
-interface Transaction {
-  id: string;
-  domain_id: string;
-  type: 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising';
-  amount: number;
-  currency: string;
-  exchange_rate?: number;
-  platform_fee?: number;
-  net_amount?: number;
-  date: string;
-  notes: string;
-  platform?: string;
-  category?: string;
-  tax_deductible?: boolean;
-}
+// interface Transaction {
+//   id: string;
+//   domain_id: string;
+//   type: 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising';
+//   amount: number;
+//   currency: string;
+//   exchange_rate?: number;
+//   platform_fee?: number;
+//   net_amount?: number;
+//   date: string;
+//   notes: string;
+//   platform?: string;
+//   category?: string;
+//   tax_deductible?: boolean;
+// }
 
 interface FinancialReportProps {
   domains: DomainWithTags[];
@@ -123,7 +123,7 @@ export default function FinancialReport({ domains, transactions }: FinancialRepo
         endDate: now
       }
     ];
-  }, []);
+  }, [t]);
 
   // 过滤数据
   const filteredData = useMemo(() => {
@@ -264,7 +264,7 @@ export default function FinancialReport({ domains, transactions }: FinancialRepo
         sharpeRatio
       }
     };
-  }, [filteredData]);
+  }, [filteredData, t]);
 
   const handleGenerateReport = async () => {
     setIsGenerating(true);

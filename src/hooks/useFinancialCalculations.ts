@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Domain, DomainTransaction as Transaction } from '../types/domain';
+// import { Domain, DomainTransaction as Transaction } from '../types/domain';
 import { DomainWithTags, TransactionWithRequiredFields } from '../types/dashboard';
 import {
   calculateBasicFinancialMetrics,

@@ -48,7 +48,7 @@ export default function DomainExpiryManager({
     } finally {
       setLoading(false);
     }
-  }, [domains]);
+  }, [domains, t]);
 
   // 同步WHOIS数据
   const syncWhoisData = useCallback(async () => {
@@ -70,7 +70,7 @@ export default function DomainExpiryManager({
     } finally {
       setWhoisSyncing(false);
     }
-  }, [domains, analyzeExpiry, onUpdateDomain]);
+  }, [domains, analyzeExpiry, onUpdateDomain, t]);
 
   // 初始加载
   useEffect(() => {

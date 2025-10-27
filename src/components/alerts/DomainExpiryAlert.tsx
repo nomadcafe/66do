@@ -64,7 +64,7 @@ export default function DomainExpiryAlert({ domains, onRenewDomain }: DomainExpi
     };
 
     generateExpiryAlerts();
-  }, [domains]);
+  }, [domains, t]);
 
   const dismissAlert = (domainId: string) => {
     setDismissedAlerts(prev => new Set([...prev, domainId]));

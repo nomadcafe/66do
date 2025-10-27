@@ -1,31 +1,13 @@
-import { Domain, Transaction } from '../lib/supabaseService';
+import { Domain } from '../lib/supabaseService';
+import { Transaction, TransactionWithRequiredFields } from './transaction';
 
 // 扩展Domain类型，确保tags是数组
 export interface DomainWithTags extends Omit<Domain, 'tags'> {
   tags: string[];
 }
 
-// 扩展Transaction类型，确保所有必需字段存在
-export interface TransactionWithRequiredFields extends Transaction {
-  domain_id: string;
-  type: 'buy' | 'sell' | 'renew' | 'transfer' | 'fee' | 'marketing' | 'advertising';
-  amount: number;
-  date: string;
-  // 分期付款相关字段
-  payment_plan?: 'lump_sum' | 'installment';
-  installment_period?: number;
-  downpayment_amount?: number;
-  installment_amount?: number;
-  final_payment_amount?: number;
-  total_installment_amount?: number;
-  // 分期进度跟踪
-  paid_periods?: number; // 已付期数
-  installment_status?: 'active' | 'completed' | 'cancelled' | 'paused'; // 分期状态
-  platform_fee_type?: 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment'; // 平台费用类型
-  // 用户输入的费用率
-  user_input_fee_rate?: number; // 用户输入的分期费用率（用于afternic等）
-  user_input_surcharge_rate?: number; // 用户输入的surcharge率（用于atom）
-}
+// 重新导出统一的Transaction类型
+export type { TransactionWithRequiredFields } from './transaction';
 
 // Dashboard组件props类型
 export interface DomainListProps {

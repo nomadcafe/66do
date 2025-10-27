@@ -19,6 +19,7 @@ const translations: Record<Locale, Translations> = {
       signIn: '登录',
       signUp: '注册',
       goToDashboard: '进入仪表板',
+      privacy: '隐私政策'
     },
     navigation: {
       signIn: '登录',
@@ -570,6 +571,111 @@ const translations: Record<Locale, Translations> = {
       renewNow: '立即续费',
       remindLater: '稍后提醒'
     },
+    privacy: {
+      title: '隐私政策',
+      lastUpdated: '最后更新',
+      introduction: {
+        title: '介绍',
+        content: '66Do致力于保护您的隐私和个人数据。本隐私政策说明了您使用我们的域名投资管理平台时，我们如何收集、使用、存储和保护您的信息。'
+      },
+      dataCollection: {
+        title: '我们收集的数据',
+        content: '我们收集提供域名投资管理服务所需的信息。这包括与您的域名投资组合相关的个人和财务数据。',
+        personalData: {
+          title: '个人信息',
+          email: '用于账户认证和通信的邮箱地址',
+          domainInfo: '域名、注册详情和所有权信息',
+          financialData: '购买成本、续费费用、销售价格和投资金额',
+          transactionData: '交易历史、支付记录和财务交易',
+          analyticsData: '使用模式、功能交互和性能指标'
+        },
+        sensitiveData: {
+          title: '敏感财务数据',
+          content: '我们了解您的财务信息高度敏感。所有财务数据均使用AES-256加密，并使用用户特定的加密密钥安全存储。'
+        }
+      },
+      dataSecurity: {
+        title: '数据安全',
+        content: '我们实施多层安全措施来保护您的数据：',
+        encryption: {
+          title: '加密和安全措施',
+          aes: '对所有敏感数据进行AES-256加密',
+          https: '对所有数据传输使用HTTPS/TLS加密',
+          rls: '行级安全(RLS)进行数据库访问控制',
+          userKeys: '用户特定的加密密钥实现数据隔离'
+        }
+      },
+      dataUsage: {
+        title: '我们如何使用您的数据',
+        content: '您的数据仅用于提供和改进我们的域名投资管理服务：',
+        portfolioManagement: '管理和跟踪您的域名投资组合',
+        financialAnalysis: '生成财务报告和投资分析',
+        renewalTracking: '监控域名续费日期和成本',
+        performanceMetrics: '计算投资回报率、利润率和投资表现',
+        userExperience: '个性化您的体验并改进我们的服务'
+      },
+      dataSharing: {
+        title: '数据共享',
+        content: '我们不会出于营销目的向第三方出售、出租或共享您的个人数据。',
+        never: {
+          title: '我们绝不',
+          sell: '出售您的个人或财务数据',
+          rent: '将您的数据出租给第三方',
+          share: '未经明确同意共享您的数据',
+          marketing: '将您的数据用于第三方营销'
+        }
+      },
+      userRights: {
+        title: '您的权利',
+        content: '您对个人数据享有以下权利：',
+        access: '访问您的个人数据',
+        rectification: '更正不准确或不完整的数据',
+        erasure: '请求删除您的数据',
+        portability: '以便携格式导出您的数据',
+        restriction: '限制处理您的数据',
+        objection: '反对某些数据使用方式'
+      },
+      dataRetention: {
+        title: '数据保留',
+        content: '我们会在提供服务所需的时间内保留您的数据，并遵守法律义务。',
+        periods: {
+          title: '保留期限',
+          account: '账户数据：直到账户删除',
+          domainData: '域名信息：最后活动后7年',
+          transactionData: '财务记录：7年（税务合规）',
+          analytics: '使用分析：2年'
+        }
+      },
+      cookies: {
+        title: 'Cookie和跟踪',
+        content: '我们使用Cookie和类似技术来增强您的体验：',
+        essential: '平台功能必需的基本Cookie',
+        analytics: '了解使用模式的分析Cookie',
+        preferences: '记住您设置的偏好Cookie',
+        security: '防止欺诈的安全Cookie'
+      },
+      thirdParty: {
+        title: '第三方服务',
+        content: '我们使用可信的第三方服务来提供我们的平台：',
+        services: {
+          title: '服务提供商',
+          supabase: '数据库托管和认证服务',
+          vercel: '网络托管和内容分发',
+          resend: '通知的邮件传递服务'
+        }
+      },
+      changes: {
+        title: '政策变更',
+        content: '我们可能会不时更新此隐私政策。我们将通过邮件或平台通知您任何重大变更。'
+      },
+      contact: {
+        title: '联系我们',
+        content: '如果您对此隐私政策或您的数据有任何疑问，请联系我们：',
+        email: '邮箱',
+        response: '我们将在48小时内回复所有询问。'
+      },
+      footer: '本隐私政策自上述日期起生效，适用于66Do平台的所有用户。'
+    },
     domain: {
       expiryMonitoring: '域名到期监控',
       syncWhois: '同步WHOIS',
@@ -687,6 +793,7 @@ const translations: Record<Locale, Translations> = {
       signIn: 'Sign In',
       signUp: 'Sign Up',
       goToDashboard: 'Go to Dashboard',
+      privacy: 'Privacy Policy'
     },
     navigation: {
       signIn: 'Sign In',
@@ -1237,6 +1344,111 @@ const translations: Record<Locale, Translations> = {
       renewalCycle: 'Renewal Cycle',
       renewNow: 'Renew Now',
       remindLater: 'Remind Later'
+    },
+    privacy: {
+      title: 'Privacy Policy',
+      lastUpdated: 'Last Updated',
+      introduction: {
+        title: 'Introduction',
+        content: '66Do is committed to protecting your privacy and personal data. This Privacy Policy explains how we collect, use, store, and protect your information when you use our domain investment management platform.'
+      },
+      dataCollection: {
+        title: 'Data We Collect',
+        content: 'We collect information necessary to provide you with our domain investment management services. This includes both personal and financial data related to your domain portfolio.',
+        personalData: {
+          title: 'Personal Information',
+          email: 'Email address for account authentication and communication',
+          domainInfo: 'Domain names, registration details, and ownership information',
+          financialData: 'Purchase costs, renewal fees, sale prices, and investment amounts',
+          transactionData: 'Transaction history, payment records, and financial transactions',
+          analyticsData: 'Usage patterns, feature interactions, and performance metrics'
+        },
+        sensitiveData: {
+          title: 'Sensitive Financial Data',
+          content: 'We understand that your financial information is highly sensitive. All financial data is encrypted using AES-256 encryption and stored securely with user-specific encryption keys.'
+        }
+      },
+      dataSecurity: {
+        title: 'Data Security',
+        content: 'We implement multiple layers of security to protect your data:',
+        encryption: {
+          title: 'Encryption & Security Measures',
+          aes: 'AES-256 encryption for all sensitive data',
+          https: 'HTTPS/TLS encryption for all data transmission',
+          rls: 'Row-Level Security (RLS) for database access control',
+          userKeys: 'User-specific encryption keys for data isolation'
+        }
+      },
+      dataUsage: {
+        title: 'How We Use Your Data',
+        content: 'Your data is used exclusively to provide and improve our domain investment management services:',
+        portfolioManagement: 'Manage and track your domain portfolio',
+        financialAnalysis: 'Generate financial reports and investment analytics',
+        renewalTracking: 'Monitor domain renewal dates and costs',
+        performanceMetrics: 'Calculate ROI, profit margins, and investment performance',
+        userExperience: 'Personalize your experience and improve our services'
+      },
+      dataSharing: {
+        title: 'Data Sharing',
+        content: 'We do not sell, rent, or share your personal data with third parties for marketing purposes.',
+        never: {
+          title: 'We Never',
+          sell: 'Sell your personal or financial data',
+          rent: 'Rent your data to third parties',
+          share: 'Share your data without explicit consent',
+          marketing: 'Use your data for third-party marketing'
+        }
+      },
+      userRights: {
+        title: 'Your Rights',
+        content: 'You have the following rights regarding your personal data:',
+        access: 'Access your personal data',
+        rectification: 'Correct inaccurate or incomplete data',
+        erasure: 'Request deletion of your data',
+        portability: 'Export your data in a portable format',
+        restriction: 'Restrict processing of your data',
+        objection: 'Object to certain uses of your data'
+      },
+      dataRetention: {
+        title: 'Data Retention',
+        content: 'We retain your data for as long as necessary to provide our services and comply with legal obligations.',
+        periods: {
+          title: 'Retention Periods',
+          account: 'Account data: Until account deletion',
+          domainData: 'Domain information: 7 years after last activity',
+          transactionData: 'Financial records: 7 years for tax compliance',
+          analytics: 'Usage analytics: 2 years'
+        }
+      },
+      cookies: {
+        title: 'Cookies and Tracking',
+        content: 'We use cookies and similar technologies to enhance your experience:',
+        essential: 'Essential cookies for platform functionality',
+        analytics: 'Analytics cookies to understand usage patterns',
+        preferences: 'Preference cookies to remember your settings',
+        security: 'Security cookies to protect against fraud'
+      },
+      thirdParty: {
+        title: 'Third-Party Services',
+        content: 'We use trusted third-party services to provide our platform:',
+        services: {
+          title: 'Service Providers',
+          supabase: 'Database hosting and authentication services',
+          vercel: 'Web hosting and content delivery',
+          resend: 'Email delivery services for notifications'
+        }
+      },
+      changes: {
+        title: 'Changes to This Policy',
+        content: 'We may update this Privacy Policy from time to time. We will notify you of any significant changes via email or through our platform.'
+      },
+      contact: {
+        title: 'Contact Us',
+        content: 'If you have any questions about this Privacy Policy or your data, please contact us:',
+        email: 'Email',
+        response: 'We will respond to all inquiries within 48 hours.'
+      },
+      footer: 'This Privacy Policy is effective as of the date listed above and applies to all users of the 66Do platform.'
     },
     domain: {
       expiryMonitoring: 'Domain Expiry Monitoring',

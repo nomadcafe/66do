@@ -6,7 +6,7 @@ import { exchangeRateManager, formatCurrencyAmount, getRateTrend } from '../../l
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { calculateCustomerTotalFromInstallment, calculatePaidAmountFromInstallment } from '../../lib/platformFeeCalculator';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
-import { Domain, Transaction } from '../../lib/supabaseService';
+// import { Domain, Transaction } from '../../lib/supabaseService';
 import DateInput from '../ui/DateInput';
 
 // 使用统一的类型定义，从 supabaseService 导入
@@ -187,7 +187,7 @@ export default function TransactionForm({
         }
       }
     }
-  }, [formData.amount, formData.downpayment_amount, formData.final_payment_amount, formData.installment_period, formData.payment_plan]);
+  }, [formData.amount, formData.downpayment_amount, formData.final_payment_amount, formData.installment_period, formData.payment_plan, formData.installment_amount]);
 
   // 汇率处理逻辑
   useEffect(() => {
@@ -223,7 +223,7 @@ export default function TransactionForm({
     };
     
     // 移除数据库中不存在的字段
-    const { platform, ...dataWithoutPlatform } = finalFormData;
+    const { platform: _platform, ...dataWithoutPlatform } = finalFormData;
     const finalFormDataClean = dataWithoutPlatform;
     
     onSave(finalFormDataClean);

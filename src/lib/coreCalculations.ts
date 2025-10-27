@@ -1,4 +1,4 @@
-import { Domain, DomainTransaction as Transaction } from '../types/domain';
+// import { Domain, DomainTransaction as Transaction } from '../types/domain';
 import { DomainWithTags, TransactionWithRequiredFields } from '../types/dashboard';
 
 // 基础财务计算接口

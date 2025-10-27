@@ -96,6 +96,14 @@ export default function HomePage() {
               </h1>
             </div>
             <div className="flex items-center space-x-4">
+              {/* Privacy Policy Link */}
+              <a
+                href="/privacy"
+                className="text-gray-600 hover:text-gray-900 text-sm font-medium transition-colors"
+              >
+                {t('nav.privacy')}
+              </a>
+              
               {/* Language Selector */}
               <div className="relative">
                 <select
@@ -297,7 +305,7 @@ export default function HomePage() {
               <h4 className="font-bold text-lg mb-6">{t('footer.support')}</h4>
               <ul className="space-y-3 text-gray-400">
                 <li><a href="#" className="hover:text-white transition-colors">{t('footer.contactUs')}</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">{t('footer.privacyPolicy')}</a></li>
+                <li><a href="/privacy" className="hover:text-white transition-colors">{t('footer.privacyPolicy')}</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
               </ul>
             </div>

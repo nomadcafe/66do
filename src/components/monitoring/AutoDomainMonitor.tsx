@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Domain } from '../../types/domain';
+// import { Domain } from '../../types/domain';
 import { DomainWithTags } from '../../types/dashboard';
 import { DomainMonitor, DomainExpiryInfo } from '../../lib/domainMonitoring';
 import { useI18nContext } from '../../contexts/I18nProvider';
@@ -50,7 +50,7 @@ export default function AutoDomainMonitor({
         requireInteraction: true
       });
     }
-  }, [notificationPermission, showNotifications]);
+  }, [notificationPermission, showNotifications, t]);
 
   // 处理域名到期提醒
   const handleExpiryAlert = useCallback((alerts: DomainExpiryInfo[]) => {
@@ -86,7 +86,7 @@ export default function AutoDomainMonitor({
         }
       });
     }
-  }, [monitor, onDomainExpiry, onBulkExpiry, showBrowserNotification]);
+  }, [monitor, onDomainExpiry, onBulkExpiry, showBrowserNotification, t]);
 
   // 启动监控
   const startMonitoring = useCallback(() => {

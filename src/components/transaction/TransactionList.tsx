@@ -5,7 +5,7 @@ import { Search, Filter, Plus, Edit, Trash2, DollarSign, Calendar, FileText, Tre
 import { calculateDomainROI, getROIColor, getROIBgColor, formatPercentage } from '../../lib/enhancedFinancialMetrics';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
-import { Domain, Transaction } from '../../lib/supabaseService';
+// import { Domain, Transaction } from '../../lib/supabaseService';
 
 // 计算持有时间
 function calculateHoldingTime(purchaseDate: string, saleDate: string, t: (key: string) => string): {

@@ -30,42 +30,42 @@ import {
   Globe
 } from 'lucide-react';
 
-interface Domain {
-  id: string;
-  domain_name: string;
-  registrar: string;
-  purchase_date: string;
-  purchase_cost: number;
-  renewal_cost: number;
-  renewal_cycle: number;
-  renewal_count: number;
-  expiry_date?: string;
-  status: 'active' | 'for_sale' | 'sold' | 'expired';
-  estimated_value: number;
-  sale_date?: string;
-  sale_price?: number;
-  platform_fee?: number;
-  tags: string[];
-}
+// interface Domain {
+//   id: string;
+//   domain_name: string;
+//   registrar: string;
+//   purchase_date: string;
+//   purchase_cost: number;
+//   renewal_cost: number;
+//   renewal_cycle: number;
+//   renewal_count: number;
+//   expiry_date?: string;
+//   status: 'active' | 'for_sale' | 'sold' | 'expired';
+//   estimated_value: number;
+//   sale_date?: string;
+//   sale_price?: number;
+//   platform_fee?: number;
+//   tags: string[];
+// }
 
-interface Transaction {
-  id: string;
-  domain_id: string;
-  type: 'buy' | 'sell' | 'renew' | 'transfer' | 'fee' | 'marketing' | 'advertising';
-  amount: number;
-  currency: string;
-  date: string;
-  notes: string;
-  platform?: string;
-  exchange_rate?: number;
-  base_amount?: number;
-  platform_fee?: number;
-  platform_fee_percentage?: number;
-  net_amount?: number;
-  category?: string;
-  tax_deductible?: boolean;
-  receipt_url?: string;
-}
+// interface Transaction {
+//   id: string;
+//   domain_id: string;
+//   type: 'buy' | 'sell' | 'renew' | 'transfer' | 'fee' | 'marketing' | 'advertising';
+//   amount: number;
+//   currency: string;
+//   date: string;
+//   notes: string;
+//   platform?: string;
+//   exchange_rate?: number;
+//   base_amount?: number;
+//   platform_fee?: number;
+//   platform_fee_percentage?: number;
+//   net_amount?: number;
+//   category?: string;
+//   tax_deductible?: boolean;
+//   receipt_url?: string;
+// }
 
 interface InvestmentAnalyticsProps {
   domains: DomainWithTags[];

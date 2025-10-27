@@ -11,8 +11,8 @@ import {
   Target
 } from 'lucide-react';
 import { useComprehensiveFinancialAnalysis } from '../../hooks/useFinancialCalculations';
-import { Domain } from '../../types/domain';
-import { DomainTransaction as Transaction } from '../../types/domain';
+// import { Domain } from '../../types/domain';
+// import { DomainTransaction as Transaction } from '../../types/domain';
 import { useI18nContext } from '../../contexts/I18nProvider';
 
 interface FinancialAnalysisProps {

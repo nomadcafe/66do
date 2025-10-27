@@ -92,19 +92,19 @@ export class AccessControl {
   }
 
   // 检查资源访问权限
-  canAccessResource(_userId: string, _resourceId: string, _action: string): boolean {
+  canAccessResource(userId: string, resourceId: string, action: string): boolean {
     // 检查是否是资源所有者
-    if (this.isResourceOwner(_userId, _resourceId)) {
+    if (this.isResourceOwner(userId, resourceId)) {
       return true;
     }
 
     // 检查管理员权限
-    if (this.hasPermission(_userId, 'admin')) {
+    if (this.hasPermission(userId, 'admin')) {
       return true;
     }
 
     // 检查特定权限
-    return this.hasPermission(_userId, `${_action}_${_resourceId}`);
+    return this.hasPermission(userId, `${action}_${resourceId}`);
   }
 
   // 检查资源所有权

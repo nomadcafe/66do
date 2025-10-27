@@ -80,10 +80,10 @@ export default function DomainTable({ domains, onEdit, onDelete, onView }: Domai
     }
   };
 
-  const calculateTotalHoldingCost = (domain: DomainWithTags) => {
-    const totalRenewalCost = domain.renewal_count * (domain.renewal_cost || 0);
-    return (domain.purchase_cost || 0) + totalRenewalCost;
-  };
+  // const calculateTotalHoldingCost = (domain: DomainWithTags) => {
+  //   const totalRenewalCost = domain.renewal_count * (domain.renewal_cost || 0);
+  //   return (domain.purchase_cost || 0) + totalRenewalCost;
+  // };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
