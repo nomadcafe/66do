@@ -17,7 +17,7 @@ interface Domain {
 
 interface Transaction {
   domain_id: string;
-  type: 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising' | 'installment_payment' | 'installment_refund';
+  type: 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising';
   amount: number;
   currency: string;
   platform_fee?: number;

@@ -37,7 +37,7 @@ interface Domain {
 interface Transaction {
   id: string;
   domain_id: string;
-  type: 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising' | 'installment_payment' | 'installment_refund';
+  type: 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising';
   amount: number;
   currency: string;
   exchange_rate?: number;
@@ -158,7 +158,7 @@ export default function FinancialReport({ domains, transactions }: FinancialRepo
     }, 0);
 
     const totalRevenue = filteredTransactions
-      .filter(t => t.type === 'sell' || t.type === 'installment_payment')
+      .filter(t => t.type === 'sell')
       .reduce((sum, t) => sum + (t.net_amount || t.amount), 0);
 
     const totalProfit = totalRevenue - totalInvestment;
@@ -187,7 +187,7 @@ export default function FinancialReport({ domains, transactions }: FinancialRepo
         .filter(t => t.type === 'buy' || t.type === 'renew' || t.type === 'fee')
         .reduce((sum, t) => sum + t.amount, 0);
       const totalEarned = domainTransactions
-        .filter(t => t.type === 'sell' || t.type === 'installment_payment')
+        .filter(t => t.type === 'sell')
         .reduce((sum, t) => sum + t.amount, 0);
       const profit = totalEarned - totalSpent;
       return { domain, profit };
@@ -211,7 +211,7 @@ export default function FinancialReport({ domains, transactions }: FinancialRepo
       });
 
       const profit = monthTransactions
-        .filter(t => t.type === 'sell' || t.type === 'installment_payment')
+        .filter(t => t.type === 'sell')
         .reduce((sum, t) => sum + t.amount, 0);
       const revenue = profit;
       const cost = monthTransactions

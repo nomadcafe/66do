@@ -88,10 +88,6 @@ export default function TransactionList({
         return 'bg-red-100 text-red-800';
       case 'sell':
         return 'bg-green-100 text-green-800';
-      case 'installment_payment':
-        return 'bg-emerald-100 text-emerald-800';
-      case 'installment_refund':
-        return 'bg-orange-100 text-orange-800';
       case 'renew':
         return 'bg-blue-100 text-blue-800';
       case 'transfer':
@@ -111,8 +107,6 @@ export default function TransactionList({
     switch (type) {
       case 'buy': return t('transaction.buy');
       case 'sell': return t('transaction.sell');
-      case 'installment_payment': return t('transaction.installmentPayment');
-      case 'installment_refund': return t('transaction.installmentRefund');
       case 'renew': return t('transaction.renew');
       case 'transfer': return t('transaction.transfer');
       case 'fee': return t('transaction.fee');

@@ -30,7 +30,7 @@ export default function TransactionForm({
   const { t } = useI18nContext();
   const [formData, setFormData] = useState({
     domain_id: '',
-    type: 'buy' as 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'installment_payment' | 'installment_refund',
+    type: 'buy' as 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising',
     amount: 0,
     currency: 'USD',
     exchange_rate: 1,
@@ -98,7 +98,7 @@ export default function TransactionForm({
     } else {
       setFormData({
         domain_id: '',
-        type: 'buy' as 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'installment_payment' | 'installment_refund',
+        type: 'buy' as 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising',
         amount: 0,
         currency: 'USD',
         exchange_rate: 1,
@@ -221,8 +221,6 @@ export default function TransactionForm({
     { value: 'buy', label: 'Purchase' },
     { value: 'renew', label: 'Renewal' },
     { value: 'sell', label: 'Sale' },
-    { value: 'installment_payment', label: 'Installment Payment' },
-    { value: 'installment_refund', label: 'Installment Refund' },
     { value: 'transfer', label: 'Transfer' },
     { value: 'fee', label: 'Fee' },
     { value: 'marketing', label: 'Marketing' },
