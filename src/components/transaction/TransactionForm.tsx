@@ -254,7 +254,7 @@ export default function TransactionForm({
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Domain *
+              {t('transaction.domain')} *
             </label>
             <select
               required
@@ -262,12 +262,14 @@ export default function TransactionForm({
               onChange={(e) => setFormData({ ...formData, domain_id: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="">Select a domain</option>
-              {domains.map((domain) => (
-                <option key={domain.id} value={domain.id}>
-                  {domain.domain_name}
-                </option>
-              ))}
+              <option value="">{t('transaction.selectDomain')}</option>
+              {domains
+                .filter(domain => domain.status === 'active' || domain.status === 'for_sale')
+                .map((domain) => (
+                  <option key={domain.id} value={domain.id}>
+                    {domain.domain_name} ({domain.status === 'active' ? t('transaction.active') : t('transaction.forSale')})
+                  </option>
+                ))}
             </select>
           </div>
 

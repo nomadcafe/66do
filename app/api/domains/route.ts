@@ -45,6 +45,23 @@ export async function POST(request: NextRequest) {
           })
         }
         
+        // 检查域名是否已存在
+        const existingDomains = await DomainService.getDomains(userId)
+        const domainName = domain.domain_name?.toLowerCase().trim()
+        const isDuplicate = existingDomains.some(d => 
+          d.domain_name.toLowerCase().trim() === domainName
+        )
+        
+        if (isDuplicate) {
+          return NextResponse.json({ 
+            error: 'Domain already exists', 
+            details: ['This domain name is already in your portfolio']
+          }, { 
+            status: 409,
+            headers: corsHeaders
+          })
+        }
+        
         // 清理和标准化数据
         const sanitizedDomain = sanitizeDomainData(domain)
         const newDomain = await DomainService.createDomain({ 

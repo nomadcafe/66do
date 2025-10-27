@@ -645,6 +645,18 @@ export default function DashboardPage() {
             : domain
         );
       } else {
+        // 检查域名是否已存在（仅对新添加的域名）
+        const domainName = domainData.domain_name.toLowerCase().trim();
+        const isDuplicate = domains.some(d => 
+          d.domain_name.toLowerCase().trim() === domainName
+        );
+        
+        if (isDuplicate) {
+          setError(t('transaction.domainAlreadyExists') + '：' + t('transaction.domainAlreadyExistsDesc'));
+          setTimeout(() => setError(null), 3000);
+          return;
+        }
+        
         // Add new domain
         const newDomain: DomainWithTags = {
           ...domainData,
