@@ -404,7 +404,11 @@ const translations: Record<Locale, Translations> = {
       getStarted: '开始使用',
       startJourney: '开始您的域名投资之旅',
       joinThousands: '加入域名投资者使用66Do追踪他们的域名投资组合',
-      startFree: '免费开始'
+      startFree: '免费开始',
+      feature1: '从一个域名开始，管理你的数字资产。',
+      feature2: '记录购买、出售与到期时间。',
+      feature3: '已有用户开始用它管理他们的域名收藏。',
+      feature4: '免费使用，持续改进中。'
     },
     features: {
       title: '核心功能',
@@ -849,7 +853,11 @@ const translations: Record<Locale, Translations> = {
       getStarted: 'Get Started',
       startJourney: 'Start Your Domain Investment Journey',
       joinThousands: 'Join domain investors using 66Do to track their domain portfolios',
-      startFree: 'Start Free'
+      startFree: 'Start Free',
+      feature1: 'Start with one domain and manage your digital assets.',
+      feature2: 'Track purchases, sales, and expiration dates.',
+      feature3: 'Users are already using it to manage their domain collections.',
+      feature4: 'Free to use, continuously improving.'
     },
     features: {
       title: 'Core Features',

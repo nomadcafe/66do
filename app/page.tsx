@@ -66,11 +66,11 @@ export default function HomePage() {
   ];
 
 
-  const stats = [
-    { label: t('stats.totalUsers'), value: "100+" },
-    { label: t('stats.portfolioValue'), value: "$2.5M+" },
-    { label: t('stats.investmentCount'), value: "1,200+" },
-    { label: t('stats.free'), value: "100%" }
+  const homeFeatures = [
+    { text: t('home.feature1') },
+    { text: t('home.feature2') },
+    { text: t('home.feature3') },
+    { text: t('home.feature4') }
   ];
 
   const handleGetStarted = () => {
@@ -174,16 +174,16 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Stats Section */}
+      {/* Features Section */}
       <div className="bg-gradient-to-r from-slate-800/50 to-slate-900/50 backdrop-blur-sm py-20 border-y border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <div key={index} className="text-center group bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:bg-white/10 transition-all duration-300">
-                <div className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent mb-3 group-hover:scale-110 transition-transform duration-300">
-                  {stat.value}
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="space-y-6">
+            {homeFeatures.map((feature, index) => (
+              <div key={index} className="flex items-center space-x-4 group bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:bg-white/10 transition-all duration-300">
+                <div className="w-2 h-2 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full flex-shrink-0"></div>
+                <div className="text-gray-300 text-lg group-hover:text-white transition-colors duration-300">
+                  {feature.text}
                 </div>
-                <div className="text-gray-300 font-medium">{stat.label}</div>
               </div>
             ))}
           </div>
