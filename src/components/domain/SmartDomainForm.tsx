@@ -5,7 +5,7 @@ import { Domain } from '../../types/domain';
 import { DomainWithTags } from '../../types/dashboard';
 import { domainExpiryManager } from '../../lib/domainExpiryManager';
 // import { useI18nContext } from '../../contexts/I18nProvider';
-import { Calendar, AlertCircle, CheckCircle, Info, RefreshCw } from 'lucide-react';
+import { Calendar, AlertCircle, Info } from 'lucide-react';
 
 interface SmartDomainFormProps {
   domain?: DomainWithTags;
@@ -37,19 +37,15 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
     updated_at: ''
   });
 
-  const [suggestedExpiry, setSuggestedExpiry] = useState<string | null>(null);
   const [expiryValidation, setExpiryValidation] = useState<{
     isValid: boolean;
     warnings: string[];
     suggestions: string[];
   } | null>(null);
-  const [autoCalculate, setAutoCalculate] = useState(true);
-  const [isCalculating, setIsCalculating] = useState(false);
 
   useEffect(() => {
     if (domain) {
       setFormData(domain);
-      setAutoCalculate(!domain.expiry_date); // 如果没有到期日期，启用自动计算
     } else {
       setFormData({
         user_id: '',
@@ -71,26 +67,9 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
         created_at: '',
         updated_at: ''
       });
-      setAutoCalculate(true);
     }
   }, [domain]);
 
-  // 自动计算到期日期
-  useEffect(() => {
-    if (autoCalculate && formData.purchase_date && formData.renewal_cycle) {
-      setIsCalculating(true);
-      
-      // 模拟计算延迟
-      setTimeout(() => {
-        const calculated = domainExpiryManager.calculateExpiryDate({
-          ...formData,
-          id: 'temp'
-        } as Domain);
-        setSuggestedExpiry(calculated);
-        setIsCalculating(false);
-      }, 500);
-    }
-  }, [formData.purchase_date, formData.renewal_cycle, formData.renewal_count, autoCalculate, formData]);
 
   // 验证到期日期
   useEffect(() => {
@@ -109,34 +88,9 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleApplySuggestion = () => {
-    if (suggestedExpiry) {
-      setFormData(prev => ({ ...prev, expiry_date: suggestedExpiry }));
-      setAutoCalculate(false);
-    }
-  };
-
-  const handleAutoCalculate = () => {
-    setAutoCalculate(!autoCalculate);
-    if (!autoCalculate) {
-      const calculated = domainExpiryManager.calculateExpiryDate({
-        ...formData,
-        id: 'temp'
-      } as Domain);
-      if (calculated) {
-        setFormData(prev => ({ ...prev, expiry_date: calculated }));
-      }
-    }
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // 如果启用自动计算且没有到期日期，使用建议的日期
-    if (autoCalculate && !formData.expiry_date && suggestedExpiry) {
-      formData.expiry_date = suggestedExpiry;
-    }
-    
     onSave(formData);
     onClose();
   };
@@ -267,72 +221,31 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
               </div>
             </div>
 
-            {/* 智能到期日期管理 */}
+            {/* 到期日期输入 */}
             <div className="border-t pt-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center mb-2">
                   <Calendar className="h-5 w-5 mr-2" />
-                  到期日期管理
+                  到期日期
                 </h3>
-                <button
-                  type="button"
-                  onClick={handleAutoCalculate}
-                  className={`flex items-center px-3 py-1 rounded-md text-sm font-medium ${
-                    autoCalculate 
-                      ? 'bg-blue-100 text-blue-700' 
-                      : 'bg-gray-100 text-gray-700'
-                  }`}
-                >
-                  {isCalculating ? (
-                    <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
-                  ) : (
-                    <CheckCircle className="h-4 w-4 mr-1" />
-                  )}
-                  自动计算
-                </button>
+                <p className="text-sm text-gray-600 mb-4">
+                  请手动输入域名的实际到期日期，或查询WHOIS获取准确信息
+                </p>
               </div>
 
-              {/* 自动计算建议 */}
-              {autoCalculate && suggestedExpiry && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <Info className="h-5 w-5 text-blue-600 mr-2" />
-                      <div>
-                        <p className="text-sm font-medium text-blue-900">
-                          建议的到期日期：{suggestedExpiry}
-                        </p>
-                        <p className="text-xs text-blue-700">
-                          基于购买日期和续费周期自动计算
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleApplySuggestion}
-                      className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
-                    >
-                      应用建议
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* 手动输入到期日期 */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   到期日期
-                  {!autoCalculate && (
-                    <span className="text-gray-500 ml-2">（手动输入）</span>
-                  )}
                 </label>
                 <input
                   type="date"
                   value={formData.expiry_date || ''}
                   onChange={(e) => handleInputChange('expiry_date', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={autoCalculate}
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  建议查询域名注册商的WHOIS信息获取准确的到期日期
+                </p>
               </div>
 
               {/* 验证结果 */}
