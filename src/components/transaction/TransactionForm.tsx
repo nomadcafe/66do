@@ -55,7 +55,10 @@ export default function TransactionForm({
     // 分期进度跟踪
     paid_periods: 0,
     installment_status: 'active' as 'active' | 'completed' | 'cancelled' | 'paused',
-    platform_fee_type: 'standard' as 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment'
+    platform_fee_type: 'standard' as 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment',
+    // 用户输入的费用率
+    user_input_fee_rate: 0,
+    user_input_surcharge_rate: 0
   });
 
   const [baseCurrency] = useState('USD');
@@ -102,7 +105,10 @@ export default function TransactionForm({
         // 分期进度跟踪
         paid_periods: transaction.paid_periods || 0,
         installment_status: transaction.installment_status || 'active',
-        platform_fee_type: transaction.platform_fee_type || 'standard'
+        platform_fee_type: transaction.platform_fee_type || 'standard',
+        // 用户输入的费用率
+        user_input_fee_rate: transaction.user_input_fee_rate || 0,
+        user_input_surcharge_rate: transaction.user_input_surcharge_rate || 0
       });
     } else {
       setFormData({
@@ -131,7 +137,10 @@ export default function TransactionForm({
         // 分期进度跟踪
         paid_periods: 0,
         installment_status: 'active' as 'active' | 'completed' | 'cancelled' | 'paused',
-        platform_fee_type: 'standard' as 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment'
+        platform_fee_type: 'standard' as 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment',
+        // 用户输入的费用率
+        user_input_fee_rate: 0,
+        user_input_surcharge_rate: 0
       });
     }
   }, [transaction]);
@@ -631,6 +640,55 @@ export default function TransactionForm({
                         <option value="paused">{t('transaction.paused')}</option>
                       </select>
                     </div>
+
+                    {/* 用户输入费用率 */}
+                    {formData.platform_fee_type === 'afternic_installment' && (
+                      <div>
+                        <label className="block text-sm font-medium text-blue-800 mb-2">
+                          {t('transaction.userInputFeeRate')}
+                        </label>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            max="1"
+                            value={formData.user_input_fee_rate}
+                            onChange={(e) => setFormData({ ...formData, user_input_fee_rate: parseFloat(e.target.value) || 0 })}
+                            className="flex-1 px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="0.30"
+                          />
+                          <span className="text-sm text-blue-600">%</span>
+                        </div>
+                        <p className="text-xs text-blue-600 mt-1">
+                          {t('transaction.userInputFeeRateDesc')}
+                        </p>
+                      </div>
+                    )}
+
+                    {formData.platform_fee_type === 'atom_installment' && (
+                      <div>
+                        <label className="block text-sm font-medium text-blue-800 mb-2">
+                          {t('transaction.userInputSurchargeRate')}
+                        </label>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            max="1"
+                            value={formData.user_input_surcharge_rate}
+                            onChange={(e) => setFormData({ ...formData, user_input_surcharge_rate: parseFloat(e.target.value) || 0 })}
+                            className="flex-1 px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="0.20"
+                          />
+                          <span className="text-sm text-blue-600">%</span>
+                        </div>
+                        <p className="text-xs text-blue-600 mt-1">
+                          {t('transaction.userInputSurchargeRateDesc')}
+                        </p>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
@@ -664,7 +722,12 @@ export default function TransactionForm({
                             const result = calculateCustomerTotalFromInstallment(
                               formData.installment_amount,
                               formData.installment_period,
-                              formData.platform_fee_type || 'standard'
+                              formData.platform_fee_type || 'standard',
+                              undefined, // customFeeRate
+                              undefined, // escrowFee
+                              undefined, // domainHoldingFee
+                              formData.user_input_fee_rate,
+                              formData.user_input_surcharge_rate
                             );
                             
                             return (
@@ -713,7 +776,12 @@ export default function TransactionForm({
                               const result = calculatePaidAmountFromInstallment(
                                 formData.installment_amount,
                                 formData.paid_periods,
-                                formData.platform_fee_type || 'standard'
+                                formData.platform_fee_type || 'standard',
+                                undefined, // customFeeRate
+                                undefined, // escrowFee
+                                undefined, // domainHoldingFee
+                                formData.user_input_fee_rate,
+                                formData.user_input_surcharge_rate
                               );
                               
                               return (

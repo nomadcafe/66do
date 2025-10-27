@@ -22,6 +22,9 @@ export interface TransactionWithRequiredFields extends Transaction {
   paid_periods?: number; // 已付期数
   installment_status?: 'active' | 'completed' | 'cancelled' | 'paused'; // 分期状态
   platform_fee_type?: 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment'; // 平台费用类型
+  // 用户输入的费用率
+  user_input_fee_rate?: number; // 用户输入的分期费用率（用于afternic等）
+  user_input_surcharge_rate?: number; // 用户输入的surcharge率（用于atom）
 }
 
 // Dashboard组件props类型

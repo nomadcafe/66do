@@ -10,6 +10,9 @@ export interface PlatformFeeConfig {
   customFeeRate?: number; // 自定义费率（用于standard类型）
   escrowFee?: number; // Escrow费用（用于escrow_installment类型）
   domainHoldingFee?: number; // 域名持有费（用于escrow_installment类型）
+  // 用户输入的费用率
+  userInputFeeRate?: number; // 用户输入的分期费用率（用于afternic等）
+  userInputSurchargeRate?: number; // 用户输入的surcharge率（用于atom）
 }
 
 export interface PlatformFeeResult {
@@ -28,17 +31,17 @@ export interface PlatformFeeResult {
  * 计算平台费用
  */
 export function calculatePlatformFee(config: PlatformFeeConfig): PlatformFeeResult {
-  const { type, installmentPeriod, sellerAmount, customFeeRate, escrowFee, domainHoldingFee } = config;
+  const { type, installmentPeriod, sellerAmount, customFeeRate, escrowFee, domainHoldingFee, userInputFeeRate, userInputSurchargeRate } = config;
 
   switch (type) {
     case 'standard':
       return calculateStandardFee(sellerAmount, customFeeRate || 0.15);
 
     case 'afternic_installment':
-      return calculateAfternicInstallmentFee(sellerAmount, installmentPeriod);
+      return calculateAfternicInstallmentFee(sellerAmount, installmentPeriod, userInputFeeRate);
 
     case 'atom_installment':
-      return calculateAtomInstallmentFee(sellerAmount, installmentPeriod);
+      return calculateAtomInstallmentFee(sellerAmount, installmentPeriod, userInputSurchargeRate);
 
     case 'spaceship_installment':
       return calculateSpaceshipInstallmentFee(sellerAmount);
@@ -73,26 +76,32 @@ function calculateStandardFee(sellerAmount: number, feeRate: number): PlatformFe
 
 /**
  * Afternic分期费用计算
+ * 如果用户输入了费用率，使用用户输入的值
+ * 否则根据期数自动计算：
  * 2–12 months: No service fee
  * 13–24 months: 10% service fee
  * 25–36 months: 20% service fee
  * 37–60 months: 30% service fee
- * 
- * 注意：费用率基于实际已付期数，不是总期数
  */
-function calculateAfternicInstallmentFee(sellerAmount: number, installmentPeriod: number): PlatformFeeResult {
+function calculateAfternicInstallmentFee(sellerAmount: number, installmentPeriod: number, userInputFeeRate?: number): PlatformFeeResult {
   let feeRate: number;
 
-  if (installmentPeriod <= 12) {
-    feeRate = 0; // No service fee
-  } else if (installmentPeriod <= 24) {
-    feeRate = 0.10; // 10% service fee
-  } else if (installmentPeriod <= 36) {
-    feeRate = 0.20; // 20% service fee
-  } else if (installmentPeriod <= 60) {
-    feeRate = 0.30; // 30% service fee
+  if (userInputFeeRate !== undefined) {
+    // 使用用户输入的费用率
+    feeRate = userInputFeeRate;
   } else {
-    feeRate = 0.30; // 超过60期按30%计算
+    // 根据期数自动计算费用率
+    if (installmentPeriod <= 12) {
+      feeRate = 0; // No service fee
+    } else if (installmentPeriod <= 24) {
+      feeRate = 0.10; // 10% service fee
+    } else if (installmentPeriod <= 36) {
+      feeRate = 0.20; // 20% service fee
+    } else if (installmentPeriod <= 60) {
+      feeRate = 0.30; // 30% service fee
+    } else {
+      feeRate = 0.30; // 超过60期按30%计算
+    }
   }
 
   const customerTotalAmount = sellerAmount / (1 - feeRate);
@@ -113,27 +122,33 @@ function calculateAfternicInstallmentFee(sellerAmount: number, installmentPeriod
 
 /**
  * Atom分期费用计算
+ * 如果用户输入了surcharge率，使用用户输入的值
+ * 否则根据期数自动计算：
  * 12期: 10% surcharge
  * 24期: 15% surcharge
  * 36期: 20% surcharge
  * 48期: 25% surcharge
  * 卖家获得65%的surcharge，平台获得35%
- * 
- * 注意：surcharge率基于实际已付期数，不是总期数
  */
-function calculateAtomInstallmentFee(sellerAmount: number, installmentPeriod: number): PlatformFeeResult {
+function calculateAtomInstallmentFee(sellerAmount: number, installmentPeriod: number, userInputSurchargeRate?: number): PlatformFeeResult {
   let surchargeRate: number;
 
-  if (installmentPeriod <= 12) {
-    surchargeRate = 0.10;
-  } else if (installmentPeriod <= 24) {
-    surchargeRate = 0.15;
-  } else if (installmentPeriod <= 36) {
-    surchargeRate = 0.20;
-  } else if (installmentPeriod <= 48) {
-    surchargeRate = 0.25;
+  if (userInputSurchargeRate !== undefined) {
+    // 使用用户输入的surcharge率
+    surchargeRate = userInputSurchargeRate;
   } else {
-    surchargeRate = 0.25; // 超过48期按25%计算
+    // 根据期数自动计算surcharge率
+    if (installmentPeriod <= 12) {
+      surchargeRate = 0.10;
+    } else if (installmentPeriod <= 24) {
+      surchargeRate = 0.15;
+    } else if (installmentPeriod <= 36) {
+      surchargeRate = 0.20;
+    } else if (installmentPeriod <= 48) {
+      surchargeRate = 0.25;
+    } else {
+      surchargeRate = 0.25; // 超过48期按25%计算
+    }
   }
 
   // 反推基础金额（不包含surcharge）
@@ -197,7 +212,9 @@ export function calculateCustomerTotalFromInstallment(
   platformFeeType: string,
   customFeeRate?: number,
   escrowFee?: number,
-  domainHoldingFee?: number
+  domainHoldingFee?: number,
+  userInputFeeRate?: number,
+  userInputSurchargeRate?: number
 ): PlatformFeeResult {
   const sellerAmount = installmentAmount * installmentPeriod;
   
@@ -208,6 +225,8 @@ export function calculateCustomerTotalFromInstallment(
     customFeeRate,
     escrowFee,
     domainHoldingFee,
+    userInputFeeRate,
+    userInputSurchargeRate,
   });
 }
 
@@ -220,7 +239,9 @@ export function calculatePaidAmountFromInstallment(
   platformFeeType: string,
   customFeeRate?: number,
   escrowFee?: number,
-  domainHoldingFee?: number
+  domainHoldingFee?: number,
+  userInputFeeRate?: number,
+  userInputSurchargeRate?: number
 ): PlatformFeeResult {
   const sellerAmount = installmentAmount * paidPeriods;
   
@@ -231,5 +252,7 @@ export function calculatePaidAmountFromInstallment(
     customFeeRate,
     escrowFee,
     domainHoldingFee,
+    userInputFeeRate,
+    userInputSurchargeRate,
   });
 }
