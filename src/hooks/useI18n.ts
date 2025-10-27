@@ -399,8 +399,8 @@ const translations: Record<Locale, Translations> = {
       investmentCount: '投资数量'
     },
     home: {
-      title: '域名投资平台',
-      subtitle: '专业的域名投资管理工具，帮助您追踪域名投资组合、管理成本和收益。专注于域名投资。',
+      title: '66Do-域名投资平台',
+      subtitle: '智能化的域名管理工具，帮您轻松追踪每个域名的成本、收益与表现。',
       getStarted: '开始使用',
       startJourney: '开始您的域名投资之旅',
       joinThousands: '加入域名投资者使用66Do追踪他们的域名投资组合',
@@ -848,8 +848,8 @@ const translations: Record<Locale, Translations> = {
       investmentCount: 'Investment Count'
     },
     home: {
-      title: 'Domain Investment Platform',
-      subtitle: 'Professional domain investment management tools to help you track domain portfolios, monitor renewals, and maximize returns. Focused on domain investment.',
+      title: '66Do-Domain Investment Platform',
+      subtitle: 'Intelligent domain management tools to help you easily track the cost, revenue and performance of each domain.',
       getStarted: 'Get Started',
       startJourney: 'Start Your Domain Investment Journey',
       joinThousands: 'Join domain investors using 66Do to track their domain portfolios',
