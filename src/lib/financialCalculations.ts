@@ -295,3 +295,93 @@ export function calculateCorrelation(x: number[], y: number[]): number {
   
   return denominator === 0 ? 0 : numerator / denominator;
 }
+
+// 过期域名损失分析接口
+export interface ExpiredDomainLoss {
+  totalLoss: number;
+  annualLoss: { [year: string]: number };
+  expiredDomains: Array<{
+    domain_name: string;
+    totalInvestment: number;
+    expiryDate: string;
+    lossYear: string;
+  }>;
+  lossByYear: Array<{
+    year: string;
+    loss: number;
+    domainCount: number;
+  }>;
+}
+
+// 计算过期域名损失
+export function calculateExpiredDomainLoss(
+  domains: Array<{
+    id: string;
+    domain_name: string;
+    purchase_cost?: number | null;
+    renewal_cost?: number | null;
+    renewal_count: number;
+    status: string;
+    expiry_date?: string | null;
+    purchase_date?: string | null;
+  }>
+): ExpiredDomainLoss {
+  const now = new Date();
+  const expiredDomains: ExpiredDomainLoss['expiredDomains'] = [];
+  const annualLoss: { [year: string]: number } = {};
+  let totalLoss = 0;
+
+  domains.forEach(domain => {
+    // 检查域名是否过期
+    let isExpired = false;
+    let expiryDate: Date | null = null;
+
+    if (domain.status === 'expired') {
+      isExpired = true;
+      if (domain.expiry_date) {
+        expiryDate = new Date(domain.expiry_date);
+      }
+    } else if (domain.expiry_date) {
+      expiryDate = new Date(domain.expiry_date);
+      isExpired = expiryDate < now && domain.status !== 'sold';
+    }
+
+    if (isExpired && expiryDate) {
+      // 计算总投资成本
+      const purchaseCost = domain.purchase_cost || 0;
+      const renewalCost = domain.renewal_count * (domain.renewal_cost || 0);
+      const totalInvestment = purchaseCost + renewalCost;
+
+      if (totalInvestment > 0) {
+        const lossYear = expiryDate.getFullYear().toString();
+        
+        expiredDomains.push({
+          domain_name: domain.domain_name,
+          totalInvestment,
+          expiryDate: domain.expiry_date!,
+          lossYear
+        });
+
+        // 累计年度损失
+        annualLoss[lossYear] = (annualLoss[lossYear] || 0) + totalInvestment;
+        totalLoss += totalInvestment;
+      }
+    }
+  });
+
+  // 按年份排序
+  const lossByYear = Object.entries(annualLoss)
+    .map(([year, loss]) => ({
+      year,
+      loss,
+      domainCount: expiredDomains.filter(d => d.lossYear === year).length
+    }))
+    .sort((a, b) => parseInt(a.year) - parseInt(b.year));
+
+  return {
+    totalLoss,
+    annualLoss,
+    expiredDomains,
+    lossByYear
+  };
+}

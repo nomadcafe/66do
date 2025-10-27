@@ -302,7 +302,18 @@ const translations: Record<Locale, Translations> = {
       considerDiversification: '考虑分散投资，降低单一域名占比',
       highVolatility: '投资组合波动性较高，建议增加稳定收益域名',
       lowLiquidity: '流动性不足，建议增加待售域名数量',
-      lowDiversity: '域名数量较少，建议增加投资组合多样性'
+      lowDiversity: '域名数量较少，建议增加投资组合多样性',
+      // 过期域名损失分析
+      expiredDomainLoss: '过期域名损失分析',
+      expiredDomainLossDesc: '因域名过期不续费造成的投资损失',
+      totalLoss: '总损失',
+      expiredDomainsCount: '过期域名数',
+      averageLossPerDomain: '平均损失/域名',
+      annualLossTrend: '年度损失趋势',
+      domains: '个域名',
+      expiredDomainsDetails: '过期域名详情',
+      noExpiredDomains: '暂无过期域名',
+      noExpiredDomainsDesc: '恭喜！您没有因域名过期造成的损失'
     },
     auth: {
       signIn: {
@@ -793,7 +804,18 @@ const translations: Record<Locale, Translations> = {
       considerDiversification: 'Consider diversifying investments to reduce single domain concentration',
       highVolatility: 'Portfolio volatility is high, consider adding stable income domains',
       lowLiquidity: 'Insufficient liquidity, consider increasing the number of domains for sale',
-      lowDiversity: 'Few domains, consider increasing portfolio diversity'
+      lowDiversity: 'Few domains, consider increasing portfolio diversity',
+      // Expired Domain Loss Analysis
+      expiredDomainLoss: 'Expired Domain Loss Analysis',
+      expiredDomainLossDesc: 'Investment losses due to domain expiration without renewal',
+      totalLoss: 'Total Loss',
+      expiredDomainsCount: 'Expired Domains',
+      averageLossPerDomain: 'Avg Loss/Domain',
+      annualLossTrend: 'Annual Loss Trend',
+      domains: 'domains',
+      expiredDomainsDetails: 'Expired Domains Details',
+      noExpiredDomains: 'No Expired Domains',
+      noExpiredDomainsDesc: 'Congratulations! You have no losses from expired domains'
     },
     auth: {
       signIn: {
