@@ -713,8 +713,9 @@ export default function DashboardPage() {
   };
 
   const handleViewDomain = (domain: DomainWithTags) => {
-    // TODO: Implement domain details view
-    console.log('View domain:', domain);
+    // 设置编辑域名状态，打开编辑表单
+    setEditingDomain(domain);
+    setShowDomainForm(true);
   };
 
   // Transaction management functions
