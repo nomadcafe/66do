@@ -62,12 +62,9 @@ import {
   Activity,
   Bell,
   Settings,
-  Eye,
-  Search,
   RefreshCw,
   Zap,
   CheckCircle,
-  List,
   Database,
   Target
 } from 'lucide-react';
@@ -204,9 +201,6 @@ export default function DashboardPage() {
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [editingDomain, setEditingDomain] = useState<DomainWithTags | undefined>();
   const [editingTransaction, setEditingTransaction] = useState<TransactionWithRequiredFields | undefined>();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<string>('date');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showShareModal, setShowShareModal] = useState(false);
   const [showSaleSuccessModal, setShowSaleSuccessModal] = useState(false);
@@ -1003,28 +997,6 @@ export default function DashboardPage() {
 
 
   // Filter domains based on search and status
-  const filteredDomains = domains.filter(domain => {
-    const matchesSearch = domain.domain_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (domain.registrar || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || domain.status === filterStatus;
-    return matchesSearch && matchesStatus;
-  });
-
-  // Sort domains
-  const sortedDomains = [...filteredDomains].sort((a, b) => {
-    switch (sortBy) {
-      case 'name':
-        return a.domain_name.localeCompare(b.domain_name);
-      case 'date':
-        return new Date(b.purchase_date || '').getTime() - new Date(a.purchase_date || '').getTime();
-      case 'value':
-        return (b.estimated_value || 0) - (a.estimated_value || 0);
-      case 'cost':
-        return (b.purchase_cost || 0) - (a.purchase_cost || 0);
-      default:
-        return 0;
-    }
-  });
 
   if (loading) {
     return <LoadingSpinner />;
@@ -1643,61 +1615,14 @@ export default function DashboardPage() {
 
         {activeTab === 'domains' && (
           <div className="space-y-6">
-            {/* Search and Filter */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input
-                  type="text"
-                      placeholder={t('common.searchDomains')}
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-                </div>
-                <div className="flex gap-2">
-                  <select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="all">{t('common.allStatus')}</option>
-                    <option value="active">{t('common.activeStatus')}</option>
-                    <option value="for_sale">{t('common.forSaleStatus')}</option>
-                    <option value="sold">{t('common.soldStatus')}</option>
-                    <option value="expired">{t('common.expiredStatus')}</option>
-                  </select>
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="date">{t('common.sortByDate')}</option>
-                    <option value="name">{t('common.sortByName')}</option>
-                    <option value="value">{t('common.sortByValue')}</option>
-                    <option value="cost">{t('common.sortByCost')}</option>
-                  </select>
-                  <button
-                    onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-                    className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                  >
-                    {viewMode === 'grid' ? <Eye className="h-4 w-4" /> : <List className="h-4 w-4" />}
-                </button>
-                </div>
-              </div>
-            </div>
-
             <DomainList
-              domains={sortedDomains}
+              domains={domains}
               onEdit={handleEditDomain}
               onDelete={handleDeleteDomain}
               onView={handleViewDomain}
               onAdd={handleAddDomain}
-                />
-              </div>
+            />
+          </div>
         )}
 
         {activeTab === 'transactions' && (
