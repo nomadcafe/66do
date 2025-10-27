@@ -168,7 +168,6 @@ export default function DashboardPage() {
     // 过滤和转换Supabase数据以匹配函数期望的类型
     const validDomains = domains
       .filter(domain => 
-        domain.status === 'active' && 
         domain.purchase_cost !== null && 
         domain.renewal_cost !== null &&
         domain.purchase_date !== null
@@ -449,7 +448,6 @@ export default function DashboardPage() {
     // 过滤和转换Supabase数据以匹配函数期望的类型
     const validDomains = domains
       .filter(domain => 
-        domain.status === 'active' && 
         domain.purchase_cost !== null && 
         domain.renewal_cost !== null &&
         domain.purchase_date !== null
