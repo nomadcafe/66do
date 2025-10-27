@@ -1159,10 +1159,10 @@ export default function DashboardPage() {
           <div className="bg-white p-6 rounded-2xl border border-gray-100 hover:shadow-lg transition-all duration-300">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">ROI</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.roi.toFixed(1)}%</p>
+                <p className="text-sm font-medium text-gray-500 mb-1">{t('dashboard.profitMargin')}</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.totalRevenue > 0 ? ((stats.totalProfit / stats.totalRevenue) * 100).toFixed(1) : 0}%</p>
               </div>
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
+              <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center">
                 <BarChart3 className="h-6 w-6 text-white" />
               </div>
             </div>
