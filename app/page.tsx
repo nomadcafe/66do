@@ -70,7 +70,7 @@ export default function HomePage() {
     { label: t('stats.totalUsers'), value: "100+" },
     { label: t('stats.portfolioValue'), value: "$2.5M+" },
     { label: t('stats.investmentCount'), value: "1,200+" },
-    { label: t('stats.successRate'), value: "100%" }
+    { label: t('stats.free'), value: "100%" }
   ];
 
   const handleGetStarted = () => {

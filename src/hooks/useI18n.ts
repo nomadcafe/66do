@@ -395,7 +395,7 @@ const translations: Record<Locale, Translations> = {
       totalUsers: '活跃用户',
       portfolioValue: '投资组合价值',
       domainsManaged: '管理域名数',
-      successRate: '成功率',
+      free: '免费使用',
       investmentCount: '投资数量'
     },
     home: {
@@ -840,7 +840,7 @@ const translations: Record<Locale, Translations> = {
       totalUsers: 'Active Users',
       portfolioValue: 'Portfolio Value',
       domainsManaged: 'Domains Managed',
-      successRate: 'Success Rate',
+      free: 'Free to Use',
       investmentCount: 'Investment Count'
     },
     home: {
