@@ -26,7 +26,9 @@ export default function DateInput({
   // 从 value 解析出年月日
   const parsedDate = useMemo(() => {
     if (value) {
-      const date = new Date(value);
+      // 如果 value 包含时间信息，只取日期部分
+      const dateString = value.includes('T') ? value.split('T')[0] : value;
+      const date = new Date(dateString);
       if (!isNaN(date.getTime())) {
         return {
           year: date.getFullYear().toString(),
