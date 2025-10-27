@@ -14,6 +14,7 @@ import {
   Settings,
   RefreshCw
 } from 'lucide-react';
+import { useI18nContext } from '../../contexts/I18nProvider';
 
 interface ImportExportProps {
   onImport: (data: unknown) => void;
@@ -35,6 +36,7 @@ export default function DataImportExport({
   onBackup,
   onRestore
 }: ImportExportProps) {
+  const { t } = useI18nContext();
   const [activeTab, setActiveTab] = useState<'import' | 'export' | 'backup' | 'restore'>('import');
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -58,9 +60,9 @@ export default function DataImportExport({
         data = parseCSV(text);
       } else if (file.name.endsWith('.xlsx')) {
         // 这里需要添加 xlsx 解析库
-        throw new Error('Excel 文件暂不支持，请转换为 CSV 格式');
+        throw new Error(t('data.excelNotSupported'));
       } else {
-        throw new Error('不支持的文件格式');
+        throw new Error(t('data.unsupportedFormat'));
       }
 
       // 验证数据格式
@@ -68,7 +70,7 @@ export default function DataImportExport({
       if (!validation.valid) {
         setImportResult({
           success: false,
-          message: '数据格式不正确',
+          message: t('data.invalidFormat'),
           importedCount: 0,
           errors: validation.errors
         });
@@ -80,7 +82,7 @@ export default function DataImportExport({
       
       setImportResult({
         success: true,
-        message: '数据导入成功',
+        message: t('data.importSuccess'),
         importedCount: data.domains?.length || data.length || 0,
         errors: []
       });
@@ -88,9 +90,9 @@ export default function DataImportExport({
     } catch (error) {
       setImportResult({
         success: false,
-        message: error instanceof Error ? error.message : '导入失败',
+        message: error instanceof Error ? error.message : t('data.importFailed'),
         importedCount: 0,
-        errors: [error instanceof Error ? error.message : '未知错误']
+        errors: [error instanceof Error ? error.message : t('data.unknownError')]
       });
     } finally {
       setIsProcessing(false);
@@ -120,7 +122,7 @@ export default function DataImportExport({
     const errors: string[] = [];
 
     if (!data || typeof data !== 'object' || !('domains' in data) || !Array.isArray((data as {domains: unknown[]}).domains)) {
-      errors.push('数据必须包含 domains 数组');
+      errors.push(t('data.mustContainDomains'));
       return { valid: false, errors };
     }
 
@@ -129,14 +131,14 @@ export default function DataImportExport({
     
     domains.forEach((domain: unknown, index: number) => {
       if (typeof domain !== 'object' || domain === null) {
-        errors.push(`第 ${index + 1} 行数据格式错误`);
+        errors.push(t('data.rowFormatError').replace('{row}', (index + 1).toString()));
         return;
       }
       
       const domainObj = domain as Record<string, unknown>;
       requiredFields.forEach(field => {
         if (!domainObj[field]) {
-          errors.push(`第 ${index + 1} 行缺少必需字段: ${field}`);
+          errors.push(t('data.missingRequiredField').replace('{row}', (index + 1).toString()).replace('{field}', field));
         }
       });
     });
@@ -167,9 +169,9 @@ export default function DataImportExport({
   };
 
   const tabs = [
-    { id: 'import', label: '数据导入', icon: Upload },
-    { id: 'export', label: '数据导出', icon: Download },
-    { id: 'backup', label: '备份恢复', icon: Database }
+    { id: 'import', label: t('data.import'), icon: Upload },
+    { id: 'export', label: t('data.export'), icon: Download },
+    { id: 'backup', label: t('data.backup'), icon: Database }
   ];
 
   const renderImportTab = () => (
@@ -178,9 +180,9 @@ export default function DataImportExport({
         <div className="flex items-start space-x-3">
           <AlertTriangle className="h-5 w-5 text-blue-600 mt-0.5" />
           <div>
-            <h4 className="text-sm font-medium text-blue-900">导入说明</h4>
+            <h4 className="text-sm font-medium text-blue-900">{t('data.importInstructions')}</h4>
             <p className="text-sm text-blue-700 mt-1">
-              支持 JSON 和 CSV 格式。请确保数据包含域名、购买日期、购买价格等必需字段。
+              {t('data.importDescription')}
             </p>
           </div>
         </div>
@@ -201,9 +203,9 @@ export default function DataImportExport({
           </div>
           
           <div>
-            <h3 className="text-lg font-medium text-gray-900">选择文件</h3>
+            <h3 className="text-lg font-medium text-gray-900">{t('data.selectFile')}</h3>
             <p className="text-sm text-gray-600 mt-1">
-              支持 JSON 和 CSV 格式，最大 10MB
+              {t('data.fileDescription')}
             </p>
           </div>
           
@@ -217,7 +219,7 @@ export default function DataImportExport({
             ) : (
               <ArrowUp className="h-4 w-4" />
             )}
-            <span>{isProcessing ? '处理中...' : '选择文件'}</span>
+            <span>{isProcessing ? t('data.processing') : t('data.selectFile')}</span>
           </button>
         </div>
       </div>
@@ -242,12 +244,12 @@ export default function DataImportExport({
               </h4>
               {importResult.success && (
                 <p className="text-sm text-green-700 mt-1">
-                  成功导入 {importResult.importedCount} 条记录
+                  {t('data.importSuccessCount').replace('{count}', importResult.importedCount.toString())}
                 </p>
               )}
               {importResult.errors.length > 0 && (
                 <div className="mt-2">
-                  <p className="text-sm text-red-700 font-medium">错误详情:</p>
+                  <p className="text-sm text-red-700 font-medium">{t('data.errorDetails')}:</p>
                   <ul className="text-sm text-red-600 mt-1 list-disc list-inside">
                     {importResult.errors.map((error, index) => (
                       <li key={index}>{error}</li>
@@ -268,10 +270,10 @@ export default function DataImportExport({
         <div className="border border-gray-200 rounded-lg p-6">
           <div className="flex items-center space-x-3 mb-4">
             <FileText className="h-6 w-6 text-blue-600" />
-            <h3 className="text-lg font-medium text-gray-900">JSON 格式</h3>
+            <h3 className="text-lg font-medium text-gray-900">{t('data.jsonFormat')}</h3>
           </div>
           <p className="text-sm text-gray-600 mb-4">
-            导出为 JSON 格式，包含完整的域名和交易数据，适合备份和迁移。
+            {t('data.jsonDescription')}
           </p>
           <button
             onClick={() => handleExport('json')}
@@ -283,17 +285,17 @@ export default function DataImportExport({
             ) : (
               <Download className="h-4 w-4" />
             )}
-            <span>导出 JSON</span>
+            <span>{t('data.exportJson')}</span>
           </button>
         </div>
 
         <div className="border border-gray-200 rounded-lg p-6">
           <div className="flex items-center space-x-3 mb-4">
             <File className="h-6 w-6 text-green-600" />
-            <h3 className="text-lg font-medium text-gray-900">CSV 格式</h3>
+            <h3 className="text-lg font-medium text-gray-900">{t('data.csvFormat')}</h3>
           </div>
           <p className="text-sm text-gray-600 mb-4">
-            导出为 CSV 格式，适合在 Excel 或其他表格软件中查看和编辑。
+            {t('data.csvDescription')}
           </p>
           <button
             onClick={() => handleExport('csv')}
@@ -305,7 +307,7 @@ export default function DataImportExport({
             ) : (
               <Download className="h-4 w-4" />
             )}
-            <span>导出 CSV</span>
+            <span>{t('data.exportCsv')}</span>
           </button>
         </div>
       </div>
@@ -314,11 +316,11 @@ export default function DataImportExport({
         <div className="flex items-start space-x-3">
           <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
           <div>
-            <h4 className="text-sm font-medium text-yellow-900">注意事项</h4>
+            <h4 className="text-sm font-medium text-yellow-900">{t('data.notes')}</h4>
             <ul className="text-sm text-yellow-700 mt-1 list-disc list-inside">
-              <li>导出的数据包含所有域名和交易记录</li>
-              <li>敏感信息如密码不会包含在导出文件中</li>
-              <li>建议定期备份数据以防丢失</li>
+              <li>{t('data.exportNote1')}</li>
+              <li>{t('data.exportNote2')}</li>
+              <li>{t('data.exportNote3')}</li>
             </ul>
           </div>
         </div>
@@ -332,10 +334,10 @@ export default function DataImportExport({
         <div className="border border-gray-200 rounded-lg p-6">
           <div className="flex items-center space-x-3 mb-4">
             <Database className="h-6 w-6 text-purple-600" />
-            <h3 className="text-lg font-medium text-gray-900">创建备份</h3>
+            <h3 className="text-lg font-medium text-gray-900">{t('data.createBackup')}</h3>
           </div>
           <p className="text-sm text-gray-600 mb-4">
-            创建完整的数据备份，包含所有域名、交易记录和用户设置。
+            {t('data.createBackupDescription')}
           </p>
           <button
             onClick={handleBackup}
@@ -347,17 +349,17 @@ export default function DataImportExport({
             ) : (
               <ArrowUp className="h-4 w-4" />
             )}
-            <span>创建备份</span>
+            <span>{t('data.createBackup')}</span>
           </button>
         </div>
 
         <div className="border border-gray-200 rounded-lg p-6">
           <div className="flex items-center space-x-3 mb-4">
             <Settings className="h-6 w-6 text-orange-600" />
-            <h3 className="text-lg font-medium text-gray-900">恢复备份</h3>
+            <h3 className="text-lg font-medium text-gray-900">{t('data.restoreBackup')}</h3>
           </div>
           <p className="text-sm text-gray-600 mb-4">
-            从备份文件恢复数据，将覆盖当前所有数据。
+            {t('data.restoreBackupDescription')}
           </p>
           <input
             type="file"
@@ -386,9 +388,9 @@ export default function DataImportExport({
         <div className="flex items-start space-x-3">
           <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
           <div>
-            <h4 className="text-sm font-medium text-red-900">重要警告</h4>
+            <h4 className="text-sm font-medium text-red-900">{t('data.importantWarning')}</h4>
             <p className="text-sm text-red-700 mt-1">
-              恢复备份将完全替换当前数据，此操作不可撤销。请确保在恢复前已创建当前数据的备份。
+              {t('data.restoreWarning')}
             </p>
           </div>
         </div>
@@ -401,10 +403,10 @@ export default function DataImportExport({
       <div className="border border-gray-200 rounded-lg p-6">
         <div className="flex items-center space-x-3 mb-4">
           <Settings className="h-6 w-6 text-orange-600" />
-          <h3 className="text-lg font-medium text-gray-900">恢复备份</h3>
+          <h3 className="text-lg font-medium text-gray-900">{t('data.restoreBackup')}</h3>
         </div>
         <p className="text-sm text-gray-600 mb-4">
-          从备份文件恢复数据，将覆盖当前所有数据。
+          {t('data.restoreBackupDescription')}
         </p>
         <input
           type="file"
@@ -433,8 +435,8 @@ export default function DataImportExport({
   return (
     <div className="bg-white rounded-lg shadow-sm border">
       <div className="p-6 border-b border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900">数据管理</h3>
-        <p className="text-sm text-gray-600 mt-1">导入、导出和备份您的域名投资数据</p>
+        <h3 className="text-lg font-semibold text-gray-900">{t('data.dataManagement')}</h3>
+        <p className="text-sm text-gray-600 mt-1">{t('data.dataManagementDescription')}</p>
       </div>
 
       <div className="flex">
