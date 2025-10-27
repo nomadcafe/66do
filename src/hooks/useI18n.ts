@@ -452,7 +452,13 @@ const translations: Record<Locale, Translations> = {
         sending: '发送中...',
         success: 'Magic Link已发送到您的邮箱！请检查邮件并点击链接登录。',
         error: '发送Magic Link失败，请重试',
-        firstTime: '首次使用？Magic Link 会自动为您创建账户'
+        firstTime: '首次使用？Magic Link 会自动为您创建账户',
+        verifying: '正在验证您的登录链接...',
+        loginSuccess: '登录成功！正在跳转到您的仪表板...',
+        loading: '加载中...',
+        invalidLink: '无效的登录链接。请通过邮件中的链接访问。',
+        loginFailed: '登录失败，请重试',
+        returnToLogin: '返回登录页面'
       },
       verify: {
         title: '验证邮箱',
@@ -1063,7 +1069,13 @@ const translations: Record<Locale, Translations> = {
         sending: 'Sending...',
         success: 'Magic Link sent to your email! Please check your inbox and click the link to login.',
         error: 'Failed to send Magic Link, please try again',
-        firstTime: 'First time? Magic Link will automatically create an account for you'
+        firstTime: 'First time? Magic Link will automatically create an account for you',
+        verifying: 'Verifying your login link...',
+        loginSuccess: 'Login successful! Redirecting to your dashboard...',
+        loading: 'Loading...',
+        invalidLink: 'Invalid login link. Please access through the link in your email.',
+        loginFailed: 'Login failed, please try again',
+        returnToLogin: 'Return to login page'
       },
       verify: {
         title: 'Verify Email',
