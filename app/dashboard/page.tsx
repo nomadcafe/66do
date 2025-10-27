@@ -816,9 +816,12 @@ export default function DashboardPage() {
 
 
   const handleSaveTransaction = async (transactionData: Omit<TransactionWithRequiredFields, 'id'>) => {
+    let updatedTransactions: TransactionWithRequiredFields[];
+    let updatedDomains = domains;
+    
     if (editingTransaction) {
       // Update existing transaction
-      const updatedTransactions = transactions.map(transaction => 
+      updatedTransactions = transactions.map(transaction => 
         transaction.id === editingTransaction.id 
           ? ensureTransactionWithRequiredFields({ ...transactionData, id: editingTransaction.id })
           : transaction
@@ -831,12 +834,29 @@ export default function DashboardPage() {
         ...transactionData,
         id: Date.now().toString()
       });
-      const updatedTransactions = [...transactions, newTransaction];
+      updatedTransactions = [...transactions, newTransaction];
       setTransactions(updatedTransactions);
-      await saveData(domains, updatedTransactions);
       
-      // 自动更新域名状态
-      updateDomainStatusFromTransaction(newTransaction);
+      // 先更新域名状态（如果适用）
+      if (newTransaction.type === 'sell' && newTransaction.domain_id) {
+        updatedDomains = domains.map(domain => {
+          if (domain.id === newTransaction.domain_id) {
+            return {
+              ...domain,
+              status: 'sold' as const,
+              sale_date: newTransaction.date,
+              sale_price: newTransaction.amount,
+              platform_fee: newTransaction.platform_fee || 0
+            };
+          }
+          return domain;
+        });
+        setDomains(updatedDomains);
+        console.log('Domain status updated to sold');
+      }
+      
+      // 保存交易和更新后的域名状态
+      await saveData(updatedDomains, updatedTransactions);
     }
     
     // 重新加载数据以确保界面显示最新状态
@@ -846,29 +866,6 @@ export default function DashboardPage() {
     setEditingTransaction(undefined);
   };
 
-  // 根据交易自动更新域名状态
-  const updateDomainStatusFromTransaction = (transaction: Transaction) => {
-    if (transaction.type === 'sell' && transaction.domain_id) {
-      const updatedDomains = domains.map(domain => {
-        if (domain.id === transaction.domain_id) {
-          return {
-            ...domain,
-            status: 'sold' as const,
-            sale_date: transaction.date,
-            sale_price: transaction.amount,
-            platform_fee: transaction.platform_fee || 0
-          };
-        }
-        return domain;
-      });
-      
-      setDomains(updatedDomains);
-      saveData(updatedDomains, transactions);
-      
-      // 显示成功消息
-      console.log(t('common.domainStatusUpdated'));
-    }
-  };
 
   // 处理出售交易完成后的分享
   const handleSaleComplete = (transaction: Omit<TransactionWithRequiredFields, 'id'>, domain: DomainWithTags) => {
