@@ -49,6 +49,11 @@ export interface DomainTransaction {
   payment_status?: 'completed' | 'in_progress' | 'overdue';
   paid_installments?: number;
   remaining_installments?: number;
+  // 分期付款详细信息
+  downpayment_amount?: number; // 首付金额
+  installment_amount?: number; // 每期金额
+  final_payment_amount?: number; // 最后一期金额
+  installment_schedule?: InstallmentSchedule[]; // 分期计划
 }
 
 export interface DomainStats {
@@ -59,4 +64,14 @@ export interface DomainStats {
   roi: number;
   expiringSoon: number;
   forSale: number;
+}
+
+// 分期付款计划接口
+export interface InstallmentSchedule {
+  period: number; // 期数 (1, 2, 3...)
+  amount: number; // 该期金额
+  due_date: string; // 到期日期
+  status: 'pending' | 'paid' | 'overdue' | 'cancelled'; // 状态
+  payment_date?: string; // 实际付款日期
+  notes?: string; // 备注
 }

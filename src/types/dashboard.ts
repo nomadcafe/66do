@@ -11,6 +11,13 @@ export interface TransactionWithRequiredFields extends Transaction {
   type: 'buy' | 'sell' | 'renew' | 'transfer' | 'fee' | 'installment_payment' | 'installment_refund';
   amount: number;
   date: string;
+  // 分期付款相关字段
+  payment_plan?: 'lump_sum' | 'installment';
+  installment_period?: number;
+  downpayment_amount?: number;
+  installment_amount?: number;
+  final_payment_amount?: number;
+  total_installment_amount?: number;
 }
 
 // Dashboard组件props类型

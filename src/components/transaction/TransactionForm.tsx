@@ -43,7 +43,14 @@ export default function TransactionForm({
     platform: '',
     category: '',
     tax_deductible: false,
-    receipt_url: ''
+    receipt_url: '',
+    // 分期付款相关字段
+    payment_plan: 'lump_sum' as 'lump_sum' | 'installment',
+    installment_period: 1,
+    downpayment_amount: 0,
+    installment_amount: 0,
+    final_payment_amount: 0,
+    total_installment_amount: 0
   });
 
   const [baseCurrency] = useState('USD');
@@ -79,7 +86,14 @@ export default function TransactionForm({
         platform: '',
         category: transaction.category || '',
         tax_deductible: transaction.tax_deductible || false,
-        receipt_url: transaction.receipt_url || ''
+        receipt_url: transaction.receipt_url || '',
+        // 分期付款相关字段
+        payment_plan: transaction.payment_plan || 'lump_sum',
+        installment_period: transaction.installment_period || 1,
+        downpayment_amount: transaction.downpayment_amount || 0,
+        installment_amount: transaction.installment_amount || 0,
+        final_payment_amount: transaction.final_payment_amount || 0,
+        total_installment_amount: transaction.total_installment_amount || 0
       });
     } else {
       setFormData({
@@ -97,7 +111,14 @@ export default function TransactionForm({
         platform: '',
         category: '',
         tax_deductible: false,
-        receipt_url: ''
+        receipt_url: '',
+        // 分期付款相关字段
+        payment_plan: 'lump_sum' as 'lump_sum' | 'installment',
+        installment_period: 1,
+        downpayment_amount: 0,
+        installment_amount: 0,
+        final_payment_amount: 0,
+        total_installment_amount: 0
       });
     }
   }, [transaction]);
@@ -130,6 +151,21 @@ export default function TransactionForm({
 
     loadRenewalCostHistory();
   }, [formData.domain_id, formData.type]);
+
+  // 自动计算分期付款金额
+  useEffect(() => {
+    if (formData.payment_plan === 'installment' && formData.amount > 0 && formData.installment_period > 0) {
+      const remainingAmount = formData.amount - formData.downpayment_amount - formData.final_payment_amount;
+      const regularPeriods = formData.installment_period - (formData.final_payment_amount > 0 ? 1 : 0);
+      
+      if (regularPeriods > 0) {
+        const calculatedInstallmentAmount = remainingAmount / regularPeriods;
+        if (Math.abs(formData.installment_amount - calculatedInstallmentAmount) > 0.01) {
+          setFormData(prev => ({ ...prev, installment_amount: calculatedInstallmentAmount }));
+        }
+      }
+    }
+  }, [formData.amount, formData.downpayment_amount, formData.final_payment_amount, formData.installment_period, formData.payment_plan]);
 
   // 汇率处理逻辑
   useEffect(() => {
@@ -446,6 +482,116 @@ export default function TransactionForm({
                   <DollarSign className="h-6 w-6 text-green-600" />
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* 分期付款配置 */}
+          {formData.type === 'sell' && (
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <h3 className="text-lg font-medium text-blue-900 mb-4">{t('transaction.installmentConfig')}</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-blue-800 mb-2">
+                    {t('transaction.paymentPlan')}
+                  </label>
+                  <select
+                    value={formData.payment_plan}
+                    onChange={(e) => setFormData({ ...formData, payment_plan: e.target.value as 'lump_sum' | 'installment' })}
+                    className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="lump_sum">{t('transaction.lumpSum')}</option>
+                    <option value="installment">{t('transaction.installment')}</option>
+                  </select>
+                </div>
+
+                {formData.payment_plan === 'installment' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-blue-800 mb-2">
+                        {t('transaction.installmentPeriod')}
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="60"
+                        value={formData.installment_period}
+                        onChange={(e) => setFormData({ ...formData, installment_period: parseInt(e.target.value) || 1 })}
+                        className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="12"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-blue-800 mb-2">
+                        {t('transaction.downpaymentAmount')}
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={formData.downpayment_amount}
+                        onChange={(e) => setFormData({ ...formData, downpayment_amount: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="0.00"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-blue-800 mb-2">
+                        {t('transaction.installmentAmount')}
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={formData.installment_amount}
+                        onChange={(e) => setFormData({ ...formData, installment_amount: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="0.00"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-blue-800 mb-2">
+                        {t('transaction.finalPaymentAmount')}
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={formData.final_payment_amount}
+                        onChange={(e) => setFormData({ ...formData, final_payment_amount: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {formData.payment_plan === 'installment' && (
+                <div className="mt-4 p-3 bg-blue-100 rounded-lg">
+                  <h4 className="text-sm font-medium text-blue-900 mb-2">{t('transaction.installmentSummary')}</h4>
+                  <div className="text-sm text-blue-800 space-y-1">
+                    <p>{t('transaction.totalAmount')}: {formatCurrencyAmount(formData.amount, formData.currency)}</p>
+                    <p>{t('transaction.downpayment')}: {formatCurrencyAmount(formData.downpayment_amount, formData.currency)}</p>
+                    <p>{t('transaction.installmentPeriods')}: {formData.installment_period}</p>
+                    <p>{t('transaction.regularInstallment')}: {formatCurrencyAmount(formData.installment_amount, formData.currency)}</p>
+                    {formData.final_payment_amount > 0 && (
+                      <p>{t('transaction.finalPayment')}: {formatCurrencyAmount(formData.final_payment_amount, formData.currency)}</p>
+                    )}
+                    <p className="font-medium">
+                      {t('transaction.totalInstallment')}: {formatCurrencyAmount(
+                        formData.downpayment_amount + 
+                        (formData.installment_amount * (formData.installment_period - (formData.final_payment_amount > 0 ? 1 : 0))) + 
+                        formData.final_payment_amount, 
+                        formData.currency
+                      )}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
