@@ -119,7 +119,16 @@ export class RenewalCostService {
 
   // 计算年度续费成本分析（基于传入的域名数据）
   static async calculateAnnualRenewalCostAnalysisFromDomains(
-    domains: any[],
+    domains: Array<{ 
+      id: string;
+      status: string; 
+      renewal_cost?: number | null; 
+      renewal_cycle?: number;
+      created_at?: string;
+      domain_name?: string;
+      expiry_date?: string | null;
+      registrar?: string | null;
+    }>,
     year: number = new Date().getFullYear()
   ): Promise<AnnualRenewalCostAnalysis> {
     // 过滤出活跃域名
@@ -153,25 +162,27 @@ export class RenewalCostService {
     }
 
     activeDomains.forEach(domain => {
-      if (!domain.expiry_date) return;
+      const expiryDate = domain.expiry_date as string;
+      if (!expiryDate) return;
 
-      const expiryDate = new Date(domain.expiry_date);
-      const domainExpiryYear = expiryDate.getFullYear();
+      const expiryDateObj = new Date(expiryDate);
+      const domainExpiryYear = expiryDateObj.getFullYear();
 
       if (domainExpiryYear === year) {
-        domainsNeedingRenewal.push(domain.domain_name);
+        const domainName = domain.domain_name as string;
+        domainsNeedingRenewal.push(domainName);
         
         // 获取该域名的历史成本趋势
         this.getDomainRenewalCostHistory(domain.id).then(history => {
-          const predictedCost = this.predictNextRenewalCost(history) || domain.renewal_cost;
+          const predictedCost = this.predictNextRenewalCost(history) || domain.renewal_cost || 0;
           estimatedCost += predictedCost;
 
           // 按月份分布
-          const renewalMonth = expiryDate.getMonth();
+          const renewalMonth = expiryDateObj.getMonth();
           costByMonth[renewalMonth.toString()] += predictedCost;
 
           // 按注册商分布
-          const registrar = domain.registrar || 'Unknown';
+          const registrar = (domain.registrar as string) || 'Unknown';
           costByRegistrar[registrar] = (costByRegistrar[registrar] || 0) + predictedCost;
         });
       }
