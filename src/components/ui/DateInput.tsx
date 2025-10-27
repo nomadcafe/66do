@@ -32,29 +32,38 @@ export default function DateInput({
     if (value) {
       const date = new Date(value);
       if (!isNaN(date.getTime())) {
-        setYear(date.getFullYear().toString());
-        setMonth((date.getMonth() + 1).toString().padStart(2, '0'));
-        setDay(date.getDate().toString().padStart(2, '0'));
+        const newYear = date.getFullYear().toString();
+        const newMonth = (date.getMonth() + 1).toString().padStart(2, '0');
+        const newDay = date.getDate().toString().padStart(2, '0');
+        
+        // 只有当值真正不同时才更新，避免循环
+        if (year !== newYear || month !== newMonth || day !== newDay) {
+          setYear(newYear);
+          setMonth(newMonth);
+          setDay(newDay);
+        }
       }
     } else {
-      setYear('');
-      setMonth('');
-      setDay('');
+      if (year !== '' || month !== '' || day !== '') {
+        setYear('');
+        setMonth('');
+        setDay('');
+      }
     }
-  }, [value]);
+  }, [value, year, month, day]);
 
   // 更新父组件的值
   useEffect(() => {
     if (year && month && day) {
       const dateString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
       const date = new Date(dateString);
-      if (!isNaN(date.getTime())) {
+      if (!isNaN(date.getTime()) && dateString !== value) {
         onChange(dateString);
       }
-    } else if (!year && !month && !day) {
+    } else if (!year && !month && !day && value !== '') {
       onChange('');
     }
-  }, [year, month, day, onChange]);
+  }, [year, month, day, onChange, value]);
 
   const handleYearChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
