@@ -59,58 +59,180 @@ export default function DomainShareModal({ isOpen, onClose, domain }: DomainShar
     canvas.width = 800;
     canvas.height = 600;
 
-    // 绘制渐变背景
-    const gradient = ctx.createLinearGradient(0, 0, 0, 600);
-    gradient.addColorStop(0, '#667eea');
-    gradient.addColorStop(1, '#764ba2');
+    // 绘制炫酷的渐变背景 - 彩虹色
+    const gradient = ctx.createLinearGradient(0, 0, 800, 600);
+    gradient.addColorStop(0, '#ff6b6b');
+    gradient.addColorStop(0.2, '#4ecdc4');
+    gradient.addColorStop(0.4, '#45b7d1');
+    gradient.addColorStop(0.6, '#96ceb4');
+    gradient.addColorStop(0.8, '#feca57');
+    gradient.addColorStop(1, '#ff9ff3');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 800, 600);
 
-    // 绘制白色内容区域
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-    ctx.roundRect(50, 50, 700, 500, 20);
+    // 添加动态粒子效果背景
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+    for (let i = 0; i < 50; i++) {
+      const x = Math.random() * 800;
+      const y = Math.random() * 600;
+      const size = Math.random() * 4 + 1;
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 绘制主内容区域 - 玻璃拟态效果
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 2;
+    ctx.roundRect(40, 40, 720, 520, 30);
     ctx.fill();
+    ctx.stroke();
 
-    // 设置字体
-    ctx.fillStyle = '#1f2937';
-    ctx.font = 'bold 36px Arial';
+    // 绘制炫耀的标题 - 更大更炫酷
+    ctx.fillStyle = '#fff';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 3;
+    ctx.font = 'bold 48px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('🎉 Domain Investment Success 🎉', 400, 120);
+    ctx.strokeText('🚀 DOMAIN INVESTMENT LEGEND! 🚀', 400, 100);
+    ctx.fillText('🚀 DOMAIN INVESTMENT LEGEND! 🚀', 400, 100);
 
-    // 绘制域名信息
-    ctx.font = 'bold 28px Arial';
-    ctx.fillStyle = '#3b82f6';
-    ctx.fillText(domain.domain_name, 400, 170);
+    // 绘制域名信息 - 更突出
+    ctx.font = 'bold 36px Arial';
+    ctx.fillStyle = '#ffd700';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.strokeText(domain.domain_name, 400, 160);
+    ctx.fillText(domain.domain_name, 400, 160);
 
-    // 绘制统计数据
+    // 绘制统计数据 - 更炫酷的样式
     const profit = calculateDomainProfit();
     const roi = calculateROI();
     const holdingPeriod = calculateHoldingPeriod();
     
+    // 绘制数据卡片背景
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.roundRect(50, 200, 700, 200, 15);
+    ctx.fill();
+
+    ctx.font = 'bold 28px Arial';
+    ctx.fillStyle = '#fff';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 1;
+    
+    // 净利润 - 最突出
+    ctx.font = 'bold 32px Arial';
+    ctx.fillStyle = '#00ff00';
+    ctx.strokeText(`💰 MASSIVE PROFIT: $${profit.toLocaleString()} 💰`, 400, 240);
+    ctx.fillText(`💰 MASSIVE PROFIT: $${profit.toLocaleString()} 💰`, 400, 240);
+    
+    // ROI - 炫酷颜色
     ctx.font = 'bold 24px Arial';
-    ctx.fillStyle = '#1f2937';
-    ctx.fillText(`💰 Net Profit: $${profit.toLocaleString()}`, 400, 220);
-    ctx.fillText(`📈 ROI: ${roi.toFixed(1)}%`, 400, 260);
-    ctx.fillText(`⏰ Holding Period: ${holdingPeriod}`, 400, 300);
-    ctx.fillText(`💵 Sale Price: $${domain.sale_price?.toLocaleString()}`, 400, 340);
+    ctx.fillStyle = '#00ffff';
+    ctx.strokeText(`📈 INSANE ROI: ${roi.toFixed(1)}% 📈`, 400, 280);
+    ctx.fillText(`📈 INSANE ROI: ${roi.toFixed(1)}% 📈`, 400, 280);
+    
+    // 持有时间
+    ctx.fillStyle = '#ffff00';
+    ctx.strokeText(`⏰ HOLDING TIME: ${holdingPeriod} ⏰`, 400, 320);
+    ctx.fillText(`⏰ HOLDING TIME: ${holdingPeriod} ⏰`, 400, 320);
+    
+    // 售价
+    ctx.fillStyle = '#ff69b4';
+    ctx.strokeText(`💵 SALE PRICE: $${domain.sale_price?.toLocaleString()} 💵`, 400, 360);
+    ctx.fillText(`💵 SALE PRICE: $${domain.sale_price?.toLocaleString()} 💵`, 400, 360);
 
-    // 绘制品牌信息
-    ctx.font = '18px Arial';
-    ctx.fillStyle = '#6b7280';
-    ctx.fillText('Powered by 66Do.com - Professional Domain Investment Platform', 400, 480);
+    // 绘制炫耀的卡通人物和装饰
+    ctx.font = '80px Arial';
+    ctx.fillStyle = '#ffd700';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 3;
+    
+    // 左上角 - 炫耀的胜利者
+    ctx.fillText('🏆', 80, 120);
+    ctx.strokeText('🏆', 80, 120);
+    
+    // 右上角 - 火箭
+    ctx.fillText('🚀', 720, 120);
+    ctx.strokeText('🚀', 720, 120);
+    
+    // 左下角 - 钻石
+    ctx.fillText('💎', 80, 500);
+    ctx.strokeText('💎', 80, 500);
+    
+    // 右下角 - 目标
+    ctx.fillText('🎯', 720, 500);
+    ctx.strokeText('🎯', 720, 500);
 
-    // 绘制装饰元素
-    ctx.fillStyle = '#fbbf24';
-    ctx.font = '48px Arial';
-    ctx.fillText('💎', 100, 200);
-    ctx.fillText('🚀', 700, 200);
-    ctx.fillText('📈', 100, 400);
-    ctx.fillText('🎯', 700, 400);
+    // 中间炫耀的卡通人物
+    ctx.font = '100px Arial';
+    ctx.fillStyle = '#ff6b6b';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 4;
+    
+    // 主要的炫耀人物 - 在域名下方
+    ctx.fillText('😎', 400, 200);
+    ctx.strokeText('😎', 400, 200);
+    
+    // 两侧的庆祝人物
+    ctx.font = '60px Arial';
+    ctx.fillStyle = '#4ecdc4';
+    ctx.fillText('🎉', 200, 450);
+    ctx.strokeText('🎉', 200, 450);
+    
+    ctx.fillStyle = '#feca57';
+    ctx.fillText('🎊', 600, 450);
+    ctx.strokeText('🎊', 600, 450);
 
-    // 绘制成功图标
-    ctx.fillStyle = '#10b981';
-    ctx.font = '64px Arial';
+    // 绘制炫酷的边框装饰
+    ctx.strokeStyle = '#ffd700';
+    ctx.lineWidth = 6;
+    ctx.strokeRect(20, 20, 760, 560);
+    
+    // 内层装饰
+    ctx.strokeStyle = '#ff6b6b';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(30, 30, 740, 540);
+
+    // 绘制品牌信息 - 更炫酷
+    ctx.font = 'bold 20px Arial';
+    ctx.fillStyle = '#fff';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.strokeText('🔥 POWERED BY 66DO.COM - THE DOMAIN INVESTMENT KING! 🔥', 400, 480);
+    ctx.fillText('🔥 POWERED BY 66DO.COM - THE DOMAIN INVESTMENT KING! 🔥', 400, 480);
+
+    // 添加一些炫酷的线条装饰
+    ctx.strokeStyle = '#ffd700';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(100, 50);
+    ctx.lineTo(300, 50);
+    ctx.moveTo(500, 50);
+    ctx.lineTo(700, 50);
+    ctx.moveTo(100, 550);
+    ctx.lineTo(300, 550);
+    ctx.moveTo(500, 550);
+    ctx.lineTo(700, 550);
+    ctx.stroke();
+
+    // 添加成功标志 - 更夸张
+    ctx.font = '120px Arial';
+    ctx.fillStyle = '#00ff00';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 5;
     ctx.fillText('✅', 400, 420);
+    ctx.strokeText('✅', 400, 420);
+
+    // 添加一些闪烁的星星效果
+    ctx.fillStyle = '#fff';
+    ctx.font = '30px Arial';
+    for (let i = 0; i < 20; i++) {
+      const x = Math.random() * 800;
+      const y = Math.random() * 600;
+      ctx.fillText('✨', x, y);
+    }
 
     setIsGenerating(false);
   };
