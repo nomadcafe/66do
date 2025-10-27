@@ -412,22 +412,22 @@ const translations: Record<Locale, Translations> = {
     },
     features: {
       title: '核心功能',
-      subtitle: '为域名投资者量身定制的专业工具',
+      subtitle: '为域名持有者量身打造的智能管理工具',
       portfolio: {
-        title: '投资组合管理',
-        desc: '全面追踪您的域名投资组合，实时监控投资表现'
+        title: '域名组合管理',
+        desc: '全面记录并追踪您的域名，轻松掌握动态'
       },
       analytics: {
-        title: '投资分析',
-        desc: '深度分析投资数据，提供专业的投资洞察和建议'
+        title: '数据分析',
+        desc: '可视化分析域名表现，帮助您更好地规划决策'
       },
       data: {
-        title: '数据智能',
-        desc: '智能数据处理，让您的投资决策更加精准'
+        title: '智能洞察',
+        desc: '通过数据趋势发现潜在机会与风险'
       },
       security: {
-        title: '安全可靠',
-        desc: '安全认证 + 数据隔离，确保投资信息私密安全'
+        title: '数据安全',
+        desc: '加密存储与隔离机制，保障您的信息安全'
       }
     },
     benefits: {
@@ -861,22 +861,22 @@ const translations: Record<Locale, Translations> = {
     },
     features: {
       title: 'Core Features',
-      subtitle: 'Professional tools tailored for domain investors',
+      subtitle: 'Intelligent management tools designed for domain holders',
       portfolio: {
-        title: 'Portfolio Management',
-        desc: 'Comprehensive tracking of your domain investment portfolio with real-time performance monitoring'
+        title: 'Domain Portfolio Management',
+        desc: 'Comprehensive recording and tracking of your domains with easy status monitoring'
       },
       analytics: {
-        title: 'Investment Analytics',
-        desc: 'Deep analysis of investment data with professional insights and recommendations'
+        title: 'Data Analysis',
+        desc: 'Visual analysis of domain performance to help you make better planning decisions'
       },
       data: {
-        title: 'Data Intelligence',
-        desc: 'Smart data processing to make your investment decisions more precise'
+        title: 'Smart Insights',
+        desc: 'Discover potential opportunities and risks through data trends'
       },
       security: {
-        title: 'Secure & Reliable',
-        desc: 'Secure authentication + data isolation ensures your investment privacy'
+        title: 'Data Security',
+        desc: 'Encrypted storage and isolation mechanisms to protect your information security'
       }
     },
     benefits: {
