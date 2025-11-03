@@ -292,27 +292,50 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
 
   // 辅助函数已移至共享计算库
 
-  const renderPortfolioMetrics = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-lg text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-blue-100 text-sm">{t('analytics.totalInvestment')}</p>
-            <p className="text-2xl font-bold">${portfolioMetrics.totalInvestment.toLocaleString()}</p>
+  const renderPortfolioMetrics = () => {
+    if (filteredData.domains.length === 0 && filteredData.transactions.length === 0) {
+      return (
+        <div className="bg-white p-6 rounded-lg shadow-sm border">
+          <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+            <BarChart3 className="h-16 w-16 text-gray-300 mb-4" />
+            <p className="text-lg font-medium text-gray-600 mb-2">{t('analytics.noDataAvailable')}</p>
+            <p className="text-sm text-gray-400">{t('analytics.noDataMessage')}</p>
           </div>
-          <DollarSign className="h-8 w-8 text-blue-200" />
         </div>
-      </div>
+      );
+    }
 
-      <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-lg text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-purple-100 text-sm">{t('analytics.totalRevenue')}</p>
-            <p className="text-2xl font-bold">${portfolioMetrics.totalRevenue.toLocaleString()}</p>
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-lg text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-blue-100 text-sm">{t('analytics.totalInvestment')}</p>
+              <p className="text-2xl font-bold">${portfolioMetrics.totalInvestment.toLocaleString()}</p>
+              {filteredData.domains.length > 0 && (
+                <p className="text-blue-200 text-xs mt-1">
+                  {filteredData.domains.length} {t('analytics.domainsCount') || '个域名'}
+                </p>
+              )}
+            </div>
+            <DollarSign className="h-8 w-8 text-blue-200" />
           </div>
-          <TrendingUp className="h-8 w-8 text-purple-200" />
         </div>
-      </div>
+
+        <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-lg text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-purple-100 text-sm">{t('analytics.totalRevenue')}</p>
+              <p className="text-2xl font-bold">${portfolioMetrics.totalRevenue.toLocaleString()}</p>
+              {filteredData.transactions.filter(t => t.type === 'sell').length > 0 && (
+                <p className="text-purple-200 text-xs mt-1">
+                  {filteredData.transactions.filter(t => t.type === 'sell').length} {t('analytics.salesCount') || '笔出售'}
+                </p>
+              )}
+            </div>
+            <TrendingUp className="h-8 w-8 text-purple-200" />
+          </div>
+        </div>
 
       <div className="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-lg text-white">
         <div className="flex items-center justify-between">
@@ -332,6 +355,11 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
               </div>
             </div>
             <p className="text-2xl font-bold">${portfolioMetrics.totalProfit.toLocaleString()}</p>
+            <p className={`text-green-200 text-xs mt-1 ${
+              portfolioMetrics.totalProfit >= 0 ? 'text-green-100' : 'text-red-200'
+            }`}>
+              {portfolioMetrics.totalProfit >= 0 ? t('analytics.performanceRating.profitable') : t('analytics.performanceRating.loss')}
+            </p>
           </div>
           <Target className="h-8 w-8 text-green-200" />
         </div>
@@ -342,6 +370,14 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
           <div>
             <p className="text-orange-100 text-sm">{t('analytics.totalReturn')}</p>
             <p className="text-2xl font-bold">{portfolioMetrics.totalReturn.toFixed(1)}%</p>
+            <p className={`text-orange-200 text-xs mt-1 ${
+              portfolioMetrics.totalReturn >= 20 ? 'text-green-100' :
+              portfolioMetrics.totalReturn >= 10 ? 'text-yellow-100' : ''
+            }`}>
+              {portfolioMetrics.totalReturn >= 20 ? t('analytics.performanceRating.excellent') :
+               portfolioMetrics.totalReturn >= 10 ? t('analytics.performanceRating.good') :
+               portfolioMetrics.totalReturn >= 0 ? t('analytics.performanceRating.normal') : t('analytics.performanceRating.needsImprovement')}
+            </p>
           </div>
           <BarChart3 className="h-8 w-8 text-orange-200" />
         </div>
@@ -349,8 +385,21 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
 
       <div className="bg-gradient-to-br from-red-500 to-red-600 p-6 rounded-lg text-white">
         <div className="flex items-center justify-between">
-          <div>
-            <p className="text-red-100 text-sm">{t('analytics.annualizedReturn')}</p>
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-red-100 text-sm">{t('analytics.annualizedReturn')}</p>
+              <div className="group relative">
+                <Info className="h-4 w-4 text-red-200 cursor-help hover:text-red-100 transition-colors" />
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-xs">
+                  <div className="text-center whitespace-normal">
+                    {t('analytics.annualizedReturnDesc')}
+                  </div>
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                    <div className="w-2 h-2 bg-gray-900 transform rotate-45"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
             <p className="text-2xl font-bold">{portfolioMetrics.annualizedReturn.toFixed(1)}%</p>
           </div>
           <Activity className="h-8 w-8 text-red-200" />
@@ -359,61 +408,122 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
 
       <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 p-6 rounded-lg text-white">
         <div className="flex items-center justify-between">
-          <div>
-            <p className="text-indigo-100 text-sm">{t('analytics.sharpeRatio')}</p>
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-indigo-100 text-sm">{t('analytics.sharpeRatio')}</p>
+              <div className="group relative">
+                <Info className="h-4 w-4 text-indigo-200 cursor-help hover:text-indigo-100 transition-colors" />
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-xs">
+                  <div className="text-center whitespace-normal">
+                    {t('analytics.sharpeRatioDesc')}
+                  </div>
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                    <div className="w-2 h-2 bg-gray-900 transform rotate-45"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
             <p className="text-2xl font-bold">{portfolioMetrics.sharpeRatio.toFixed(2)}</p>
           </div>
           <Zap className="h-8 w-8 text-indigo-200" />
         </div>
       </div>
-    </div>
-  );
+      </div>
+    );
+  };
 
-  const renderPerformanceChart = () => (
-    <div className="bg-white p-6 rounded-lg shadow-sm border">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.portfolioPerformance')}</h3>
-      <ResponsiveContainer width="100%" height={400}>
-        <AreaChart data={timeSeriesData}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="date" />
-          <YAxis />
-          <Tooltip 
-            formatter={(value, name) => [
-              `$${Number(value).toLocaleString()}`, 
-              name === 'investment' ? t('analytics.investment') : 
-              name === 'revenue' ? t('analytics.revenue') : 
-              name === 'profit' ? t('analytics.profit') : t('analytics.portfolioValue')
-            ]}
-          />
-          <Area 
-            type="monotone" 
-            dataKey="investment" 
-            stackId="1" 
-            stroke="#3B82F6" 
-            fill="#3B82F6" 
-            fillOpacity={0.6}
-            name={t('analytics.investment')}
-          />
-          <Area 
-            type="monotone" 
-            dataKey="revenue" 
-            stackId="2" 
-            stroke="#10B981" 
-            fill="#10B981" 
-            fillOpacity={0.6}
-            name={t('analytics.revenue')}
-          />
-          <Line 
-            type="monotone" 
-            dataKey="portfolioValue" 
-            stroke="#8B5CF6" 
-            strokeWidth={3}
-            name={t('analytics.portfolioValue')}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
-    </div>
-  );
+  const renderPerformanceChart = () => {
+    if (timeSeriesData.length === 0) {
+      return (
+        <div className="bg-white p-6 rounded-lg shadow-sm border">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.portfolioPerformance')}</h3>
+          <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+            <BarChart3 className="h-12 w-12 text-gray-300 mb-4" />
+            <p className="text-gray-600">{t('analytics.noChartData')}</p>
+            <p className="text-sm text-gray-400 mt-2">{t('analytics.noChartDataMessage')}</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">{t('analytics.portfolioPerformance')}</h3>
+          <div className="flex items-center gap-4 text-xs text-gray-600">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-blue-500 rounded"></div>
+              <span>{t('analytics.investment')}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-green-500 rounded"></div>
+              <span>{t('analytics.revenue')}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-purple-500 rounded"></div>
+              <span>{t('analytics.portfolioValue')}</span>
+            </div>
+          </div>
+        </div>
+        <ResponsiveContainer width="100%" height={400}>
+          <AreaChart data={timeSeriesData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis 
+              dataKey="date" 
+              tick={{ fontSize: 12 }}
+              tickFormatter={(value) => {
+                const date = new Date(value);
+                return `${date.getMonth() + 1}/${date.getFullYear()}`;
+              }}
+            />
+            <YAxis 
+              tick={{ fontSize: 12 }}
+              tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+            />
+            <Tooltip 
+              formatter={(value, name) => [
+                `$${Number(value).toLocaleString()}`, 
+                name === 'investment' ? t('analytics.investment') : 
+                name === 'revenue' ? t('analytics.revenue') : 
+                name === 'profit' ? t('analytics.profit') : t('analytics.portfolioValue')
+              ]}
+              labelFormatter={(value) => {
+                const date = new Date(value);
+                return date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' });
+              }}
+            />
+            <Area 
+              type="monotone" 
+              dataKey="investment" 
+              stackId="1" 
+              stroke="#3B82F6" 
+              fill="#3B82F6" 
+              fillOpacity={0.6}
+              name={t('analytics.investment')}
+            />
+            <Area 
+              type="monotone" 
+              dataKey="revenue" 
+              stackId="2" 
+              stroke="#10B981" 
+              fill="#10B981" 
+              fillOpacity={0.6}
+              name={t('analytics.revenue')}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="portfolioValue" 
+              stroke="#8B5CF6" 
+              strokeWidth={3}
+              name={t('analytics.portfolioValue')}
+              dot={{ r: 4 }}
+              activeDot={{ r: 6 }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    );
+  };
 
   const renderRiskAnalysis = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -716,12 +826,37 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     </div>
   );
 
+  // 获取时间范围显示文本
+  const getTimeframeText = () => {
+    switch (selectedTimeframe) {
+      case '3M':
+        return t('analytics.timeframe.3M') || '最近3个月';
+      case '6M':
+        return t('analytics.timeframe.6M') || '最近6个月';
+      case '1Y':
+        return t('analytics.timeframe.1Y') || '最近1年';
+      case 'ALL':
+      default:
+        return t('analytics.timeframe.ALL') || '全部时间';
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* 分析类型选择器 */}
       <div className="bg-white p-4 rounded-lg shadow-sm border">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">投资分析</h3>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">{t('analytics.title') || '投资分析'}</h3>
+            <p className="text-sm text-gray-500 mt-1">
+              {t('analytics.dataRange') || '数据范围'}: <span className="font-medium text-gray-700">{getTimeframeText()}</span>
+              {selectedTimeframe !== 'ALL' && (
+                <span className="ml-2 text-xs text-gray-400">
+                  ({filteredData.domains.length} {t('analytics.domainsCount') || '个域名'}, {filteredData.transactions.length} {t('analytics.transactionsCount') || '笔交易'})
+                </span>
+              )}
+            </p>
+          </div>
           <div className="flex items-center space-x-4">
             <select
               value={selectedMetric}
@@ -750,6 +885,54 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       {/* 投资组合指标 */}
       {selectedMetric === 'portfolio' && (
         <div className="space-y-6">
+          {/* 关键洞察概览 */}
+          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-6 rounded-lg border border-indigo-100">
+            <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Target className="h-5 w-5 text-indigo-600" />
+              {t('analytics.keyInsights')}
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white p-4 rounded-lg shadow-sm">
+                <p className="text-xs text-gray-500 mb-1">{t('analytics.totalReturn')}</p>
+                <p className={`text-2xl font-bold ${
+                  portfolioMetrics.totalReturn >= 0 ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {portfolioMetrics.totalReturn >= 0 ? '+' : ''}{portfolioMetrics.totalReturn.toFixed(1)}%
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {portfolioMetrics.totalReturn >= 20 ? t('analytics.returnRating.excellent') :
+                   portfolioMetrics.totalReturn >= 10 ? t('analytics.returnRating.good') :
+                   portfolioMetrics.totalReturn >= 0 ? t('analytics.returnRating.slightlyProfitable') : t('analytics.returnRating.loss')}
+                </p>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-sm">
+                <p className="text-xs text-gray-500 mb-1">{t('analytics.sharpeRatio')}</p>
+                <p className={`text-2xl font-bold ${
+                  portfolioMetrics.sharpeRatio >= 1 ? 'text-green-600' :
+                  portfolioMetrics.sharpeRatio >= 0.5 ? 'text-yellow-600' : 'text-red-600'
+                }`}>
+                  {portfolioMetrics.sharpeRatio.toFixed(2)}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {portfolioMetrics.sharpeRatio >= 1 ? t('analytics.sharpeRating.excellent') :
+                   portfolioMetrics.sharpeRatio >= 0.5 ? t('analytics.sharpeRating.average') : t('analytics.sharpeRating.needsOptimization')}
+                </p>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-sm">
+                <p className="text-xs text-gray-500 mb-1">{t('analytics.winRate')}</p>
+                <p className={`text-2xl font-bold ${
+                  portfolioMetrics.winRate >= 50 ? 'text-green-600' :
+                  portfolioMetrics.winRate >= 30 ? 'text-yellow-600' : 'text-red-600'
+                }`}>
+                  {portfolioMetrics.winRate.toFixed(1)}%
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {portfolioMetrics.winRate >= 50 ? t('analytics.winRateRating.good') :
+                   portfolioMetrics.winRate >= 30 ? t('analytics.winRateRating.average') : t('analytics.winRateRating.needsImprovement')}
+                </p>
+              </div>
+            </div>
+          </div>
           {renderPortfolioMetrics()}
           {renderPerformanceChart()}
         </div>

@@ -70,7 +70,8 @@ import {
   Zap,
   CheckCircle,
   Database,
-  Target
+  Target,
+  Info
 } from 'lucide-react';
 
 // Domain and Transaction types are now imported from supabaseService
@@ -1094,8 +1095,21 @@ export default function DashboardPage() {
 
           <div className="bg-white p-6 rounded-2xl border border-gray-100 hover:shadow-lg transition-all duration-300">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">{t('dashboard.profitMargin')}</p>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="text-sm font-medium text-gray-500">{t('dashboard.profitMargin')}</p>
+                  <div className="group relative">
+                    <Info className="h-4 w-4 text-gray-400 cursor-help hover:text-gray-600 transition-colors" />
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-xs">
+                      <div className="text-center whitespace-normal">
+                        {t('dashboard.profitMarginCalculation')}
+                      </div>
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                        <div className="w-2 h-2 bg-gray-900 transform rotate-45"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 <p className="text-3xl font-bold text-gray-900">{stats.totalRevenue > 0 ? ((stats.totalProfit / stats.totalRevenue) * 100).toFixed(1) : 0}%</p>
               </div>
               <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center">

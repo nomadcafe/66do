@@ -21,6 +21,10 @@ interface ExpiredDomainLossAnalysisProps {
 export default function ExpiredDomainLossAnalysis({ domains }: ExpiredDomainLossAnalysisProps) {
   const { t } = useI18nContext();
   const lossAnalysis = calculateExpiredDomainLoss(domains);
+  
+  // 计算今年的损失
+  const currentYear = new Date().getFullYear().toString();
+  const thisYearLoss = lossAnalysis.annualLoss[currentYear] || 0;
 
   // 统计域名状态
   const statusCounts = domains.reduce((acc, domain) => {
@@ -97,10 +101,10 @@ export default function ExpiredDomainLossAnalysis({ domains }: ExpiredDomainLoss
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-red-600 mb-1">
-                {t('analytics.cumulativeTotalLoss')}
+                {t('analytics.thisYearTotalLoss')}
               </p>
               <p className="text-2xl font-bold text-red-900">
-                {formatCurrency(lossAnalysis.totalLoss)}
+                {formatCurrency(thisYearLoss)}
               </p>
             </div>
             <DollarSign className="h-8 w-8 text-red-500" />
@@ -128,7 +132,7 @@ export default function ExpiredDomainLossAnalysis({ domains }: ExpiredDomainLoss
                 {t('analytics.averageLossPerDomain')}
               </p>
               <p className="text-2xl font-bold text-blue-900">
-                {formatCurrency(lossAnalysis.totalLoss / lossAnalysis.expiredDomains.length)}
+                {formatCurrency(thisYearLoss > 0 ? thisYearLoss / (lossAnalysis.expiredDomains.filter(d => d.lossYear === currentYear).length || 1) : 0)}
               </p>
             </div>
             <Calendar className="h-8 w-8 text-blue-500" />
