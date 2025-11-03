@@ -27,7 +27,8 @@ import {
   BarChart3,
   Activity,
   Zap,
-  Globe
+  Globe,
+  Info
 } from 'lucide-react';
 
 // interface Domain {
@@ -106,11 +107,44 @@ interface RiskAnalysis {
 
 export default function InvestmentAnalytics({ domains, transactions }: InvestmentAnalyticsProps) {
   const { t } = useI18nContext();
-  const [selectedTimeframe, setSelectedTimeframe] = useState<'1M' | '3M' | '6M' | '1Y' | 'ALL'>('ALL');
+  const [selectedTimeframe, setSelectedTimeframe] = useState<'3M' | '6M' | '1Y' | 'ALL'>('ALL');
   const [selectedMetric, setSelectedMetric] = useState<'portfolio' | 'performance' | 'risk' | 'trends'>('portfolio');
 
-  // 使用共享的计算逻辑
-  const financialAnalysis = useComprehensiveFinancialAnalysis(domains, transactions);
+  // 根据选择的时间范围筛选数据
+  const filteredData = useMemo(() => {
+    const now = new Date();
+    let startDate: Date;
+
+    switch (selectedTimeframe) {
+      case '3M':
+        startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+        break;
+      case '6M':
+        startDate = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+        break;
+      case '1Y':
+        startDate = new Date(now.getFullYear() - 1, now.getMonth(), 1);
+        break;
+      case 'ALL':
+      default:
+        return { domains, transactions };
+    }
+
+    const filteredDomains = domains.filter(domain => {
+      const domainDate = new Date(domain.purchase_date || '');
+      return domainDate >= startDate && domainDate <= now;
+    });
+
+    const filteredTransactions = transactions.filter(transaction => {
+      const transactionDate = new Date(transaction.date);
+      return transactionDate >= startDate && transactionDate <= now;
+    });
+
+    return { domains: filteredDomains, transactions: filteredTransactions };
+  }, [domains, transactions, selectedTimeframe]);
+
+  // 使用筛选后的数据计算
+  const financialAnalysis = useComprehensiveFinancialAnalysis(filteredData.domains, filteredData.transactions);
   
   const portfolioMetrics: PortfolioMetrics = useMemo(() => ({
     totalInvestment: financialAnalysis.basic.totalInvestment,
@@ -127,24 +161,65 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     worstPerformingDomain: financialAnalysis.advanced.worstPerformingDomain
   }), [financialAnalysis]);
 
-  // 计算时间序列数据
+  // 计算时间序列数据（基于筛选后的数据和时间范围）
   const timeSeriesData: TimeSeriesData[] = useMemo(() => {
     const data: TimeSeriesData[] = [];
-    const startDate = new Date();
-    startDate.setMonth(startDate.getMonth() - 12); // 过去12个月
+    const now = new Date();
+    let monthsToShow: number;
+    let startDate: Date;
 
-    for (let i = 0; i < 12; i++) {
+    switch (selectedTimeframe) {
+      case '3M':
+        monthsToShow = 3;
+        startDate = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+        break;
+      case '6M':
+        monthsToShow = 6;
+        startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+        break;
+      case '1Y':
+        monthsToShow = 12;
+        startDate = new Date(now.getFullYear() - 1, now.getMonth(), 1);
+        break;
+      case 'ALL':
+      default:
+        monthsToShow = 12;
+        // 找到最早的数据日期
+        const allDates = [
+          ...filteredData.domains.map(d => new Date(d.purchase_date || '')),
+          ...filteredData.transactions.map(t => new Date(t.date))
+        ].filter(d => !isNaN(d.getTime()));
+        const earliestDate = allDates.length > 0 
+          ? new Date(Math.min(...allDates.map(d => d.getTime())))
+          : new Date(now.getFullYear() - 1, now.getMonth(), 1);
+        startDate = new Date(earliestDate.getFullYear(), earliestDate.getMonth(), 1);
+        // 如果数据跨度超过12个月，显示所有月份
+        const monthsDiff = (now.getFullYear() - earliestDate.getFullYear()) * 12 + (now.getMonth() - earliestDate.getMonth());
+        if (monthsDiff > 12) {
+          monthsToShow = monthsDiff + 1;
+        }
+        break;
+    }
+
+    for (let i = 0; i < monthsToShow; i++) {
       const date = new Date(startDate);
       date.setMonth(date.getMonth() + i);
       const monthKey = date.toISOString().slice(0, 7);
 
-      const monthDomains = domains.filter(d => 
-        d.purchase_date && new Date(d.purchase_date).toISOString().slice(0, 7) <= monthKey
-      );
+      // 只计算到当前月份为止的数据
+      if (date > now) break;
 
-      const monthTransactions = transactions.filter(t => 
-        new Date(t.date).toISOString().slice(0, 7) === monthKey
-      );
+      const monthDomains = filteredData.domains.filter(d => {
+        const domainDate = new Date(d.purchase_date || '');
+        const domainMonth = domainDate.toISOString().slice(0, 7);
+        return domainMonth <= monthKey;
+      });
+
+      const monthTransactions = filteredData.transactions.filter(t => {
+        const transactionDate = new Date(t.date);
+        const transactionMonth = transactionDate.toISOString().slice(0, 7);
+        return transactionMonth === monthKey;
+      });
 
       const investment = monthDomains.reduce((sum, domain) => {
         const holdingCost = (domain.purchase_cost || 0) + (domain.renewal_count * (domain.renewal_cost || 0));
@@ -170,20 +245,20 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     }
 
     return data;
-  }, [domains, transactions]);
+  }, [filteredData, selectedTimeframe]);
 
-  // 计算风险分析
+  // 计算风险分析（基于筛选后的数据）
   const riskAnalysis: RiskAnalysis = useMemo(() => {
     const totalValue = portfolioMetrics.totalInvestment + portfolioMetrics.totalProfit;
-    const domainValues = domains.map(d => d.estimated_value || 0);
+    const domainValues = filteredData.domains.map(d => d.estimated_value || 0);
     const maxDomainValue = Math.max(...domainValues);
     const concentrationRisk = totalValue > 0 ? (maxDomainValue / totalValue) * 100 : 0;
 
-    const activeDomains = domains.filter(d => d.status === 'active').length;
-    const forSaleDomains = domains.filter(d => d.status === 'for_sale').length;
-    const liquidityRisk = totalValue > 0 ? ((activeDomains + forSaleDomains) / domains.length) * 100 : 0;
+    const activeDomains = filteredData.domains.filter(d => d.status === 'active').length;
+    const forSaleDomains = filteredData.domains.filter(d => d.status === 'for_sale').length;
+    const liquidityRisk = totalValue > 0 ? ((activeDomains + forSaleDomains) / filteredData.domains.length) * 100 : 0;
 
-    const diversificationScore = Math.min(100, domains.length * 10); // 每个域名10分，最高100分
+    const diversificationScore = Math.min(100, filteredData.domains.length * 10); // 每个域名10分，最高100分
 
     let riskLevel: 'Low' | 'Medium' | 'High' = 'Low';
     if (concentrationRisk > 50 || portfolioMetrics.volatility > 30 || liquidityRisk < 30) {
@@ -202,7 +277,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     if (liquidityRisk < 50) {
       recommendations.push('流动性不足，建议增加待售域名数量');
     }
-    if (domains.length < 5) {
+    if (filteredData.domains.length < 5) {
       recommendations.push('域名数量较少，建议增加投资组合多样性');
     }
 
@@ -213,7 +288,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       liquidityRisk,
       recommendations
     };
-  }, [domains, portfolioMetrics]);
+  }, [filteredData.domains, portfolioMetrics]);
 
   // 辅助函数已移至共享计算库
 
@@ -229,23 +304,36 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         </div>
       </div>
 
-      <div className="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-lg text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-green-100 text-sm">{t('analytics.totalRevenue')}</p>
-            <p className="text-2xl font-bold">${portfolioMetrics.totalRevenue.toLocaleString()}</p>
-          </div>
-          <TrendingUp className="h-8 w-8 text-green-200" />
-        </div>
-      </div>
-
       <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-lg text-white">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-purple-100 text-sm">{t('analytics.netProfit')}</p>
+            <p className="text-purple-100 text-sm">{t('analytics.totalRevenue')}</p>
+            <p className="text-2xl font-bold">${portfolioMetrics.totalRevenue.toLocaleString()}</p>
+          </div>
+          <TrendingUp className="h-8 w-8 text-purple-200" />
+        </div>
+      </div>
+
+      <div className="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-lg text-white">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-green-100 text-sm">{t('analytics.netProfit')}</p>
+              <div className="group relative">
+                <Info className="h-4 w-4 text-green-200 cursor-help hover:text-green-100 transition-colors" />
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-xs">
+                  <div className="text-center whitespace-normal">
+                    {t('analytics.netProfitCalculation')}
+                  </div>
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                    <div className="w-2 h-2 bg-gray-900 transform rotate-45"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
             <p className="text-2xl font-bold">${portfolioMetrics.totalProfit.toLocaleString()}</p>
           </div>
-          <Target className="h-8 w-8 text-purple-200" />
+          <Target className="h-8 w-8 text-green-200" />
         </div>
       </div>
 
@@ -386,16 +474,16 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       return parts.length > 1 ? parts[parts.length - 1] : 'unknown';
     };
 
-    // 持有域名后缀分布
-    const heldDomains = domains.filter(d => d.status === 'active' || d.status === 'for_sale');
+    // 持有域名后缀分布（基于筛选后的数据）
+    const heldDomains = filteredData.domains.filter(d => d.status === 'active' || d.status === 'for_sale');
     const heldSuffixCount: { [key: string]: number } = {};
     heldDomains.forEach(domain => {
       const suffix = extractSuffix(domain.domain_name);
       heldSuffixCount[suffix] = (heldSuffixCount[suffix] || 0) + 1;
     });
 
-    // 出售域名后缀分布
-    const soldDomains = domains.filter(d => d.status === 'sold');
+    // 出售域名后缀分布（基于筛选后的数据）
+    const soldDomains = filteredData.domains.filter(d => d.status === 'sold');
     const soldSuffixCount: { [key: string]: number } = {};
     soldDomains.forEach(domain => {
       const suffix = extractSuffix(domain.domain_name);
@@ -425,7 +513,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       totalHeld: heldDomains.length,
       totalSold: soldDomains.length
     };
-  }, [domains]);
+  }, [filteredData.domains]);
 
   const renderTrendsAnalysis = () => (
     <div className="space-y-6">
@@ -599,10 +687,10 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
           <PieChart>
             <Pie
               data={[
-                { name: '活跃域名', value: domains.filter(d => d.status === 'active').length, color: '#10B981' },
-                { name: '待售域名', value: domains.filter(d => d.status === 'for_sale').length, color: '#F59E0B' },
-                { name: '已售域名', value: domains.filter(d => d.status === 'sold').length, color: '#3B82F6' },
-                { name: '已过期', value: domains.filter(d => d.status === 'expired').length, color: '#EF4444' },
+                { name: '活跃域名', value: filteredData.domains.filter(d => d.status === 'active').length, color: '#10B981' },
+                { name: '待售域名', value: filteredData.domains.filter(d => d.status === 'for_sale').length, color: '#F59E0B' },
+                { name: '已售域名', value: filteredData.domains.filter(d => d.status === 'sold').length, color: '#3B82F6' },
+                { name: '已过期', value: filteredData.domains.filter(d => d.status === 'expired').length, color: '#EF4444' },
               ]}
               cx="50%"
               cy="50%"
@@ -613,10 +701,10 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
               dataKey="value"
             >
               {[
-                { name: '活跃域名', value: domains.filter(d => d.status === 'active').length, color: '#10B981' },
-                { name: '待售域名', value: domains.filter(d => d.status === 'for_sale').length, color: '#F59E0B' },
-                { name: '已售域名', value: domains.filter(d => d.status === 'sold').length, color: '#3B82F6' },
-                { name: '已过期', value: domains.filter(d => d.status === 'expired').length, color: '#EF4444' },
+                { name: '活跃域名', value: filteredData.domains.filter(d => d.status === 'active').length, color: '#10B981' },
+                { name: '待售域名', value: filteredData.domains.filter(d => d.status === 'for_sale').length, color: '#F59E0B' },
+                { name: '已售域名', value: filteredData.domains.filter(d => d.status === 'sold').length, color: '#3B82F6' },
+                { name: '已过期', value: filteredData.domains.filter(d => d.status === 'expired').length, color: '#EF4444' },
               ].map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
@@ -647,10 +735,9 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
             </select>
             <select
               value={selectedTimeframe}
-              onChange={(e) => setSelectedTimeframe(e.target.value as '1M' | '3M' | '6M' | '1Y' | 'ALL')}
+              onChange={(e) => setSelectedTimeframe(e.target.value as '3M' | '6M' | '1Y' | 'ALL')}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="1M">1个月</option>
               <option value="3M">3个月</option>
               <option value="6M">6个月</option>
               <option value="1Y">1年</option>

@@ -436,6 +436,7 @@ const translations: Record<Locale, Translations> = {
       totalInvestment: '总投资',
       totalRevenue: '总收益',
       netProfit: '净利润',
+      netProfitCalculation: '净利润 = 净收入 - 总持有成本（投资成本 + 续费成本）',
       totalReturn: '总回报率',
       annualizedReturn: '年化收益率',
       sharpeRatio: '夏普比率',
@@ -486,7 +487,8 @@ const translations: Record<Locale, Translations> = {
       domains: '个域名',
       expiredDomainsDetails: '过期域名详情',
       noExpiredDomains: '暂无过期域名',
-      noExpiredDomainsDesc: '恭喜！您没有因域名过期造成的损失'
+      noExpiredDomainsDesc: '恭喜！您没有因域名过期造成的损失',
+      domainStatusStats: '域名状态统计'
     },
     auth: {
       signIn: {
@@ -1222,6 +1224,7 @@ const translations: Record<Locale, Translations> = {
       totalInvestment: 'Total Investment',
       totalRevenue: 'Total Revenue',
       netProfit: 'Net Profit',
+      netProfitCalculation: 'Net Profit = Net Revenue - Total Holding Cost (Investment + Renewal Costs)',
       totalReturn: 'Total Return',
       annualizedReturn: 'Annualized Return',
       sharpeRatio: 'Sharpe Ratio',
@@ -1272,7 +1275,8 @@ const translations: Record<Locale, Translations> = {
       domains: 'domains',
       expiredDomainsDetails: 'Expired Domains Details',
       noExpiredDomains: 'No Expired Domains',
-      noExpiredDomainsDesc: 'Congratulations! You have no losses from expired domains'
+      noExpiredDomainsDesc: 'Congratulations! You have no losses from expired domains',
+      domainStatusStats: 'Domain Status Statistics'
     },
     auth: {
       signIn: {

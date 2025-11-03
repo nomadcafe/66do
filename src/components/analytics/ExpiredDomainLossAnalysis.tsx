@@ -58,7 +58,7 @@ export default function ExpiredDomainLossAnalysis({ domains }: ExpiredDomainLoss
           
           {/* 显示域名状态统计 */}
           <div className="bg-gray-50 rounded-lg p-4 max-w-md mx-auto">
-            <h5 className="text-sm font-medium text-gray-700 mb-3">域名状态统计</h5>
+            <h5 className="text-sm font-medium text-gray-700 mb-3">{t('analytics.domainStatusStats')}</h5>
             <div className="grid grid-cols-2 gap-2 text-sm">
               {Object.entries(statusCounts).map(([status, count]) => (
                 <div key={status} className="flex justify-between">
