@@ -515,17 +515,12 @@ export default function DashboardPage() {
     // 统计不同续费周期的域名数量和成本
     const renewalCycles = renewalAnalysis.costByCycle;
     
-    const activeDomains = financialMetrics.activeDomains;
+    // 使用实际的domains数组计算状态统计，而不是过滤后的validDomains
+    // 这样可以确保统计包含所有域名，即使它们缺少某些财务字段
+    const activeDomains = domains.filter(d => d.status === 'active').length;
     const forSaleDomains = domains.filter(d => d.status === 'for_sale').length;
-    const soldDomains = financialMetrics.soldDomains;
+    const soldDomains = domains.filter(d => d.status === 'sold').length;
     const expiredDomains = domains.filter(d => d.status === 'expired').length;
-    
-    // 调试信息：检查 sold 域名统计
-    const actualSoldDomains = domains.filter(d => d.status === 'sold').length;
-    if (soldDomains !== actualSoldDomains) {
-      console.warn(`Sold domains count mismatch: financialMetrics.soldDomains=${soldDomains}, actual=${actualSoldDomains}`);
-      console.log('Domains with sold status:', domains.filter(d => d.status === 'sold').map(d => ({ id: d.id, name: d.domain_name, status: d.status })));
-    }
     
     const avgPurchasePrice = financialMetrics.avgPurchasePrice;
     const avgSalePrice = financialMetrics.avgSalePrice;

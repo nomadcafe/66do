@@ -126,11 +126,33 @@ export class DomainService {
     return data
   }
 
-  static async updateDomain(id: string, updates: DomainUpdate): Promise<Domain | null> {
+  static async getDomainById(id: string): Promise<Domain | null> {
     const { data, error } = await supabase
+      .from('domains')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle()
+    
+    if (error) {
+      console.error('Error fetching domain:', error)
+      return null
+    }
+    
+    return data
+  }
+
+  static async updateDomain(id: string, updates: DomainUpdate, userId?: string): Promise<Domain | null> {
+    // 如果提供了userId，确保只能更新属于该用户的域名
+    let query = supabase
       .from('domains')
       .update(updates)
       .eq('id', id)
+    
+    if (userId) {
+      query = query.eq('user_id', userId)
+    }
+    
+    const { data, error } = await query
       .select()
       .single()
     

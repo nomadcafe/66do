@@ -97,7 +97,8 @@ export async function POST(request: NextRequest) {
         
         // 清理和标准化数据
         const sanitizedUpdateDomain = sanitizeDomainData(domain)
-        const updatedDomain = await DomainService.updateDomain(domain.id, sanitizedUpdateDomain)
+        // 传递userId以确保只能更新属于当前用户的域名
+        const updatedDomain = await DomainService.updateDomain(domain.id, sanitizedUpdateDomain, userId)
         return NextResponse.json({ success: true, data: updatedDomain }, { headers: corsHeaders })
       
       case 'deleteDomain':
