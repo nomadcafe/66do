@@ -97,7 +97,7 @@ export default function ExpiredDomainLossAnalysis({ domains }: ExpiredDomainLoss
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-red-600 mb-1">
-                {t('analytics.totalLoss')}
+                {t('analytics.cumulativeTotalLoss')}
               </p>
               <p className="text-2xl font-bold text-red-900">
                 {formatCurrency(lossAnalysis.totalLoss)}
