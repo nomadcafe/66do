@@ -118,6 +118,17 @@ export async function POST(request: NextRequest) {
           id: crypto.randomUUID(), // 生成唯一ID
           domain_name: sanitizedDomain.domain_name as string
         })
+        
+        if (!newDomain) {
+          console.error('Failed to create domain via Supabase - see server logs for details')
+          return NextResponse.json({ 
+            error: 'Failed to create domain in Supabase. Please check RLS policies or field values.' 
+          }, { 
+            status: 500,
+            headers: corsHeaders
+          })
+        }
+        
         return NextResponse.json({ success: true, data: newDomain }, { headers: corsHeaders })
       
       case 'updateDomain':
