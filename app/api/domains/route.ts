@@ -6,11 +6,11 @@ import { createClient } from '@supabase/supabase-js'
 import { Database } from '../../../src/lib/supabase'
 
 // 创建带有用户认证的 Supabase 客户端
-function createAuthenticatedSupabaseClient(accessToken?: string) {
+async function createAuthenticatedSupabaseClient(accessToken?: string) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   
-  return createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  const client = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     global: {
       headers: accessToken ? {
         Authorization: `Bearer ${accessToken}`
@@ -19,8 +19,26 @@ function createAuthenticatedSupabaseClient(accessToken?: string) {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
+      detectSessionInUrl: false,
     },
   })
+  
+  // 如果提供了 access token，设置会话
+  if (accessToken) {
+    // 注意：这里我们只设置 access token，Supabase 会用它来验证 RLS 策略
+    // RLS 策略使用 auth.uid() 来获取当前用户ID
+    try {
+      await client.auth.setSession({
+        access_token: accessToken,
+        refresh_token: '', // 刷新token在服务端不需要
+      });
+    } catch (err) {
+      console.error('Error setting session in Supabase client:', err);
+      // 即使设置会话失败，也返回客户端，因为 Authorization header 已经设置
+    }
+  }
+  
+  return client
 }
 
 export async function POST(request: NextRequest) {
@@ -48,7 +66,7 @@ export async function POST(request: NextRequest) {
     switch (action) {
       case 'getDomains':
         // 创建带有用户认证的 Supabase 客户端
-        const authenticatedClientForGet = createAuthenticatedSupabaseClient(accessToken)
+        const authenticatedClientForGet = await createAuthenticatedSupabaseClient(accessToken)
         const domainList = await DomainService.getDomainsWithClient(authenticatedClientForGet, userId)
         return NextResponse.json({ success: true, data: domainList }, { headers: corsHeaders })
       
@@ -73,7 +91,7 @@ export async function POST(request: NextRequest) {
         }
         
         // 检查域名是否已存在
-        const authenticatedClientForCheck = createAuthenticatedSupabaseClient(accessToken)
+        const authenticatedClientForCheck = await createAuthenticatedSupabaseClient(accessToken)
         const existingDomains = await DomainService.getDomainsWithClient(authenticatedClientForCheck, userId)
         const domainName = domain.domain_name?.toLowerCase().trim()
         const isDuplicate = existingDomains.some(d => 
@@ -93,7 +111,7 @@ export async function POST(request: NextRequest) {
         // 清理和标准化数据
         const sanitizedDomain = sanitizeDomainData(domain)
         // 创建带有用户认证的 Supabase 客户端
-        const authenticatedClientForCreate = createAuthenticatedSupabaseClient(accessToken)
+        const authenticatedClientForCreate = await createAuthenticatedSupabaseClient(accessToken)
         const newDomain = await DomainService.createDomainWithClient(authenticatedClientForCreate, { 
           ...sanitizedDomain, 
           user_id: userId, // 使用正确的字段名
@@ -126,7 +144,7 @@ export async function POST(request: NextRequest) {
         const sanitizedUpdateDomain = sanitizeDomainData(domain)
         
         // 创建带有用户认证的 Supabase 客户端用于更新操作
-        const authenticatedClient = createAuthenticatedSupabaseClient(accessToken)
+        const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken)
         // 传递userId以确保只能更新属于当前用户的域名
         const updatedDomain = await DomainService.updateDomainWithClient(
           authenticatedClient,

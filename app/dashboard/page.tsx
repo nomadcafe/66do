@@ -304,10 +304,16 @@ export default function DashboardPage() {
 
   // Save data to Supabase database only
   const saveData = async (newDomains: DomainWithTags[], newTransactions: TransactionWithRequiredFields[]) => {
-    if (!user?.id) return;
+    if (!user?.id || !session?.access_token) return;
     
     try {
       console.log('Saving data to Supabase database...');
+      
+      // 准备请求头，包含认证token
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      };
       
       // Save domains to Supabase
       for (const domain of newDomains) {
@@ -315,7 +321,7 @@ export default function DashboardPage() {
           // Update existing domain
           const response = await fetch('/api/domains', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({
               action: 'updateDomain',
               userId: user.id,
@@ -344,7 +350,7 @@ export default function DashboardPage() {
           // Add new domain
           const response = await fetch('/api/domains', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({
               action: 'addDomain',
               userId: user.id,
@@ -381,7 +387,7 @@ export default function DashboardPage() {
           // Update existing transaction
           const response = await fetch('/api/transactions', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({
               action: 'updateTransaction',
               userId: user.id,
@@ -407,7 +413,7 @@ export default function DashboardPage() {
           // Add new transaction
           const response = await fetch('/api/transactions', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({
               action: 'addTransaction',
               userId: user.id,
