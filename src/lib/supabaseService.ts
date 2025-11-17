@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { Database } from './supabase'
+import { SupabaseClient } from '@supabase/supabase-js'
 
 type Tables = Database['public']['Tables']
 
@@ -97,7 +98,15 @@ export class UserService {
 // 域名相关操作
 export class DomainService {
   static async getDomains(userId: string): Promise<Domain[]> {
-    const { data, error } = await supabase
+    return this.getDomainsWithClient(supabase, userId)
+  }
+
+  static async getDomainsWithClient(
+    client: SupabaseClient<Database>,
+    userId: string
+  ): Promise<Domain[]> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (client as any)
       .from('domains')
       .select('*')
       .eq('user_id', userId)
@@ -108,11 +117,19 @@ export class DomainService {
       return []
     }
     
-    return data || []
+    return (data || []) as Domain[]
   }
 
   static async createDomain(domain: DomainInsert): Promise<Domain | null> {
-    const { data, error } = await supabase
+    return this.createDomainWithClient(supabase, domain)
+  }
+
+  static async createDomainWithClient(
+    client: SupabaseClient<Database>,
+    domain: DomainInsert
+  ): Promise<Domain | null> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (client as any)
       .from('domains')
       .insert(domain)
       .select()
@@ -123,7 +140,7 @@ export class DomainService {
       return null
     }
     
-    return data
+    return data as Domain
   }
 
   static async getDomainById(id: string): Promise<Domain | null> {
@@ -142,26 +159,40 @@ export class DomainService {
   }
 
   static async updateDomain(id: string, updates: DomainUpdate, userId?: string): Promise<Domain | null> {
+    return this.updateDomainWithClient(supabase, id, updates, userId)
+  }
+
+  static async updateDomainWithClient(
+    client: SupabaseClient<Database>,
+    id: string,
+    updates: DomainUpdate,
+    userId?: string
+  ): Promise<Domain | null> {
     // 如果提供了userId，确保只能更新属于该用户的域名
-    let query = supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let queryBuilder = (client as any)
       .from('domains')
       .update(updates)
       .eq('id', id)
     
     if (userId) {
-      query = query.eq('user_id', userId)
+      queryBuilder = queryBuilder.eq('user_id', userId)
     }
     
-    const { data, error } = await query
+    const { data, error } = await queryBuilder
       .select()
       .single()
     
     if (error) {
       console.error('Error updating domain:', error)
+      // 如果是权限错误，记录更详细的信息
+      if (error.code === 'PGRST116' || error.message?.includes('Unauthorized')) {
+        console.error('Permission denied: Domain may not belong to user or RLS policy violation')
+      }
       return null
     }
     
-    return data
+    return data as Domain
   }
 
   static async deleteDomain(id: string): Promise<boolean> {

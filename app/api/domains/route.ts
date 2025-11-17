@@ -1,21 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { DomainService } from '../../../src/lib/supabaseService'
 import { validateDomain, sanitizeDomainData } from '../../../src/lib/validation'
-import { getUserIdFromRequest } from '../../../src/lib/auth-helper'
+import { getAuthInfoFromRequest } from '../../../src/lib/auth-helper'
+import { createClient } from '@supabase/supabase-js'
+import { Database } from '../../../src/lib/supabase'
+
+// 创建带有用户认证的 Supabase 客户端
+function createAuthenticatedSupabaseClient(accessToken?: string) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  
+  return createClient<Database>(supabaseUrl, supabaseAnonKey, {
+    global: {
+      headers: accessToken ? {
+        Authorization: `Bearer ${accessToken}`
+      } : {}
+    },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  })
+}
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { action, domain, domains } = body
 
-    // 验证用户身份
-    const userId = await getUserIdFromRequest(request);
-    if (!userId) {
+    // 验证用户身份并获取认证信息
+    const authInfo = await getAuthInfoFromRequest(request);
+    if (!authInfo || !authInfo.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { 
         status: 401,
         headers: { 'Content-Type': 'application/json' }
       })
     }
+    
+    const { userId, accessToken } = authInfo;
 
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
@@ -25,7 +47,9 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case 'getDomains':
-        const domainList = await DomainService.getDomains(userId)
+        // 创建带有用户认证的 Supabase 客户端
+        const authenticatedClientForGet = createAuthenticatedSupabaseClient(accessToken)
+        const domainList = await DomainService.getDomainsWithClient(authenticatedClientForGet, userId)
         return NextResponse.json({ success: true, data: domainList }, { headers: corsHeaders })
       
       case 'addDomain':
@@ -49,7 +73,8 @@ export async function POST(request: NextRequest) {
         }
         
         // 检查域名是否已存在
-        const existingDomains = await DomainService.getDomains(userId)
+        const authenticatedClientForCheck = createAuthenticatedSupabaseClient(accessToken)
+        const existingDomains = await DomainService.getDomainsWithClient(authenticatedClientForCheck, userId)
         const domainName = domain.domain_name?.toLowerCase().trim()
         const isDuplicate = existingDomains.some(d => 
           d.domain_name.toLowerCase().trim() === domainName
@@ -67,7 +92,9 @@ export async function POST(request: NextRequest) {
         
         // 清理和标准化数据
         const sanitizedDomain = sanitizeDomainData(domain)
-        const newDomain = await DomainService.createDomain({ 
+        // 创建带有用户认证的 Supabase 客户端
+        const authenticatedClientForCreate = createAuthenticatedSupabaseClient(accessToken)
+        const newDomain = await DomainService.createDomainWithClient(authenticatedClientForCreate, { 
           ...sanitizedDomain, 
           user_id: userId, // 使用正确的字段名
           id: crypto.randomUUID(), // 生成唯一ID
@@ -97,8 +124,26 @@ export async function POST(request: NextRequest) {
         
         // 清理和标准化数据
         const sanitizedUpdateDomain = sanitizeDomainData(domain)
+        
+        // 创建带有用户认证的 Supabase 客户端用于更新操作
+        const authenticatedClient = createAuthenticatedSupabaseClient(accessToken)
         // 传递userId以确保只能更新属于当前用户的域名
-        const updatedDomain = await DomainService.updateDomain(domain.id, sanitizedUpdateDomain, userId)
+        const updatedDomain = await DomainService.updateDomainWithClient(
+          authenticatedClient,
+          domain.id,
+          sanitizedUpdateDomain,
+          userId
+        )
+        
+        if (!updatedDomain) {
+          return NextResponse.json({ 
+            error: 'Failed to update domain. It may not exist or you may not have permission.' 
+          }, { 
+            status: 404,
+            headers: corsHeaders
+          })
+        }
+        
         return NextResponse.json({ success: true, data: updatedDomain }, { headers: corsHeaders })
       
       case 'deleteDomain':
