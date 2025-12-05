@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSupabaseAuth } from '../../src/contexts/SupabaseAuthContext';
 import { useI18nContext } from '../../src/contexts/I18nProvider';
@@ -232,74 +232,95 @@ export default function DashboardPage() {
     }
   }, [authLoading, user, session, refreshSession]);
 
-  // Load data from Supabase database only
-  useEffect(() => {
-    const loadData = async () => {
-      if (!user?.id) return;
-      
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const userId = user.id;
-        
-        // Try to get cached data first
+  type LoadOptions = {
+    useCache?: boolean;
+    showLoading?: boolean;
+  };
+
+  const loadDashboardData = useCallback(async (options: LoadOptions = {}) => {
+    if (!user?.id) return;
+
+    const { useCache = true, showLoading = true } = options;
+    let loadSummary = {
+      domainsCount: 0,
+      transactionsCount: 0,
+      dataSource: (useCache ? 'cache' : 'supabase') as 'cache' | 'supabase',
+    };
+
+    try {
+      if (showLoading) setLoading(true);
+      setError(null);
+
+      const userId = user.id;
+
+      if (useCache) {
         const cachedDomains = domainCache.getCachedDomains(userId);
         const cachedTransactions = domainCache.getCachedTransactions(userId);
-        
+
         if (cachedDomains && cachedTransactions) {
           const typedDomains = cachedDomains.map(ensureDomainWithTags);
           const typedTransactions = cachedTransactions.map(ensureTransactionWithRequiredFields);
           setDomains(typedDomains);
           setTransactions(typedTransactions);
           setDataSource('cache');
-          setLoading(false);
+
+          loadSummary = {
+            domainsCount: typedDomains.length,
+            transactionsCount: typedTransactions.length,
+            dataSource: 'cache',
+          };
           return;
         }
-
-        // Load from Supabase database
-        console.log('Loading data from Supabase database...');
-        
-        const domainsResult = await loadDomainsFromSupabase(userId);
-        const transactionsResult = await loadTransactionsFromSupabase(userId);
-        
-        if (domainsResult.success && transactionsResult.success) {
-          const typedDomains = (domainsResult.data || []).map(ensureDomainWithTags);
-          const typedTransactions = (transactionsResult.data || []).map(ensureTransactionWithRequiredFields);
-          setDomains(typedDomains);
-          setTransactions(typedTransactions);
-          setDataSource('supabase');
-          
-          // Cache the data
-          domainCache.cacheDomains(userId, domainsResult.data || []);
-          domainCache.cacheTransactions(userId, transactionsResult.data || []);
-          
-          console.log('Data loaded from Supabase database successfully');
-        } else {
-          throw new Error('Failed to load data from Supabase database');
-        }
-        
-      } catch (error) {
-        console.error('Error loading data from Supabase:', error);
-        setError(t('common.dataLoadFailed'));
-        auditLogger.log(user?.id || 'default', 'data_load_failed', 'dashboard', { 
-          error: error instanceof Error ? error.message : 'Unknown error' 
-        });
-      } finally {
-        setLoading(false);
-        
-        // Log successful data load
-        const userId = user?.id || 'default';
-        auditLogger.log(userId, 'data_loaded', 'dashboard', { 
-          domainsCount: domains.length, 
-          transactionsCount: transactions.length,
-          dataSource: dataSource
-        });
       }
-    };
 
-    loadData();
-  }, [user?.id, dataSource, domains.length, t, transactions.length]);
+      console.log('Loading data from Supabase database...');
+
+      const [domainsResult, transactionsResult] = await Promise.all([
+        loadDomainsFromSupabase(userId),
+        loadTransactionsFromSupabase(userId),
+      ]);
+
+      if (domainsResult.success && transactionsResult.success) {
+        const typedDomains = (domainsResult.data || []).map(ensureDomainWithTags);
+        const typedTransactions = (transactionsResult.data || []).map(ensureTransactionWithRequiredFields);
+        setDomains(typedDomains);
+        setTransactions(typedTransactions);
+        setDataSource('supabase');
+
+        domainCache.cacheDomains(userId, domainsResult.data || []);
+        domainCache.cacheTransactions(userId, transactionsResult.data || []);
+
+        loadSummary = {
+          domainsCount: typedDomains.length,
+          transactionsCount: typedTransactions.length,
+          dataSource: 'supabase',
+        };
+
+        console.log('Data loaded from Supabase database successfully');
+      } else {
+        throw new Error('Failed to load data from Supabase database');
+      }
+    } catch (error) {
+      console.error('Error loading data from Supabase:', error);
+      setError(t('common.dataLoadFailed'));
+      auditLogger.log(user?.id || 'default', 'data_load_failed', 'dashboard', { 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    } finally {
+      if (showLoading) setLoading(false);
+
+      auditLogger.log(user?.id || 'default', 'data_loaded', 'dashboard', { 
+        domainsCount: loadSummary.domainsCount, 
+        transactionsCount: loadSummary.transactionsCount,
+        dataSource: loadSummary.dataSource
+      });
+    }
+  }, [user?.id, t]);
+
+  // Load data from Supabase database only
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
 
 
   // Save data to Supabase database only
@@ -448,6 +469,9 @@ export default function DashboardPage() {
       domainCache.cacheTransactions(user.id, newTransactions);
       
       console.log('Data saved to Supabase database successfully');
+
+      // Refresh data from Supabase to ensure IDs and fields are up to date
+      await loadDashboardData({ useCache: false, showLoading: false });
     } catch (error) {
       console.error('Error saving data to Supabase:', error);
       setError(t('common.dataSaveFailed'));
