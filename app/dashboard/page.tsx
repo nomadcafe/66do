@@ -16,6 +16,7 @@ import PullToRefresh from '../../src/components/mobile/PullToRefresh';
 import { isMobile } from '../../src/lib/utils';
 import ShareModal from '../../src/components/share/ShareModal';
 import SaleSuccessModal from '../../src/components/share/SaleSuccessModal';
+import RenewalModal from '../../src/components/domain/RenewalModal';
 import { calculateAnnualRenewalCost } from '../../src/lib/renewalCalculations';
 // import { domainExpiryManager } from '../../src/lib/domainExpiryManager';
 import { calculateFinancialMetrics } from '../../src/lib/financialMetrics';
@@ -212,6 +213,8 @@ export default function DashboardPage() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showSaleSuccessModal, setShowSaleSuccessModal] = useState(false);
   const [saleSuccessData, setSaleSuccessData] = useState<{domain: DomainWithTags, transaction: TransactionWithRequiredFields} | null>(null);
+  const [showRenewalModal, setShowRenewalModal] = useState(false);
+  const [renewalDomain, setRenewalDomain] = useState<DomainWithTags | null>(null);
   const { user, session, loading: authLoading, refreshSession, signOut } = useSupabaseAuth();
   const { t, locale, setLocale } = useI18nContext();
   const router = useRouter();
@@ -628,6 +631,92 @@ export default function DashboardPage() {
   const handleEditDomain = (domain: DomainWithTags) => {
     setEditingDomain(domain);
     setShowDomainForm(true);
+  };
+
+  const handleRenewDomain = (domain: DomainWithTags) => {
+    setRenewalDomain(domain);
+    setShowRenewalModal(true);
+  };
+
+  const processRenewal = async (domain: DomainWithTags, renewalYears: number) => {
+    if (!user?.id || !session?.access_token) {
+      throw new Error('User not authenticated');
+    }
+
+    // 使用DomainExpiryManager处理续费逻辑
+    const { DomainExpiryManager } = await import('../../src/lib/domainExpiryManager');
+    const expiryManager = new DomainExpiryManager({
+      defaultRenewalCycle: domain.renewal_cycle || 1,
+      autoCalculateFromPurchase: true
+    });
+
+    // 直接使用DomainExpiryManager的逻辑，但手动处理类型转换
+    const renewalCycle = renewalYears || domain.renewal_cycle || 1;
+    
+    // 计算新的到期日期
+    let newExpiryDate: Date;
+    if (domain.expiry_date) {
+      newExpiryDate = new Date(domain.expiry_date);
+      newExpiryDate.setFullYear(newExpiryDate.getFullYear() + renewalCycle);
+    } else if (domain.purchase_date) {
+      newExpiryDate = new Date(domain.purchase_date);
+      newExpiryDate.setFullYear(newExpiryDate.getFullYear() + renewalCycle);
+      if (domain.renewal_count > 0) {
+        newExpiryDate.setFullYear(newExpiryDate.getFullYear() + (domain.renewal_count * renewalCycle));
+      }
+    } else {
+      newExpiryDate = new Date();
+      newExpiryDate.setFullYear(newExpiryDate.getFullYear() + renewalCycle);
+    }
+    
+    // 创建续费后的域名
+    const renewedDomain: DomainWithTags = {
+      ...domain,
+      expiry_date: newExpiryDate.toISOString().split('T')[0],
+      renewal_count: (domain.renewal_count || 0) + 1,
+      updated_at: new Date().toISOString()
+    };
+
+    // 更新域名数据
+    const updatedDomains = domains.map(d => 
+      d.id === domain.id ? renewedDomain : d
+    );
+
+    // 创建续费交易记录
+    const renewalTransaction: TransactionWithRequiredFields = {
+      id: `renewal-${Date.now()}`,
+      domain_id: domain.id,
+      type: 'renew',
+      amount: (domain.renewal_cost || 0) * renewalYears,
+      date: new Date().toISOString().split('T')[0],
+      currency: 'USD',
+      notes: `Renewal for ${renewalYears} year(s)`,
+      category: 'renewal',
+      platform: domain.registrar || 'Unknown',
+      base_amount: (domain.renewal_cost || 0) * renewalYears,
+      net_amount: (domain.renewal_cost || 0) * renewalYears,
+      platform_fee: 0,
+      platform_fee_percentage: 0,
+      exchange_rate: 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const updatedTransactions = [...transactions, renewalTransaction];
+
+    // 保存到数据库
+    await saveData(updatedDomains, updatedTransactions);
+
+    // 更新本地状态
+    setDomains(updatedDomains);
+    setTransactions(updatedTransactions);
+
+    auditLogger.log(user.id, 'domain_renewed', 'dashboard', {
+      domainId: domain.id,
+      domainName: domain.domain_name,
+      renewalYears,
+      renewalCost: (domain.renewal_cost || 0) * renewalYears
+    });
   };
 
   const handleDeleteDomain = async (id: string) => {
@@ -1761,11 +1850,8 @@ export default function DashboardPage() {
                             {t('common.edit')}
                           </button>
                           <button
-                            onClick={() => {
-                              // 这里可以添加续费逻辑
-                              console.log('续费域名:', domain.domain_name);
-                            }}
-                            className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200"
+                            onClick={() => handleRenewDomain(domain)}
+                            className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
                           >
                             {t('common.renew')}
                           </button>
@@ -1999,6 +2085,19 @@ export default function DashboardPage() {
           }}
           domain={saleSuccessData.domain}
           transaction={saleSuccessData.transaction}
+        />
+      )}
+
+      {/* Renewal Modal */}
+      {showRenewalModal && renewalDomain && (
+        <RenewalModal
+          isOpen={showRenewalModal}
+          onClose={() => {
+            setShowRenewalModal(false);
+            setRenewalDomain(null);
+          }}
+          domain={renewalDomain}
+          onRenew={processRenewal}
         />
       )}
 
