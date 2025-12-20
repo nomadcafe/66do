@@ -1022,19 +1022,42 @@ export default function DashboardPage() {
                 <select
                   value={locale}
                   onChange={(e) => setLocale(e.target.value as 'en' | 'zh')}
-                  className="appearance-none bg-gray-50 border-0 rounded-lg px-4 py-2 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200"
+                  className="appearance-none bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer"
                 >
                   <option value="zh">中文</option>
                   <option value="en">English</option>
                 </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
               </div>
               
-              {/* User Info */}
-              <div className="flex items-center space-x-3 px-4 py-2 bg-gray-50 rounded-lg">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
-                  <User className="h-4 w-4 text-white" />
+              {/* User Info - 改进的样式 */}
+              <div className="relative group">
+                <div className="flex items-center space-x-3 px-4 py-2.5 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-200 cursor-pointer">
+                  <div className="w-9 h-9 bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 rounded-full flex items-center justify-center shadow-md ring-2 ring-blue-100">
+                    {user?.email ? (
+                      <span className="text-sm font-semibold text-white">
+                        {user.email.charAt(0).toUpperCase()}
+                      </span>
+                    ) : (
+                      <User className="h-5 w-5 text-white" />
+                    )}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-semibold text-gray-900 leading-tight">
+                      {user?.email?.split('@')[0] || 'User'}
+                    </span>
+                    <span className="text-xs text-gray-500 leading-tight">
+                      {user?.email || ''}
+                    </span>
+                  </div>
+                  <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
                 </div>
-                <span className="text-sm font-medium text-gray-700">{user?.email}</span>
               </div>
               
               {/* Action Buttons */}
@@ -1072,15 +1095,27 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="flex items-center space-x-2">
+              {/* Mobile User Avatar */}
+              <div className="flex items-center space-x-2 px-3 py-2 bg-white border border-gray-200 rounded-xl shadow-sm">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 rounded-full flex items-center justify-center ring-2 ring-blue-100">
+                  {user?.email ? (
+                    <span className="text-xs font-semibold text-white">
+                      {user.email.charAt(0).toUpperCase()}
+                    </span>
+                  ) : (
+                    <User className="h-4 w-4 text-white" />
+                  )}
+                </div>
+              </div>
               <button
                 onClick={handleAddDomain}
-                className="bg-blue-600 text-white p-2.5 rounded-lg hover:bg-blue-700 shadow-sm transition-all duration-200"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-2.5 rounded-xl hover:from-blue-700 hover:to-indigo-700 shadow-md transition-all duration-200"
               >
                 <Plus size={18} />
               </button>
               <button
                 onClick={handleLogout}
-                className="text-gray-500 hover:text-gray-700 p-2.5 rounded-lg hover:bg-gray-50 transition-all duration-200"
+                className="text-gray-600 hover:text-gray-900 p-2.5 rounded-xl hover:bg-gray-100 transition-all duration-200 border border-gray-200 hover:border-gray-300"
               >
                 <LogOut size={18} />
               </button>
