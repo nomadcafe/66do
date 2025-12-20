@@ -14,6 +14,7 @@ import {
   Settings,
   RefreshCw
 } from 'lucide-react';
+import * as Papa from 'papaparse';
 import { useI18nContext } from '../../contexts/I18nProvider';
 
 interface ImportExportProps {
@@ -99,23 +100,29 @@ export default function DataImportExport({
     }
   };
 
-  const parseCSV = (csvText: string) => {
-    const lines = csvText.split('\n');
-    const headers = lines[0].split(',').map(h => h.trim());
-    const data = [];
+  const parseCSV = (csvText: string): { domains: unknown[] } => {
+    // 使用 papaparse 库进行可靠的 CSV 解析
+    // 支持引号内的逗号、转义字符、多行字段等复杂情况
+    // papaparse 默认支持 RFC 4180 标准，包括引号处理
+    const result = Papa.parse<Record<string, string>>(csvText, {
+      header: true,
+      skipEmptyLines: true,
+      transformHeader: (header: string) => header.trim(),
+      transform: (value: string) => value.trim(),
+      // 处理转义字符（默认使用双引号）
+      escapeChar: '"',
+      // 处理多行字段
+      newline: '\n',
+    });
 
-    for (let i = 1; i < lines.length; i++) {
-      if (lines[i].trim()) {
-        const values = lines[i].split(',').map(v => v.trim());
-        const row: Record<string, string> = {};
-        headers.forEach((header, index) => {
-          row[header] = values[index] || '';
-        });
-        data.push(row);
-      }
+    if (result.errors.length > 0) {
+      const errorMessages = result.errors.map((err) => 
+        `Row ${err.row ?? 'unknown'}: ${err.message ?? 'Unknown error'}`
+      ).join('; ');
+      throw new Error(`CSV parsing errors: ${errorMessages}`);
     }
 
-    return { domains: data };
+    return { domains: result.data };
   };
 
   const validateImportData = (data: unknown) => {

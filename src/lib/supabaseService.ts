@@ -105,12 +105,13 @@ export class DomainService {
     client: SupabaseClient<Database>,
     userId: string
   ): Promise<Domain[]> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (client as any)
+    // 注意：由于 Supabase 类型系统的限制，这里需要使用类型断言
+    // 实际运行时类型是正确的，只是 TypeScript 无法正确推断
+    const { data, error } = await (client
       .from('domains')
       .select('*')
       .eq('user_id', userId)
-      .order('created_at', { ascending: false })
+      .order('created_at', { ascending: false }) as unknown as Promise<{ data: Domain[] | null; error: { message: string } | null }>)
     
     if (error) {
       console.error('Error fetching domains:', error)
@@ -128,12 +129,13 @@ export class DomainService {
     client: SupabaseClient<Database>,
     domain: DomainInsert
   ): Promise<Domain | null> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (client as any)
+    // 注意：由于 Supabase 类型系统的限制，这里需要使用类型断言
+    // 实际运行时类型是正确的，只是 TypeScript 无法正确推断
+    const { data, error } = await (client
       .from('domains')
-      .insert(domain)
+      .insert(domain as never)
       .select()
-      .single()
+      .single() as unknown as Promise<{ data: Domain | null; error: { message: string; code?: string } | null }>)
     
     if (error) {
       console.error('Error creating domain:', error)
@@ -169,19 +171,20 @@ export class DomainService {
     userId?: string
   ): Promise<Domain | null> {
     // 如果提供了userId，确保只能更新属于该用户的域名
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let queryBuilder = (client as any)
+    // 注意：由于 Supabase 类型系统的限制，这里需要使用类型断言
+    // 实际运行时类型是正确的，只是 TypeScript 无法正确推断
+    let queryBuilder = client
       .from('domains')
-      .update(updates)
+      .update(updates as never)
       .eq('id', id)
     
     if (userId) {
-      queryBuilder = queryBuilder.eq('user_id', userId)
+      queryBuilder = queryBuilder.eq('user_id', userId) as typeof queryBuilder
     }
     
-    const { data, error } = await queryBuilder
+    const { data, error } = await (queryBuilder
       .select()
-      .single()
+      .single() as unknown as Promise<{ data: Domain | null; error: { message: string; code?: string } | null }>)
     
     if (error) {
       console.error('Error updating domain:', error)
