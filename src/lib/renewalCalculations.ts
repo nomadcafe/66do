@@ -257,7 +257,7 @@ export function getRenewalOptimizationSuggestions(
   
   if (costConcentrationRatio > 2.5) {
     const peakMonth = Object.entries(annualCost.monthlyDistribution)
-      .find(([_, cost]) => cost === maxMonthlyCost)?.[0];
+      .find(([, cost]) => cost === maxMonthlyCost)?.[0];
     const monthName = peakMonth ? new Date(2024, parseInt(peakMonth), 1).toLocaleDateString('zh-CN', { month: 'long' }) : '某月';
     suggestions.push(`⚠️ 续费成本在${monthName}过于集中（${costConcentrationRatio.toFixed(1)}倍于平均值），建议提前续费或调整域名到期时间分散风险。`);
   } else if (costConcentrationRatio < 1.2) {

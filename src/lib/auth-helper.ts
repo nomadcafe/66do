@@ -108,7 +108,7 @@ export async function getAuthInfoFromRequest(request: NextRequest): Promise<{ us
       if (body.userId) {
         return { userId: body.userId };
       }
-    } catch (e) {
+    } catch {
       // 忽略JSON解析错误
     }
 

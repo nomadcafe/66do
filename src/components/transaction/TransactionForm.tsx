@@ -223,7 +223,8 @@ export default function TransactionForm({
     };
     
     // 移除数据库中不存在的字段
-    const { platform: _platform, ...dataWithoutPlatform } = finalFormData;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { platform, ...dataWithoutPlatform } = finalFormData;
     const finalFormDataClean = dataWithoutPlatform;
     
     onSave(finalFormDataClean);

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { TransactionService } from '../../../src/lib/supabaseService'
 import { validateTransaction, sanitizeTransactionData } from '../../../src/lib/validation'
 import { getUserIdFromRequest } from '../../../src/lib/auth-helper'
+import { getCorsHeaders, getCorsHeadersForError } from '../../../src/lib/cors'
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,11 +18,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const corsHeaders = {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    }
+    const corsHeaders = getCorsHeaders(request)
 
     switch (action) {
       case 'getTransactions':
@@ -114,28 +111,23 @@ export async function POST(request: NextRequest) {
         })
     }
   } catch (error) {
+    // 在生产环境中不泄露详细错误信息
+    const isProduction = process.env.NODE_ENV === 'production'
     console.error('API Error:', error)
+    
     return NextResponse.json({ 
       error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      ...(isProduction ? {} : { details: error instanceof Error ? error.message : 'Unknown error' })
     }, {
       status: 500,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      }
+      headers: getCorsHeadersForError()
     })
   }
 }
 
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    }
+    headers: getCorsHeaders(request)
   })
 }

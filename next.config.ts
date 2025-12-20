@@ -59,6 +59,8 @@ const nextConfig: NextConfig = {
   
   // Headers for security
   async headers() {
+    const isProduction = process.env.NODE_ENV === 'production'
+    
     return [
       {
         source: '/(.*)',
@@ -78,6 +80,24 @@ const nextConfig: NextConfig = {
           {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
+          },
+          // HSTS - 仅在HTTPS环境下启用
+          ...(isProduction ? [{
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains; preload',
+          }] : []),
+          // CSP - 内容安全策略
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: https:",
+              "font-src 'self' data:",
+              "connect-src 'self' https://*.supabase.co https://*.supabase.in",
+              "frame-ancestors 'self'",
+            ].join('; '),
           },
         ],
       },

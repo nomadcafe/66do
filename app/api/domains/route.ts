@@ -4,9 +4,17 @@ import { validateDomain, sanitizeDomainData } from '../../../src/lib/validation'
 import { getAuthInfoFromRequest } from '../../../src/lib/auth-helper'
 import { createClient } from '@supabase/supabase-js'
 import { Database } from '../../../src/lib/supabase'
+import { getCorsHeaders, getCorsHeadersForError } from '../../../src/lib/cors'
+import { validateEnvVars } from '../../../src/lib/env-validator'
 
 // 创建带有用户认证的 Supabase 客户端
 async function createAuthenticatedSupabaseClient(accessToken?: string) {
+  // 验证环境变量
+  const envValidation = validateEnvVars(true)
+  if (!envValidation.valid) {
+    throw new Error(`Missing required environment variables: ${envValidation.missing.join(', ')}`)
+  }
+  
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   
@@ -57,11 +65,7 @@ export async function POST(request: NextRequest) {
     
     const { userId, accessToken } = authInfo;
 
-    const corsHeaders = {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    }
+    const corsHeaders = getCorsHeaders(request)
 
     switch (action) {
       case 'getDomains':
@@ -202,28 +206,23 @@ export async function POST(request: NextRequest) {
         })
     }
   } catch (error) {
+    // 在生产环境中不泄露详细错误信息
+    const isProduction = process.env.NODE_ENV === 'production'
     console.error('API Error:', error)
+    
     return NextResponse.json({ 
       error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      ...(isProduction ? {} : { details: error instanceof Error ? error.message : 'Unknown error' })
     }, {
       status: 500,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      }
+      headers: getCorsHeadersForError()
     })
   }
 }
 
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    }
+    headers: getCorsHeaders(request)
   })
 }

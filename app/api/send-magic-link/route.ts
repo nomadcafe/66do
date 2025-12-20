@@ -56,11 +56,16 @@ export async function POST(request: NextRequest) {
         status: error.status,
         name: error.name
       })
+      
+      // 在生产环境中不泄露详细错误信息
+      const isProduction = process.env.NODE_ENV === 'production'
       return NextResponse.json({ 
         error: 'Failed to send magic link',
-        details: error.message,
-        errorCode: error.status,
-        errorName: error.name
+        ...(isProduction ? {} : { 
+          details: error.message,
+          errorCode: error.status,
+          errorName: error.name
+        })
       }, { 
         status: 500,
         headers: corsHeaders
@@ -78,9 +83,11 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     serverLogger.error('Send magic link error:', error)
+    // 在生产环境中不泄露详细错误信息
+    const isProduction = process.env.NODE_ENV === 'production'
     return NextResponse.json({ 
       error: 'Failed to send magic link email',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      ...(isProduction ? {} : { details: error instanceof Error ? error.message : 'Unknown error' })
     }, {
       status: 500,
       headers: getCorsHeadersForError()
@@ -88,9 +95,9 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 200,
-    headers: getCorsHeadersForError()
+    headers: getCorsHeaders(request)
   })
 }
