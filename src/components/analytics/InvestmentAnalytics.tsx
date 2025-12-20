@@ -16,7 +16,8 @@ import {
   Pie,
   Cell,
   Area,
-  AreaChart
+  AreaChart,
+  Legend
 } from 'recharts';
 import { 
   TrendingUp, 
@@ -466,21 +467,47 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
           </div>
         </div>
         <ResponsiveContainer width="100%" height={400}>
-          <AreaChart data={timeSeriesData}>
-            <CartesianGrid strokeDasharray="3 3" />
+          <AreaChart 
+            data={timeSeriesData}
+            margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+          >
+            <defs>
+              <linearGradient id="colorInvestment" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+              </linearGradient>
+              <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#10B981" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+              </linearGradient>
+              <linearGradient id="colorPortfolio" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
             <XAxis 
               dataKey="date" 
-              tick={{ fontSize: 12 }}
+              tick={{ fontSize: 12, fill: '#6B7280' }}
               tickFormatter={(value) => {
                 const date = new Date(value);
                 return `${date.getMonth() + 1}/${date.getFullYear()}`;
               }}
+              stroke="#9CA3AF"
             />
             <YAxis 
-              tick={{ fontSize: 12 }}
+              tick={{ fontSize: 12, fill: '#6B7280' }}
               tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+              stroke="#9CA3AF"
             />
             <Tooltip 
+              contentStyle={{
+                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                border: '1px solid #E5E7EB',
+                borderRadius: '8px',
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+              }}
+              cursor={{ stroke: '#3B82F6', strokeWidth: 2 }}
               formatter={(value, name) => [
                 `$${Number(value).toLocaleString()}`, 
                 name === 'investment' ? t('analytics.investment') : 
@@ -492,32 +519,57 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
                 return date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' });
               }}
             />
+            <Legend 
+              wrapperStyle={{ paddingTop: '20px' }}
+              iconType="circle"
+            />
+            <defs>
+              <linearGradient id="colorInvestment" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+              </linearGradient>
+              <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#10B981" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+              </linearGradient>
+              <linearGradient id="colorPortfolio" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
+              </linearGradient>
+            </defs>
             <Area 
               type="monotone" 
               dataKey="investment" 
               stackId="1" 
               stroke="#3B82F6" 
-              fill="#3B82F6" 
-              fillOpacity={0.6}
+              fill="url(#colorInvestment)"
+              strokeWidth={2}
               name={t('analytics.investment')}
+              activeDot={{ r: 6, fill: '#3B82F6' }}
             />
             <Area 
               type="monotone" 
               dataKey="revenue" 
               stackId="2" 
               stroke="#10B981" 
-              fill="#10B981" 
-              fillOpacity={0.6}
+              fill="url(#colorRevenue)"
+              strokeWidth={2}
               name={t('analytics.revenue')}
+              activeDot={{ r: 6, fill: '#10B981' }}
             />
             <Line 
               type="monotone" 
               dataKey="portfolioValue" 
               stroke="#8B5CF6" 
+              fill="url(#colorPortfolio)"
               strokeWidth={3}
               name={t('analytics.portfolioValue')}
-              dot={{ r: 4 }}
-              activeDot={{ r: 6 }}
+              dot={{ r: 4, fill: '#8B5CF6' }}
+              activeDot={{ r: 8, fill: '#8B5CF6' }}
+            />
+            <Legend 
+              wrapperStyle={{ paddingTop: '20px' }}
+              iconType="circle"
             />
           </AreaChart>
         </ResponsiveContainer>
