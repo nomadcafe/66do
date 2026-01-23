@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSupabaseAuth } from '../../src/contexts/SupabaseAuthContext';
 import { useI18nContext } from '../../src/contexts/I18nProvider';
@@ -102,27 +102,26 @@ export default function DashboardPage() {
   
   const stats = useDomainStats(domains, transactions);
   
+  // 使用useCallback优化删除域名的函数
+  const handleDeleteDomain = useCallback(async (id: string) => {
+    if (!user?.id) return;
+    try {
+      // Use RESTful DELETE /api/domains/[id]
+      const response = await fetch(`/api/domains/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!response.ok) throw new Error('Failed to delete domain');
+      await refreshData();
+    } catch (error) {
+      setError(`Failed to delete domain: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }, [user?.id, refreshData, setError]);
+
   const domainOps = useDomainOperations(
     domains,
     saveData,
-    async (id: string) => {
-    if (!user?.id) return;
-      try {
-        const response = await fetch('/api/domains', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-            action: 'deleteDomain',
-              userId: user.id,
-            domain: { id }
-            })
-          });
-        if (!response.ok) throw new Error('Failed to delete domain');
-        await refreshData();
-      } catch (error) {
-        setError(`Failed to delete domain: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      }
-    }
+    handleDeleteDomain
   );
   
   const transactionOps = useTransactionOperations(
@@ -154,10 +153,10 @@ export default function DashboardPage() {
       )
       .map(domain => ({
         id: domain.id,
-        domain_name: domain.domain_name,
+                domain_name: domain.domain_name,
         renewal_cost: domain.renewal_cost!,
-        renewal_cycle: domain.renewal_cycle,
-        renewal_count: domain.renewal_count,
+                renewal_cycle: domain.renewal_cycle,
+                renewal_count: domain.renewal_count,
         purchase_date: domain.purchase_date!,
         expiry_date: domain.expiry_date || undefined,
         status: domain.status
@@ -218,8 +217,8 @@ export default function DashboardPage() {
     return calculateEnhancedFinancialMetrics(validDomains, validTransactions);
   }, [domains, transactions]);
 
-  // 处理域名保存（保留此函数因为需要特殊处理）
-  const handleSaveDomain = async (domainData: Omit<DomainWithTags, 'id'>) => {
+  // 处理域名保存（保留此函数因为需要特殊处理）- 使用useCallback优化
+  const handleSaveDomain = useCallback(async (domainData: Omit<DomainWithTags, 'id'>) => {
     try {
       if (domainOps.editingDomain) {
         const updatedDomain: DomainWithTags = {
@@ -253,15 +252,15 @@ export default function DashboardPage() {
       setError(`Failed to save domain: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setTimeout(() => setError(null), 3000);
     }
-  };
+  }, [domainOps, domains, transactions, saveData, setError]);
 
-  const handleViewDomain = (domain: DomainWithTags) => {
+  const handleViewDomain = useCallback((domain: DomainWithTags) => {
     domainOps.setEditingDomain(domain);
     domainOps.setShowDomainForm(true);
-  };
+  }, [domainOps]);
 
-  // Calculate share data for social media
-  const calculateShareData = () => {
+  // Calculate share data for social media - 使用useMemo优化
+  const shareData = useMemo(() => {
     const soldDomains = domains.filter(d => d.status === 'sold');
     const totalProfit = soldDomains.reduce((sum, domain) => {
       const totalHoldingCost = (domain.purchase_cost || 0) + (domain.renewal_count * (domain.renewal_cost || 0));
@@ -293,7 +292,7 @@ export default function DashboardPage() {
       domainCount: domains.length,
       totalInvestment
     };
-  };
+  }, [domains]);
 
 
 
@@ -1299,7 +1298,7 @@ export default function DashboardPage() {
       <ShareModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
-        shareData={calculateShareData()}
+        shareData={shareData}
       />
 
       {/* Sale Success Modal */}

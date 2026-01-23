@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { Edit, Trash2, Eye, Share2, Calendar, Tag, Globe } from 'lucide-react';
 import DomainShareModal from '../share/DomainShareModal';
 import { DomainWithTags } from '../../types/dashboard';
@@ -33,14 +33,14 @@ interface DomainTableProps {
   onView: (domain: DomainWithTags) => void;
 }
 
-export default function DomainTable({ domains, onEdit, onDelete, onView }: DomainTableProps) {
+const DomainTable = memo(function DomainTable({ domains, onEdit, onDelete, onView }: DomainTableProps) {
   const [sortField, setSortField] = useState('domain_name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [showShareModal, setShowShareModal] = useState(false);
   const [selectedDomain, setSelectedDomain] = useState<DomainWithTags | null>(null);
   const { t } = useI18nContext();
 
-  const sortedDomains = [...domains].sort((a, b) => {
+  const sortedDomains = useMemo(() => [...domains].sort((a, b) => {
     let aValue: string | number = a[sortField as keyof Domain] as string | number;
     let bValue: string | number = b[sortField as keyof Domain] as string | number;
 
@@ -54,7 +54,7 @@ export default function DomainTable({ domains, onEdit, onDelete, onView }: Domai
     } else {
       return aValue < bValue ? 1 : -1;
     }
-  });
+  }), [domains, sortField, sortDirection]);
 
   const handleSort = (field: string) => {
     if (sortField === field) {
@@ -334,4 +334,6 @@ export default function DomainTable({ domains, onEdit, onDelete, onView }: Domai
       )}
     </div>
   );
-}
+});
+
+export default DomainTable;

@@ -51,14 +51,10 @@ export function useTransactionOperations(
       const transactionToDelete = transactions.find(t => t.id === id);
       if (!transactionToDelete) return;
 
-      const response = await fetch('/api/transactions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'deleteTransaction',
-          userId,
-          transaction: { id }
-        })
+      // Use RESTful DELETE /api/transactions/[id]
+      const response = await fetch(`/api/transactions/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
       });
 
       if (!response.ok) {
