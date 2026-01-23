@@ -150,63 +150,79 @@ export function useDashboardData(
       // Save domains to Supabase
       for (const domain of newDomains) {
         const isExisting = domains.find(d => d.id === domain.id);
-        const action = isExisting ? 'updateDomain' : 'addDomain';
-        const response = await fetch('/api/domains', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            action,
-            userId,
-            domain: {
-              ...domain,
-              registrar: domain.registrar || null,
-              purchase_date: domain.purchase_date || null,
-              purchase_cost: domain.purchase_cost || null,
-              renewal_cost: domain.renewal_cost || null,
-              next_renewal_date: domain.next_renewal_date || null,
-              expiry_date: domain.expiry_date || null,
-              estimated_value: domain.estimated_value || null,
-              sale_date: domain.sale_date || null,
-              sale_price: domain.sale_price || null,
-              platform_fee: domain.platform_fee || null,
-              tags: JSON.stringify(domain.tags)
-            }
-          })
-        });
+        const domainPayload = {
+          ...domain,
+          registrar: domain.registrar || null,
+          purchase_date: domain.purchase_date || null,
+          purchase_cost: domain.purchase_cost || null,
+          renewal_cost: domain.renewal_cost || null,
+          next_renewal_date: domain.next_renewal_date || null,
+          expiry_date: domain.expiry_date || null,
+          estimated_value: domain.estimated_value || null,
+          sale_date: domain.sale_date || null,
+          sale_price: domain.sale_price || null,
+          platform_fee: domain.platform_fee || null,
+          tags: JSON.stringify(domain.tags)
+        };
+
+        let response: Response;
+        if (isExisting) {
+          // Update existing domain - PUT /api/domains/[id]
+          response = await fetch(`/api/domains/${domain.id}`, {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify(domainPayload)
+          });
+        } else {
+          // Create new domain - POST /api/domains
+          response = await fetch('/api/domains', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ domain: domainPayload })
+          });
+        }
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(`Failed to ${action === 'addDomain' ? 'add' : 'update'} domain: ${errorData.error || response.statusText}`);
+          throw new Error(`Failed to ${isExisting ? 'update' : 'add'} domain: ${errorData.error || response.statusText}`);
         }
       }
 
       // Save transactions to Supabase
       for (const transaction of newTransactions) {
         const isExisting = transactions.find(t => t.id === transaction.id);
-        const action = isExisting ? 'updateTransaction' : 'addTransaction';
-        const response = await fetch('/api/transactions', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            action,
-            userId,
-            transaction: {
-              ...transaction,
-              base_amount: transaction.base_amount || null,
-              platform_fee: transaction.platform_fee || null,
-              platform_fee_percentage: transaction.platform_fee_percentage || null,
-              net_amount: transaction.net_amount || null,
-              category: transaction.category || null,
-              tax_deductible: transaction.tax_deductible || false,
-              receipt_url: transaction.receipt_url || null,
-              notes: transaction.notes || null
-            }
-          })
-        });
+        const transactionPayload = {
+          ...transaction,
+          base_amount: transaction.base_amount || null,
+          platform_fee: transaction.platform_fee || null,
+          platform_fee_percentage: transaction.platform_fee_percentage || null,
+          net_amount: transaction.net_amount || null,
+          category: transaction.category || null,
+          tax_deductible: transaction.tax_deductible || false,
+          receipt_url: transaction.receipt_url || null,
+          notes: transaction.notes || null
+        };
+
+        let response: Response;
+        if (isExisting) {
+          // Update existing transaction - PUT /api/transactions/[id]
+          response = await fetch(`/api/transactions/${transaction.id}`, {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify(transactionPayload)
+          });
+        } else {
+          // Create new transaction - POST /api/transactions
+          response = await fetch('/api/transactions', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ transaction: transactionPayload })
+          });
+        }
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(`Failed to ${action === 'addTransaction' ? 'add' : 'update'} transaction: ${errorData.error || response.statusText}`);
+          throw new Error(`Failed to ${isExisting ? 'update' : 'add'} transaction: ${errorData.error || response.statusText}`);
         }
       }
 

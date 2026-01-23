@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { Globe, Calendar, DollarSign, Tag, Edit, Trash2, Eye, Share2 } from 'lucide-react';
 import DomainShareModal from '../share/DomainShareModal';
 import { DomainWithTags } from '../../types/dashboard';
@@ -15,17 +15,15 @@ interface DomainCardProps {
   onView: (domain: DomainWithTags) => void;
 }
 
-export default function DomainCard({ domain, onEdit, onDelete, onView }: DomainCardProps) {
+const DomainCard = memo(function DomainCard({ domain, onEdit, onDelete, onView }: DomainCardProps) {
   const [showShareModal, setShowShareModal] = useState(false);
   const { t } = useI18nContext();
 
-  // 计算总持有成本
-  const calculateTotalHoldingCost = () => {
+  // 计算总持有成本 - 使用useMemo优化
+  const totalHoldingCost = useMemo(() => {
     const totalRenewalCost = domain.renewal_count * (domain.renewal_cost || 0);
     return (domain.purchase_cost || 0) + totalRenewalCost;
-  };
-
-  const totalHoldingCost = calculateTotalHoldingCost();
+  }, [domain.purchase_cost, domain.renewal_count, domain.renewal_cost]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -197,4 +195,6 @@ export default function DomainCard({ domain, onEdit, onDelete, onView }: DomainC
       />
     </div>
   );
-}
+});
+
+export default DomainCard;

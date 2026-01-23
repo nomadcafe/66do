@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { Search, Filter, Grid, List, Plus, Table } from 'lucide-react';
 import DomainCard from './DomainCard';
 import DomainTable from './DomainTable';
@@ -14,12 +14,12 @@ interface DomainListProps {
   onAdd: () => void;
 }
 
-export default function DomainList({ domains, onEdit, onDelete, onView, onAdd }: DomainListProps) {
+const DomainList = memo(function DomainList({ domains, onEdit, onDelete, onView, onAdd }: DomainListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'table'>('table');
 
-  const filteredDomains = domains.filter(domain => {
+  const filteredDomains = useMemo(() => domains.filter(domain => {
     // DomainWithTags已经确保tags是string[]
     const tagsArray = domain.tags;
     
@@ -30,7 +30,7 @@ export default function DomainList({ domains, onEdit, onDelete, onView, onAdd }:
     const matchesStatus = statusFilter === 'all' || domain.status === statusFilter;
     
     return matchesSearch && matchesStatus;
-  });
+  }), [domains, searchTerm, statusFilter]);
 
   const statusOptions = [
     { value: 'all', label: 'All Status' },
@@ -170,4 +170,6 @@ export default function DomainList({ domains, onEdit, onDelete, onView, onAdd }:
       )}
     </div>
   );
-}
+});
+
+export default DomainList;

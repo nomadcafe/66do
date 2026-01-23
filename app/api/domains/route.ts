@@ -9,7 +9,6 @@ import { validateEnvVars } from '../../../src/lib/env-validator'
 
 // 创建带有用户认证的 Supabase 客户端
 async function createAuthenticatedSupabaseClient(accessToken?: string) {
-  // 验证环境变量
   const envValidation = validateEnvVars(true)
   if (!envValidation.valid) {
     throw new Error(`Missing required environment variables: ${envValidation.missing.join(', ')}`)
@@ -31,30 +30,23 @@ async function createAuthenticatedSupabaseClient(accessToken?: string) {
     },
   })
   
-  // 如果提供了 access token，设置会话
   if (accessToken) {
-    // 注意：这里我们只设置 access token，Supabase 会用它来验证 RLS 策略
-    // RLS 策略使用 auth.uid() 来获取当前用户ID
     try {
       await client.auth.setSession({
         access_token: accessToken,
-        refresh_token: '', // 刷新token在服务端不需要
+        refresh_token: '',
       });
     } catch (err) {
       console.error('Error setting session in Supabase client:', err);
-      // 即使设置会话失败，也返回客户端，因为 Authorization header 已经设置
     }
   }
   
   return client
 }
 
-export async function POST(request: NextRequest) {
+// GET /api/domains - 获取所有域名
+export async function GET(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { action, domain, domains } = body
-
-    // 验证用户身份并获取认证信息
     const authInfo = await getAuthInfoFromRequest(request);
     if (!authInfo || !authInfo.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { 
@@ -64,26 +56,60 @@ export async function POST(request: NextRequest) {
     }
     
     const { userId, accessToken } = authInfo;
+    const corsHeaders = getCorsHeaders(request)
+    
+    const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken)
+    const domainList = await DomainService.getDomainsWithClient(authenticatedClient, userId)
+    
+    return NextResponse.json({ success: true, data: domainList }, { headers: corsHeaders })
+  } catch (error) {
+    const isProduction = process.env.NODE_ENV === 'production'
+    console.error('API Error:', error)
+    
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      ...(isProduction ? {} : { details: error instanceof Error ? error.message : 'Unknown error' })
+    }, {
+      status: 500,
+      headers: getCorsHeadersForError()
+    })
+  }
+}
 
+// POST /api/domains - 创建新域名
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { domain, domains } = body
+
+    const authInfo = await getAuthInfoFromRequest(request);
+    if (!authInfo || !authInfo.userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { 
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+    
+    const { userId, accessToken } = authInfo;
     const corsHeaders = getCorsHeaders(request)
 
-    switch (action) {
-      case 'getDomains':
-        // 创建带有用户认证的 Supabase 客户端
-        const authenticatedClientForGet = await createAuthenticatedSupabaseClient(accessToken)
-        const domainList = await DomainService.getDomainsWithClient(authenticatedClientForGet, userId)
-        return NextResponse.json({ success: true, data: domainList }, { headers: corsHeaders })
+    // 支持批量创建
+    if (domains && Array.isArray(domains)) {
+      const MAX_BULK_SIZE = 100
+      if (domains.length > MAX_BULK_SIZE) {
+        return NextResponse.json({ 
+          error: `Bulk create is limited to ${MAX_BULK_SIZE} domains at a time` 
+        }, { 
+          status: 400,
+          headers: corsHeaders
+        })
+      }
+
+      const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken)
+      const createdDomains = []
       
-      case 'addDomain':
-        if (!domain) {
-          return NextResponse.json({ error: 'Domain data is required' }, { 
-            status: 400,
-            headers: corsHeaders
-          })
-        }
-        
-        // 验证域名数据
-        const domainValidation = validateDomain(domain)
+      for (const domainData of domains) {
+        const domainValidation = validateDomain(domainData)
         if (!domainValidation.valid) {
           return NextResponse.json({ 
             error: 'Domain validation failed', 
@@ -94,134 +120,139 @@ export async function POST(request: NextRequest) {
           })
         }
         
-        // 检查域名是否已存在
-        const authenticatedClientForCheck = await createAuthenticatedSupabaseClient(accessToken)
-        const existingDomains = await DomainService.getDomainsWithClient(authenticatedClientForCheck, userId)
-        const domainName = domain.domain_name?.toLowerCase().trim()
-        const isDuplicate = existingDomains.some(d => 
-          d.domain_name.toLowerCase().trim() === domainName
-        )
-        
-        if (isDuplicate) {
-          return NextResponse.json({ 
-            error: 'Domain already exists', 
-            details: ['This domain name is already in your portfolio']
-          }, { 
-            status: 409,
-            headers: corsHeaders
-          })
-        }
-        
-        // 清理和标准化数据
-        const sanitizedDomain = sanitizeDomainData(domain)
-        // 创建带有用户认证的 Supabase 客户端
-        const authenticatedClientForCreate = await createAuthenticatedSupabaseClient(accessToken)
-        const newDomain = await DomainService.createDomainWithClient(authenticatedClientForCreate, { 
+        const sanitizedDomain = sanitizeDomainData(domainData)
+        const newDomain = await DomainService.createDomainWithClient(authenticatedClient, { 
           ...sanitizedDomain, 
-          user_id: userId, // 使用正确的字段名
-          id: crypto.randomUUID(), // 生成唯一ID
+          user_id: userId,
+          id: crypto.randomUUID(),
           domain_name: sanitizedDomain.domain_name as string
         })
         
-        if (!newDomain) {
-          console.error('Failed to create domain via Supabase - see server logs for details')
-          return NextResponse.json({ 
-            error: 'Failed to create domain in Supabase. Please check RLS policies or field values.' 
-          }, { 
-            status: 500,
-            headers: corsHeaders
-          })
+        if (newDomain) {
+          createdDomains.push(newDomain)
         }
-        
-        return NextResponse.json({ success: true, data: newDomain }, { headers: corsHeaders })
+      }
       
-      case 'updateDomain':
-        if (!domain) {
-          return NextResponse.json({ error: 'Domain data is required' }, { 
-            status: 400,
-            headers: corsHeaders
-          })
-        }
-        
-        // 验证域名数据
-        const updateDomainValidation = validateDomain(domain)
-        if (!updateDomainValidation.valid) {
-          return NextResponse.json({ 
-            error: 'Domain validation failed', 
-            details: updateDomainValidation.errors 
-          }, { 
-            status: 400,
-            headers: corsHeaders
-          })
-        }
-        
-        // 清理和标准化数据
-        const sanitizedUpdateDomain = sanitizeDomainData(domain)
-        
-        // 创建带有用户认证的 Supabase 客户端用于更新操作
-        const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken)
-        // 传递userId以确保只能更新属于当前用户的域名
-        const updatedDomain = await DomainService.updateDomainWithClient(
-          authenticatedClient,
-          domain.id,
-          sanitizedUpdateDomain,
-          userId
-        )
-        
-        if (!updatedDomain) {
-          return NextResponse.json({ 
-            error: 'Failed to update domain. It may not exist or you may not have permission.' 
-          }, { 
-            status: 404,
-            headers: corsHeaders
-          })
-        }
-        
-        return NextResponse.json({ success: true, data: updatedDomain }, { headers: corsHeaders })
-      
-      case 'deleteDomain':
-        if (!domain?.id) {
-          return NextResponse.json({ error: 'Domain ID is required' }, { 
-            status: 400,
-            headers: corsHeaders
-          })
-        }
-        
-        // 验证域名所有权 - 确保域名属于当前用户
-        const authenticatedClientForDelete = await createAuthenticatedSupabaseClient(accessToken)
-        const userDomains = await DomainService.getDomainsWithClient(authenticatedClientForDelete, userId)
-        const canDeleteDomain = userDomains.some(d => d.id === domain.id)
-        
-        if (!canDeleteDomain) {
-          return NextResponse.json({ 
-            error: 'Domain not found or access denied' 
-          }, { 
-            status: 403,
-            headers: corsHeaders
-          })
-        }
-        
-        const deleteResult = await DomainService.deleteDomain(domain.id, userId)
-        return NextResponse.json({ success: deleteResult }, { headers: corsHeaders })
-      
-      case 'bulkUpdateDomains':
-        if (!domains || !Array.isArray(domains)) {
-          return NextResponse.json({ error: 'Domains array is required' }, { 
-            status: 400,
-            headers: corsHeaders
-          })
-        }
-        const bulkResult = await DomainService.bulkUpdateDomains(domains)
-        return NextResponse.json({ success: bulkResult }, { headers: corsHeaders })
-      
-      default:
-        return NextResponse.json({ error: 'Invalid action' }, { 
-          status: 400,
-          headers: corsHeaders
-        })
+      return NextResponse.json({ success: true, data: createdDomains }, { headers: corsHeaders })
     }
+
+    // 单个域名创建
+    if (!domain) {
+      return NextResponse.json({ error: 'Domain data is required' }, { 
+        status: 400,
+        headers: corsHeaders
+      })
+    }
+    
+    const domainValidation = validateDomain(domain)
+    if (!domainValidation.valid) {
+      return NextResponse.json({ 
+        error: 'Domain validation failed', 
+        details: domainValidation.errors 
+      }, { 
+        status: 400,
+        headers: corsHeaders
+      })
+    }
+    
+    const authenticatedClientForCheck = await createAuthenticatedSupabaseClient(accessToken)
+    const existingDomains = await DomainService.getDomainsWithClient(authenticatedClientForCheck, userId)
+    const domainName = domain.domain_name?.toLowerCase().trim()
+    const isDuplicate = existingDomains.some(d => 
+      d.domain_name.toLowerCase().trim() === domainName
+    )
+    
+    if (isDuplicate) {
+      return NextResponse.json({ 
+        error: 'Domain already exists', 
+        details: ['This domain name is already in your portfolio']
+      }, { 
+        status: 409,
+        headers: corsHeaders
+      })
+    }
+    
+    const sanitizedDomain = sanitizeDomainData(domain)
+    const authenticatedClientForCreate = await createAuthenticatedSupabaseClient(accessToken)
+    const newDomain = await DomainService.createDomainWithClient(authenticatedClientForCreate, { 
+      ...sanitizedDomain, 
+      user_id: userId,
+      id: crypto.randomUUID(),
+      domain_name: sanitizedDomain.domain_name as string
+    })
+    
+    if (!newDomain) {
+      console.error('Failed to create domain via Supabase - see server logs for details')
+      return NextResponse.json({ 
+        error: 'Failed to create domain in Supabase. Please check RLS policies or field values.' 
+      }, { 
+        status: 500,
+        headers: corsHeaders
+      })
+    }
+    
+    return NextResponse.json({ success: true, data: newDomain }, { headers: corsHeaders })
   } catch (error) {
-    // 在生产环境中不泄露详细错误信息
+    const isProduction = process.env.NODE_ENV === 'production'
+    console.error('API Error:', error)
+    
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      ...(isProduction ? {} : { details: error instanceof Error ? error.message : 'Unknown error' })
+    }, {
+      status: 500,
+      headers: getCorsHeadersForError()
+    })
+  }
+}
+
+// PATCH /api/domains - 批量更新域名
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { domains } = body
+
+    const authInfo = await getAuthInfoFromRequest(request);
+    if (!authInfo || !authInfo.userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { 
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+    
+    const { userId } = authInfo;
+    const corsHeaders = getCorsHeaders(request)
+
+    if (!domains || !Array.isArray(domains)) {
+      return NextResponse.json({ error: 'Domains array is required' }, { 
+        status: 400,
+        headers: corsHeaders
+      })
+    }
+
+    // 验证所有域名都属于当前用户
+    const authenticatedClient = await createAuthenticatedSupabaseClient(authInfo.accessToken)
+    const userDomains = await DomainService.getDomainsWithClient(authenticatedClient, userId)
+    const userDomainIds = new Set(userDomains.map(d => d.id))
+    
+    const invalidDomains = domains.filter(d => d.id && !userDomainIds.has(d.id))
+    if (invalidDomains.length > 0) {
+      return NextResponse.json({ 
+        error: 'Some domains do not belong to you or do not exist',
+        invalidCount: invalidDomains.length
+      }, { 
+        status: 403,
+        headers: corsHeaders
+      })
+    }
+
+    const bulkResult = await DomainService.bulkUpdateDomains(domains.map(d => ({
+      ...d,
+      user_id: userId
+    })))
+    
+    return NextResponse.json({ success: bulkResult }, { headers: corsHeaders })
+  } catch (error) {
     const isProduction = process.env.NODE_ENV === 'production'
     console.error('API Error:', error)
     

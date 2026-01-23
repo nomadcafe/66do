@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, memo, useCallback } from 'react';
 import { Search, Filter, Plus, Edit, Trash2, DollarSign, Calendar, FileText, TrendingUp, TrendingDown } from 'lucide-react';
 import { calculateDomainROI, getROIColor, getROIBgColor, formatPercentage } from '../../lib/enhancedFinancialMetrics';
 import { useI18nContext } from '../../contexts/I18nProvider';
@@ -66,7 +66,7 @@ interface TransactionListProps {
   onAdd: () => void;
 }
 
-export default function TransactionList({ 
+const TransactionList = memo(function TransactionList({ 
   transactions, 
   domains, 
   onEdit, 
@@ -76,11 +76,6 @@ export default function TransactionList({
   const { t } = useI18nContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
-
-  const getDomainName = (domainId: string) => {
-    const domain = domains.find(d => d.id === domainId);
-    return domain ? domain.domain_name : 'Unknown Domain';
-  };
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -127,7 +122,18 @@ export default function TransactionList({
     return new Date(dateString).toLocaleDateString();
   };
 
-  const filteredTransactions = transactions.filter(transaction => {
+  // 使用useMemo优化域名查找
+  const domainMap = useMemo(() => {
+    const map = new Map<string, string>();
+    domains.forEach(d => map.set(d.id, d.domain_name));
+    return map;
+  }, [domains]);
+
+  const getDomainName = useCallback((domainId: string) => {
+    return domainMap.get(domainId) || 'Unknown Domain';
+  }, [domainMap]);
+
+  const filteredTransactions = useMemo(() => transactions.filter(transaction => {
     const matchesSearch = 
       getDomainName(transaction.domain_id).toLowerCase().includes(searchTerm.toLowerCase()) ||
       (transaction.notes || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -135,7 +141,7 @@ export default function TransactionList({
     const matchesType = typeFilter === 'all' || transaction.type === typeFilter;
     
     return matchesSearch && matchesType;
-  });
+  }), [transactions, getDomainName, searchTerm, typeFilter]);
 
   const typeOptions = [
     { value: 'all', label: 'All Types' },
@@ -364,4 +370,6 @@ export default function TransactionList({
       )}
     </div>
   );
-}
+});
+
+export default TransactionList;
