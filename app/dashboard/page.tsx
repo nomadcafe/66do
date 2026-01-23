@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSupabaseAuth } from '../../src/contexts/SupabaseAuthContext';
 import { useI18nContext } from '../../src/contexts/I18nProvider';
@@ -19,9 +19,7 @@ import SaleSuccessModal from '../../src/components/share/SaleSuccessModal';
 import RenewalModal from '../../src/components/domain/RenewalModal';
 import { calculateAnnualRenewalCost } from '../../src/lib/renewalCalculations';
 // import { domainExpiryManager } from '../../src/lib/domainExpiryManager';
-import { calculateFinancialMetrics } from '../../src/lib/financialMetrics';
 import { calculateEnhancedFinancialMetrics, formatCurrency as formatCurrencyEnhanced } from '../../src/lib/enhancedFinancialMetrics';
-import { domainCache } from '../../src/lib/cache';
 // 懒加载组件
 import { 
   LazyFinancialReport, 
@@ -35,21 +33,19 @@ import {
   useSmartPreload
 } from '../../src/components/LazyComponents';
 import { auditLogger } from '../../src/lib/security';
-import { validateDomain, validateTransaction } from '../../src/lib/validation';
 import LoadingSpinner from '../../src/components/ui/LoadingSpinner';
 import ErrorMessage from '../../src/components/ui/ErrorMessage';
-import { 
-  loadDomainsFromSupabase, 
-  loadTransactionsFromSupabase,
-  Transaction
-} from '../../src/lib/supabaseService';
 import { Domain } from '../../src/types/domain';
-import {
+import { 
   DomainWithTags,
   TransactionWithRequiredFields,
   ensureDomainWithTags,
   ensureTransactionWithRequiredFields
 } from '../../src/types/dashboard';
+import { useDashboardData } from '../../src/hooks/useDashboardData';
+import { useDomainOperations } from '../../src/hooks/useDomainOperations';
+import { useTransactionOperations } from '../../src/hooks/useTransactionOperations';
+import { useDomainStats } from '../../src/hooks/useDomainStats';
 import { 
   Globe, 
   Plus, 
@@ -77,28 +73,7 @@ import {
 } from 'lucide-react';
 
 // Domain and Transaction types are now imported from supabaseService
-
-interface DomainStats {
-  totalDomains: number;
-  totalInvestment: number; // 购买成本
-  totalRevenue: number;
-  totalProfit: number;
-  roi: number;
-  activeDomains: number;
-  forSaleDomains: number;
-  soldDomains: number;
-  expiredDomains: number;
-  avgPurchasePrice: number;
-  avgSalePrice: number;
-  bestPerformingDomain: string;
-  worstPerformingDomain: string;
-  // 新增续费成本统计
-  totalRenewalCost: number;
-  annualRenewalCost: number;
-  totalHoldingCost: number;
-  avgRenewalCost: number;
-  renewalCycles: { [key: string]: number }; // 不同续费周期的域名数量
-}
+// DomainStats is now imported from useDomainStats hook
 
 
 
@@ -106,37 +81,71 @@ export default function DashboardPage() {
   // 智能预加载组件
   useSmartPreload();
   
-  const [domains, setDomains] = useState<DomainWithTags[]>([]);
-  const [transactions, setTransactions] = useState<TransactionWithRequiredFields[]>([]);
-  const [stats, setStats] = useState<DomainStats>({
-    totalDomains: 0,
-    totalInvestment: 0,
-    totalRevenue: 0,
-    totalProfit: 0,
-    roi: 0,
-    activeDomains: 0,
-    forSaleDomains: 0,
-    soldDomains: 0,
-    expiredDomains: 0,
-    avgPurchasePrice: 0,
-    avgSalePrice: 0,
-    bestPerformingDomain: '',
-    worstPerformingDomain: '',
-    // 新增续费成本统计
-    totalRenewalCost: 0,
-    annualRenewalCost: 0,
-    totalHoldingCost: 0,
-    avgRenewalCost: 0,
-    renewalCycles: {}
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [dataSource, setDataSource] = useState<'supabase' | 'cache'>('cache');
+  const { user, session, loading: authLoading, signOut } = useSupabaseAuth();
+  const { t, locale, setLocale } = useI18nContext();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'settings' | 'data' | 'reports'>('overview');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [showShareModal, setShowShareModal] = useState(false);
   
+  // 使用自定义Hooks管理数据和操作
+  const {
+    domains,
+    transactions,
+    loading,
+    error,
+    dataSource,
+    setError,
+    saveData,
+    refreshData
+  } = useDashboardData(user?.id, session?.access_token, t);
+  
+  const stats = useDomainStats(domains, transactions);
+  
+  const domainOps = useDomainOperations(
+    domains,
+    saveData,
+    async (id: string) => {
+    if (!user?.id) return;
+      try {
+        const response = await fetch('/api/domains', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+            action: 'deleteDomain',
+              userId: user.id,
+            domain: { id }
+            })
+          });
+        if (!response.ok) throw new Error('Failed to delete domain');
+        await refreshData();
+      } catch (error) {
+        setError(`Failed to delete domain: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+  );
+  
+  const transactionOps = useTransactionOperations(
+    transactions,
+    domains,
+    user?.id,
+    saveData,
+    async () => {
+      // Delete handler is implemented in the hook
+    },
+    setError
+  );
+  
+  // Redirect if not authenticated (but wait for auth to load)
+  useEffect(() => {
+    if (!authLoading && !user) {
+      console.log('No user found, redirecting to login');
+      router.push('/login');
+    }
+  }, [user, authLoading, router]);
+
   // 计算续费分析 - 使用缓存优化性能
   const renewalAnalysis = useMemo(() => {
-    // 过滤和转换Supabase数据以匹配函数期望的类型
     const validDomains = domains
       .filter(domain => 
         domain.status === 'active' && 
@@ -157,24 +166,27 @@ export default function DashboardPage() {
     return calculateAnnualRenewalCost(validDomains);
   }, [domains]);
 
-  // 缓存财务指标计算 - 用于性能优化
-  // const financialMetrics = useMemo(() => {
-  //   return calculateFinancialMetrics(domains, transactions);
-  // }, [domains, transactions]);
+  // 计算即将到期的域名（30天内）
+  const expiringDomains = useMemo(() => {
+    return domains.filter(domain => {
+      // 跳过已出售的域名
+      if (domain.status === 'sold') return false;
+      if (!domain.expiry_date) return false;
+      
+      const daysUntilExpiry = Math.ceil((new Date(domain.expiry_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      return daysUntilExpiry <= 30 && daysUntilExpiry >= 0;
+    }).map(domain => {
+      const daysUntilExpiry = Math.ceil((new Date(domain.expiry_date!).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      return {
+        ...domain,
+        daysUntilExpiry,
+        urgency: daysUntilExpiry <= 7 ? 'critical' : daysUntilExpiry <= 14 ? 'urgent' : 'normal'
+      };
+    }).sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
+  }, [domains]);
 
-  // 缓存域名性能分析 - 用于性能优化
-  // const domainPerformance = useMemo(() => {
-  //   return domains.map(domain => ({
-  //     ...domain,
-  //     performance: calculateDomainPerformance(domain, transactions.filter(t => t.domain_id === domain.id))
-  //   }));
-  // }, [domains, transactions]);
-  
-  // 计算财务指标
-  
   // 计算增强的财务指标
   const enhancedFinancialMetrics = useMemo(() => {
-    // 过滤和转换Supabase数据以匹配函数期望的类型
     const validDomains = domains
       .filter(domain => 
         domain.purchase_cost !== null && 
@@ -205,889 +217,47 @@ export default function DashboardPage() {
     
     return calculateEnhancedFinancialMetrics(validDomains, validTransactions);
   }, [domains, transactions]);
-  const [showDomainForm, setShowDomainForm] = useState(false);
-  const [showSmartDomainForm, setShowSmartDomainForm] = useState(false);
-  const [showTransactionForm, setShowTransactionForm] = useState(false);
-  const [editingDomain, setEditingDomain] = useState<DomainWithTags | undefined>();
-  const [editingTransaction, setEditingTransaction] = useState<TransactionWithRequiredFields | undefined>();
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [showSaleSuccessModal, setShowSaleSuccessModal] = useState(false);
-  const [saleSuccessData, setSaleSuccessData] = useState<{domain: DomainWithTags, transaction: TransactionWithRequiredFields} | null>(null);
-  const [showRenewalModal, setShowRenewalModal] = useState(false);
-  const [renewalDomain, setRenewalDomain] = useState<DomainWithTags | null>(null);
-  const { user, session, loading: authLoading, refreshSession, signOut } = useSupabaseAuth();
-  const { t, locale, setLocale } = useI18nContext();
-  const router = useRouter();
 
-  // Redirect if not authenticated (but wait for auth to load)
-  useEffect(() => {
-    if (!authLoading && !user) {
-      console.log('No user found, redirecting to login');
-      router.push('/login');
-    }
-  }, [user, authLoading, router]);
-
-  // 页面刷新时尝试恢复会话
-  useEffect(() => {
-    if (authLoading && !user && !session) {
-      console.log('Page refreshed, attempting to restore session...');
-      refreshSession();
-    }
-  }, [authLoading, user, session, refreshSession]);
-
-  type LoadOptions = {
-    useCache?: boolean;
-    showLoading?: boolean;
-  };
-
-  const loadDashboardData = useCallback(async (options: LoadOptions = {}) => {
-      if (!user?.id) return;
-
-    const { useCache = true, showLoading = true } = options;
-    let loadSummary = {
-      domainsCount: 0,
-      transactionsCount: 0,
-      dataSource: (useCache ? 'cache' : 'supabase') as 'cache' | 'supabase',
-    };
-
-    try {
-      if (showLoading) setLoading(true);
-        setError(null);
-        
-        const userId = user.id;
-        
-      if (useCache) {
-        const cachedDomains = domainCache.getCachedDomains(userId);
-        const cachedTransactions = domainCache.getCachedTransactions(userId);
-        
-        if (cachedDomains && cachedTransactions) {
-          const typedDomains = cachedDomains.map(ensureDomainWithTags);
-          const typedTransactions = cachedTransactions.map(ensureTransactionWithRequiredFields);
-          setDomains(typedDomains);
-          setTransactions(typedTransactions);
-          setDataSource('cache');
-
-          loadSummary = {
-            domainsCount: typedDomains.length,
-            transactionsCount: typedTransactions.length,
-            dataSource: 'cache',
-          };
-          return;
-        }
-      }
-
-      console.log('Loading data from Supabase database...');
-
-      const [domainsResult, transactionsResult] = await Promise.all([
-        loadDomainsFromSupabase(userId),
-        loadTransactionsFromSupabase(userId),
-      ]);
-        
-        if (domainsResult.success && transactionsResult.success) {
-        const typedDomains = (domainsResult.data || []).map(ensureDomainWithTags);
-        const typedTransactions = (transactionsResult.data || []).map(ensureTransactionWithRequiredFields);
-        setDomains(typedDomains);
-        setTransactions(typedTransactions);
-        setDataSource('supabase');
-
-        domainCache.cacheDomains(userId, domainsResult.data || []);
-        domainCache.cacheTransactions(userId, transactionsResult.data || []);
-
-        loadSummary = {
-          domainsCount: typedDomains.length,
-          transactionsCount: typedTransactions.length,
-          dataSource: 'supabase',
-        };
-
-        console.log('Data loaded from Supabase database successfully');
-        } else {
-        throw new Error('Failed to load data from Supabase database');
-        }
-      } catch (error) {
-      console.error('Error loading data from Supabase:', error);
-      setError(t('common.dataLoadFailed'));
-        auditLogger.log(user?.id || 'default', 'data_load_failed', 'dashboard', { 
-          error: error instanceof Error ? error.message : 'Unknown error' 
-        });
-      } finally {
-      if (showLoading) setLoading(false);
-
-      auditLogger.log(user?.id || 'default', 'data_loaded', 'dashboard', { 
-        domainsCount: loadSummary.domainsCount, 
-        transactionsCount: loadSummary.transactionsCount,
-        dataSource: loadSummary.dataSource
-      });
-    }
-  }, [user?.id, t]);
-
-  // Load data from Supabase database only
-  useEffect(() => {
-    loadDashboardData();
-  }, [loadDashboardData]);
-
-
-  // Save data to Supabase database only
-  const saveData = async (newDomains: DomainWithTags[], newTransactions: TransactionWithRequiredFields[]) => {
-    if (!user?.id || !session?.access_token) return;
-    
-    try {
-      console.log('Saving data to Supabase database...');
-      
-      // 准备请求头，包含认证token
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`
-      };
-      
-      // 验证数据完整性
-      for (const domain of newDomains) {
-        const validation = validateDomain(domain);
-        if (!validation.valid) {
-          throw new Error(`Domain validation failed: ${validation.errors.join(', ')}`);
-        }
-      }
-      
-      for (const transaction of newTransactions) {
-        const validation = validateTransaction(transaction);
-        if (!validation.valid) {
-          throw new Error(`Transaction validation failed: ${validation.errors.join(', ')}`);
-        }
-      }
-      
-      // Save domains to Supabase
-      for (const domain of newDomains) {
-        if (domains.find(d => d.id === domain.id)) {
-          // Update existing domain
-          const response = await fetch('/api/domains', {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-              action: 'updateDomain',
-              userId: user.id,
-              domain: {
-                ...domain,
-                registrar: domain.registrar || null,
-                purchase_date: domain.purchase_date || null,
-                purchase_cost: domain.purchase_cost || null,
-                renewal_cost: domain.renewal_cost || null,
-                next_renewal_date: domain.next_renewal_date || null,
-                expiry_date: domain.expiry_date || null,
-                estimated_value: domain.estimated_value || null,
-                sale_date: domain.sale_date || null,
-                sale_price: domain.sale_price || null,
-                platform_fee: domain.platform_fee || null,
-                tags: JSON.stringify(domain.tags)
-              }
-            })
-          });
-          
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(`Failed to update domain: ${errorData.error || response.statusText}`);
-          }
-        } else {
-          // Add new domain
-          const response = await fetch('/api/domains', {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-              action: 'addDomain',
-              userId: user.id,
-              domain: {
-                domain_name: domain.domain_name,
-                registrar: domain.registrar || null,
-                purchase_date: domain.purchase_date || null,
-                purchase_cost: domain.purchase_cost || null,
-                renewal_cost: domain.renewal_cost || null,
-                renewal_cycle: domain.renewal_cycle,
-                renewal_count: domain.renewal_count,
-                next_renewal_date: domain.next_renewal_date || null,
-                expiry_date: domain.expiry_date || null,
-                status: domain.status,
-                estimated_value: domain.estimated_value || null,
-                sale_date: domain.sale_date || null,
-                sale_price: domain.sale_price || null,
-                platform_fee: domain.platform_fee || null,
-                tags: JSON.stringify(domain.tags)
-              }
-            })
-          });
-          
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(`Failed to add domain: ${errorData.error || response.statusText}`);
-          }
-        }
-      }
-      
-      // Save transactions to Supabase
-      for (const transaction of newTransactions) {
-        if (transactions.find(t => t.id === transaction.id)) {
-          // Update existing transaction
-          const response = await fetch('/api/transactions', {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-              action: 'updateTransaction',
-              userId: user.id,
-              transaction: {
-                ...transaction,
-                base_amount: transaction.base_amount || null,
-                platform_fee: transaction.platform_fee || null,
-                platform_fee_percentage: transaction.platform_fee_percentage || null,
-                net_amount: transaction.net_amount || null,
-                category: transaction.category || null,
-                tax_deductible: transaction.tax_deductible || false,
-                receipt_url: transaction.receipt_url || null,
-                notes: transaction.notes || null
-              }
-            })
-          });
-          
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(`Failed to update transaction: ${errorData.error || response.statusText}`);
-          }
-        } else {
-          // Add new transaction
-          const response = await fetch('/api/transactions', {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-              action: 'addTransaction',
-              userId: user.id,
-              transaction: {
-                domain_id: transaction.domain_id,
-                type: transaction.type,
-                amount: transaction.amount,
-                currency: transaction.currency,
-                exchange_rate: transaction.exchange_rate,
-                base_amount: transaction.base_amount || null,
-                platform_fee: transaction.platform_fee || null,
-                platform_fee_percentage: transaction.platform_fee_percentage || null,
-                net_amount: transaction.net_amount || null,
-                category: transaction.category || null,
-                tax_deductible: transaction.tax_deductible || false,
-                receipt_url: transaction.receipt_url || null,
-                notes: transaction.notes || null,
-                date: transaction.date
-              }
-            })
-          });
-          
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(`Failed to add transaction: ${errorData.error || response.statusText}`);
-          }
-        }
-      }
-      
-      // 先清除旧缓存，确保数据一致性
-      domainCache.invalidateUserCache(user.id);
-      
-      // 刷新数据从Supabase，确保获取最新数据
-      await loadDashboardData({ useCache: false, showLoading: false });
-      
-      // 更新缓存（使用从数据库获取的最新数据）
-      const latestDomains = domains;
-      const latestTransactions = transactions;
-      domainCache.cacheDomains(user.id, latestDomains);
-      domainCache.cacheTransactions(user.id, latestTransactions);
-      
-      console.log('Data saved to Supabase database successfully');
-    } catch (error) {
-      console.error('Error saving data to Supabase:', error);
-      
-      // 清除缓存，强制下次从数据库加载
-      if (user?.id) {
-        domainCache.invalidateUserCache(user.id);
-      }
-      
-      // 提供更详细的错误信息
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      const isNetworkError = errorMessage.includes('fetch') || errorMessage.includes('network');
-      const isAuthError = errorMessage.includes('401') || errorMessage.includes('Unauthorized');
-      
-      if (isAuthError) {
-        setError(t('common.authError') || 'Authentication failed. Please log in again.');
-      } else if (isNetworkError) {
-        setError(t('common.networkError') || 'Network error. Please check your connection and try again.');
-      } else {
-        setError(t('common.dataSaveFailed') || `Failed to save data: ${errorMessage}`);
-      }
-      
-      // 记录错误到审计日志
-      auditLogger.log(user?.id || 'unknown', 'data_save_failed', 'dashboard', {
-        error: errorMessage,
-        errorType: isNetworkError ? 'network' : isAuthError ? 'auth' : 'unknown'
-      });
-    }
-  };
-
-
-  // Update stats when domains change
-  useEffect(() => {
-    // 使用新的财务指标计算
-    // 过滤和转换Supabase数据以匹配函数期望的类型
-    const validDomains = domains
-      .filter(domain => 
-        domain.purchase_cost !== null && 
-        domain.renewal_cost !== null &&
-        domain.purchase_date !== null
-      )
-      .map(domain => ({
-        id: domain.id,
-        purchase_cost: domain.purchase_cost!,
-        renewal_cost: domain.renewal_cost!,
-        renewal_count: domain.renewal_count,
-        status: domain.status,
-        purchase_date: domain.purchase_date!
-      }));
-    
-    const validTransactions = transactions
-      .filter(transaction => transaction.amount !== null)
-      .map(transaction => ({
-        id: transaction.id,
-        domain_id: transaction.domain_id,
-        type: transaction.type,
-        amount: transaction.amount!,
-        platform_fee: transaction.platform_fee || undefined,
-        net_amount: transaction.net_amount || undefined,
-        date: transaction.date,
-        category: transaction.category
-      }));
-    
-    const financialMetrics = calculateFinancialMetrics(validDomains, validTransactions);
-    
-    const totalDomains = financialMetrics.totalDomains;
-    const totalRevenue = financialMetrics.totalRevenue;
-    const totalRenewalCost = financialMetrics.totalRenewalCost;
-    const totalHoldingCost = financialMetrics.totalHoldingCost; // 购买成本 + 续费成本
-    const totalProfit = financialMetrics.totalProfit;
-    const roi = financialMetrics.roi;
-    
-    // 计算年度续费成本（使用新的准确计算逻辑）
-    // 过滤和转换Supabase数据以匹配函数期望的类型
-    const validDomainsForRenewal = domains
-      .filter(domain => 
-        domain.status === 'active' && 
-        domain.renewal_cost !== null && 
-        domain.purchase_date !== null
-      )
-      .map(domain => ({
-        id: domain.id,
-        domain_name: domain.domain_name,
-        renewal_cost: domain.renewal_cost!,
-        renewal_cycle: domain.renewal_cycle,
-        renewal_count: domain.renewal_count,
-        purchase_date: domain.purchase_date!,
-        expiry_date: domain.expiry_date || undefined,
-        status: domain.status
-      }));
-    
-    const renewalAnalysis = calculateAnnualRenewalCost(validDomainsForRenewal);
-    const annualRenewalCost = renewalAnalysis.totalAnnualCost;
-    
-    // 统计不同续费周期的域名数量和成本
-    const renewalCycles = renewalAnalysis.costByCycle;
-    
-    // 使用实际的domains数组计算状态统计，而不是过滤后的validDomains
-    // 这样可以确保统计包含所有域名，即使它们缺少某些财务字段
-    const activeDomains = domains.filter(d => d.status === 'active').length;
-    const forSaleDomains = domains.filter(d => d.status === 'for_sale').length;
-    const soldDomains = domains.filter(d => d.status === 'sold').length;
-    const expiredDomains = domains.filter(d => d.status === 'expired').length;
-    
-    const avgPurchasePrice = financialMetrics.avgPurchasePrice;
-    const avgSalePrice = financialMetrics.avgSalePrice;
-    const avgRenewalCost = activeDomains > 0 ? totalRenewalCost / activeDomains : 0;
-    
-    // Find best and worst performing domains
-    const domainPerformance = domains.map(domain => {
-      const domainTransactions = transactions.filter(t => t.domain_id === domain.id);
-      const totalSpent = domainTransactions.filter(t => t.type === 'buy' || t.type === 'renew' || t.type === 'fee').reduce((sum, t) => sum + t.amount, 0);
-      const totalEarned = domainTransactions.filter(t => t.type === 'sell').reduce((sum, t) => sum + t.amount, 0);
-      const profit = totalEarned - totalSpent;
-      const roi = totalSpent > 0 ? (profit / totalSpent) * 100 : 0;
-      return { domain, profit, roi };
-    });
-    
-    const bestPerforming = domainPerformance.reduce((best, current) => 
-      current.profit > best.profit ? current : best, domainPerformance[0] || { domain: { domain_name: 'N/A' } });
-    const worstPerforming = domainPerformance.reduce((worst, current) => 
-      current.profit < worst.profit ? current : worst, domainPerformance[0] || { domain: { domain_name: 'N/A' } });
-
-    setStats({
-      totalDomains,
-      totalInvestment: financialMetrics.totalInvestment,
-      totalRevenue,
-      totalProfit,
-      roi,
-      activeDomains,
-      forSaleDomains,
-      soldDomains,
-      expiredDomains,
-      avgPurchasePrice,
-      avgSalePrice,
-      bestPerformingDomain: bestPerforming.domain.domain_name,
-      worstPerformingDomain: worstPerforming.domain.domain_name,
-      // 新增续费成本统计
-      totalRenewalCost,
-      annualRenewalCost,
-      totalHoldingCost,
-      avgRenewalCost,
-      renewalCycles
-    });
-  }, [domains, transactions]);
-
-  // 计算即将到期的域名（30天内）
-  const expiringDomains = useMemo(() => {
-    return domains.filter(domain => {
-      // 跳过已出售的域名
-      if (domain.status === 'sold') return false;
-      if (!domain.expiry_date) return false;
-      
-      const daysUntilExpiry = Math.ceil((new Date(domain.expiry_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-      return daysUntilExpiry <= 30 && daysUntilExpiry >= 0;
-    }).map(domain => {
-      const daysUntilExpiry = Math.ceil((new Date(domain.expiry_date!).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-      return {
-        ...domain,
-        daysUntilExpiry,
-        urgency: daysUntilExpiry <= 7 ? 'critical' : daysUntilExpiry <= 14 ? 'urgent' : 'normal'
-      };
-    }).sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
-  }, [domains]);
-
-
-  // Domain management functions
-  const handleAddDomain = () => {
-    // 确保表单状态完全重置
-    setEditingDomain(undefined);
-    setShowSmartDomainForm(false);
-    // 使用 setTimeout 确保状态更新后再打开表单
-    setTimeout(() => {
-    setShowSmartDomainForm(true);
-    }, 0);
-  };
-
-  const handleEditDomain = (domain: DomainWithTags) => {
-    setEditingDomain(domain);
-    setShowDomainForm(true);
-  };
-
-  const handleRenewDomain = (domain: DomainWithTags) => {
-    setRenewalDomain(domain);
-    setShowRenewalModal(true);
-  };
-
-  const processRenewal = async (domain: DomainWithTags, renewalYears: number) => {
-    if (!user?.id || !session?.access_token) {
-      throw new Error('User not authenticated');
-    }
-
-    // 使用DomainExpiryManager处理续费逻辑
-    const { DomainExpiryManager } = await import('../../src/lib/domainExpiryManager');
-    const expiryManager = new DomainExpiryManager({
-      defaultRenewalCycle: domain.renewal_cycle || 1,
-      autoCalculateFromPurchase: true
-    });
-
-    // 将DomainWithTags转换为Domain类型（来自types/domain.ts）以使用DomainExpiryManager
-    const domainForRenewal: Domain = {
-      id: domain.id,
-      domain_name: domain.domain_name,
-      registrar: domain.registrar ?? '',
-      purchase_date: domain.purchase_date ?? '',
-      purchase_cost: domain.purchase_cost ?? 0,
-      renewal_cost: domain.renewal_cost ?? 0,
-      renewal_cycle: domain.renewal_cycle ?? 1,
-      renewal_count: domain.renewal_count ?? 0,
-      expiry_date: domain.expiry_date ?? undefined,
-      status: domain.status as 'active' | 'for_sale' | 'sold' | 'expired',
-      estimated_value: domain.estimated_value ?? 0,
-      sale_date: domain.sale_date ?? undefined,
-      sale_price: domain.sale_price ?? undefined,
-      platform_fee: domain.platform_fee ?? undefined,
-      tags: Array.isArray(domain.tags) ? domain.tags : (domain.tags ? [domain.tags] : []),
-      created_at: domain.created_at ?? undefined,
-      updated_at: domain.updated_at ?? undefined
-    };
-    
-    // 使用DomainExpiryManager统一处理续费逻辑，确保日期计算准确
-    const renewedDomainResult = expiryManager.handleDomainRenewal(domainForRenewal, renewalYears);
-    
-    // 转换回DomainWithTags类型
-    const renewedDomain: DomainWithTags = {
-      ...domain,
-      expiry_date: renewedDomainResult.expiry_date || domain.expiry_date,
-      renewal_count: renewedDomainResult.renewal_count || (domain.renewal_count || 0) + 1,
-      updated_at: renewedDomainResult.updated_at || new Date().toISOString()
-    };
-
-    // 更新域名数据
-    const updatedDomains = domains.map(d => 
-      d.id === domain.id ? renewedDomain : d
-    );
-
-    // 创建续费交易记录
-    const renewalTransaction: TransactionWithRequiredFields = {
-      id: crypto.randomUUID(),
-      domain_id: domain.id,
-      type: 'renew',
-      amount: (domain.renewal_cost || 0) * renewalYears,
-      date: new Date().toISOString().split('T')[0],
-      currency: 'USD',
-      notes: `Renewal for ${renewalYears} year(s)`,
-      category: 'renewal',
-      platform: domain.registrar || 'Unknown',
-      base_amount: (domain.renewal_cost || 0) * renewalYears,
-      net_amount: (domain.renewal_cost || 0) * renewalYears,
-      platform_fee: 0,
-      platform_fee_percentage: 0,
-      exchange_rate: 1,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-
-    const updatedTransactions = [...transactions, renewalTransaction];
-
-    // 保存到数据库
-    await saveData(updatedDomains, updatedTransactions);
-
-    // 更新本地状态
-    setDomains(updatedDomains);
-    setTransactions(updatedTransactions);
-
-    auditLogger.log(user.id, 'domain_renewed', 'dashboard', {
-      domainId: domain.id,
-      domainName: domain.domain_name,
-      renewalYears,
-      renewalCost: (domain.renewal_cost || 0) * renewalYears
-    });
-  };
-
-  const handleDeleteDomain = async (id: string) => {
-    if (!user?.id) return;
-    
-    try {
-      // Call API to delete domain from database
-      const response = await fetch('/api/domains', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'deleteDomain',
-          userId: user.id,
-          domain: { id }
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete domain');
-      }
-
-      // Update local state
-    const updatedDomains = domains.filter(domain => domain.id !== id);
-    setDomains(updatedDomains);
-    
-    // Also remove related transactions
-    const updatedTransactions = transactions.filter(transaction => transaction.domain_id !== id);
-    setTransactions(updatedTransactions);
-    
-      console.log('Domain deleted successfully');
-    } catch (error) {
-      console.error('Error deleting domain:', error);
-      // You might want to show an error message to the user here
-    }
-  };
-
+  // 处理域名保存（保留此函数因为需要特殊处理）
   const handleSaveDomain = async (domainData: Omit<DomainWithTags, 'id'>) => {
-    // 保存当前状态以便回滚
-    const originalDomains = [...domains];
-    
-    let updatedDomains: DomainWithTags[];
-    
     try {
-    if (editingDomain) {
-      // Update existing domain
-      updatedDomains = domains.map(domain => 
-        domain.id === editingDomain.id 
-            ? { ...domainData, id: editingDomain.id, tags: domain.tags }
-          : domain
-      );
-    } else {
-        // 检查域名是否已存在（仅对新添加的域名）
-        const domainName = domainData.domain_name.toLowerCase().trim();
-        const isDuplicate = domains.some(d => 
-          d.domain_name.toLowerCase().trim() === domainName
+      if (domainOps.editingDomain) {
+        const updatedDomain: DomainWithTags = {
+          ...domainOps.editingDomain,
+        ...domainData,
+          updated_at: new Date().toISOString()
+        };
+        
+        const updatedDomains = domains.map(domain =>
+          domain.id === domainOps.editingDomain!.id ? updatedDomain : domain
         );
         
-        if (isDuplicate) {
-          setError(t('transaction.domainAlreadyExists') + '：' + t('transaction.domainAlreadyExistsDesc'));
-          setTimeout(() => setError(null), 3000);
-          return;
-        }
-        
-      // Add new domain
+        await saveData(updatedDomains, transactions);
+        domainOps.setEditingDomain(undefined);
+        domainOps.setShowDomainForm(false);
+        domainOps.setShowSmartDomainForm(false);
+    } else {
         const newDomain: DomainWithTags = {
-        ...domainData,
+          ...domainData,
           id: crypto.randomUUID(),
-          tags: []
-      };
-      updatedDomains = [...domains, newDomain];
-    }
-    
-    setDomains(updatedDomains);
-      await saveData(updatedDomains, transactions);
-      
-    setShowDomainForm(false);
-    setEditingDomain(undefined);
-      
-      console.log('Domain saved successfully');
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        const updatedDomains = [...domains, newDomain];
+        await saveData(updatedDomains, transactions);
+        domainOps.setShowDomainForm(false);
+        domainOps.setShowSmartDomainForm(false);
+      }
     } catch (error) {
-      console.error('Error saving domain:', error);
-      
-      // 回滚到原始状态
-      setDomains(originalDomains);
-      
-      // 显示错误信息
       setError(`Failed to save domain: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      
-      // 3秒后清除错误信息
       setTimeout(() => setError(null), 3000);
     }
   };
 
   const handleViewDomain = (domain: DomainWithTags) => {
-    // 设置编辑域名状态，打开编辑表单
-    setEditingDomain(domain);
-    setShowDomainForm(true);
-  };
-
-  // Transaction management functions
-  const handleAddTransaction = () => {
-    // 确保表单状态完全重置
-    setEditingTransaction(undefined);
-    setShowTransactionForm(false);
-    // 使用 setTimeout 确保状态更新后再打开表单
-    setTimeout(() => {
-    setShowTransactionForm(true);
-    }, 0);
-  };
-
-  const handleEditTransaction = (transaction: TransactionWithRequiredFields) => {
-    setEditingTransaction(transaction);
-    setShowTransactionForm(true);
-  };
-
-  const handleDeleteTransaction = async (id: string) => {
-    if (!user?.id) return;
-    
-    try {
-      // 找到要删除的交易
-      const transactionToDelete = transactions.find(t => t.id === id);
-      if (!transactionToDelete) return;
-
-      // Call API to delete transaction from database
-      const response = await fetch('/api/transactions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'deleteTransaction',
-          userId: user.id,
-          transaction: { id }
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete transaction');
-      }
-
-      // Update local state
-    const updatedTransactions = transactions.filter(transaction => transaction.id !== id);
-    setTransactions(updatedTransactions);
-      
-      // 如果删除的是出售交易，需要将域名状态改回 active
-      if (transactionToDelete.type === 'sell' && transactionToDelete.domain_id) {
-        const updatedDomains = domains.map(domain => {
-          if (domain.id === transactionToDelete.domain_id) {
-            return {
-              ...domain,
-              status: 'active' as const,
-              sale_date: null,
-              sale_price: null,
-              platform_fee: null
-            };
-          }
-          return domain;
-        });
-        setDomains(updatedDomains);
-        console.log('Domain status updated from sold to active after transaction deletion');
-        
-        // 保存更新后的域名状态
-        await saveData(updatedDomains, updatedTransactions);
-      }
-      
-      console.log('Transaction deleted successfully');
-    } catch (error) {
-      console.error('Error deleting transaction:', error);
-      // You might want to show an error message to the user here
-    }
-  };
-
-  // 处理域名续费 - 暂时注释掉，等待UI实现
-  // const handleRenewDomain = async (domainId: string) => {
-  //   // 续费逻辑将在UI实现后启用
-  // };
-
-
-  const handleSaveTransaction = async (transactionData: Omit<TransactionWithRequiredFields, 'id'>) => {
-    // 保存当前状态以便回滚
-    const originalDomains = [...domains];
-    const originalTransactions = [...transactions];
-    
-    let updatedTransactions: TransactionWithRequiredFields[];
-    let updatedDomains = domains;
-    
-    try {
-    if (editingTransaction) {
-      // Update existing transaction
-        const oldTransaction = editingTransaction;
-        const newTransaction = ensureTransactionWithRequiredFields({ ...transactionData, id: editingTransaction.id });
-        
-        updatedTransactions = transactions.map(transaction => 
-          transaction.id === editingTransaction.id ? newTransaction : transaction
-        );
-        
-        // 检查交易类型变化，准备域名状态更新（但不立即更新状态）
-        if (oldTransaction.type === 'sell' && newTransaction.type !== 'sell' && oldTransaction.domain_id) {
-          // 从出售交易改为其他类型，需要将域名状态改回 active
-          updatedDomains = domains.map(domain => {
-            if (domain.id === oldTransaction.domain_id) {
-              return {
-                ...domain,
-                status: 'active' as const,
-                sale_date: null,
-                sale_price: null,
-                platform_fee: null
-              };
-            }
-            return domain;
-          });
-          console.log('Domain status will be updated from sold to active');
-        } else if (oldTransaction.type !== 'sell' && newTransaction.type === 'sell' && newTransaction.domain_id) {
-          // 从其他类型改为出售交易，需要将域名状态改为 sold
-          updatedDomains = domains.map(domain => {
-            if (domain.id === newTransaction.domain_id) {
-              return {
-                ...domain,
-                status: 'sold' as const,
-                sale_date: newTransaction.date,
-                sale_price: newTransaction.amount,
-                platform_fee: newTransaction.platform_fee || 0
-              };
-            }
-            return domain;
-          });
-          console.log('Domain status will be updated to sold');
-        } else if (oldTransaction.type === 'sell' && newTransaction.type === 'sell' && oldTransaction.domain_id === newTransaction.domain_id) {
-          // 出售交易信息更新，需要同步更新域名信息
-          updatedDomains = domains.map(domain => {
-            if (domain.id === newTransaction.domain_id) {
-              return {
-                ...domain,
-                sale_date: newTransaction.date,
-                sale_price: newTransaction.amount,
-                platform_fee: newTransaction.platform_fee || 0
-              };
-            }
-            return domain;
-          });
-          console.log('Domain sale information will be updated');
-        }
-        
-        // 先保存交易和域名更新，确保数据一致性
-        await saveData(updatedDomains, updatedTransactions);
-        
-        // 保存成功后再更新本地状态
-      setTransactions(updatedTransactions);
-        if (updatedDomains !== domains) {
-          setDomains(updatedDomains);
-          console.log('Domain status updated successfully');
-        }
-    } else {
-      // Add new transaction
-        const newTransaction: TransactionWithRequiredFields = ensureTransactionWithRequiredFields({
-        ...transactionData,
-          id: crypto.randomUUID()
-        });
-        updatedTransactions = [...transactions, newTransaction];
-        
-        // 先保存交易，确保数据一致性
-        // 准备域名更新（但不立即更新状态，等交易保存成功后再更新）
-        let domainUpdates: DomainWithTags[] = domains;
-        if (newTransaction.type === 'sell' && newTransaction.domain_id) {
-          domainUpdates = domains.map(domain => {
-            if (domain.id === newTransaction.domain_id) {
-          return {
-            ...domain,
-            status: 'sold' as const,
-                sale_date: newTransaction.date,
-                sale_price: newTransaction.amount,
-                platform_fee: newTransaction.platform_fee || 0
-          };
-        }
-        return domain;
-      });
-        }
-        
-        // 先保存交易和域名更新，确保原子性
-        await saveData(domainUpdates, updatedTransactions);
-        
-        // 保存成功后再更新本地状态
-        setTransactions(updatedTransactions);
-        if (newTransaction.type === 'sell' && newTransaction.domain_id) {
-          setDomains(domainUpdates);
-          console.log('Domain status updated to sold');
-        }
-      }
-      
-      setShowTransactionForm(false);
-      setEditingTransaction(undefined);
-      
-      console.log('Transaction saved successfully');
-    } catch (error) {
-      console.error('Error saving transaction:', error);
-      
-      // 回滚到原始状态
-      setDomains(originalDomains);
-      setTransactions(originalTransactions);
-      
-      // 显示错误信息
-      setError(`Failed to save transaction: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      
-      // 3秒后清除错误信息
-      setTimeout(() => setError(null), 3000);
-    }
-  };
-
-
-  // 处理出售交易完成后的分享
-  const handleSaleComplete = (transaction: Omit<TransactionWithRequiredFields, 'id'>, domain: DomainWithTags) => {
-    // 创建完整的Transaction对象
-    const fullTransaction: TransactionWithRequiredFields = {
-      ...transaction,
-      id: crypto.randomUUID()
-    };
-    setSaleSuccessData({ domain, transaction: fullTransaction });
-    setShowSaleSuccessModal(true);
-  };
-
-  // Handle logout
-  const handleLogout = async () => {
-    await signOut();
-    router.push('/');
+    domainOps.setEditingDomain(domain);
+    domainOps.setShowDomainForm(true);
   };
 
   // Calculate share data for social media
@@ -1210,7 +380,7 @@ export default function DashboardPage() {
               
               {/* Action Buttons */}
               <button
-                onClick={handleAddDomain}
+                onClick={domainOps.handleAddDomain}
                 className="bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 flex items-center space-x-2 font-medium transition-all duration-200 shadow-sm hover:shadow-md"
               >
                 <Plus size={18} />
@@ -1218,7 +388,10 @@ export default function DashboardPage() {
               </button>
               
               <button
-                onClick={handleLogout}
+                onClick={async () => {
+                  await signOut();
+                  router.push('/');
+                }}
                 className="text-gray-500 hover:text-gray-700 flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-50 transition-all duration-200"
               >
                 <LogOut size={18} />
@@ -1256,13 +429,16 @@ export default function DashboardPage() {
                 </div>
               </div>
               <button
-                onClick={handleAddDomain}
+                onClick={domainOps.handleAddDomain}
                 className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-2.5 rounded-xl hover:from-blue-700 hover:to-indigo-700 shadow-md transition-all duration-200"
               >
                 <Plus size={18} />
               </button>
               <button
-                onClick={handleLogout}
+                onClick={async () => {
+                  await signOut();
+                  router.push('/');
+                }}
                 className="text-gray-600 hover:text-gray-900 p-2.5 rounded-xl hover:bg-gray-100 transition-all duration-200 border border-gray-200 hover:border-gray-300"
               >
                 <LogOut size={18} />
@@ -1672,14 +848,14 @@ export default function DashboardPage() {
                 </div>
                 <div className="space-y-3">
               <button
-                  onClick={handleAddDomain}
+                  onClick={domainOps.handleAddDomain}
                     className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center space-x-2"
                   >
                     <Plus className="h-4 w-4" />
                     <span>{t('domain.add')}</span>
                   </button>
                   <button
-                    onClick={handleAddTransaction}
+                    onClick={transactionOps.handleAddTransaction}
                     className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center justify-center space-x-2"
                   >
                     <FileText className="h-4 w-4" />
@@ -1754,7 +930,7 @@ export default function DashboardPage() {
                     <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                     <p>{t('common.noTransactions')}</p>
                     <button
-                      onClick={handleAddTransaction}
+                      onClick={transactionOps.handleAddTransaction}
                   className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
                 >
                       {t('common.addFirstTransaction')}
@@ -1772,10 +948,10 @@ export default function DashboardPage() {
           <div className="space-y-6">
             <DomainList
               domains={domains}
-              onEdit={handleEditDomain}
-              onDelete={handleDeleteDomain}
+              onEdit={domainOps.handleEditDomain}
+              onDelete={domainOps.handleDeleteDomain}
               onView={handleViewDomain}
-              onAdd={handleAddDomain}
+              onAdd={domainOps.handleAddDomain}
                 />
               </div>
         )}
@@ -1784,9 +960,9 @@ export default function DashboardPage() {
           <TransactionList
             transactions={transactions}
             domains={domains}
-            onEdit={handleEditTransaction}
-            onDelete={handleDeleteTransaction}
-            onAdd={handleAddTransaction}
+            onEdit={transactionOps.handleEditTransaction}
+            onDelete={transactionOps.handleDeleteTransaction}
+            onAdd={transactionOps.handleAddTransaction}
           />
         )}
 
@@ -1903,13 +1079,13 @@ export default function DashboardPage() {
                         </div>
                         <div className="flex items-center space-x-2">
                           <button
-                            onClick={() => handleEditDomain(domain)}
+                            onClick={() => domainOps.handleEditDomain(domain)}
                             className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
                           >
                             {t('common.edit')}
                           </button>
                           <button
-                            onClick={() => handleRenewDomain(domain)}
+                            onClick={() => domainOps.handleRenewDomain(domain)}
                             className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
                           >
                             {t('common.renew')}
@@ -1939,24 +1115,20 @@ export default function DashboardPage() {
         {activeTab === 'data' && (
           <LazyWrapper>
             <LazyDataImportExport
-            onImport={(data: unknown) => {
+            onImport={async (data: unknown) => {
               try {
-                const importData = data as { domains?: Domain[]; transactions?: Transaction[] };
+                const importData = data as { domains?: Domain[]; transactions?: TransactionWithRequiredFields[] };
                 let typedDomains = domains;
                 let typedTransactions = transactions;
                 
                 if (importData.domains) {
                   typedDomains = importData.domains.map(ensureDomainWithTags);
-                  setDomains(typedDomains);
-                  domainCache.cacheDomains(user?.id || 'default', importData.domains);
                 }
                 if (importData.transactions) {
                   typedTransactions = importData.transactions.map(ensureTransactionWithRequiredFields);
-                  setTransactions(typedTransactions);
-                  domainCache.cacheTransactions(user?.id || 'default', importData.transactions);
                 }
                 // Save imported data to Supabase database
-                saveData(typedDomains, typedTransactions);
+                await saveData(typedDomains, typedTransactions);
                 auditLogger.log(user?.id || 'default', 'data_imported', 'dashboard', { 
                   domainsCount: importData.domains?.length || 0,
                   transactionsCount: importData.transactions?.length || 0
@@ -2018,24 +1190,20 @@ export default function DashboardPage() {
                 auditLogger.log(user?.id || 'default', 'data_backup_failed', 'dashboard', { error: (error as Error).message });
               }
             }}
-            onRestore={(backup: unknown) => {
+            onRestore={async (backup: unknown) => {
               try {
-                const restoreData = backup as { domains?: Domain[]; transactions?: Transaction[] };
+                const restoreData = backup as { domains?: Domain[]; transactions?: TransactionWithRequiredFields[] };
                 let typedDomains = domains;
                 let typedTransactions = transactions;
                 
                 if (restoreData.domains) {
                   typedDomains = restoreData.domains.map(ensureDomainWithTags);
-                  setDomains(typedDomains);
-                  domainCache.cacheDomains(user?.id || 'default', restoreData.domains);
                 }
                 if (restoreData.transactions) {
                   typedTransactions = restoreData.transactions.map(ensureTransactionWithRequiredFields);
-                  setTransactions(typedTransactions);
-                  domainCache.cacheTransactions(user?.id || 'default', restoreData.transactions);
                 }
                 // Save restored data to Supabase database
-                saveData(typedDomains, typedTransactions);
+                await saveData(typedDomains, typedTransactions);
                 auditLogger.log(user?.id || 'default', 'data_restored', 'dashboard', { 
                   domainsCount: restoreData.domains?.length || 0,
                   transactionsCount: restoreData.transactions?.length || 0
@@ -2091,40 +1259,40 @@ export default function DashboardPage() {
 
       {/* Domain Form Modal */}
       <DomainForm
-        key={editingDomain?.id || 'new'}
-        domain={editingDomain}
-        isOpen={showDomainForm}
+        key={domainOps.editingDomain?.id || 'new'}
+        domain={domainOps.editingDomain}
+        isOpen={domainOps.showDomainForm}
         onClose={() => {
-          setShowDomainForm(false);
-          setEditingDomain(undefined);
+          domainOps.setShowDomainForm(false);
+          domainOps.setEditingDomain(undefined);
         }}
         onSave={handleSaveDomain}
       />
 
       {/* Smart Domain Form Modal */}
       <SmartDomainForm
-        key={editingDomain?.id || 'new'}
-        domain={editingDomain}
-        isOpen={showSmartDomainForm}
+        key={domainOps.editingDomain?.id || 'new'}
+        domain={domainOps.editingDomain}
+        isOpen={domainOps.showSmartDomainForm}
         onClose={() => {
-          setShowSmartDomainForm(false);
-          setEditingDomain(undefined);
+          domainOps.setShowSmartDomainForm(false);
+          domainOps.setEditingDomain(undefined);
         }}
         onSave={handleSaveDomain}
       />
 
       {/* Transaction Form Modal */}
       <TransactionForm
-        key={editingTransaction?.id || 'new'}
-        transaction={editingTransaction}
+        key={transactionOps.editingTransaction?.id || 'new'}
+        transaction={transactionOps.editingTransaction}
         domains={domains}
-        isOpen={showTransactionForm}
+        isOpen={transactionOps.showTransactionForm}
         onClose={() => {
-          setShowTransactionForm(false);
-          setEditingTransaction(undefined);
+          transactionOps.setShowTransactionForm(false);
+          transactionOps.setEditingTransaction(undefined);
         }}
-        onSave={handleSaveTransaction}
-        onSaleComplete={handleSaleComplete}
+        onSave={transactionOps.handleSaveTransaction}
+        onSaleComplete={transactionOps.handleSaleComplete}
       />
 
       {/* Share Modal */}
@@ -2135,28 +1303,30 @@ export default function DashboardPage() {
       />
 
       {/* Sale Success Modal */}
-      {saleSuccessData && (
+      {transactionOps.saleSuccessData && (
         <SaleSuccessModal
-          isOpen={showSaleSuccessModal}
+          isOpen={transactionOps.showSaleSuccessModal}
           onClose={() => {
-            setShowSaleSuccessModal(false);
-            setSaleSuccessData(null);
+            transactionOps.setShowSaleSuccessModal(false);
+            transactionOps.setSaleSuccessData(null);
           }}
-          domain={saleSuccessData.domain}
-          transaction={saleSuccessData.transaction}
+          domain={transactionOps.saleSuccessData.domain}
+          transaction={transactionOps.saleSuccessData.transaction}
         />
       )}
 
       {/* Renewal Modal */}
-      {showRenewalModal && renewalDomain && (
+      {domainOps.showRenewalModal && domainOps.renewalDomain && (
         <RenewalModal
-          isOpen={showRenewalModal}
+          isOpen={domainOps.showRenewalModal}
           onClose={() => {
-            setShowRenewalModal(false);
-            setRenewalDomain(null);
+            domainOps.setShowRenewalModal(false);
+            domainOps.setRenewalDomain(null);
           }}
-          domain={renewalDomain}
-          onRenew={processRenewal}
+          domain={domainOps.renewalDomain}
+          onRenew={async (domain, renewalYears) => {
+            await domainOps.processRenewal(domain, renewalYears);
+          }}
         />
       )}
 
