@@ -40,9 +40,9 @@ import ErrorMessage from '../../src/components/ui/ErrorMessage';
 import { 
   loadDomainsFromSupabase, 
   loadTransactionsFromSupabase,
-  Domain,
   Transaction
 } from '../../src/lib/supabaseService';
+import { Domain } from '../../src/types/domain';
 import {
   DomainWithTags,
   TransactionWithRequiredFields,
@@ -241,7 +241,7 @@ export default function DashboardPage() {
   };
 
   const loadDashboardData = useCallback(async (options: LoadOptions = {}) => {
-    if (!user?.id) return;
+      if (!user?.id) return;
 
     const { useCache = true, showLoading = true } = options;
     let loadSummary = {
@@ -252,14 +252,14 @@ export default function DashboardPage() {
 
     try {
       if (showLoading) setLoading(true);
-      setError(null);
-
-      const userId = user.id;
-
+        setError(null);
+        
+        const userId = user.id;
+        
       if (useCache) {
         const cachedDomains = domainCache.getCachedDomains(userId);
         const cachedTransactions = domainCache.getCachedTransactions(userId);
-
+        
         if (cachedDomains && cachedTransactions) {
           const typedDomains = cachedDomains.map(ensureDomainWithTags);
           const typedTransactions = cachedTransactions.map(ensureTransactionWithRequiredFields);
@@ -282,8 +282,8 @@ export default function DashboardPage() {
         loadDomainsFromSupabase(userId),
         loadTransactionsFromSupabase(userId),
       ]);
-
-      if (domainsResult.success && transactionsResult.success) {
+        
+        if (domainsResult.success && transactionsResult.success) {
         const typedDomains = (domainsResult.data || []).map(ensureDomainWithTags);
         const typedTransactions = (transactionsResult.data || []).map(ensureTransactionWithRequiredFields);
         setDomains(typedDomains);
@@ -300,16 +300,16 @@ export default function DashboardPage() {
         };
 
         console.log('Data loaded from Supabase database successfully');
-      } else {
+        } else {
         throw new Error('Failed to load data from Supabase database');
-      }
-    } catch (error) {
+        }
+      } catch (error) {
       console.error('Error loading data from Supabase:', error);
       setError(t('common.dataLoadFailed'));
-      auditLogger.log(user?.id || 'default', 'data_load_failed', 'dashboard', { 
-        error: error instanceof Error ? error.message : 'Unknown error' 
-      });
-    } finally {
+        auditLogger.log(user?.id || 'default', 'data_load_failed', 'dashboard', { 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        });
+      } finally {
       if (showLoading) setLoading(false);
 
       auditLogger.log(user?.id || 'default', 'data_loaded', 'dashboard', { 
@@ -624,7 +624,7 @@ export default function DashboardPage() {
     setShowSmartDomainForm(false);
     // 使用 setTimeout 确保状态更新后再打开表单
     setTimeout(() => {
-      setShowSmartDomainForm(true);
+    setShowSmartDomainForm(true);
     }, 0);
   };
 
@@ -650,31 +650,36 @@ export default function DashboardPage() {
       autoCalculateFromPurchase: true
     });
 
-    // 直接使用DomainExpiryManager的逻辑，但手动处理类型转换
-    const renewalCycle = renewalYears || domain.renewal_cycle || 1;
+    // 将DomainWithTags转换为Domain类型（来自types/domain.ts）以使用DomainExpiryManager
+    const domainForRenewal: Domain = {
+      id: domain.id,
+      domain_name: domain.domain_name,
+      registrar: domain.registrar ?? '',
+      purchase_date: domain.purchase_date ?? '',
+      purchase_cost: domain.purchase_cost ?? 0,
+      renewal_cost: domain.renewal_cost ?? 0,
+      renewal_cycle: domain.renewal_cycle ?? 1,
+      renewal_count: domain.renewal_count ?? 0,
+      expiry_date: domain.expiry_date ?? undefined,
+      status: domain.status as 'active' | 'for_sale' | 'sold' | 'expired',
+      estimated_value: domain.estimated_value ?? 0,
+      sale_date: domain.sale_date ?? undefined,
+      sale_price: domain.sale_price ?? undefined,
+      platform_fee: domain.platform_fee ?? undefined,
+      tags: Array.isArray(domain.tags) ? domain.tags : (domain.tags ? [domain.tags] : []),
+      created_at: domain.created_at ?? undefined,
+      updated_at: domain.updated_at ?? undefined
+    };
     
-    // 计算新的到期日期
-    let newExpiryDate: Date;
-    if (domain.expiry_date) {
-      newExpiryDate = new Date(domain.expiry_date);
-      newExpiryDate.setFullYear(newExpiryDate.getFullYear() + renewalCycle);
-    } else if (domain.purchase_date) {
-      newExpiryDate = new Date(domain.purchase_date);
-      newExpiryDate.setFullYear(newExpiryDate.getFullYear() + renewalCycle);
-      if (domain.renewal_count > 0) {
-        newExpiryDate.setFullYear(newExpiryDate.getFullYear() + (domain.renewal_count * renewalCycle));
-      }
-    } else {
-      newExpiryDate = new Date();
-      newExpiryDate.setFullYear(newExpiryDate.getFullYear() + renewalCycle);
-    }
+    // 使用DomainExpiryManager统一处理续费逻辑，确保日期计算准确
+    const renewedDomainResult = expiryManager.handleDomainRenewal(domainForRenewal, renewalYears);
     
-    // 创建续费后的域名
+    // 转换回DomainWithTags类型
     const renewedDomain: DomainWithTags = {
       ...domain,
-      expiry_date: newExpiryDate.toISOString().split('T')[0],
-      renewal_count: (domain.renewal_count || 0) + 1,
-      updated_at: new Date().toISOString()
+      expiry_date: renewedDomainResult.expiry_date || domain.expiry_date,
+      renewal_count: renewedDomainResult.renewal_count || (domain.renewal_count || 0) + 1,
+      updated_at: renewedDomainResult.updated_at || new Date().toISOString()
     };
 
     // 更新域名数据
@@ -684,7 +689,7 @@ export default function DashboardPage() {
 
     // 创建续费交易记录
     const renewalTransaction: TransactionWithRequiredFields = {
-      id: `renewal-${Date.now()}`,
+      id: crypto.randomUUID(),
       domain_id: domain.id,
       type: 'renew',
       amount: (domain.renewal_cost || 0) * renewalYears,
@@ -739,13 +744,13 @@ export default function DashboardPage() {
       }
 
       // Update local state
-      const updatedDomains = domains.filter(domain => domain.id !== id);
-      setDomains(updatedDomains);
-      
-      // Also remove related transactions
-      const updatedTransactions = transactions.filter(transaction => transaction.domain_id !== id);
-      setTransactions(updatedTransactions);
-      
+    const updatedDomains = domains.filter(domain => domain.id !== id);
+    setDomains(updatedDomains);
+    
+    // Also remove related transactions
+    const updatedTransactions = transactions.filter(transaction => transaction.domain_id !== id);
+    setTransactions(updatedTransactions);
+    
       console.log('Domain deleted successfully');
     } catch (error) {
       console.error('Error deleting domain:', error);
@@ -760,14 +765,14 @@ export default function DashboardPage() {
     let updatedDomains: DomainWithTags[];
     
     try {
-      if (editingDomain) {
-        // Update existing domain
-        updatedDomains = domains.map(domain => 
-          domain.id === editingDomain.id 
+    if (editingDomain) {
+      // Update existing domain
+      updatedDomains = domains.map(domain => 
+        domain.id === editingDomain.id 
             ? { ...domainData, id: editingDomain.id, tags: domain.tags }
-            : domain
-        );
-      } else {
+          : domain
+      );
+    } else {
         // 检查域名是否已存在（仅对新添加的域名）
         const domainName = domainData.domain_name.toLowerCase().trim();
         const isDuplicate = domains.some(d => 
@@ -780,20 +785,20 @@ export default function DashboardPage() {
           return;
         }
         
-        // Add new domain
+      // Add new domain
         const newDomain: DomainWithTags = {
-          ...domainData,
-          id: Date.now().toString(),
+        ...domainData,
+          id: crypto.randomUUID(),
           tags: []
-        };
-        updatedDomains = [...domains, newDomain];
-      }
-      
-      setDomains(updatedDomains);
+      };
+      updatedDomains = [...domains, newDomain];
+    }
+    
+    setDomains(updatedDomains);
       await saveData(updatedDomains, transactions);
       
-      setShowDomainForm(false);
-      setEditingDomain(undefined);
+    setShowDomainForm(false);
+    setEditingDomain(undefined);
       
       console.log('Domain saved successfully');
     } catch (error) {
@@ -823,7 +828,7 @@ export default function DashboardPage() {
     setShowTransactionForm(false);
     // 使用 setTimeout 确保状态更新后再打开表单
     setTimeout(() => {
-      setShowTransactionForm(true);
+    setShowTransactionForm(true);
     }, 0);
   };
 
@@ -856,8 +861,8 @@ export default function DashboardPage() {
       }
 
       // Update local state
-      const updatedTransactions = transactions.filter(transaction => transaction.id !== id);
-      setTransactions(updatedTransactions);
+    const updatedTransactions = transactions.filter(transaction => transaction.id !== id);
+    setTransactions(updatedTransactions);
       
       // 如果删除的是出售交易，需要将域名状态改回 active
       if (transactionToDelete.type === 'sell' && transactionToDelete.domain_id) {
@@ -902,17 +907,16 @@ export default function DashboardPage() {
     let updatedDomains = domains;
     
     try {
-      if (editingTransaction) {
-        // Update existing transaction
+    if (editingTransaction) {
+      // Update existing transaction
         const oldTransaction = editingTransaction;
         const newTransaction = ensureTransactionWithRequiredFields({ ...transactionData, id: editingTransaction.id });
         
         updatedTransactions = transactions.map(transaction => 
           transaction.id === editingTransaction.id ? newTransaction : transaction
         );
-        setTransactions(updatedTransactions);
         
-        // 检查交易类型变化，更新域名状态
+        // 检查交易类型变化，准备域名状态更新（但不立即更新状态）
         if (oldTransaction.type === 'sell' && newTransaction.type !== 'sell' && oldTransaction.domain_id) {
           // 从出售交易改为其他类型，需要将域名状态改回 active
           updatedDomains = domains.map(domain => {
@@ -927,8 +931,7 @@ export default function DashboardPage() {
             }
             return domain;
           });
-          setDomains(updatedDomains);
-          console.log('Domain status updated from sold to active');
+          console.log('Domain status will be updated from sold to active');
         } else if (oldTransaction.type !== 'sell' && newTransaction.type === 'sell' && newTransaction.domain_id) {
           // 从其他类型改为出售交易，需要将域名状态改为 sold
           updatedDomains = domains.map(domain => {
@@ -943,8 +946,7 @@ export default function DashboardPage() {
             }
             return domain;
           });
-          setDomains(updatedDomains);
-          console.log('Domain status updated to sold');
+          console.log('Domain status will be updated to sold');
         } else if (oldTransaction.type === 'sell' && newTransaction.type === 'sell' && oldTransaction.domain_id === newTransaction.domain_id) {
           // 出售交易信息更新，需要同步更新域名信息
           updatedDomains = domains.map(domain => {
@@ -958,40 +960,53 @@ export default function DashboardPage() {
             }
             return domain;
           });
-          setDomains(updatedDomains);
-          console.log('Domain sale information updated');
+          console.log('Domain sale information will be updated');
         }
         
+        // 先保存交易和域名更新，确保数据一致性
         await saveData(updatedDomains, updatedTransactions);
-      } else {
-        // Add new transaction
+        
+        // 保存成功后再更新本地状态
+      setTransactions(updatedTransactions);
+        if (updatedDomains !== domains) {
+          setDomains(updatedDomains);
+          console.log('Domain status updated successfully');
+        }
+    } else {
+      // Add new transaction
         const newTransaction: TransactionWithRequiredFields = ensureTransactionWithRequiredFields({
-          ...transactionData,
-          id: Date.now().toString()
+        ...transactionData,
+          id: crypto.randomUUID()
         });
         updatedTransactions = [...transactions, newTransaction];
-        setTransactions(updatedTransactions);
         
-        // 先更新域名状态（如果适用）
+        // 先保存交易，确保数据一致性
+        // 准备域名更新（但不立即更新状态，等交易保存成功后再更新）
+        let domainUpdates: DomainWithTags[] = domains;
         if (newTransaction.type === 'sell' && newTransaction.domain_id) {
-          updatedDomains = domains.map(domain => {
+          domainUpdates = domains.map(domain => {
             if (domain.id === newTransaction.domain_id) {
-              return {
-                ...domain,
-                status: 'sold' as const,
+          return {
+            ...domain,
+            status: 'sold' as const,
                 sale_date: newTransaction.date,
                 sale_price: newTransaction.amount,
                 platform_fee: newTransaction.platform_fee || 0
-              };
-            }
-            return domain;
-          });
-          setDomains(updatedDomains);
-          console.log('Domain status updated to sold');
+          };
+        }
+        return domain;
+      });
         }
         
-        // 保存交易和更新后的域名状态
-        await saveData(updatedDomains, updatedTransactions);
+        // 先保存交易和域名更新，确保原子性
+        await saveData(domainUpdates, updatedTransactions);
+        
+        // 保存成功后再更新本地状态
+        setTransactions(updatedTransactions);
+        if (newTransaction.type === 'sell' && newTransaction.domain_id) {
+          setDomains(domainUpdates);
+          console.log('Domain status updated to sold');
+        }
       }
       
       setShowTransactionForm(false);
@@ -1019,7 +1034,7 @@ export default function DashboardPage() {
     // 创建完整的Transaction对象
     const fullTransaction: TransactionWithRequiredFields = {
       ...transaction,
-      id: Date.now().toString()
+      id: crypto.randomUUID()
     };
     setSaleSuccessData({ domain, transaction: fullTransaction });
     setShowSaleSuccessModal(true);
@@ -1080,12 +1095,12 @@ export default function DashboardPage() {
 
   // 显示认证加载状态
   if (authLoading) {
-    return (
+  return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">{t('common.verifyingIdentity')}</p>
-        </div>
+            </div>
       </div>
     );
   }
@@ -1134,7 +1149,7 @@ export default function DashboardPage() {
                     ) : (
                       <User className="h-5 w-5 text-white" />
                     )}
-                  </div>
+              </div>
                   <div className="flex flex-col">
                     <span className="text-sm font-semibold text-gray-900 leading-tight">
                       {user?.email?.split('@')[0] || 'User'}
@@ -1252,19 +1267,19 @@ export default function DashboardPage() {
                     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-xs">
                       <div className="text-center whitespace-normal">
                         {t('dashboard.profitMarginCalculation')}
-                      </div>
+              </div>
                       <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
                         <div className="w-2 h-2 bg-gray-900 transform rotate-45"></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              </div>
+            </div>
+          </div>
+              </div>
                 <p className="text-3xl font-bold text-gray-900">{stats.totalRevenue > 0 ? ((stats.totalProfit / stats.totalRevenue) * 100).toFixed(1) : 0}%</p>
               </div>
               <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center">
                 <BarChart3 className="h-6 w-6 text-white" />
-              </div>
             </div>
+          </div>
           </div>
         </div>
 
@@ -1587,12 +1602,12 @@ export default function DashboardPage() {
                       <div key={cycle} className="bg-gray-50 p-3 rounded-lg">
                         <p className="text-sm text-gray-600">{cycle}</p>
                         <p className="text-lg font-semibold text-gray-900">{formatCurrencyEnhanced(cost, 'USD')}</p>
-                      </div>
-                    ))}
                   </div>
-                </div>
-              )}
-            </div>
+                ))}
+                  </div>
+              </div>
+            )}
+      </div>
 
             {/* 高级续费分析 */}
             <LazyWrapper>
@@ -1606,7 +1621,7 @@ export default function DashboardPage() {
 
             {/* Quick Actions */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <div className="bg-white p-6 rounded-lg shadow-sm border">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-900">{t('action.quickActions')}</h3>
                   <Zap className="h-5 w-5 text-yellow-500" />
@@ -1717,8 +1732,8 @@ export default function DashboardPage() {
               onDelete={handleDeleteDomain}
               onView={handleViewDomain}
               onAdd={handleAddDomain}
-            />
-          </div>
+                />
+              </div>
         )}
 
         {activeTab === 'transactions' && (
@@ -1734,9 +1749,9 @@ export default function DashboardPage() {
         {activeTab === 'analytics' && (
           <LazyWrapper>
             <LazyInvestmentAnalytics 
-              domains={domains} 
-              transactions={transactions} 
-            />
+            domains={domains} 
+            transactions={transactions} 
+          />
           </LazyWrapper>
         )}
 
@@ -2014,17 +2029,17 @@ export default function DashboardPage() {
             {/* 综合财务报告 */}
             <LazyWrapper>
               <LazyFinancialReport
-                domains={domains}
-                transactions={transactions}
-              />
+              domains={domains}
+              transactions={transactions}
+            />
             </LazyWrapper>
-
+            
             {/* 投资分析 */}
             <LazyWrapper>
               <LazyFinancialAnalysis
-                domains={domains}
-                transactions={transactions}
-              />
+              domains={domains}
+              transactions={transactions}
+            />
             </LazyWrapper>
           </div>
         )}
