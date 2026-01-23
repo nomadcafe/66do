@@ -198,11 +198,18 @@ export class DomainService {
     return data as Domain
   }
 
-  static async deleteDomain(id: string): Promise<boolean> {
-    const { error } = await supabase
+  static async deleteDomain(id: string, userId?: string): Promise<boolean> {
+    let query = supabase
       .from('domains')
       .delete()
       .eq('id', id)
+    
+    // 如果提供了userId，确保只能删除属于该用户的域名
+    if (userId) {
+      query = query.eq('user_id', userId) as typeof query
+    }
+    
+    const { error } = await query
     
     if (error) {
       console.error('Error deleting domain:', error)
@@ -258,11 +265,18 @@ export class TransactionService {
     return data
   }
 
-  static async updateTransaction(id: string, updates: TransactionUpdate): Promise<Transaction | null> {
-    const { data, error } = await supabase
+  static async updateTransaction(id: string, updates: TransactionUpdate, userId?: string): Promise<Transaction | null> {
+    let query = supabase
       .from('domain_transactions')
       .update(updates)
       .eq('id', id)
+    
+    // 如果提供了userId，确保只能更新属于该用户的交易
+    if (userId) {
+      query = query.eq('user_id', userId) as typeof query
+    }
+    
+    const { data, error } = await query
       .select()
       .single()
     
@@ -274,11 +288,18 @@ export class TransactionService {
     return data
   }
 
-  static async deleteTransaction(id: string): Promise<boolean> {
-    const { error } = await supabase
+  static async deleteTransaction(id: string, userId?: string): Promise<boolean> {
+    let query = supabase
       .from('domain_transactions')
       .delete()
       .eq('id', id)
+    
+    // 如果提供了userId，确保只能删除属于该用户的交易
+    if (userId) {
+      query = query.eq('user_id', userId) as typeof query
+    }
+    
+    const { error } = await query
     
     if (error) {
       console.error('Error deleting transaction:', error)
@@ -288,10 +309,16 @@ export class TransactionService {
     return true
   }
 
-  static async bulkUpdateTransactions(transactions: TransactionUpdate[]): Promise<boolean> {
+  static async bulkUpdateTransactions(transactions: TransactionUpdate[], userId?: string): Promise<boolean> {
+    // 如果提供了userId，确保所有交易的user_id都是该用户
+    // 注意：这提供了额外的安全层，但主要验证应该在API层完成
+    const validatedTransactions = userId 
+      ? transactions.map(t => ({ ...t, user_id: userId }))
+      : transactions
+    
     const { error } = await supabase
       .from('domain_transactions')
-      .upsert(transactions)
+      .upsert(validatedTransactions)
     
     if (error) {
       console.error('Error bulk updating transactions:', error)

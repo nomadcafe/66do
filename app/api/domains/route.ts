@@ -186,7 +186,22 @@ export async function POST(request: NextRequest) {
             headers: corsHeaders
           })
         }
-        const deleteResult = await DomainService.deleteDomain(domain.id)
+        
+        // 验证域名所有权 - 确保域名属于当前用户
+        const authenticatedClientForDelete = await createAuthenticatedSupabaseClient(accessToken)
+        const userDomains = await DomainService.getDomainsWithClient(authenticatedClientForDelete, userId)
+        const canDeleteDomain = userDomains.some(d => d.id === domain.id)
+        
+        if (!canDeleteDomain) {
+          return NextResponse.json({ 
+            error: 'Domain not found or access denied' 
+          }, { 
+            status: 403,
+            headers: corsHeaders
+          })
+        }
+        
+        const deleteResult = await DomainService.deleteDomain(domain.id, userId)
         return NextResponse.json({ success: deleteResult }, { headers: corsHeaders })
       
       case 'bulkUpdateDomains':
