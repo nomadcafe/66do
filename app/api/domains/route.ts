@@ -6,6 +6,7 @@ import { createClient } from '@supabase/supabase-js'
 import { Database } from '../../../src/lib/supabase'
 import { getCorsHeaders, getCorsHeadersForError } from '../../../src/lib/cors'
 import { validateEnvVars } from '../../../src/lib/env-validator'
+import { MAX_BULK_OPERATION_SIZE } from '../../../src/lib/constants'
 
 // 创建带有用户认证的 Supabase 客户端
 async function createAuthenticatedSupabaseClient(accessToken?: string) {
@@ -95,10 +96,9 @@ export async function POST(request: NextRequest) {
 
     // 支持批量创建
     if (domains && Array.isArray(domains)) {
-      const MAX_BULK_SIZE = 100
-      if (domains.length > MAX_BULK_SIZE) {
+      if (domains.length > MAX_BULK_OPERATION_SIZE) {
         return NextResponse.json({ 
-          error: `Bulk create is limited to ${MAX_BULK_SIZE} domains at a time` 
+          error: `Bulk create is limited to ${MAX_BULK_OPERATION_SIZE} domains at a time` 
         }, { 
           status: 400,
           headers: corsHeaders

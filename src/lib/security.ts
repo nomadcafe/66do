@@ -108,10 +108,13 @@ export class AccessControl {
   }
 
   // 检查资源所有权
-  private isResourceOwner(_userId: string, _resourceId: string): boolean {
+  private isResourceOwner(userId: string, resourceId: string): boolean {
     // 这里应该查询数据库检查资源所有权
     // 暂时返回true，实际应用中需要数据库查询
-    // 使用下划线前缀表示参数暂时未使用
+    if (!userId || !resourceId) {
+      return false;
+    }
+    // TODO: 实现实际的数据库查询逻辑
     return true;
   }
 }

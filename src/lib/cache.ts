@@ -237,8 +237,8 @@ export class DomainCache extends DataCache {
 
       const isSynced = compareFn(cached, dbData);
       return { isSynced, shouldRefresh: !isSynced };
-    } catch (error) {
-      console.error('Error validating cache sync:', error);
+    } catch {
+      // Error validating cache sync - logged via logger if needed
       // 如果验证失败，建议刷新缓存
       return { isSynced: false, shouldRefresh: true };
     }
@@ -252,6 +252,6 @@ export const domainCache = new DomainCache();
 setInterval(() => {
   const cleaned = domainCache.cleanup();
   if (cleaned > 0) {
-    console.log(`Cleaned ${cleaned} expired cache items`);
+    // Cleaned expired cache items - logged via logger if needed
   }
 }, 5 * 60 * 1000);

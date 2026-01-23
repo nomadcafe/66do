@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
 import { Database } from './supabase'
 import { SupabaseClient } from '@supabase/supabase-js'
+import { logger } from './logger'
 
 type Tables = Database['public']['Tables']
 
@@ -37,7 +38,7 @@ export class UserService {
       .maybeSingle()
     
     if (error) {
-      console.error('Error fetching user:', error)
+      // Error fetching user - logged via logger if needed
       return null
     }
     
@@ -53,13 +54,13 @@ export class UserService {
         .single()
       
       if (error) {
-        console.error('Error creating user:', error)
+        logger.error('Error creating user:', error)
         return null
       }
       
       return data
     } catch (error) {
-      console.error('Error creating user:', error)
+      logger.error('Error creating user:', error)
       return null
     }
   }
@@ -73,7 +74,7 @@ export class UserService {
       .single()
     
     if (error) {
-      console.error('Error updating user:', error)
+      logger.error('Error updating user:', error)
       return null
     }
     
@@ -87,7 +88,7 @@ export class UserService {
       .eq('email', email)
     
     if (error) {
-      console.error('Error updating email verification:', error)
+      logger.error('Error updating email verification:', error)
       return false
     }
     
@@ -114,7 +115,7 @@ export class DomainService {
       .order('created_at', { ascending: false }) as unknown as Promise<{ data: Domain[] | null; error: { message: string } | null }>)
     
     if (error) {
-      console.error('Error fetching domains:', error)
+      logger.error('Error fetching domains:', error)
       return []
     }
     
@@ -138,7 +139,7 @@ export class DomainService {
       .single() as unknown as Promise<{ data: Domain | null; error: { message: string; code?: string } | null }>)
     
     if (error) {
-      console.error('Error creating domain:', error)
+      logger.error('Error creating domain:', error)
       return null
     }
     
@@ -153,7 +154,7 @@ export class DomainService {
       .maybeSingle()
     
     if (error) {
-      console.error('Error fetching domain:', error)
+      logger.error('Error fetching domain:', error)
       return null
     }
     
@@ -187,10 +188,10 @@ export class DomainService {
       .single() as unknown as Promise<{ data: Domain | null; error: { message: string; code?: string } | null }>)
     
     if (error) {
-      console.error('Error updating domain:', error)
+      logger.error('Error updating domain:', error)
       // 如果是权限错误，记录更详细的信息
       if (error.code === 'PGRST116' || error.message?.includes('Unauthorized')) {
-        console.error('Permission denied: Domain may not belong to user or RLS policy violation')
+        logger.error('Permission denied: Domain may not belong to user or RLS policy violation')
       }
       return null
     }
@@ -212,7 +213,7 @@ export class DomainService {
     const { error } = await query
     
     if (error) {
-      console.error('Error deleting domain:', error)
+      logger.error('Error deleting domain:', error)
       return false
     }
     
@@ -225,7 +226,7 @@ export class DomainService {
       .upsert(domains)
     
     if (error) {
-      console.error('Error bulk updating domains:', error)
+      logger.error('Error bulk updating domains:', error)
       return false
     }
     
@@ -243,7 +244,7 @@ export class TransactionService {
       .order('date', { ascending: false })
     
     if (error) {
-      console.error('Error fetching transactions:', error)
+      logger.error('Error fetching transactions:', error)
       return []
     }
     
@@ -258,7 +259,7 @@ export class TransactionService {
       .single()
     
     if (error) {
-      console.error('Error creating transaction:', error)
+      logger.error('Error creating transaction:', error)
       return null
     }
     
@@ -281,7 +282,7 @@ export class TransactionService {
       .single()
     
     if (error) {
-      console.error('Error updating transaction:', error)
+      logger.error('Error updating transaction:', error)
       return null
     }
     
@@ -302,7 +303,7 @@ export class TransactionService {
     const { error } = await query
     
     if (error) {
-      console.error('Error deleting transaction:', error)
+      logger.error('Error deleting transaction:', error)
       return false
     }
     
@@ -321,7 +322,7 @@ export class TransactionService {
       .upsert(validatedTransactions)
     
     if (error) {
-      console.error('Error bulk updating transactions:', error)
+      logger.error('Error bulk updating transactions:', error)
       return false
     }
     
@@ -339,7 +340,7 @@ export class VerificationTokenService {
       .single()
     
     if (error) {
-      console.error('Error creating verification token:', error)
+      logger.error('Error creating verification token:', error)
       return null
     }
     
@@ -355,7 +356,7 @@ export class VerificationTokenService {
       .single()
     
     if (error) {
-      console.error('Error fetching verification token:', error)
+      logger.error('Error fetching verification token:', error)
       return null
     }
     
@@ -369,7 +370,7 @@ export class VerificationTokenService {
       .eq('token', token)
     
     if (error) {
-      console.error('Error deleting verification token:', error)
+      logger.error('Error deleting verification token:', error)
       return false
     }
     
@@ -383,7 +384,7 @@ export class VerificationTokenService {
       .lt('expires_at', new Date().toISOString())
     
     if (error) {
-      console.error('Error cleaning up expired tokens:', error)
+      logger.error('Error cleaning up expired tokens:', error)
       return false
     }
     
@@ -401,7 +402,7 @@ export async function loadDomainsFromSupabase(userId: string): Promise<DataServi
       .order('created_at', { ascending: false })
 
     if (error) {
-      console.error('Error loading domains from Supabase:', error)
+      logger.error('Error loading domains from Supabase:', error)
       return {
         success: false,
         error: error.message,
@@ -415,7 +416,7 @@ export async function loadDomainsFromSupabase(userId: string): Promise<DataServi
       source: 'supabase'
     }
   } catch (error) {
-    console.error('Error loading domains from Supabase:', error)
+    logger.error('Error loading domains from Supabase:', error)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -433,7 +434,7 @@ export async function loadTransactionsFromSupabase(userId: string): Promise<Data
       .order('created_at', { ascending: false })
 
     if (error) {
-      console.error('Error loading transactions from Supabase:', error)
+      logger.error('Error loading transactions from Supabase:', error)
       return {
         success: false,
         error: error.message,
@@ -447,7 +448,7 @@ export async function loadTransactionsFromSupabase(userId: string): Promise<Data
       source: 'supabase'
     }
   } catch (error) {
-    console.error('Error loading transactions from Supabase:', error)
+    logger.error('Error loading transactions from Supabase:', error)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

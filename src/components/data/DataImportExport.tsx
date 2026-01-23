@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import * as Papa from 'papaparse';
 import { useI18nContext } from '../../contexts/I18nProvider';
+import { MAX_FILE_SIZE, ALLOWED_FILE_TYPES, ALLOWED_EXTENSIONS } from '../../lib/constants';
 
 interface ImportExportProps {
   onImport: (data: unknown) => void;
@@ -51,6 +52,34 @@ export default function DataImportExport({
     setImportResult(null);
 
     try {
+      // 验证文件大小
+      if (file.size > MAX_FILE_SIZE) {
+        setImportResult({
+          success: false,
+          message: t('data.fileTooLarge') || `文件大小不能超过${(MAX_FILE_SIZE / 1024 / 1024).toFixed(0)}MB`,
+          importedCount: 0,
+          errors: [`文件大小: ${(file.size / 1024 / 1024).toFixed(2)}MB，最大允许: ${(MAX_FILE_SIZE / 1024 / 1024).toFixed(0)}MB`]
+        });
+        setIsProcessing(false);
+        return;
+      }
+
+      // 验证文件类型
+      const fileExtension = '.' + (file.name.split('.').pop()?.toLowerCase() || '');
+      const isValidExtension = fileExtension && ALLOWED_EXTENSIONS.includes(fileExtension as '.csv' | '.json');
+      const isValidMimeType = file.type === '' || (ALLOWED_FILE_TYPES as readonly string[]).includes(file.type);
+
+      if (!isValidExtension && !isValidMimeType) {
+        setImportResult({
+          success: false,
+          message: t('data.invalidFileType') || '不支持的文件类型',
+          importedCount: 0,
+          errors: [`支持的文件类型: ${ALLOWED_EXTENSIONS.join(', ')}`]
+        });
+        setIsProcessing(false);
+        return;
+      }
+
       const text = await file.text();
       let data;
 
