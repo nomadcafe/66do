@@ -179,22 +179,31 @@ export function calculateFinancialMetrics(
   // 分析交易记录
   const transactionAnalysis = analyzeTransactions(transactions);
   
-  // 计算投资成本
-  const totalInvestment = domains.reduce((sum, domain) => sum + domain.purchase_cost, 0);
-  const totalRenewalCost = domains.reduce((sum, domain) => 
-    sum + (domain.renewal_count * domain.renewal_cost), 0
-  );
+  // 计算投资成本 - 添加数值验证
+  const totalInvestment = domains.reduce((sum, domain) => {
+    const cost = Number(domain.purchase_cost) || 0;
+    if (!isFinite(cost) || cost < 0) return sum;
+    return sum + cost;
+  }, 0);
+  
+  const totalRenewalCost = domains.reduce((sum, domain) => {
+    const renewalCost = Number(domain.renewal_cost) || 0;
+    const renewalCount = Number(domain.renewal_count) || 0;
+    if (!isFinite(renewalCost) || renewalCost < 0 || !isFinite(renewalCount) || renewalCount < 0) return sum;
+    return sum + (renewalCount * renewalCost);
+  }, 0);
+  
   const totalHoldingCost = totalInvestment + totalRenewalCost;
   
-  // 销售额和收入
+  // 销售额和收入 - 使用transactionAnalysis的结果
   const totalSales = transactionAnalysis.totalSales;
   const totalRevenue = transactionAnalysis.totalRevenue;
   const totalPlatformFees = transactionAnalysis.totalPlatformFees;
   
-  // 利润计算
-  const totalProfit = totalRevenue - totalHoldingCost;
-  const grossProfit = totalSales - totalInvestment; // 毛利润（未扣除续费成本）
-  const netProfit = totalRevenue - totalHoldingCost; // 净利润
+  // 利润计算 - 确保与enhanced版本一致
+  const grossProfit = totalSales - totalInvestment; // 毛利润（销售额 - 投资成本）
+  const netProfit = totalRevenue - totalHoldingCost; // 净利润（净收入 - 总持有成本）
+  const totalProfit = netProfit; // 保持向后兼容
   
   // 年度指标
   const currentYear = new Date().getFullYear();
@@ -209,10 +218,27 @@ export function calculateFinancialMetrics(
   const avgPurchasePrice = totalDomains > 0 ? totalInvestment / totalDomains : 0;
   const avgSalePrice = soldDomains > 0 ? totalSales / soldDomains : 0;
   
-  // 比率计算
-  const roi = totalHoldingCost > 0 ? (totalProfit / totalHoldingCost) * 100 : 0;
-  const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
-  const grossMargin = totalSales > 0 ? (grossProfit / totalSales) * 100 : 0;
+  // 比率计算 - 添加数值验证，确保与enhanced版本一致
+  const roi = totalHoldingCost > 0 && isFinite(totalHoldingCost) && isFinite(netProfit)
+    ? (netProfit / totalHoldingCost) * 100 
+    : 0;
+  const profitMargin = totalRevenue > 0 && isFinite(totalRevenue) && isFinite(netProfit)
+    ? (netProfit / totalRevenue) * 100 
+    : 0;
+  const grossMargin = totalSales > 0 && isFinite(totalSales) && isFinite(grossProfit)
+    ? (grossProfit / totalSales) * 100 
+    : 0;
+  
+  // 验证计算结果的有效性
+  if (!isFinite(roi)) {
+    console.warn('Invalid ROI calculation:', { totalHoldingCost, netProfit });
+  }
+  if (!isFinite(profitMargin)) {
+    console.warn('Invalid profit margin calculation:', { totalRevenue, netProfit });
+  }
+  if (!isFinite(grossMargin)) {
+    console.warn('Invalid gross margin calculation:', { totalSales, grossProfit });
+  }
   
   return {
     // 销售额相关

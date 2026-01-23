@@ -35,6 +35,7 @@ import {
   useSmartPreload
 } from '../../src/components/LazyComponents';
 import { auditLogger } from '../../src/lib/security';
+import { validateDomain, validateTransaction } from '../../src/lib/validation';
 import LoadingSpinner from '../../src/components/ui/LoadingSpinner';
 import ErrorMessage from '../../src/components/ui/ErrorMessage';
 import { 
@@ -339,6 +340,21 @@ export default function DashboardPage() {
         'Authorization': `Bearer ${session.access_token}`
       };
       
+      // 验证数据完整性
+      for (const domain of newDomains) {
+        const validation = validateDomain(domain);
+        if (!validation.valid) {
+          throw new Error(`Domain validation failed: ${validation.errors.join(', ')}`);
+        }
+      }
+      
+      for (const transaction of newTransactions) {
+        const validation = validateTransaction(transaction);
+        if (!validation.valid) {
+          throw new Error(`Transaction validation failed: ${validation.errors.join(', ')}`);
+        }
+      }
+      
       // Save domains to Supabase
       for (const domain of newDomains) {
         if (domains.find(d => d.id === domain.id)) {
@@ -467,17 +483,45 @@ export default function DashboardPage() {
         }
       }
       
-      // Update cache
-      domainCache.cacheDomains(user.id, newDomains);
-      domainCache.cacheTransactions(user.id, newTransactions);
+      // 先清除旧缓存，确保数据一致性
+      domainCache.invalidateUserCache(user.id);
+      
+      // 刷新数据从Supabase，确保获取最新数据
+      await loadDashboardData({ useCache: false, showLoading: false });
+      
+      // 更新缓存（使用从数据库获取的最新数据）
+      const latestDomains = domains;
+      const latestTransactions = transactions;
+      domainCache.cacheDomains(user.id, latestDomains);
+      domainCache.cacheTransactions(user.id, latestTransactions);
       
       console.log('Data saved to Supabase database successfully');
-
-      // Refresh data from Supabase to ensure IDs and fields are up to date
-      await loadDashboardData({ useCache: false, showLoading: false });
     } catch (error) {
       console.error('Error saving data to Supabase:', error);
-      setError(t('common.dataSaveFailed'));
+      
+      // 清除缓存，强制下次从数据库加载
+      if (user?.id) {
+        domainCache.invalidateUserCache(user.id);
+      }
+      
+      // 提供更详细的错误信息
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const isNetworkError = errorMessage.includes('fetch') || errorMessage.includes('network');
+      const isAuthError = errorMessage.includes('401') || errorMessage.includes('Unauthorized');
+      
+      if (isAuthError) {
+        setError(t('common.authError') || 'Authentication failed. Please log in again.');
+      } else if (isNetworkError) {
+        setError(t('common.networkError') || 'Network error. Please check your connection and try again.');
+      } else {
+        setError(t('common.dataSaveFailed') || `Failed to save data: ${errorMessage}`);
+      }
+      
+      // 记录错误到审计日志
+      auditLogger.log(user?.id || 'unknown', 'data_save_failed', 'dashboard', {
+        error: errorMessage,
+        errorType: isNetworkError ? 'network' : isAuthError ? 'auth' : 'unknown'
+      });
     }
   };
 

@@ -203,6 +203,46 @@ export class DomainCache extends DataCache {
     
     keys.forEach(key => this.delete(key));
   }
+
+  // 使缓存失效（标记为过期）
+  invalidateCache(key: string): void {
+    this.delete(key);
+  }
+
+  // 使用户相关缓存失效
+  invalidateUserCache(userId: string): void {
+    this.clearUserCache(userId);
+  }
+
+  // 验证缓存数据与数据库数据的一致性
+  async validateCacheSync<T>(
+    userId: string,
+    cacheKey: string,
+    fetchFromDb: () => Promise<T[]>,
+    compareFn?: (cached: T[], db: T[]) => boolean
+  ): Promise<{ isSynced: boolean; shouldRefresh: boolean }> {
+    const cached = this.get<T[]>(cacheKey);
+    if (!cached) {
+      return { isSynced: false, shouldRefresh: true };
+    }
+
+    try {
+      const dbData = await fetchFromDb();
+      
+      // 如果没有提供比较函数，使用简单的长度比较
+      if (!compareFn) {
+        const isSynced = cached.length === dbData.length;
+        return { isSynced, shouldRefresh: !isSynced };
+      }
+
+      const isSynced = compareFn(cached, dbData);
+      return { isSynced, shouldRefresh: !isSynced };
+    } catch (error) {
+      console.error('Error validating cache sync:', error);
+      // 如果验证失败，建议刷新缓存
+      return { isSynced: false, shouldRefresh: true };
+    }
+  }
 }
 
 // 导出单例实例

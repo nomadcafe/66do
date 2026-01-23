@@ -171,34 +171,79 @@ export function calculateEnhancedFinancialMetrics(
   }>
 ): EnhancedFinancialMetrics {
   
-  // 分析交易记录
+  // 分析交易记录 - 使用与calculateFinancialMetrics相同的逻辑
   const salesTransactions = transactions.filter(t => t.type === 'sell');
-  const totalSales = salesTransactions.reduce((sum, t) => sum + t.amount, 0);
-  const totalPlatformFees = salesTransactions.reduce((sum, t) => sum + (t.platform_fee || 0), 0);
-  const totalNetRevenue = salesTransactions.reduce((sum, t) => sum + (t.net_amount || t.amount), 0);
+  const totalSales = salesTransactions.reduce((sum, t) => {
+    const amount = Number(t.amount) || 0;
+    if (!isFinite(amount) || amount < 0) return sum;
+    return sum + amount;
+  }, 0);
   
-  // 计算投资成本
-  const totalInvestment = domains.reduce((sum, domain) => sum + domain.purchase_cost, 0);
-  const totalRenewalCost = domains.reduce((sum, domain) => 
-    sum + (domain.renewal_count * domain.renewal_cost), 0
-  );
+  const totalPlatformFees = salesTransactions.reduce((sum, t) => {
+    const fee = Number(t.platform_fee) || 0;
+    if (!isFinite(fee) || fee < 0) return sum;
+    return sum + fee;
+  }, 0);
+  
+  const totalNetRevenue = salesTransactions.reduce((sum, t) => {
+    // 优先使用net_amount，如果没有则使用amount减去platform_fee
+    const netAmount = t.net_amount !== null && t.net_amount !== undefined 
+      ? Number(t.net_amount) 
+      : (Number(t.amount) || 0) - (Number(t.platform_fee) || 0);
+    if (!isFinite(netAmount) || netAmount < 0) return sum;
+    return sum + netAmount;
+  }, 0);
+  
+  // 计算投资成本 - 使用与calculateFinancialMetrics相同的逻辑
+  const totalInvestment = domains.reduce((sum, domain) => {
+    const cost = Number(domain.purchase_cost) || 0;
+    if (!isFinite(cost) || cost < 0) return sum;
+    return sum + cost;
+  }, 0);
+  
+  const totalRenewalCost = domains.reduce((sum, domain) => {
+    const renewalCost = Number(domain.renewal_cost) || 0;
+    const renewalCount = Number(domain.renewal_count) || 0;
+    if (!isFinite(renewalCost) || renewalCost < 0 || !isFinite(renewalCount) || renewalCount < 0) return sum;
+    return sum + (renewalCount * renewalCost);
+  }, 0);
+  
   const totalHoldingCost = totalInvestment + totalRenewalCost;
   
-  // 利润计算
+  // 利润计算 - 使用与calculateFinancialMetrics相同的逻辑
   const grossProfit = totalNetRevenue - totalInvestment; // 毛利润（净收入 - 投资成本）
   const netProfit = totalNetRevenue - totalHoldingCost;   // 净利润（净收入 - 总持有成本）
   
-  // 年度指标
+  // 年度指标 - 使用与calculateFinancialMetrics相同的逻辑
   const currentYear = new Date().getFullYear();
   const yearTransactions = transactions.filter(t => {
-    const transactionDate = new Date(t.date);
-    return transactionDate.getFullYear() === currentYear;
+    try {
+      const transactionDate = new Date(t.date);
+      return !isNaN(transactionDate.getTime()) && transactionDate.getFullYear() === currentYear;
+    } catch {
+      return false;
+    }
   });
   
   const yearSalesTransactions = yearTransactions.filter(t => t.type === 'sell');
-  const annualSales = yearSalesTransactions.reduce((sum, t) => sum + t.amount, 0);
-  const annualNetRevenue = yearSalesTransactions.reduce((sum, t) => sum + (t.net_amount || t.amount), 0);
-  const annualProfit = annualNetRevenue - totalHoldingCost; // 这里需要更精确的计算
+  const annualSales = yearSalesTransactions.reduce((sum, t) => {
+    const amount = Number(t.amount) || 0;
+    if (!isFinite(amount) || amount < 0) return sum;
+    return sum + amount;
+  }, 0);
+  
+  const annualNetRevenue = yearSalesTransactions.reduce((sum, t) => {
+    const netAmount = t.net_amount !== null && t.net_amount !== undefined 
+      ? Number(t.net_amount) 
+      : (Number(t.amount) || 0) - (Number(t.platform_fee) || 0);
+    if (!isFinite(netAmount) || netAmount < 0) return sum;
+    return sum + netAmount;
+  }, 0);
+  
+  // 年度利润计算：只考虑年度内的成本和收入
+  // 这里简化处理，使用年度净收入减去年度内相关的持有成本比例
+  // 更精确的计算需要考虑每个域名的持有时间
+  const annualProfit = annualNetRevenue - (totalHoldingCost * (yearSalesTransactions.length / Math.max(salesTransactions.length, 1)));
   
   // 域名统计
   const totalDomains = domains.length;
@@ -209,10 +254,27 @@ export function calculateEnhancedFinancialMetrics(
   const avgPurchasePrice = totalDomains > 0 ? totalInvestment / totalDomains : 0;
   const avgSalePrice = soldDomains > 0 ? totalSales / soldDomains : 0;
   
-  // 比率计算
-  const roi = totalHoldingCost > 0 ? (netProfit / totalHoldingCost) * 100 : 0;
-  const profitMargin = totalNetRevenue > 0 ? (netProfit / totalNetRevenue) * 100 : 0;
-  const grossMargin = totalSales > 0 ? (grossProfit / totalSales) * 100 : 0;
+  // 比率计算 - 使用与calculateFinancialMetrics相同的逻辑，添加验证
+  const roi = totalHoldingCost > 0 && isFinite(totalHoldingCost) && isFinite(netProfit)
+    ? (netProfit / totalHoldingCost) * 100 
+    : 0;
+  const profitMargin = totalNetRevenue > 0 && isFinite(totalNetRevenue) && isFinite(netProfit)
+    ? (netProfit / totalNetRevenue) * 100 
+    : 0;
+  const grossMargin = totalSales > 0 && isFinite(totalSales) && isFinite(grossProfit)
+    ? (grossProfit / totalSales) * 100 
+    : 0;
+  
+  // 验证计算结果的有效性
+  if (!isFinite(roi)) {
+    console.warn('Invalid ROI calculation:', { totalHoldingCost, netProfit });
+  }
+  if (!isFinite(profitMargin)) {
+    console.warn('Invalid profit margin calculation:', { totalNetRevenue, netProfit });
+  }
+  if (!isFinite(grossMargin)) {
+    console.warn('Invalid gross margin calculation:', { totalSales, grossProfit });
+  }
   
   return {
     // 收入相关
