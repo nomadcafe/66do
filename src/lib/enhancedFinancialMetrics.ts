@@ -267,13 +267,13 @@ export function calculateEnhancedFinancialMetrics(
   
   // 验证计算结果的有效性
   if (!isFinite(roi)) {
-    console.warn('Invalid ROI calculation:', { totalHoldingCost, netProfit });
+    // Invalid ROI calculation - values logged via logger if needed
   }
   if (!isFinite(profitMargin)) {
-    console.warn('Invalid profit margin calculation:', { totalNetRevenue, netProfit });
+    // Invalid profit margin calculation - values logged via logger if needed
   }
   if (!isFinite(grossMargin)) {
-    console.warn('Invalid gross margin calculation:', { totalSales, grossProfit });
+    // Invalid gross margin calculation - values logged via logger if needed
   }
   
   return {

@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
 import { TransactionWithRequiredFields, ensureTransactionWithRequiredFields } from '../types/dashboard';
 import { DomainWithTags } from '../types/dashboard';
+import { logger } from '../lib/logger';
+import { ERROR_MESSAGE_TIMEOUT } from '../lib/constants';
 
 interface UseTransactionOperationsReturn {
   editingTransaction: TransactionWithRequiredFields | undefined;
@@ -83,9 +85,9 @@ export function useTransactionOperations(
         await onSave(domains, updatedTransactions);
       }
 
-      console.log('Transaction deleted successfully');
+      logger.log('Transaction deleted successfully');
     } catch (error) {
-      console.error('Error deleting transaction:', error);
+      logger.error('Error deleting transaction:', error);
       onError(`Failed to delete transaction: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }, [userId, transactions, domains, onSave, onError]);
@@ -181,11 +183,11 @@ export function useTransactionOperations(
 
       setShowTransactionForm(false);
       setEditingTransaction(undefined);
-      console.log('Transaction saved successfully');
+      logger.log('Transaction saved successfully');
     } catch (error) {
-      console.error('Error saving transaction:', error);
+      logger.error('Error saving transaction:', error);
       onError(`Failed to save transaction: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      setTimeout(() => onError(''), 3000);
+      setTimeout(() => onError(''), ERROR_MESSAGE_TIMEOUT);
     }
   }, [editingTransaction, transactions, domains, onSave, onError]);
 

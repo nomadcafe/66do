@@ -9,6 +9,7 @@ import {
 } from '../types/dashboard';
 import { auditLogger } from '../lib/security';
 import { validateDomain, validateTransaction } from '../lib/validation';
+import { logger } from '../lib/logger';
 
 interface LoadOptions {
   useCache?: boolean;
@@ -73,7 +74,7 @@ export function useDashboardData(
         }
       }
 
-      console.log('Loading data from Supabase database...');
+      logger.log('Loading data from Supabase database...');
 
       const [domainsResult, transactionsResult] = await Promise.all([
         loadDomainsFromSupabase(userId),
@@ -96,12 +97,12 @@ export function useDashboardData(
           dataSource: 'supabase',
         };
 
-        console.log('Data loaded from Supabase database successfully');
+        logger.log('Data loaded from Supabase database successfully');
       } else {
         throw new Error('Failed to load data from Supabase database');
       }
     } catch (error) {
-      console.error('Error loading data from Supabase:', error);
+      logger.error('Error loading data from Supabase:', error);
       setError(t('common.dataLoadFailed'));
       auditLogger.log(userId || 'default', 'data_load_failed', 'dashboard', {
         error: error instanceof Error ? error.message : 'Unknown error'
@@ -124,7 +125,7 @@ export function useDashboardData(
     if (!userId || !sessionToken) return;
 
     try {
-      console.log('Saving data to Supabase database...');
+      logger.log('Saving data to Supabase database...');
 
       // 验证数据完整性
       for (const domain of newDomains) {
@@ -236,9 +237,9 @@ export function useDashboardData(
       // 刷新数据从Supabase，确保获取最新数据
       await loadDashboardData({ useCache: false, showLoading: false });
 
-      console.log('Data saved to Supabase database successfully');
+      logger.log('Data saved to Supabase database successfully');
     } catch (error) {
-      console.error('Error saving data to Supabase:', error);
+      logger.error('Error saving data to Supabase:', error);
 
       // 清除缓存，强制下次从数据库加载
       if (userId) {

@@ -3,6 +3,7 @@ import { TransactionService } from '../../../src/lib/supabaseService'
 import { validateTransaction, sanitizeTransactionData } from '../../../src/lib/validation'
 import { getUserIdFromRequest } from '../../../src/lib/auth-helper'
 import { getCorsHeaders, getCorsHeadersForError } from '../../../src/lib/cors'
+import { MAX_BULK_OPERATION_SIZE } from '../../../src/lib/constants'
 
 // GET /api/transactions - 获取所有交易
 export async function GET(request: NextRequest) {
@@ -51,10 +52,9 @@ export async function POST(request: NextRequest) {
 
     // 支持批量创建
     if (transactions && Array.isArray(transactions)) {
-      const MAX_BULK_SIZE = 100
-      if (transactions.length > MAX_BULK_SIZE) {
+      if (transactions.length > MAX_BULK_OPERATION_SIZE) {
         return NextResponse.json({ 
-          error: `Bulk create is limited to ${MAX_BULK_SIZE} transactions at a time` 
+          error: `Bulk create is limited to ${MAX_BULK_OPERATION_SIZE} transactions at a time` 
         }, { 
           status: 400,
           headers: corsHeaders
@@ -164,10 +164,9 @@ export async function PATCH(request: NextRequest) {
       })
     }
     
-    const MAX_BULK_SIZE = 100
-    if (transactions.length > MAX_BULK_SIZE) {
+    if (transactions.length > MAX_BULK_OPERATION_SIZE) {
       return NextResponse.json({ 
-        error: `Bulk update is limited to ${MAX_BULK_SIZE} transactions at a time` 
+        error: `Bulk update is limited to ${MAX_BULK_OPERATION_SIZE} transactions at a time` 
       }, { 
         status: 400,
         headers: corsHeaders

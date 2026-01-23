@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSupabaseAuth } from '../../src/contexts/SupabaseAuthContext';
 import { useI18nContext } from '../../src/contexts/I18nProvider';
+import { logger } from '../../src/lib/logger';
 import DomainList from '../../src/components/domain/DomainList';
 import DomainForm from '../../src/components/domain/DomainForm';
 import SmartDomainForm from '../../src/components/domain/SmartDomainForm';
@@ -138,7 +139,7 @@ export default function DashboardPage() {
   // Redirect if not authenticated (but wait for auth to load)
   useEffect(() => {
     if (!authLoading && !user) {
-      console.log('No user found, redirecting to login');
+      logger.log('No user found, redirecting to login');
       router.push('/login');
     }
   }, [user, authLoading, router]);
@@ -1132,9 +1133,9 @@ export default function DashboardPage() {
                   domainsCount: importData.domains?.length || 0,
                   transactionsCount: importData.transactions?.length || 0
                 });
-                console.log(t('common.dataImportedSuccessfully'));
+                logger.log(t('common.dataImportedSuccessfully'));
               } catch (error) {
-                console.error('Import failed:', error);
+                logger.error('Import failed:', error);
                 setError(t('common.dataImportFailed'));
                 auditLogger.log(user?.id || 'default', 'data_import_failed', 'dashboard', { error: (error as Error).message });
               }
@@ -1157,13 +1158,13 @@ export default function DashboardPage() {
                   a.click();
                 } else if (format === 'csv') {
                   // TODO: Implement CSV export
-                  console.log('CSV export not yet implemented');
+                  logger.log('CSV export not yet implemented');
                 }
                 
                 auditLogger.log(user?.id || 'default', 'data_exported', 'dashboard', { format, dataSize: JSON.stringify(data).length });
-                console.log(t('common.dataExportedSuccessfully'));
+                logger.log(t('common.dataExportedSuccessfully'));
               } catch (error) {
-                console.error('Export failed:', error);
+                logger.error('Export failed:', error);
                 setError(t('common.dataExportFailed'));
                 auditLogger.log(user?.id || 'default', 'data_export_failed', 'dashboard', { error: (error as Error).message });
               }
@@ -1177,14 +1178,14 @@ export default function DashboardPage() {
                   version: '1.0'
                 };
                 // Backup data to Supabase database (implement backup API if needed)
-                console.log('Backup created:', backup);
+                logger.log('Backup created:', backup);
                 auditLogger.log(user?.id || 'default', 'data_backed_up', 'dashboard', { 
                   domainsCount: domains.length,
                   transactionsCount: transactions.length
                 });
-                console.log(t('common.dataBackedUpSuccessfully'));
+                logger.log(t('common.dataBackedUpSuccessfully'));
               } catch (error) {
-                console.error('Backup failed:', error);
+                logger.error('Backup failed:', error);
                 setError(t('common.dataBackupFailed'));
                 auditLogger.log(user?.id || 'default', 'data_backup_failed', 'dashboard', { error: (error as Error).message });
               }
@@ -1207,9 +1208,9 @@ export default function DashboardPage() {
                   domainsCount: restoreData.domains?.length || 0,
                   transactionsCount: restoreData.transactions?.length || 0
                 });
-                console.log(t('common.dataRestoredSuccessfully'));
+                logger.log(t('common.dataRestoredSuccessfully'));
               } catch (error) {
-                console.error('Restore failed:', error);
+                logger.error('Restore failed:', error);
                 setError(t('common.dataRestoreFailed'));
                 auditLogger.log(user?.id || 'default', 'data_restore_failed', 'dashboard', { error: (error as Error).message });
               }
