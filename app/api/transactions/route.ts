@@ -67,6 +67,13 @@ export async function POST(request: NextRequest) {
           })
         }
         
+        if (!transaction.id) {
+          return NextResponse.json({ error: 'Transaction ID is required' }, { 
+            status: 400,
+            headers: corsHeaders
+          })
+        }
+        
         // 验证交易数据
         const updateTransactionValidation = validateTransaction(transaction)
         if (!updateTransactionValidation.valid) {
@@ -79,9 +86,36 @@ export async function POST(request: NextRequest) {
           })
         }
         
+        // 验证交易所有权 - 确保交易属于当前用户
+        const existingTransactions = await TransactionService.getTransactions(userId)
+        const transactionExists = existingTransactions.some(t => t.id === transaction.id)
+        if (!transactionExists) {
+          return NextResponse.json({ 
+            error: 'Transaction not found or access denied' 
+          }, { 
+            status: 403,
+            headers: corsHeaders
+          })
+        }
+        
         // 清理和标准化数据
         const sanitizedUpdateTransaction = sanitizeTransactionData(transaction)
-        const updatedTransaction = await TransactionService.updateTransaction(transaction.id, sanitizedUpdateTransaction)
+        // 确保user_id不能被修改
+        const updatedTransaction = await TransactionService.updateTransaction(
+          transaction.id, 
+          { ...sanitizedUpdateTransaction, user_id: userId },
+          userId
+        )
+        
+        if (!updatedTransaction) {
+          return NextResponse.json({ 
+            error: 'Failed to update transaction. It may not exist or you may not have permission.' 
+          }, { 
+            status: 404,
+            headers: corsHeaders
+          })
+        }
+        
         return NextResponse.json({ success: true, data: updatedTransaction }, { headers: corsHeaders })
       
       case 'deleteTransaction':
@@ -91,7 +125,20 @@ export async function POST(request: NextRequest) {
             headers: corsHeaders
           })
         }
-        const deleteResult = await TransactionService.deleteTransaction(transaction.id)
+        
+        // 验证交易所有权 - 确保交易属于当前用户
+        const userTransactions = await TransactionService.getTransactions(userId)
+        const canDelete = userTransactions.some(t => t.id === transaction.id)
+        if (!canDelete) {
+          return NextResponse.json({ 
+            error: 'Transaction not found or access denied' 
+          }, { 
+            status: 403,
+            headers: corsHeaders
+          })
+        }
+        
+        const deleteResult = await TransactionService.deleteTransaction(transaction.id, userId)
         return NextResponse.json({ success: deleteResult }, { headers: corsHeaders })
       
       case 'bulkUpdateTransactions':
@@ -101,7 +148,49 @@ export async function POST(request: NextRequest) {
             headers: corsHeaders
           })
         }
-        const bulkResult = await TransactionService.bulkUpdateTransactions(transactions)
+        
+        // 限制批量操作大小，防止资源耗尽
+        const MAX_BULK_SIZE = 100
+        if (transactions.length > MAX_BULK_SIZE) {
+          return NextResponse.json({ 
+            error: `Bulk update is limited to ${MAX_BULK_SIZE} transactions at a time` 
+          }, { 
+            status: 400,
+            headers: corsHeaders
+          })
+        }
+        
+        // 验证所有交易的所有权 - 确保所有交易都属于当前用户
+        const allUserTransactions = await TransactionService.getTransactions(userId)
+        const userTransactionIds = new Set(allUserTransactions.map(t => t.id))
+        
+        // 检查是否有不属于当前用户的交易
+        const invalidTransactions = transactions.filter(t => {
+          // 如果交易有ID，必须属于当前用户
+          if (t.id && !userTransactionIds.has(t.id)) {
+            return true
+          }
+          return false
+        })
+        
+        if (invalidTransactions.length > 0) {
+          return NextResponse.json({ 
+            error: 'Some transactions do not belong to you or do not exist',
+            invalidCount: invalidTransactions.length,
+            invalidIds: invalidTransactions.map(t => t.id).filter(Boolean)
+          }, { 
+            status: 403,
+            headers: corsHeaders
+          })
+        }
+        
+        // 确保所有交易的user_id都是当前用户，防止通过请求修改user_id
+        const validatedTransactions = transactions.map(t => ({
+          ...sanitizeTransactionData(t),
+          user_id: userId  // 强制设置为当前用户ID
+        }))
+        
+        const bulkResult = await TransactionService.bulkUpdateTransactions(validatedTransactions, userId)
         return NextResponse.json({ success: bulkResult }, { headers: corsHeaders })
       
       default:
