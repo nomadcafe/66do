@@ -184,8 +184,11 @@ export function useDashboardData(
         }
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(`Failed to ${isExisting ? 'update' : 'add'} domain: ${errorData.error || response.statusText}`);
+          const errorData = await response.json().catch(() => ({}));
+          const details = errorData.details
+            ? (Array.isArray(errorData.details) ? errorData.details.join('; ') : String(errorData.details))
+            : (errorData.error || response.statusText);
+          throw new Error(`Failed to ${isExisting ? 'update' : 'add'} domain: ${details}`);
         }
       }
 
@@ -222,8 +225,11 @@ export function useDashboardData(
         }
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(`Failed to ${isExisting ? 'update' : 'add'} transaction: ${errorData.error || response.statusText}`);
+          const errorData = await response.json().catch(() => ({}));
+          const details = errorData.details
+            ? (Array.isArray(errorData.details) ? errorData.details.join('; ') : String(errorData.details))
+            : (errorData.error || response.statusText);
+          throw new Error(`Failed to ${isExisting ? 'update' : 'add'} transaction: ${details}`);
         }
       }
 

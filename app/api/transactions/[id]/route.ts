@@ -14,7 +14,7 @@ export async function GET(
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { 
         status: 401,
-        headers: { 'Content-Type': 'application/json' }
+        headers: getCorsHeaders(request)
       })
     }
 
@@ -61,7 +61,7 @@ export async function PUT(
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { 
         status: 401,
-        headers: { 'Content-Type': 'application/json' }
+        headers: getCorsHeaders(request)
       })
     }
 
@@ -146,7 +146,7 @@ export async function DELETE(
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { 
         status: 401,
-        headers: { 'Content-Type': 'application/json' }
+        headers: getCorsHeaders(request)
       })
     }
 

@@ -54,7 +54,7 @@ export async function GET(
     if (!authInfo || !authInfo.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { 
         status: 401,
-        headers: { 'Content-Type': 'application/json' }
+        headers: getCorsHeaders(request)
       })
     }
     
@@ -103,7 +103,7 @@ export async function PUT(
     if (!authInfo || !authInfo.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { 
         status: 401,
-        headers: { 'Content-Type': 'application/json' }
+        headers: getCorsHeaders(request)
       })
     }
     
