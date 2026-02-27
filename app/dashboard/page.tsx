@@ -47,15 +47,14 @@ import { useDashboardData } from '../../src/hooks/useDashboardData';
 import { useDomainOperations } from '../../src/hooks/useDomainOperations';
 import { useTransactionOperations } from '../../src/hooks/useTransactionOperations';
 import { useDomainStats } from '../../src/hooks/useDomainStats';
-import { 
-  Globe, 
-  Plus, 
-  DollarSign, 
-  TrendingUp, 
-  TrendingDown,
-  BarChart3, 
-  LogOut, 
-  User, 
+import {
+  Globe,
+  Plus,
+  DollarSign,
+  TrendingUp,
+  BarChart3,
+  LogOut,
+  User,
   FileText,
   AlertTriangle,
   Calendar,
@@ -67,10 +66,7 @@ import {
   Settings,
   RefreshCw,
   Zap,
-  CheckCircle,
   Database,
-  Target,
-  Info
 } from 'lucide-react';
 
 // Domain and Transaction types are now imported from supabaseService
@@ -309,525 +305,299 @@ export default function DashboardPage() {
 
   // 显示认证加载状态
   if (authLoading) {
-  return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    return (
+      <div className="min-h-screen bg-stone-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">{t('common.verifyingIdentity')}</p>
-            </div>
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-stone-200 border-t-teal-600 mx-auto" />
+          <p className="mt-4 text-sm text-stone-600">{t('common.verifyingIdentity')}</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Desktop Header - Clean & Modern */}
-      <div className="hidden lg:block bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="flex justify-between items-center py-8">
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-sm">
-                <Globe className="h-6 w-6 text-white" />
+    <div className="min-h-screen bg-stone-50 text-stone-900 antialiased">
+      {/* Desktop Header */}
+      <header className="hidden lg:block border-b border-stone-200/80 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-stone-800 rounded-lg flex items-center justify-center">
+                <Globe className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">{t('platform.name')}</h1>
-                <p className="text-sm text-gray-500 mt-1">{t('dashboard.title')}</p>
+                <h1 className="text-lg font-semibold tracking-tight text-stone-900">{t('platform.name')}</h1>
+                <p className="text-xs text-stone-500">{t('dashboard.title')}</p>
               </div>
             </div>
-            <div className="flex items-center space-x-6">
-              {/* Language Selector */}
-              <div className="relative">
-                <select
-                  value={locale}
-                  onChange={(e) => setLocale(e.target.value as 'en' | 'zh')}
-                  className="appearance-none bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer"
-                >
-                  <option value="zh">中文</option>
-                  <option value="en">English</option>
-                </select>
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+            <div className="flex items-center gap-4">
+              <select
+                value={locale}
+                onChange={(e) => setLocale(e.target.value as 'en' | 'zh')}
+                className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+              >
+                <option value="zh">中文</option>
+                <option value="en">English</option>
+              </select>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-stone-200 bg-white">
+                <div className="w-8 h-8 bg-stone-700 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                  {user?.email ? user.email.charAt(0).toUpperCase() : <User className="h-4 w-4" />}
+                </div>
+                <div className="hidden xl:block">
+                  <span className="text-sm font-medium text-stone-900 block leading-tight">{user?.email?.split('@')[0] || 'User'}</span>
+                  <span className="text-xs text-stone-500 block leading-tight truncate max-w-[140px]">{user?.email || ''}</span>
                 </div>
               </div>
-              
-              {/* User Info - 改进的样式 */}
-              <div className="relative group">
-                <div className="flex items-center space-x-3 px-4 py-2.5 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-200 cursor-pointer">
-                  <div className="w-9 h-9 bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 rounded-full flex items-center justify-center shadow-md ring-2 ring-blue-100">
-                    {user?.email ? (
-                      <span className="text-sm font-semibold text-white">
-                        {user.email.charAt(0).toUpperCase()}
-                      </span>
-                    ) : (
-                      <User className="h-5 w-5 text-white" />
-                    )}
-              </div>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-gray-900 leading-tight">
-                      {user?.email?.split('@')[0] || 'User'}
-                    </span>
-                    <span className="text-xs text-gray-500 leading-tight">
-                      {user?.email || ''}
-                    </span>
-                  </div>
-                  <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
-              
-              {/* Action Buttons */}
               <button
                 onClick={domainOps.handleAddDomain}
-                className="bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 flex items-center space-x-2 font-medium transition-all duration-200 shadow-sm hover:shadow-md"
+                className="bg-teal-600 text-white px-5 py-2.5 rounded-lg hover:bg-teal-700 flex items-center gap-2 text-sm font-medium shadow-sm"
               >
                 <Plus size={18} />
                 <span>{t('dashboard.addInvestment')}</span>
               </button>
-              
               <button
-                onClick={async () => {
-                  await signOut();
-                  router.push('/');
-                }}
-                className="text-gray-500 hover:text-gray-700 flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-50 transition-all duration-200"
+                onClick={async () => { await signOut(); router.push('/'); }}
+                className="text-stone-500 hover:text-stone-800 flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-stone-100 text-sm font-medium"
               >
                 <LogOut size={18} />
-                <span className="text-sm font-medium">{t('dashboard.signOut')}</span>
+                <span>{t('dashboard.signOut')}</span>
               </button>
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Mobile Header - Clean & Modern */}
-      <div className="lg:hidden bg-white border-b border-gray-100 sticky top-0 z-40">
-        <div className="px-4 py-4">
+      {/* Mobile Header */}
+      <header className="lg:hidden border-b border-stone-200/80 bg-white/95 backdrop-blur-sm sticky top-0 z-50">
+        <div className="px-4 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-sm">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 bg-stone-800 rounded-lg flex items-center justify-center">
                 <Globe className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-gray-900">{t('platform.name')}</h1>
-                <p className="text-xs text-gray-500">{t('dashboard.title')}</p>
+                <h1 className="text-base font-semibold text-stone-900">{t('platform.name')}</h1>
+                <p className="text-xs text-stone-500">{t('dashboard.title')}</p>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
-              {/* Mobile User Avatar */}
-              <div className="flex items-center space-x-2 px-3 py-2 bg-white border border-gray-200 rounded-xl shadow-sm">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 rounded-full flex items-center justify-center ring-2 ring-blue-100">
-                  {user?.email ? (
-                    <span className="text-xs font-semibold text-white">
-                      {user.email.charAt(0).toUpperCase()}
-                    </span>
-                  ) : (
-                    <User className="h-4 w-4 text-white" />
-                  )}
-                </div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-stone-700 rounded-full flex items-center justify-center text-white text-xs font-medium">
+                {user?.email ? user.email.charAt(0).toUpperCase() : <User className="h-4 w-4" />}
               </div>
-              <button
-                onClick={domainOps.handleAddDomain}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-2.5 rounded-xl hover:from-blue-700 hover:to-indigo-700 shadow-md transition-all duration-200"
-              >
+              <button onClick={domainOps.handleAddDomain} className="bg-teal-600 text-white p-2.5 rounded-lg hover:bg-teal-700">
                 <Plus size={18} />
               </button>
-              <button
-                onClick={async () => {
-                  await signOut();
-                  router.push('/');
-                }}
-                className="text-gray-600 hover:text-gray-900 p-2.5 rounded-xl hover:bg-gray-100 transition-all duration-200 border border-gray-200 hover:border-gray-300"
-              >
+              <button onClick={async () => { await signOut(); router.push('/'); }} className="text-stone-600 p-2.5 rounded-lg hover:bg-stone-100 border border-stone-200">
                 <LogOut size={18} />
               </button>
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Main Content - Clean White Design */}
-      <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
-        {/* Stats Cards - Modern Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 hover:shadow-lg transition-all duration-300">
-            <div className="flex items-center justify-between">
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm hover:shadow transition">
+            <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">{t('dashboard.totalInvestments')}</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.totalDomains}</p>
+                <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{t('dashboard.totalDomains')}</p>
+                <p className="text-2xl font-bold text-stone-900 mt-1">{stats.totalDomains}</p>
+                <p className="text-xs text-stone-500 mt-1">{t('dashboard.active')} {stats.activeDomains} · {t('dashboard.sold')} {stats.forSaleDomains}</p>
               </div>
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
-                <Globe className="h-6 w-6 text-white" />
-              </div>
+              <div className="w-10 h-10 rounded-xl bg-stone-100 flex items-center justify-center text-stone-600"><Globe className="h-5 w-5" /></div>
             </div>
           </div>
-
-
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 hover:shadow-lg transition-all duration-300">
-            <div className="flex items-center justify-between">
+          <div className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm hover:shadow transition">
+            <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">{t('analytics.totalLoss')}</p>
-                <p className="text-3xl font-bold text-gray-900">${domains.filter(d => d.status === 'expired').reduce((sum, domain) => sum + (domain.purchase_cost || 0) + (domain.renewal_count * (domain.renewal_cost || 0)), 0).toFixed(2)}</p>
+                <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{t('dashboard.purchaseCost')}</p>
+                <p className="text-2xl font-bold text-stone-900 mt-1">${stats.totalInvestment.toFixed(2)}</p>
+                <p className="text-xs text-stone-500 mt-1">{t('dashboard.average')} ${stats.avgPurchasePrice.toFixed(2)}</p>
               </div>
-              <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center">
-                <TrendingDown className="h-6 w-6 text-white" />
-              </div>
+              <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600"><DollarSign className="h-5 w-5" /></div>
             </div>
           </div>
-
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 hover:shadow-lg transition-all duration-300">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <p className="text-sm font-medium text-gray-500">{t('dashboard.profitMargin')}</p>
-                  <div className="group relative">
-                    <Info className="h-4 w-4 text-gray-400 cursor-help hover:text-gray-600 transition-colors" />
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-xs">
-                      <div className="text-center whitespace-normal">
-                        {t('dashboard.profitMarginCalculation')}
-              </div>
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
-                        <div className="w-2 h-2 bg-gray-900 transform rotate-45"></div>
-              </div>
-            </div>
-          </div>
-              </div>
-                <p className="text-3xl font-bold text-gray-900">{stats.totalRevenue > 0 ? ((stats.totalProfit / stats.totalRevenue) * 100).toFixed(1) : 0}%</p>
-              </div>
-              <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center">
-                <BarChart3 className="h-6 w-6 text-white" />
-            </div>
-          </div>
-          </div>
-        </div>
-
-
-        {/* Enhanced Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-lg shadow-lg text-white">
-            <div className="flex items-center justify-between">
+          <div className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm hover:shadow transition">
+            <div className="flex items-start justify-between">
               <div>
-                <p className="text-blue-100 text-sm font-medium">{t('dashboard.totalDomains')}</p>
-                <p className="text-3xl font-bold">{stats.totalDomains}</p>
-                <p className="text-blue-200 text-xs mt-1">
-                  {t('dashboard.active')}: {stats.activeDomains} | {t('dashboard.sold')}: {stats.forSaleDomains}
-                </p>
-          </div>
-              <Globe className="h-8 w-8 text-blue-200" />
+                <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{t('dashboard.totalRevenue')}</p>
+                <p className="text-2xl font-bold text-stone-900 mt-1">${stats.totalRevenue.toFixed(2)}</p>
+                <p className="text-xs text-stone-500 mt-1">{t('dashboard.afterFees')}</p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600"><TrendingUp className="h-5 w-5" /></div>
             </div>
           </div>
-
-          <div className="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-lg shadow-lg text-white">
-            <div className="flex items-center justify-between">
+          <div className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm hover:shadow transition">
+            <div className="flex items-start justify-between">
               <div>
-                <p className="text-green-100 text-sm font-medium">{t('dashboard.purchaseCost')}</p>
-                <p className="text-3xl font-bold">${stats.totalInvestment.toFixed(2)}</p>
-                <p className="text-green-200 text-xs mt-1">
-                  {t('dashboard.average')}: ${stats.avgPurchasePrice.toFixed(2)}
-                </p>
+                <p className="text-xs font-medium uppercase tracking-wider text-stone-500">ROI</p>
+                <p className="text-2xl font-bold text-stone-900 mt-1">{stats.roi.toFixed(1)}%</p>
+                <p className="text-xs text-stone-500 mt-1">{t('dashboard.totalProfit')} ${stats.totalProfit.toFixed(2)}</p>
               </div>
-              <DollarSign className="h-8 w-8 text-green-200" />
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-lg shadow-lg text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-100 text-sm font-medium">{t('dashboard.totalRevenue')}</p>
-                <p className="text-3xl font-bold">${stats.totalRevenue.toFixed(2)}</p>
-                <p className="text-purple-200 text-xs mt-1">
-                  {t('dashboard.averageSalePrice')}: ${stats.avgSalePrice.toFixed(2)}
-                </p>
-                <p className="text-purple-200 text-xs mt-1">
-                  {t('dashboard.afterFees')}
-                </p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-purple-200" />
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 p-6 rounded-lg shadow-lg text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-yellow-100 text-sm font-medium">{t('dashboard.renewalCost')}</p>
-                <p className="text-3xl font-bold">${stats.totalRenewalCost.toFixed(2)}</p>
-                <p className="text-yellow-200 text-xs mt-1">
-                  {t('dashboard.annualCost')}: ${stats.annualRenewalCost.toFixed(2)}
-                </p>
-              </div>
-              <RefreshCw className="h-8 w-8 text-yellow-200" />
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 p-6 rounded-lg shadow-lg text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-indigo-100 text-sm font-medium">{t('dashboard.totalInvestment')}</p>
-                <p className="text-3xl font-bold">${stats.totalHoldingCost.toFixed(2)}</p>
-                <p className="text-indigo-200 text-xs mt-1">
-                  {t('dashboard.purchaseRenewal')}
-                </p>
-              </div>
-              <Database className="h-8 w-8 text-indigo-200" />
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-6 rounded-lg shadow-lg text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-orange-100 text-sm font-medium">ROI</p>
-                <p className="text-3xl font-bold">{stats.roi.toFixed(1)}%</p>
-                <p className="text-orange-200 text-xs mt-1">
-                  {t('dashboard.totalProfit')}: ${stats.totalProfit.toFixed(2)}
-                </p>
-              </div>
-              <BarChart3 className="h-8 w-8 text-orange-200" />
+              <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600"><BarChart3 className="h-5 w-5" /></div>
             </div>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-lg shadow-sm border mb-6">
-          <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8 px-6 overflow-x-auto">
-                <button 
-                onClick={() => setActiveTab('overview')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                  activeTab === 'overview'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <Activity className="h-4 w-4 inline mr-2" />
-                {t('dashboard.overview')}
-                </button>
-              <button
-                onClick={() => setActiveTab('domains')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                  activeTab === 'domains'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <Globe className="h-4 w-4 inline mr-2" />
-                {t('dashboard.domains')}
-              </button>
-              <button
-                onClick={() => setActiveTab('transactions')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                  activeTab === 'transactions'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <FileText className="h-4 w-4 inline mr-2" />
-                {t('dashboard.transactions')}
-              </button>
-              <button
-                onClick={() => setActiveTab('analytics')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                  activeTab === 'analytics'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <PieChart className="h-4 w-4 inline mr-2" />
-                {t('dashboard.analytics')}
-              </button>
-              <button
-                onClick={() => setActiveTab('alerts')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                  activeTab === 'alerts'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <Bell className="h-4 w-4 inline mr-2" />
-                {t('dashboard.alerts')}
-                {expiringDomains.length > 0 && (
-                  <span className="ml-1 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
-                    {expiringDomains.length}
-                  </span>
-                )}
-              </button>
-              <button
-                onClick={() => setActiveTab('settings')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                  activeTab === 'settings'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <Settings className="h-4 w-4 inline mr-2" />
-                {t('dashboard.settings')}
-              </button>
-              <button
-                onClick={() => setActiveTab('data')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                  activeTab === 'data'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <Database className="h-4 w-4 inline mr-2" />
-                {t('dashboard.data')}
-              </button>
-              <button
-                onClick={() => setActiveTab('reports')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                  activeTab === 'reports'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <BarChart3 className="h-4 w-4 inline mr-2" />
-                {t('dashboard.reports')}
-              </button>
-            </nav>
-              </div>
+        <div className="bg-white rounded-2xl border border-stone-200/80 shadow-sm mb-6 overflow-hidden">
+          <nav className="flex gap-1 p-1.5 overflow-x-auto bg-stone-50/50 border-b border-stone-100" aria-label="Tabs">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap flex items-center gap-2 transition ${
+                activeTab === 'overview' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
+              }`}
+            >
+              <Activity className="h-4 w-4" />
+              {t('dashboard.overview')}
+            </button>
+            <button
+              onClick={() => setActiveTab('domains')}
+              className={`rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap flex items-center gap-2 transition ${
+                activeTab === 'domains' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
+              }`}
+            >
+              <Globe className="h-4 w-4" />
+              {t('dashboard.domains')}
+            </button>
+            <button
+              onClick={() => setActiveTab('transactions')}
+              className={`rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap flex items-center gap-2 transition ${
+                activeTab === 'transactions' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
+              }`}
+            >
+              <FileText className="h-4 w-4" />
+              {t('dashboard.transactions')}
+            </button>
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap flex items-center gap-2 transition ${
+                activeTab === 'analytics' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
+              }`}
+            >
+              <PieChart className="h-4 w-4" />
+              {t('dashboard.analytics')}
+            </button>
+            <button
+              onClick={() => setActiveTab('alerts')}
+              className={`rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap flex items-center gap-2 transition ${
+                activeTab === 'alerts' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
+              }`}
+            >
+              <Bell className="h-4 w-4" />
+              {t('dashboard.alerts')}
+              {expiringDomains.length > 0 && (
+                <span className="ml-1 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">{expiringDomains.length}</span>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap flex items-center gap-2 transition ${
+                activeTab === 'settings' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
+              }`}
+            >
+              <Settings className="h-4 w-4" />
+              {t('dashboard.settings')}
+            </button>
+            <button
+              onClick={() => setActiveTab('data')}
+              className={`rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap flex items-center gap-2 transition ${
+                activeTab === 'data' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
+              }`}
+            >
+              <Database className="h-4 w-4" />
+              {t('dashboard.data')}
+            </button>
+            <button
+              onClick={() => setActiveTab('reports')}
+              className={`rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap flex items-center gap-2 transition ${
+                activeTab === 'reports' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
+              }`}
+            >
+              <BarChart3 className="h-4 w-4" />
+              {t('dashboard.reports')}
+            </button>
+          </nav>
         </div>
 
         {/* Tab Content */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            {/* 分享按钮 */}
-            <div className="flex justify-end mb-4">
+            <div className="flex justify-end mb-6">
               <button
                 onClick={() => setShowShareModal(true)}
-                className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-pink-700 flex items-center space-x-2 shadow-lg hover:shadow-xl transition-all duration-300"
+                className="rounded-xl bg-stone-800 text-white px-5 py-2.5 text-sm font-medium flex items-center gap-2 hover:bg-stone-700 transition"
               >
-                <Share2 className="h-5 w-5" />
-                <span>{t('dashboard.shareResults')}</span>
+                <Share2 className="h-4 w-4" />
+                {t('dashboard.shareResults')}
               </button>
             </div>
-            
-            {/* 新增财务指标卡片 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 p-6 rounded-lg shadow-lg text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-cyan-100 text-sm font-medium">{t('financial.totalSales')}</p>
-                    <p className="text-3xl font-bold">{formatCurrencyEnhanced(enhancedFinancialMetrics.totalSales)}</p>
-                    <p className="text-cyan-200 text-xs mt-1">
-                      {t('financial.totalSalesDesc')}
-                    </p>
-                  </div>
-                  <DollarSign className="h-8 w-8 text-cyan-200" />
-                </div>
-              </div>
 
-              <div className="bg-gradient-to-br from-red-500 to-red-600 p-6 rounded-lg shadow-lg text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-red-100 text-sm font-medium">{t('financial.platformFees')}</p>
-                    <p className="text-3xl font-bold">{formatCurrencyEnhanced(enhancedFinancialMetrics.totalPlatformFees)}</p>
-                    <p className="text-red-200 text-xs mt-1">
-                      {t('financial.platformFeesDesc')}
-                    </p>
-                  </div>
-                  <TrendingDown className="h-8 w-8 text-red-200" />
-                </div>
+            {/* 财务指标 */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-sm">
+                <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{t('financial.totalSales')}</p>
+                <p className="text-xl font-bold text-stone-900 mt-1">{formatCurrencyEnhanced(enhancedFinancialMetrics.totalSales)}</p>
+                <p className="text-xs text-stone-500 mt-1">{t('financial.totalSalesDesc')}</p>
               </div>
-
-              <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 p-6 rounded-lg shadow-lg text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-emerald-100 text-sm font-medium">{t('financial.annualSales')}</p>
-                    <p className="text-3xl font-bold">{formatCurrencyEnhanced(enhancedFinancialMetrics.annualSales)}</p>
-                    <p className="text-emerald-200 text-xs mt-1">
-                      {t('financial.annualSalesDesc')}
-                    </p>
-                  </div>
-                  <Calendar className="h-8 w-8 text-emerald-200" />
-                </div>
+              <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-sm">
+                <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{t('financial.platformFees')}</p>
+                <p className="text-xl font-bold text-stone-900 mt-1">{formatCurrencyEnhanced(enhancedFinancialMetrics.totalPlatformFees)}</p>
+                <p className="text-xs text-stone-500 mt-1">{t('financial.platformFeesDesc')}</p>
               </div>
-
-              <div className={`bg-gradient-to-br p-6 rounded-lg shadow-lg text-white ${enhancedFinancialMetrics.annualProfit >= 0 ? 'from-green-500 to-green-600' : 'from-red-500 to-red-600'}`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className={`text-sm font-medium ${enhancedFinancialMetrics.annualProfit >= 0 ? 'text-green-100' : 'text-red-100'}`}>{t('financial.annualProfit')}</p>
-                    <p className="text-3xl font-bold">{formatCurrencyEnhanced(enhancedFinancialMetrics.annualProfit)}</p>
-                    <p className={`text-xs mt-1 ${enhancedFinancialMetrics.annualProfit >= 0 ? 'text-green-200' : 'text-red-200'}`}>
-                      {t('financial.annualProfitDesc')}
-                    </p>
-                  </div>
-                  <Target className={`h-8 w-8 ${enhancedFinancialMetrics.annualProfit >= 0 ? 'text-green-200' : 'text-red-200'}`} />
-                </div>
+              <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-sm">
+                <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{t('financial.annualSales')}</p>
+                <p className="text-xl font-bold text-stone-900 mt-1">{formatCurrencyEnhanced(enhancedFinancialMetrics.annualSales)}</p>
+                <p className="text-xs text-stone-500 mt-1">{t('financial.annualSalesDesc')}</p>
+              </div>
+              <div className={`bg-white rounded-2xl border p-4 shadow-sm ${enhancedFinancialMetrics.annualProfit >= 0 ? 'border-emerald-200/80' : 'border-red-200/80'}`}>
+                <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{t('financial.annualProfit')}</p>
+                <p className={`text-xl font-bold mt-1 ${enhancedFinancialMetrics.annualProfit >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>{formatCurrencyEnhanced(enhancedFinancialMetrics.annualProfit)}</p>
+                <p className="text-xs text-stone-500 mt-1">{t('financial.annualProfitDesc')}</p>
               </div>
             </div>
 
-            {/* 续费分析卡片 */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('renewal.analysis')}</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <div className="flex items-center justify-between">
-                      <div>
-                      <p className="text-sm font-medium text-blue-600">{t('renewal.thisYearCost')}</p>
-                      <p className="text-2xl font-bold text-blue-900">
-                        {formatCurrencyEnhanced(renewalAnalysis.totalAnnualCost, 'USD')}
-                      </p>
-                      </div>
-                    <Calendar className="h-8 w-8 text-blue-600" />
-                    </div>
-                    </div>
-                
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-green-600">{t('renewal.needRenewal')}</p>
-                      <p className="text-2xl font-bold text-green-900">
-                        {renewalAnalysis.domainsNeedingRenewal.length}
-                      </p>
-                    </div>
-                    <Globe className="h-8 w-8 text-green-600" />
-                  </div>
+            {/* 续费分析 */}
+            <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm mb-8">
+              <h3 className="text-base font-semibold text-stone-900 mb-4">{t('renewal.analysis')}</h3>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="rounded-xl bg-stone-50 p-4 border border-stone-100">
+                  <p className="text-xs font-medium text-stone-500">{t('renewal.thisYearCost')}</p>
+                  <p className="text-xl font-bold text-stone-900 mt-1">{formatCurrencyEnhanced(renewalAnalysis.totalAnnualCost, 'USD')}</p>
                 </div>
-                
-                <div className="bg-purple-50 p-4 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-purple-600">{t('renewal.noRenewal')}</p>
-                      <p className="text-2xl font-bold text-purple-900">
-                        {renewalAnalysis.domainsNotNeedingRenewal.length}
-                      </p>
-                    </div>
-                    <CheckCircle className="h-8 w-8 text-purple-600" />
-                  </div>
+                <div className="rounded-xl bg-teal-50/50 p-4 border border-teal-100">
+                  <p className="text-xs font-medium text-teal-700">{t('renewal.needRenewal')}</p>
+                  <p className="text-xl font-bold text-stone-900 mt-1">{renewalAnalysis.domainsNeedingRenewal.length}</p>
                 </div>
-                
-                <div className="bg-orange-50 p-4 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-orange-600">{t('renewal.averageCostPerDomain')}</p>
-                      <p className="text-2xl font-bold text-orange-900">
-                        {renewalAnalysis.domainsNeedingRenewal.length > 0 
-                          ? formatCurrencyEnhanced(renewalAnalysis.totalAnnualCost / renewalAnalysis.domainsNeedingRenewal.length, 'USD')
-                          : formatCurrencyEnhanced(0, 'USD')}
-                      </p>
-                    </div>
-                    <DollarSign className="h-8 w-8 text-orange-600" />
-                  </div>
+                <div className="rounded-xl bg-stone-50 p-4 border border-stone-100">
+                  <p className="text-xs font-medium text-stone-500">{t('renewal.noRenewal')}</p>
+                  <p className="text-xl font-bold text-stone-900 mt-1">{renewalAnalysis.domainsNotNeedingRenewal.length}</p>
+                </div>
+                <div className="rounded-xl bg-amber-50/50 p-4 border border-amber-100">
+                  <p className="text-xs font-medium text-amber-800">{t('renewal.averageCostPerDomain')}</p>
+                  <p className="text-xl font-bold text-stone-900 mt-1">
+                    {renewalAnalysis.domainsNeedingRenewal.length > 0
+                      ? formatCurrencyEnhanced(renewalAnalysis.totalAnnualCost / renewalAnalysis.domainsNeedingRenewal.length, 'USD')
+                      : formatCurrencyEnhanced(0, 'USD')}
+                  </p>
                 </div>
               </div>
-              
-              {/* 续费周期分布 */}
               {Object.keys(renewalAnalysis.costByCycle).length > 0 && (
-                <div className="mt-6">
-                  <h4 className="text-md font-medium text-gray-900 mb-3">{t('renewal.cycleDistribution')}</h4>
+                <div className="mt-5 pt-4 border-t border-stone-100">
+                  <h4 className="text-sm font-medium text-stone-700 mb-3">{t('renewal.cycleDistribution')}</h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {Object.entries(renewalAnalysis.costByCycle).map(([cycle, cost]) => (
-                      <div key={cycle} className="bg-gray-50 p-3 rounded-lg">
-                        <p className="text-sm text-gray-600">{cycle}</p>
-                        <p className="text-lg font-semibold text-gray-900">{formatCurrencyEnhanced(cost, 'USD')}</p>
+                      <div key={cycle} className="bg-stone-50 rounded-lg p-3">
+                        <p className="text-xs text-stone-500">{cycle}</p>
+                        <p className="text-base font-semibold text-stone-900">{formatCurrencyEnhanced(cost, 'USD')}</p>
+                      </div>
+                    ))}
                   </div>
-                ))}
-                  </div>
-              </div>
-            )}
-      </div>
+                </div>
+              )}
+            </div>
 
             {/* 高级续费分析 */}
             <LazyWrapper>
@@ -839,100 +609,81 @@ export default function DashboardPage() {
               <LazyExpiredDomainLossAnalysis domains={domains} />
             </LazyWrapper>
 
-            {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white p-6 rounded-lg shadow-sm border">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">{t('action.quickActions')}</h3>
-                  <Zap className="h-5 w-5 text-yellow-500" />
-                </div>
-                <div className="space-y-3">
-              <button
-                  onClick={domainOps.handleAddDomain}
-                    className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center space-x-2"
-                  >
+            {/* Quick Actions & Highlights */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+              <div className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm">
+                <h3 className="text-sm font-semibold text-stone-900 mb-3 flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-amber-500" />
+                  {t('action.quickActions')}
+                </h3>
+                <div className="flex gap-2">
+                  <button onClick={domainOps.handleAddDomain} className="flex-1 rounded-xl bg-teal-600 text-white px-4 py-2.5 text-sm font-medium flex items-center justify-center gap-2 hover:bg-teal-700">
                     <Plus className="h-4 w-4" />
-                    <span>{t('domain.add')}</span>
+                    {t('domain.add')}
                   </button>
-                  <button
-                    onClick={transactionOps.handleAddTransaction}
-                    className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center justify-center space-x-2"
-                  >
+                  <button onClick={transactionOps.handleAddTransaction} className="flex-1 rounded-xl bg-stone-800 text-white px-4 py-2.5 text-sm font-medium flex items-center justify-center gap-2 hover:bg-stone-700">
                     <FileText className="h-4 w-4" />
-                    <span>{t('transaction.add')}</span>
-              </button>
-            </div>
-              </div>
-
-              <div className="bg-white p-6 rounded-lg shadow-sm border">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">{t('dashboard.bestPerformance')}</h3>
-                  <Award className="h-5 w-5 text-green-500" />
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-green-600">{stats.bestPerformingDomain}</p>
-                  <p className="text-sm text-gray-600 mt-1">{t('dashboard.bestInvestment')}</p>
+                    {t('transaction.add')}
+                  </button>
                 </div>
               </div>
-
-              <div className="bg-white p-6 rounded-lg shadow-sm border">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">{t('dashboard.needAttention')}</h3>
-                  <AlertTriangle className="h-5 w-5 text-red-500" />
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-red-600">{expiringDomains.length}</p>
-                  <p className="text-sm text-gray-600 mt-1">{t('dashboard.expiringSoon')}</p>
-                </div>
+              <div className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm">
+                <h3 className="text-sm font-semibold text-stone-900 mb-2 flex items-center gap-2">
+                  <Award className="h-4 w-4 text-emerald-500" />
+                  {t('dashboard.bestPerformance')}
+                </h3>
+                <p className="text-lg font-bold text-stone-900">{stats.bestPerformingDomain}</p>
+                <p className="text-xs text-stone-500 mt-1">{t('dashboard.bestInvestment')}</p>
+              </div>
+              <div className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm">
+                <h3 className="text-sm font-semibold text-stone-900 mb-2 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                  {t('dashboard.needAttention')}
+                </h3>
+                <p className="text-lg font-bold text-stone-900">{expiringDomains.length}</p>
+                <p className="text-xs text-stone-500 mt-1">{t('dashboard.expiringSoon')}</p>
               </div>
             </div>
 
             {/* Recent Transactions */}
-            <div className="bg-white rounded-lg shadow-sm border">
-              <div className="p-6 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">{t('common.recentTransactions')}</h3>
+            <div className="bg-white rounded-2xl border border-stone-200/80 shadow-sm overflow-hidden">
+              <div className="px-5 py-4 border-b border-stone-100">
+                <h3 className="text-base font-semibold text-stone-900">{t('common.recentTransactions')}</h3>
               </div>
-              <div className="p-6">
+              <div className="p-5">
                 {transactions.slice(0, 5).length > 0 ? (
-            <div className="space-y-4">
+                  <div className="space-y-1">
                     {transactions.slice(0, 5).map((transaction) => (
-                      <div key={transaction.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
-                        <div className="flex items-center space-x-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                            transaction.type === 'buy' ? 'bg-blue-100' :
-                            transaction.type === 'sell' ? 'bg-green-100' :
-                            transaction.type === 'renew' ? 'bg-yellow-100' : 'bg-gray-100'
+                      <div key={transaction.id} className="flex items-center justify-between py-3 px-3 rounded-lg hover:bg-stone-50/80 transition">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                            transaction.type === 'buy' ? 'bg-teal-50 text-teal-600' :
+                            transaction.type === 'sell' ? 'bg-emerald-50 text-emerald-600' :
+                            transaction.type === 'renew' ? 'bg-amber-50 text-amber-600' : 'bg-stone-100 text-stone-600'
                           }`}>
-                            {transaction.type === 'buy' ? <Plus className="h-4 w-4 text-blue-600" /> :
-                             transaction.type === 'sell' ? <TrendingUp className="h-4 w-4 text-green-600" /> :
-                             transaction.type === 'renew' ? <RefreshCw className="h-4 w-4 text-yellow-600" /> :
-                             <FileText className="h-4 w-4 text-gray-600" />}
+                            {transaction.type === 'buy' ? <Plus className="h-4 w-4" /> :
+                             transaction.type === 'sell' ? <TrendingUp className="h-4 w-4" /> :
+                             transaction.type === 'renew' ? <RefreshCw className="h-4 w-4" /> :
+                             <FileText className="h-4 w-4" />}
                           </div>
-              <div>
-                            <p className="font-medium text-gray-900">
+                          <div>
+                            <p className="font-medium text-stone-900">
                               {domains.find(d => d.id === transaction.domain_id)?.domain_name || 'Unknown Domain'}
                             </p>
-                            <p className="text-sm text-gray-600">{transaction.type} - {transaction.date}</p>
+                            <p className="text-xs text-stone-500">{transaction.type} · {transaction.date}</p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className={`font-semibold ${
-                            transaction.type === 'sell' ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {transaction.type === 'sell' ? '+' : '-'}${transaction.amount.toFixed(2)}
-                          </p>
-                        </div>
+                        <p className={`font-semibold text-sm ${transaction.type === 'sell' ? 'text-emerald-600' : 'text-stone-700'}`}>
+                          {transaction.type === 'sell' ? '+' : '-'}${transaction.amount.toFixed(2)}
+                        </p>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p>{t('common.noTransactions')}</p>
-                    <button
-                      onClick={transactionOps.handleAddTransaction}
-                  className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                >
+                  <div className="text-center py-10 text-stone-500">
+                    <FileText className="h-10 w-10 mx-auto mb-3 text-stone-300" />
+                    <p className="text-sm">{t('common.noTransactions')}</p>
+                    <button onClick={transactionOps.handleAddTransaction} className="mt-4 rounded-xl bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700">
                       {t('common.addFirstTransaction')}
                     </button>
                   </div>
@@ -977,117 +728,69 @@ export default function DashboardPage() {
 
         {activeTab === 'alerts' && (
           <div className="space-y-6">
-            {/* 过期域名统计概览 */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-white p-4 rounded-lg shadow-sm border">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">{t('common.totalExpiring')}</p>
-                    <p className="text-2xl font-bold text-gray-900">{expiringDomains.length}</p>
-                  </div>
-                  <Calendar className="h-8 w-8 text-blue-500" />
-                </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-sm">
+                <p className="text-xs font-medium text-stone-500">{t('common.totalExpiring')}</p>
+                <p className="text-2xl font-bold text-stone-900 mt-1">{expiringDomains.length}</p>
+                <Calendar className="h-8 w-8 text-stone-300 mt-2" />
               </div>
-              
-              <div className="bg-white p-4 rounded-lg shadow-sm border">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">{t('common.critical')}</p>
-                    <p className="text-2xl font-bold text-red-600">
-                      {expiringDomains.filter(d => d.urgency === 'critical').length}
-                    </p>
-                  </div>
-                  <AlertTriangle className="h-8 w-8 text-red-500" />
-                </div>
+              <div className="bg-white rounded-2xl border border-red-200/80 p-4 shadow-sm">
+                <p className="text-xs font-medium text-red-600">{t('common.critical')}</p>
+                <p className="text-2xl font-bold text-stone-900 mt-1">{expiringDomains.filter(d => d.urgency === 'critical').length}</p>
+                <AlertTriangle className="h-8 w-8 text-red-400 mt-2" />
               </div>
-              
-              <div className="bg-white p-4 rounded-lg shadow-sm border">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">{t('common.urgent')}</p>
-                    <p className="text-2xl font-bold text-orange-600">
-                      {expiringDomains.filter(d => d.urgency === 'urgent').length}
-                    </p>
-                  </div>
-                  <AlertTriangle className="h-8 w-8 text-orange-500" />
-                </div>
+              <div className="bg-white rounded-2xl border border-amber-200/80 p-4 shadow-sm">
+                <p className="text-xs font-medium text-amber-700">{t('common.urgent')}</p>
+                <p className="text-2xl font-bold text-stone-900 mt-1">{expiringDomains.filter(d => d.urgency === 'urgent').length}</p>
+                <AlertTriangle className="h-8 w-8 text-amber-400 mt-2" />
               </div>
-              
-              <div className="bg-white p-4 rounded-lg shadow-sm border">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">{t('common.normal')}</p>
-                    <p className="text-2xl font-bold text-yellow-600">
-                      {expiringDomains.filter(d => d.urgency === 'normal').length}
-                    </p>
-                  </div>
-                  <Calendar className="h-8 w-8 text-yellow-500" />
-                </div>
+              <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-sm">
+                <p className="text-xs font-medium text-stone-500">{t('common.normal')}</p>
+                <p className="text-2xl font-bold text-stone-900 mt-1">{expiringDomains.filter(d => d.urgency === 'normal').length}</p>
+                <Calendar className="h-8 w-8 text-stone-300 mt-2" />
               </div>
             </div>
 
-            {/* 过期域名详细列表 */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border">
+            <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">{t('common.expiringDomains')}</h3>
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-500">
-                    {expiringDomains.length > 0 ? `${expiringDomains.length} ${t('common.domains')}` : ''}
-                  </span>
-                </div>
+                <h3 className="text-base font-semibold text-stone-900">{t('common.expiringDomains')}</h3>
+                {expiringDomains.length > 0 && (
+                  <span className="text-sm text-stone-500">{expiringDomains.length} {t('common.domains')}</span>
+                )}
               </div>
               {expiringDomains.length > 0 ? (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {expiringDomains.map((domain) => (
                     <div
                       key={domain.id}
-                      className={`p-4 rounded-lg border-l-4 ${
-                        domain.urgency === 'critical' 
-                          ? 'border-red-500 bg-red-50' 
-                          : domain.urgency === 'urgent' 
-                          ? 'border-orange-500 bg-orange-50' 
-                          : 'border-yellow-500 bg-yellow-50'
+                      className={`p-4 rounded-xl border ${
+                        domain.urgency === 'critical' ? 'border-red-200 bg-red-50/50' :
+                        domain.urgency === 'urgent' ? 'border-amber-200 bg-amber-50/50' : 'border-stone-200 bg-stone-50/50'
                       }`}
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3">
-                            <h4 className="text-lg font-medium text-gray-900">
-                              {domain.domain_name}
-                            </h4>
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                              domain.urgency === 'critical' 
-                                ? 'bg-red-100 text-red-800' 
-                                : domain.urgency === 'urgent' 
-                                ? 'bg-orange-100 text-orange-800' 
-                                : 'bg-yellow-100 text-yellow-800'
+                      <div className="flex items-center justify-between flex-wrap gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="font-medium text-stone-900">{domain.domain_name}</h4>
+                            <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                              domain.urgency === 'critical' ? 'bg-red-100 text-red-800' :
+                              domain.urgency === 'urgent' ? 'bg-amber-100 text-amber-800' : 'bg-stone-200 text-stone-700'
                             }`}>
-                              {domain.urgency === 'critical' ? t('common.critical') : 
-                               domain.urgency === 'urgent' ? t('common.urgent') : t('common.normal')}
+                              {domain.urgency === 'critical' ? t('common.critical') : domain.urgency === 'urgent' ? t('common.urgent') : t('common.normal')}
                             </span>
                           </div>
-                          <div className="mt-2 text-sm text-gray-600">
-                            <p>{t('common.daysUntilExpiry')}: {new Date(domain.expiry_date!).toLocaleDateString()}</p>
-                            <p className="font-medium">
-                              {domain.daysUntilExpiry === 0 
-                                ? t('common.todayExpiry')
-                                : domain.daysUntilExpiry < 0 
-                                ? `${t('common.expiredDaysAgo')} ${Math.abs(domain.daysUntilExpiry)} ${t('common.daysLeft')}`
-                                : `${t('common.daysLeftExpiry')} ${domain.daysUntilExpiry} ${t('common.daysLeftExpiryEnd')}`}
-                            </p>
-                          </div>
+                          <p className="text-sm text-stone-600 mt-1">
+                            {t('common.daysUntilExpiry')}: {new Date(domain.expiry_date!).toLocaleDateString()} ·
+                            {domain.daysUntilExpiry === 0 ? ` ${t('common.todayExpiry')}` :
+                             domain.daysUntilExpiry < 0 ? ` ${t('common.expiredDaysAgo')} ${Math.abs(domain.daysUntilExpiry)} ${t('common.daysLeft')}` :
+                             ` ${t('common.daysLeftExpiry')} ${domain.daysUntilExpiry} ${t('common.daysLeftExpiryEnd')}`}
+                          </p>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <button
-                            onClick={() => domainOps.handleEditDomain(domain)}
-                            className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-                          >
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => domainOps.handleEditDomain(domain)} className="rounded-lg px-3 py-1.5 text-sm font-medium bg-stone-100 text-stone-700 hover:bg-stone-200">
                             {t('common.edit')}
                           </button>
-                          <button
-                            onClick={() => domainOps.handleRenewDomain(domain)}
-                            className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
-                          >
+                          <button onClick={() => domainOps.handleRenewDomain(domain)} className="rounded-lg px-3 py-1.5 text-sm font-medium bg-teal-100 text-teal-700 hover:bg-teal-200">
                             {t('common.renew')}
                           </button>
                         </div>
@@ -1096,9 +799,9 @@ export default function DashboardPage() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>{t('common.noExpiringDomains')}</p>
+                <div className="text-center py-10 text-stone-500">
+                  <Calendar className="h-10 w-10 mx-auto mb-3 text-stone-300" />
+                  <p className="text-sm">{t('common.noExpiringDomains')}</p>
                 </div>
               )}
             </div>
