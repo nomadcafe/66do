@@ -50,6 +50,11 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
 
   useEffect(() => {
     if (domain) {
+      const tagsArray = Array.isArray(domain.tags)
+        ? domain.tags
+        : typeof domain.tags === 'string'
+          ? (() => { try { const p = JSON.parse(domain.tags); return Array.isArray(p) ? p : []; } catch { return []; } })()
+          : [];
       setFormData({
         domain_name: domain.domain_name,
         registrar: domain.registrar || '',
@@ -62,7 +67,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
         expiry_date: domain.expiry_date || '',
         status: domain.status as 'active' | 'for_sale' | 'sold' | 'expired',
         estimated_value: domain.estimated_value || 0,
-        tags: domain.tags
+        tags: tagsArray
       });
     } else {
       setFormData({
@@ -82,10 +87,9 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
     }
   }, [domain]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // 验证数据
     const sanitizedData = sanitizeDomainData(formData);
     const validation = validateDomain(sanitizedData);
     
@@ -95,8 +99,12 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
     }
     
     setValidationErrors([]);
-    onSave(sanitizedData as Omit<DomainWithTags, 'id'>);
-    onClose();
+    try {
+      await Promise.resolve(onSave(sanitizedData as Omit<DomainWithTags, 'id'>));
+      onClose();
+    } catch {
+      // 保存失败时由父组件 setError，不关闭弹窗
+    }
   };
 
   const handleAddTag = () => {
@@ -126,15 +134,25 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between z-10">
           <h2 className="text-xl font-semibold text-gray-900">
             {domain ? 'Edit Domain' : 'Add New Domain'}
           </h2>
           <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onClose(); }}
+            className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100"
+            aria-label="Close"
           >
             <X className="h-6 w-6" />
           </button>
