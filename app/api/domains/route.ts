@@ -120,12 +120,20 @@ export async function POST(request: NextRequest) {
           })
         }
         
-        const sanitizedDomain = sanitizeDomainData(domainData)
+        const sanitizedDomain = sanitizeDomainData(domainData) as Record<string, unknown>
+        const tagsForDb = Array.isArray(sanitizedDomain.tags)
+          ? JSON.stringify(sanitizedDomain.tags)
+          : (typeof sanitizedDomain.tags === 'string' ? sanitizedDomain.tags : '[]')
+        const status = ['active', 'for_sale', 'sold', 'expired'].includes((sanitizedDomain.status as string) || '')
+          ? (sanitizedDomain.status as string)
+          : 'active'
         const newDomain = await DomainService.createDomainWithClient(authenticatedClient, { 
           ...sanitizedDomain, 
+          tags: tagsForDb,
+          status,
           user_id: userId,
           id: crypto.randomUUID(),
-          domain_name: sanitizedDomain.domain_name as string
+          domain_name: (sanitizedDomain.domain_name as string) || ''
         })
         
         if (newDomain) {
@@ -172,13 +180,21 @@ export async function POST(request: NextRequest) {
       })
     }
     
-    const sanitizedDomain = sanitizeDomainData(domain)
+    const sanitizedDomain = sanitizeDomainData(domain) as Record<string, unknown>
+    const tagsForDb = Array.isArray(sanitizedDomain.tags)
+      ? JSON.stringify(sanitizedDomain.tags)
+      : (typeof sanitizedDomain.tags === 'string' ? sanitizedDomain.tags : '[]')
+    const status = ['active', 'for_sale', 'sold', 'expired'].includes((sanitizedDomain.status as string) || '')
+      ? (sanitizedDomain.status as string)
+      : 'active'
     const authenticatedClientForCreate = await createAuthenticatedSupabaseClient(accessToken)
     const newDomain = await DomainService.createDomainWithClient(authenticatedClientForCreate, { 
       ...sanitizedDomain, 
+      tags: tagsForDb,
+      status,
       user_id: userId,
       id: crypto.randomUUID(),
-      domain_name: sanitizedDomain.domain_name as string
+      domain_name: (sanitizedDomain.domain_name as string) || ''
     })
     
     if (!newDomain) {
@@ -246,10 +262,16 @@ export async function PATCH(request: NextRequest) {
       })
     }
 
-    const bulkResult = await DomainService.bulkUpdateDomains(domains.map(d => ({
-      ...d,
-      user_id: userId
-    })))
+    const bulkResult = await DomainService.bulkUpdateDomains(domains.map(d => {
+      const tagsForDb = Array.isArray(d.tags)
+        ? JSON.stringify(d.tags)
+        : (typeof d.tags === 'string' ? d.tags : '[]')
+      return {
+        ...d,
+        tags: tagsForDb,
+        user_id: userId
+      }
+    }))
     
     return NextResponse.json({ success: bulkResult }, { headers: corsHeaders })
   } catch (error) {
