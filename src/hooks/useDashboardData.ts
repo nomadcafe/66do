@@ -215,6 +215,18 @@ export function useDashboardData(
             headers,
             body: JSON.stringify(transactionPayload)
           });
+          // 新建交易在 UI 侧有 client id，服务端无此条时返回 403，改为 POST 创建
+          if (response.status === 403) {
+            const errBody = await response.json().catch(() => ({}));
+            const msg = (errBody?.error || '').toLowerCase();
+            if (msg.includes('not found') || msg.includes('access denied')) {
+              response = await fetch('/api/transactions', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ transaction: transactionPayload })
+              });
+            }
+          }
         } else {
           // Create new transaction - POST /api/transactions
           response = await fetch('/api/transactions', {
