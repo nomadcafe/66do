@@ -231,7 +231,7 @@ export default function DomainShareModal({ isOpen, onClose, domain }: DomainShar
       <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-900">
-            {t('share.domainInvestmentSuccess')} - {domain.domain_name}
+            {t('common.domainInvestmentSuccess')} - {domain.domain_name}
           </h2>
           <button
             onClick={onClose}
@@ -244,7 +244,7 @@ export default function DomainShareModal({ isOpen, onClose, domain }: DomainShar
         <div className="p-6">
           {/* 预览区域 */}
           <div className="mb-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">{t('share.imagePreview')}</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">{t('common.imagePreview')}</h3>
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50">
               <canvas
                 ref={canvasRef}
@@ -257,13 +257,13 @@ export default function DomainShareModal({ isOpen, onClose, domain }: DomainShar
               disabled={isGenerating}
               className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
             >
-              {isGenerating ? t('share.generating') : t('share.generateImage')}
+              {isGenerating ? t('common.generating') : t('common.generateShareImage')}
             </button>
           </div>
 
           {/* 分享选项 */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium text-gray-900">{t('share.shareToSocialMedia')}</h3>
+            <h3 className="text-lg font-medium text-gray-900">{t('common.shareToSocialMedia')}</h3>
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <button
@@ -295,7 +295,7 @@ export default function DomainShareModal({ isOpen, onClose, domain }: DomainShar
                 className="flex items-center justify-center space-x-2 bg-green-500 text-white px-4 py-3 rounded-lg hover:bg-green-600"
               >
                 <MessageCircle className="h-5 w-5" />
-                <span>{t('share.wechat')}</span>
+                <span>{t('common.wechat')}</span>
               </button>
             </div>
 
@@ -305,7 +305,7 @@ export default function DomainShareModal({ isOpen, onClose, domain }: DomainShar
                 className="flex items-center space-x-2 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700"
               >
                 <Download className="h-5 w-5" />
-                <span>{t('share.downloadImage')}</span>
+                <span>{t('common.downloadImage')}</span>
               </button>
             </div>
           </div>

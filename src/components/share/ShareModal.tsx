@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { X, Download, Twitter, Linkedin, Facebook, MessageCircle } from 'lucide-react';
+import { useI18nContext } from '../../contexts/I18nProvider';
 
 interface ShareData {
   totalProfit: number;
@@ -19,6 +20,7 @@ interface ShareModalProps {
 }
 
 export default function ShareModal({ isOpen, onClose, shareData }: ShareModalProps) {
+  const { t } = useI18nContext();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -103,9 +105,8 @@ export default function ShareModal({ isOpen, onClose, shareData }: ShareModalPro
         url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent('https://66do.com')}`;
         break;
       case 'wechat':
-        // 微信分享需要特殊处理
         navigator.clipboard.writeText(text);
-        alert('内容已复制到剪贴板，可以粘贴到微信分享');
+        alert(t('common.copiedToClipboard'));
         return;
     }
     
@@ -121,7 +122,7 @@ export default function ShareModal({ isOpen, onClose, shareData }: ShareModalPro
       <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-900">
-            分享投资成果
+            {t('dashboard.shareResults')}
           </h2>
           <button
             onClick={onClose}
@@ -132,9 +133,8 @@ export default function ShareModal({ isOpen, onClose, shareData }: ShareModalPro
         </div>
 
         <div className="p-6">
-          {/* 预览区域 */}
           <div className="mb-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">分享图片预览</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">{t('common.shareImagePreview')}</h3>
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50">
               <canvas
                 ref={canvasRef}
@@ -147,14 +147,13 @@ export default function ShareModal({ isOpen, onClose, shareData }: ShareModalPro
               disabled={isGenerating}
               className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
             >
-              {isGenerating ? '生成中...' : '生成分享图片'}
+              {isGenerating ? t('common.generating') : t('common.generateShareImage')}
             </button>
           </div>
 
-          {/* 分享选项 */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium text-gray-900">分享到社交媒体</h3>
-            
+            <h3 className="text-lg font-medium text-gray-900">{t('common.shareToSocialMedia')}</h3>
+
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <button
                 onClick={() => shareToSocial('twitter')}
@@ -185,7 +184,7 @@ export default function ShareModal({ isOpen, onClose, shareData }: ShareModalPro
                 className="flex items-center justify-center space-x-2 bg-green-500 text-white px-4 py-3 rounded-lg hover:bg-green-600"
               >
                 <MessageCircle className="h-5 w-5" />
-                <span>微信</span>
+                <span>{t('common.wechat')}</span>
               </button>
             </div>
 
@@ -195,7 +194,7 @@ export default function ShareModal({ isOpen, onClose, shareData }: ShareModalPro
                 className="flex items-center space-x-2 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700"
               >
                 <Download className="h-5 w-5" />
-                <span>下载图片</span>
+                <span>{t('common.downloadImage')}</span>
               </button>
             </div>
           </div>
