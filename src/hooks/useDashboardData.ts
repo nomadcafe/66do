@@ -273,6 +273,12 @@ export function useDashboardData(
         setError(t('common.authError') || 'Authentication failed. Please log in again.');
       } else if (isNetworkError) {
         setError(t('common.networkError') || 'Network error. Please check your connection and try again.');
+      } else if (
+        errorMessage.includes('already in your portfolio') ||
+        errorMessage.includes('Domain already exists') ||
+        errorMessage.includes('域名已在')
+      ) {
+        setError(t('dashboard.domainAlreadyExistsDesc') || t('dashboard.domainAlreadyExists') || errorMessage);
       } else {
         setError(t('common.dataSaveFailed') || `Failed to save data: ${errorMessage}`);
       }
