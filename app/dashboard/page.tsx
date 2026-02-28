@@ -228,7 +228,7 @@ export default function DashboardPage() {
           domain.id === domainOps.editingDomain!.id ? updatedDomain : domain
         );
         
-        await saveData(updatedDomains, transactions);
+        await saveData(updatedDomains, transactions, { domainsOnly: true });
         domainOps.setEditingDomain(undefined);
         domainOps.setShowDomainForm(false);
         domainOps.setShowSmartDomainForm(false);
@@ -241,7 +241,7 @@ export default function DashboardPage() {
         };
         
         const updatedDomains = [...domains, newDomain];
-        await saveData(updatedDomains, transactions);
+        await saveData(updatedDomains, transactions, { domainsOnly: true });
         domainOps.setShowDomainForm(false);
         domainOps.setShowSmartDomainForm(false);
       }
