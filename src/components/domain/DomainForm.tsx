@@ -49,7 +49,10 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  // 仅在打开弹窗或切换编辑的域名时用 domain 初始化表单，避免父组件重渲染导致表单被覆盖
+  const domainId = domain?.id ?? 'new';
   useEffect(() => {
+    if (!isOpen) return;
     setSubmitError(null);
     if (domain) {
       const tagsArray = Array.isArray(domain.tags)
@@ -87,7 +90,8 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
         tags: []
       });
     }
-  }, [domain]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅在被编辑域名 id 或弹窗开关变化时同步，不随 domain 引用变化重置
+  }, [isOpen, domainId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,20 +115,20 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
   };
 
   const handleAddTag = () => {
-    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
-      setFormData({
-        ...formData,
-        tags: [...formData.tags, tagInput.trim()]
-      });
+    const tag = tagInput.trim();
+    if (tag) {
+      setFormData((prev) =>
+        prev.tags.includes(tag) ? prev : { ...prev, tags: [...prev.tags, tag] }
+      );
       setTagInput('');
     }
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
-    setFormData({
-      ...formData,
-      tags: formData.tags.filter(tag => tag !== tagToRemove)
-    });
+    setFormData((prev) => ({
+      ...prev,
+      tags: prev.tags.filter((tag) => tag !== tagToRemove)
+    }));
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -189,7 +193,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
                 type="text"
                 required
                 value={formData.domain_name}
-                onChange={(e) => setFormData({ ...formData, domain_name: e.target.value })}
+                onChange={(e) => setFormData((prev) => ({ ...prev, domain_name: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="example.com"
               />
@@ -202,7 +206,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
               <input
                 type="text"
                 value={formData.registrar}
-                onChange={(e) => setFormData({ ...formData, registrar: e.target.value })}
+                onChange={(e) => setFormData((prev) => ({ ...prev, registrar: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="GoDaddy, Namecheap, etc."
               />
@@ -212,7 +216,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
               label="Purchase Date"
               icon={<Calendar className="h-4 w-4" />}
               value={formData.purchase_date}
-              onChange={(value) => setFormData({ ...formData, purchase_date: value })}
+              onChange={(value) => setFormData((prev) => ({ ...prev, purchase_date: value }))}
               required
               className="w-full"
             />
@@ -225,7 +229,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
               <input
                 type="date"
                 value={formData.next_renewal_date}
-                onChange={(e) => setFormData({ ...formData, next_renewal_date: e.target.value })}
+                onChange={(e) => setFormData((prev) => ({ ...prev, next_renewal_date: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -234,7 +238,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
               label="Expiry Date"
               icon={<Calendar className="h-4 w-4" />}
               value={formData.expiry_date}
-              onChange={(value) => setFormData({ ...formData, expiry_date: value })}
+              onChange={(value) => setFormData((prev) => ({ ...prev, expiry_date: value }))}
               className="w-full"
             />
 
@@ -249,7 +253,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
                 min="0"
                 step="0.01"
                 value={formData.purchase_cost}
-                onChange={(e) => setFormData({ ...formData, purchase_cost: parseFloat(e.target.value) || 0 })}
+                onChange={(e) => setFormData((prev) => ({ ...prev, purchase_cost: parseFloat(e.target.value) || 0 }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="0.00"
               />
@@ -265,7 +269,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
                 min="0"
                 step="0.01"
                 value={formData.renewal_cost}
-                onChange={(e) => setFormData({ ...formData, renewal_cost: parseFloat(e.target.value) || 0 })}
+                onChange={(e) => setFormData((prev) => ({ ...prev, renewal_cost: parseFloat(e.target.value) || 0 }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="0.00"
               />
@@ -278,7 +282,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
           </label>
           <select
             value={formData.renewal_cycle}
-            onChange={(e) => setFormData({ ...formData, renewal_cycle: parseInt(e.target.value) })}
+            onChange={(e) => setFormData((prev) => ({ ...prev, renewal_cycle: parseInt(e.target.value) || 1 }))}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value={1}>1 Year (e.g., .com, .net)</option>
@@ -301,7 +305,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
             type="number"
             min="0"
             value={formData.renewal_count}
-            onChange={(e) => setFormData({ ...formData, renewal_count: parseInt(e.target.value) || 0 })}
+            onChange={(e) => setFormData((prev) => ({ ...prev, renewal_count: parseInt(e.target.value) || 0 }))}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="输入已续费次数"
           />
@@ -320,7 +324,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
                 min="0"
                 step="0.01"
                 value={formData.estimated_value}
-                onChange={(e) => setFormData({ ...formData, estimated_value: parseFloat(e.target.value) || 0 })}
+                onChange={(e) => setFormData((prev) => ({ ...prev, estimated_value: parseFloat(e.target.value) || 0 }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="0.00"
               />
@@ -332,7 +336,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
               </label>
               <select
                 value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'for_sale' | 'sold' | 'expired' })}
+                onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value as 'active' | 'for_sale' | 'sold' | 'expired' }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="active">Active</option>
