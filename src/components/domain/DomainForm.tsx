@@ -47,8 +47,10 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
 
   const [tagInput, setTagInput] = useState('');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
+    setSubmitError(null);
     if (domain) {
       const tagsArray = Array.isArray(domain.tags)
         ? domain.tags
@@ -99,11 +101,12 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
     }
     
     setValidationErrors([]);
+    setSubmitError(null);
     try {
       await Promise.resolve(onSave(sanitizedData as Omit<DomainWithTags, 'id'>));
       onClose();
-    } catch {
-      // 保存失败时由父组件 setError，不关闭弹窗
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Save failed. Please try again.');
     }
   };
 
@@ -159,6 +162,12 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* 提交/保存错误 */}
+          {submitError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800 text-sm">
+              {submitError}
+            </div>
+          )}
           {/* 验证错误显示 */}
           {validationErrors.length > 0 && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">

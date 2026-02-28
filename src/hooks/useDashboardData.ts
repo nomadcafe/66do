@@ -24,7 +24,7 @@ interface UseDashboardDataReturn {
   dataSource: 'supabase' | 'cache';
   setError: (error: string | null) => void;
   loadDashboardData: (options?: LoadOptions) => Promise<void>;
-  saveData: (newDomains: DomainWithTags[], newTransactions: TransactionWithRequiredFields[]) => Promise<void>;
+  saveData: (newDomains: DomainWithTags[], newTransactions: TransactionWithRequiredFields[], options?: { domainsOnly?: boolean }) => Promise<void>;
   refreshData: () => Promise<void>;
 }
 
@@ -120,14 +120,16 @@ export function useDashboardData(
 
   const saveData = useCallback(async (
     newDomains: DomainWithTags[],
-    newTransactions: TransactionWithRequiredFields[]
+    newTransactions: TransactionWithRequiredFields[],
+    options?: { domainsOnly?: boolean }
   ) => {
     if (!userId || !sessionToken) return;
 
-    try {
-      logger.log('Saving data to Supabase database...');
+    const domainsOnly = options?.domainsOnly === true;
 
-      // 验证数据完整性
+    try {
+      logger.log(domainsOnly ? 'Saving domains to Supabase...' : 'Saving data to Supabase database...');
+
       for (const domain of newDomains) {
         const validation = validateDomain(domain);
         if (!validation.valid) {
@@ -135,10 +137,12 @@ export function useDashboardData(
         }
       }
 
-      for (const transaction of newTransactions) {
-        const validation = validateTransaction(transaction);
-        if (!validation.valid) {
-          throw new Error(`Transaction validation failed: ${validation.errors.join(', ')}`);
+      if (!domainsOnly) {
+        for (const transaction of newTransactions) {
+          const validation = validateTransaction(transaction);
+          if (!validation.valid) {
+            throw new Error(`Transaction validation failed: ${validation.errors.join(', ')}`);
+          }
         }
       }
 
@@ -190,6 +194,14 @@ export function useDashboardData(
             : (errorData.error || response.statusText);
           throw new Error(`Failed to ${isExisting ? 'update' : 'add'} domain: ${details}`);
         }
+      }
+
+      if (domainsOnly) {
+        domainCache.invalidateUserCache(userId);
+        setDomains(newDomains);
+        await loadDashboardData({ useCache: false, showLoading: false });
+        logger.log('Domains saved successfully');
+        return;
       }
 
       // Save transactions to Supabase
