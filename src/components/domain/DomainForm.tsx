@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Save, Globe, Calendar, DollarSign, Tag } from 'lucide-react';
 import { validateDomain, sanitizeDomainData } from '../../lib/validation';
 import { DomainWithTags } from '../../types/dashboard';
@@ -140,25 +141,30 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
 
   if (!isOpen) return null;
 
-  return (
+  const handleClose = () => {
+    onClose();
+  };
+
+  const modalContent = (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4"
+      onClick={(e) => e.target === e.currentTarget && handleClose()}
       role="dialog"
       aria-modal="true"
+      aria-label={domain ? 'Edit Domain' : 'Add New Domain'}
     >
       <div
-        className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl"
+        className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl relative"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between z-10">
+        <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between z-10 shrink-0">
           <h2 className="text-xl font-semibold text-gray-900">
             {domain ? 'Edit Domain' : 'Add New Domain'}
           </h2>
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); onClose(); }}
-            className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100"
+            onClick={handleClose}
+            className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 touch-manipulation"
             aria-label="Close"
           >
             <X className="h-6 w-6" />
@@ -391,7 +397,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
           <div className="flex justify-end space-x-3 pt-6 border-t">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="px-4 py-2 text-gray-600 hover:text-gray-800"
             >
               Cancel
@@ -408,4 +414,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(modalContent, document.body);
 }
