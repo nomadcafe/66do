@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { X, Save, Globe, Calendar, DollarSign, Tag } from 'lucide-react';
 import { validateDomain, sanitizeDomainData } from '../../lib/validation';
 import { DomainWithTags } from '../../types/dashboard';
@@ -152,18 +151,13 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
     onClose();
   };
 
-  const handleCloseClick = (e: React.MouseEvent | React.PointerEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setTimeout(handleClose, 0);
-  };
-
   if (!localOpen) return null;
 
-  const modalContent = (
+  return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4"
-      onClick={(e) => e.target === e.currentTarget && setTimeout(handleClose, 0)}
+      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4"
+      style={{ zIndex: 99999 }}
+      onClick={(e) => e.target === e.currentTarget && handleClose()}
       role="dialog"
       aria-modal="true"
       aria-label={domain ? 'Edit Domain' : 'Add New Domain'}
@@ -178,9 +172,8 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
           </h2>
           <button
             type="button"
-            onClick={handleCloseClick}
-            onPointerDown={handleCloseClick}
-            className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 touch-manipulation cursor-pointer"
+            onClick={() => handleClose()}
+            className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 cursor-pointer"
             aria-label="Close"
           >
             <X className="h-6 w-6" />
@@ -413,8 +406,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
           <div className="flex justify-end space-x-3 pt-6 border-t">
             <button
               type="button"
-              onClick={handleCloseClick}
-              onPointerDown={handleCloseClick}
+              onClick={() => handleClose()}
               className="px-4 py-2 text-gray-600 hover:text-gray-800 cursor-pointer"
             >
               Cancel
@@ -431,7 +423,4 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
       </div>
     </div>
   );
-
-  if (typeof document === 'undefined') return null;
-  return createPortal(modalContent, document.body);
 }
