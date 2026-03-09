@@ -128,6 +128,19 @@ export default function DashboardPage() {
       domainOps.setEditingDomain(undefined);
     };
   }, [domainOps]);
+
+  useEffect(() => {
+    if (!domainOps.showDomainForm) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest?.('[data-close-domain-form]')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      domainFormCloseRef.current?.();
+    };
+    document.addEventListener('click', handler, true);
+    return () => document.removeEventListener('click', handler, true);
+  }, [domainOps.showDomainForm]);
   
   const transactionOps = useTransactionOperations(
     transactions,

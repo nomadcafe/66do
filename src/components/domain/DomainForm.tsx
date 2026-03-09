@@ -159,15 +159,19 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
 
   const modalContent = (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4"
+      className="fixed inset-0 flex items-center justify-center p-4"
       style={{ zIndex: 99999 }}
-      onClick={(e) => e.target === e.currentTarget && handleClose()}
       role="dialog"
       aria-modal="true"
       aria-label={domain ? 'Edit Domain' : 'Add New Domain'}
     >
       <div
-        className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl relative"
+        data-close-domain-form
+        className="absolute inset-0 bg-black/50"
+        aria-hidden
+      />
+      <div
+        className="relative bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between z-10 shrink-0">
@@ -176,6 +180,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
           </h2>
           <button
             type="button"
+            data-close-domain-form
             onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 cursor-pointer"
             aria-label="Close"
@@ -410,6 +415,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
           <div className="flex justify-end space-x-3 pt-6 border-t">
             <button
               type="button"
+              data-close-domain-form
               onClick={handleClose}
               className="px-4 py-2 text-gray-600 hover:text-gray-800 cursor-pointer"
             >
