@@ -49,6 +49,11 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
   const [tagInput, setTagInput] = useState('');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [localOpen, setLocalOpen] = useState(false);
+
+  useEffect(() => {
+    setLocalOpen(isOpen);
+  }, [isOpen]);
 
   // 仅在打开弹窗或切换编辑的域名时用 domain 初始化表单，避免父组件重渲染导致表单被覆盖
   const domainId = domain?.id ?? 'new';
@@ -109,6 +114,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
     setSubmitError(null);
     try {
       await Promise.resolve(onSave(sanitizedData as Omit<DomainWithTags, 'id'>));
+      setLocalOpen(false);
       onClose();
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Save failed. Please try again.');
@@ -139,11 +145,12 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
     }
   };
 
-  if (!isOpen) return null;
-
   const handleClose = () => {
+    setLocalOpen(false);
     onClose();
   };
+
+  if (!localOpen) return null;
 
   const modalContent = (
     <div
