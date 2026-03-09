@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Save, Globe, Calendar, DollarSign, Tag } from 'lucide-react';
+import { X, Save, Globe, Calendar, DollarSign, Tag, Loader2 } from 'lucide-react';
 import { validateDomain, sanitizeDomainData } from '../../lib/validation';
 import { DomainWithTags } from '../../types/dashboard';
 import DateInput from '../ui/DateInput';
@@ -54,6 +54,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [localOpen, setLocalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     setLocalOpen(isOpen);
@@ -116,12 +117,15 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
     
     setValidationErrors([]);
     setSubmitError(null);
+    setIsSubmitting(true);
     try {
       await Promise.resolve(onSave(sanitizedData as Omit<DomainWithTags, 'id'>));
       setLocalOpen(false);
       onClose();
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Save failed. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -423,10 +427,15 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center space-x-2"
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed flex items-center space-x-2"
             >
-              <Save className="h-4 w-4" />
-              <span>{domain ? 'Update Domain' : 'Add Domain'}</span>
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              <span>{isSubmitting ? (domain ? 'Updating…' : 'Adding…') : (domain ? 'Update Domain' : 'Add Domain')}</span>
             </button>
           </div>
         </form>
