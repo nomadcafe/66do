@@ -336,6 +336,22 @@ export default function DashboardPage() {
     );
   }
 
+  if (domainOps.showDomainForm) {
+    return (
+      <DomainForm
+        key={domainOps.editingDomain?.id || 'new'}
+        domain={domainOps.editingDomain}
+        isOpen={true}
+        onClose={() => {
+          domainOps.setShowDomainForm(false);
+          domainOps.setEditingDomain(undefined);
+        }}
+        onSave={handleSaveDomain}
+        closeRef={domainFormCloseRef}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900 antialiased">
       {/* Desktop Header */}
@@ -980,19 +996,6 @@ export default function DashboardPage() {
           </div>
         )}
         </div>
-
-      {/* Domain Form Modal */}
-      <DomainForm
-        key={domainOps.editingDomain?.id || 'new'}
-        domain={domainOps.editingDomain}
-        isOpen={domainOps.showDomainForm}
-        onClose={() => {
-          domainOps.setShowDomainForm(false);
-          domainOps.setEditingDomain(undefined);
-        }}
-        onSave={handleSaveDomain}
-        closeRef={domainFormCloseRef}
-      />
 
       {/* Smart Domain Form Modal */}
       <SmartDomainForm
