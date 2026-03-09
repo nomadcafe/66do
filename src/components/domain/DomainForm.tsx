@@ -6,6 +6,7 @@ import { X, Save, Globe, Calendar, DollarSign, Tag } from 'lucide-react';
 import { validateDomain, sanitizeDomainData } from '../../lib/validation';
 import { DomainWithTags } from '../../types/dashboard';
 import DateInput from '../ui/DateInput';
+import { useI18nContext } from '../../contexts/I18nProvider';
 
 // interface Domain {
 //   id: string;
@@ -31,6 +32,7 @@ interface DomainFormProps {
 }
 
 export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFormProps) {
+  const { t } = useI18nContext();
   const [formData, setFormData] = useState({
     domain_name: '',
     registrar: '',
@@ -150,12 +152,18 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
     onClose();
   };
 
+  const handleCloseClick = (e: React.MouseEvent | React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setTimeout(handleClose, 0);
+  };
+
   if (!localOpen) return null;
 
   const modalContent = (
     <div
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4"
-      onClick={(e) => e.target === e.currentTarget && handleClose()}
+      onClick={(e) => e.target === e.currentTarget && setTimeout(handleClose, 0)}
       role="dialog"
       aria-modal="true"
       aria-label={domain ? 'Edit Domain' : 'Add New Domain'}
@@ -170,8 +178,9 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
           </h2>
           <button
             type="button"
-            onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 touch-manipulation"
+            onClick={handleCloseClick}
+            onPointerDown={handleCloseClick}
+            className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 touch-manipulation cursor-pointer"
             aria-label="Close"
           >
             <X className="h-6 w-6" />
@@ -305,14 +314,14 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
             <option value={10}>10 Years</option>
           </select>
           <p className="text-xs text-gray-500 mt-1">
-            选择域名的续费周期，用于计算年度续费成本
+            {t('dashboard.renewalCycleHelp')}
           </p>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             <Calendar className="h-4 w-4 inline mr-1" />
-            Renewal Count (已续费次数)
+            {t('dashboard.renewalCountLabel')}
           </label>
           <input
             type="number"
@@ -320,10 +329,10 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
             value={formData.renewal_count}
             onChange={(e) => setFormData((prev) => ({ ...prev, renewal_count: parseInt(e.target.value) || 0 }))}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="输入已续费次数"
+            placeholder={t('dashboard.renewalCountPlaceholder')}
           />
           <p className="text-xs text-gray-500 mt-1">
-            输入该域名已经续费的次数，用于计算总持有成本
+            {t('dashboard.renewalCountHelp')}
           </p>
         </div>
 
@@ -404,8 +413,9 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
           <div className="flex justify-end space-x-3 pt-6 border-t">
             <button
               type="button"
-              onClick={handleClose}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              onClick={handleCloseClick}
+              onPointerDown={handleCloseClick}
+              className="px-4 py-2 text-gray-600 hover:text-gray-800 cursor-pointer"
             >
               Cancel
             </button>
