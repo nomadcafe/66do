@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSupabaseAuth } from '../../src/contexts/SupabaseAuthContext';
 import { useI18nContext } from '../../src/contexts/I18nProvider';
@@ -120,6 +120,14 @@ export default function DashboardPage() {
     saveData,
     handleDeleteDomain
   );
+
+  const domainFormCloseRef = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    domainFormCloseRef.current = () => {
+      domainOps.setShowDomainForm(false);
+      domainOps.setEditingDomain(undefined);
+    };
+  }, [domainOps]);
   
   const transactionOps = useTransactionOperations(
     transactions,
@@ -970,6 +978,7 @@ export default function DashboardPage() {
           domainOps.setEditingDomain(undefined);
         }}
         onSave={handleSaveDomain}
+        closeRef={domainFormCloseRef}
       />
 
       {/* Smart Domain Form Modal */}
