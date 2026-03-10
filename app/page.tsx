@@ -345,8 +345,7 @@ export default function HomePage() {
           </div>
           <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-stone-800 pt-8 sm:flex-row">
             <p className="text-xs text-stone-500">
-              &copy; 2024 Domain Financial. All rights reserved. Built with ❤️ for domain
-              investors.
+              &copy; 2025 Domain.Financial. All rights reserved.
             </p>
             <div className="flex gap-6 text-xs">
               <a href="/privacy" className="transition hover:text-white">
