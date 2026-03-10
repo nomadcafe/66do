@@ -96,23 +96,48 @@ const defaultPreferences: UserPreferences = {
   }
 };
 
+function deepMerge<T extends object>(target: T, source: Partial<T>): T {
+  const out = { ...target };
+  for (const key of Object.keys(source) as (keyof T)[]) {
+    const src = source[key];
+    if (src != null && typeof src === 'object' && !Array.isArray(src) && typeof (target as Record<string, unknown>)[key as string] === 'object') {
+      (out as Record<string, unknown>)[key as string] = deepMerge(
+        (target as Record<string, unknown>)[key as string] as object,
+        src as Record<string, unknown>
+      );
+    } else if (src !== undefined) {
+      (out as Record<string, unknown>)[key as string] = src;
+    }
+  }
+  return out;
+}
+
 export default function UserPreferencesPanel() {
   const [preferences, setPreferences] = useState<UserPreferences>(defaultPreferences);
   const [activeTab, setActiveTab] = useState('general');
   const [saving, setSaving] = useState(false);
-  const { t } = useI18nContext();
+  const { t, locale, setLocale } = useI18nContext();
 
   useEffect(() => {
     loadPreferences();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const root = typeof document !== 'undefined' ? document.documentElement : null;
+    if (!root) return;
+    const theme = preferences.theme === 'auto'
+      ? (typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+      : preferences.theme;
+    root.setAttribute('data-theme', theme);
+  }, [preferences.theme]);
 
   const loadPreferences = () => {
     try {
       const saved = localStorage.getItem('domain_financial_preferences');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setPreferences(prev => ({ ...prev, ...parsed }));
-      }
+      const merged = deepMerge(defaultPreferences, saved ? JSON.parse(saved) : {});
+      merged.language = locale;
+      setPreferences(merged);
     } catch (error) {
       console.error('Error loading preferences:', error);
     }
@@ -122,8 +147,8 @@ export default function UserPreferencesPanel() {
     setSaving(true);
     try {
       localStorage.setItem('domain_financial_preferences', JSON.stringify(preferences));
-      // 这里可以添加API调用来保存到服务器
-      await new Promise(resolve => setTimeout(resolve, 1000)); // 模拟API调用
+      setLocale(preferences.language);
+      await new Promise(resolve => setTimeout(resolve, 300));
     } catch (error) {
       console.error('Error saving preferences:', error);
     } finally {
@@ -335,7 +360,10 @@ export default function UserPreferencesPanel() {
           min="1"
           max="100"
           value={preferences.investment.priceAlertThreshold}
-          onChange={(e) => updatePreference('investment.priceAlertThreshold', parseInt(e.target.value))}
+          onChange={(e) => {
+            const v = parseInt(e.target.value, 10);
+            if (!Number.isNaN(v)) updatePreference('investment.priceAlertThreshold', Math.max(1, Math.min(100, v)));
+          }}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <p className="text-xs text-gray-500 mt-1">{t('settings.priceAlertThresholdDesc')}</p>
@@ -388,7 +416,10 @@ export default function UserPreferencesPanel() {
         <label className="block text-sm font-medium text-gray-700 mb-2">{t('settings.itemsPerPage')}</label>
         <select
           value={preferences.display.itemsPerPage}
-          onChange={(e) => updatePreference('display.itemsPerPage', parseInt(e.target.value))}
+          onChange={(e) => {
+            const v = parseInt(e.target.value, 10);
+            if (!Number.isNaN(v) && [10, 20, 50, 100].includes(v)) updatePreference('display.itemsPerPage', v);
+          }}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value={10}>10</option>
