@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Domain Financial - Domain Investment Platform",
+  title: "Domain.Financial – Track & Grow Your Domains",
   description: "Professional domain investment management tools to help you track domain portfolios, monitor renewals, and maximize returns",
   icons: {
     icon: "/favicon.png",

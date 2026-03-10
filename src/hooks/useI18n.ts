@@ -849,7 +849,7 @@ const translations: Record<Locale, Translations> = {
       investmentCount: '投资数量'
     },
     home: {
-      title: 'Domain Financial - 域名投资平台',
+      title: 'Domain.Financial – 追踪与增值你的域名',
       subtitle: '智能化的域名管理工具，帮您轻松追踪每个域名的成本、收益与表现。',
       getStarted: '开始使用',
       startJourney: '开始您的域名投资之旅',
@@ -912,7 +912,7 @@ const translations: Record<Locale, Translations> = {
   en: {
     platform: {
       name: 'Domain Financial',
-      subtitle: 'Domain Investment Platform'
+      subtitle: 'Track & Grow Your Domains'
     },
     nav: {
       signIn: 'Sign In',
@@ -1806,7 +1806,7 @@ const translations: Record<Locale, Translations> = {
       investmentCount: 'Investment Count'
     },
     home: {
-      title: 'Domain Financial - Domain Investment Platform',
+      title: 'Domain.Financial – Track & Grow Your Domains',
       subtitle: 'Intelligent domain management tools to help you easily track the cost, revenue and performance of each domain.',
       getStarted: 'Get Started',
       startJourney: 'Start Your Domain Investment Journey',

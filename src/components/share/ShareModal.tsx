@@ -65,7 +65,7 @@ export default function ShareModal({ isOpen, onClose, shareData }: ShareModalPro
     // 绘制品牌信息
     ctx.font = '18px Arial';
     ctx.fillStyle = '#6b7280';
-    ctx.fillText('Powered by Domain Financial', 400, 480);
+    ctx.fillText('Domain.Financial – Track & Grow Your Domains', 400, 480);
 
     // 绘制装饰元素
     ctx.fillStyle = '#fbbf24';
