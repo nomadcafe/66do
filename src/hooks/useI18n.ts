@@ -922,7 +922,10 @@ const translations: Record<Locale, Translations> = {
       helpCenter: '帮助中心',
       contactUs: '联系我们',
       privacyPolicy: '隐私政策',
-      contact: '联系方式'
+      contact: '联系方式',
+      privacyShort: '隐私',
+      termsShort: '条款',
+      cookiesShort: 'Cookie'
     }
   },
   en: {
@@ -1895,7 +1898,10 @@ const translations: Record<Locale, Translations> = {
       helpCenter: 'Help Center',
       contactUs: 'Contact Us',
       privacyPolicy: 'Privacy Policy',
-      contact: 'Contact'
+      contact: 'Contact',
+      privacyShort: 'Privacy',
+      termsShort: 'Terms',
+      cookiesShort: 'Cookies'
     }
   }
 };
