@@ -5,7 +5,8 @@ const allowedOrigins = [
   'https://www.66do.com',
   'https://66do.com',
   'http://localhost:3000',
-  'http://localhost:3001'
+  'http://localhost:3001',
+  'http://localhost:3078'
 ];
 
 export function getCorsHeaders(request: NextRequest) {

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { TransactionService } from '../../../../src/lib/supabaseService'
 import { validateTransaction, sanitizeTransactionData } from '../../../../src/lib/validation'
-import { getUserIdFromRequest } from '../../../../src/lib/auth-helper'
+import { getAuthInfoFromRequest } from '../../../../src/lib/auth-helper'
+import { createAuthenticatedSupabaseClient } from '../../../../src/lib/supabaseAuthClient'
 import { getCorsHeaders, getCorsHeadersForError } from '../../../../src/lib/cors'
 
 // GET /api/transactions/[id] - 获取单个交易
@@ -10,9 +11,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = await getUserIdFromRequest(request);
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { 
+    const authInfo = await getAuthInfoFromRequest(request)
+    if (!authInfo?.userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, {
         status: 401,
         headers: getCorsHeaders(request)
       })
@@ -20,8 +21,8 @@ export async function GET(
 
     const corsHeaders = getCorsHeaders(request)
     const { id: transactionId } = await params
-
-    const userTransactions = await TransactionService.getTransactions(userId)
+    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken)
+    const userTransactions = await TransactionService.getTransactionsWithClient(client, authInfo.userId)
     const transaction = userTransactions.find(t => t.id === transactionId)
     
     if (!transaction) {
@@ -57,9 +58,9 @@ export async function PUT(
     const body = await request.json()
     const transaction = body
 
-    const userId = await getUserIdFromRequest(request);
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { 
+    const authInfo = await getAuthInfoFromRequest(request)
+    if (!authInfo?.userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, {
         status: 401,
         headers: getCorsHeaders(request)
       })
@@ -67,47 +68,50 @@ export async function PUT(
 
     const corsHeaders = getCorsHeaders(request)
     const { id: transactionId } = await params
+    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken)
+    const userId = authInfo.userId
 
     if (!transaction) {
-      return NextResponse.json({ error: 'Transaction data is required' }, { 
+      return NextResponse.json({ error: 'Transaction data is required' }, {
         status: 400,
         headers: corsHeaders
       })
     }
-    
+
     // 确保ID匹配
     if (transaction.id && transaction.id !== transactionId) {
-      return NextResponse.json({ error: 'Transaction ID mismatch' }, { 
+      return NextResponse.json({ error: 'Transaction ID mismatch' }, {
         status: 400,
         headers: corsHeaders
       })
     }
-    
+
     const transactionValidation = validateTransaction(transaction)
     if (!transactionValidation.valid) {
-      return NextResponse.json({ 
-        error: 'Transaction validation failed', 
-        details: transactionValidation.errors 
-      }, { 
+      return NextResponse.json({
+        error: 'Transaction validation failed',
+        details: transactionValidation.errors
+      }, {
         status: 400,
         headers: corsHeaders
       })
     }
-    
-    const existingTransactions = await TransactionService.getTransactions(userId)
+
+    const existingTransactions = await TransactionService.getTransactionsWithClient(client, userId)
     const transactionExists = existingTransactions.some(t => t.id === transactionId)
     if (!transactionExists) {
-      return NextResponse.json({ 
-        error: 'Transaction not found or access denied' 
-      }, { 
+      return NextResponse.json({
+        error: 'Transaction not found or access denied'
+      }, {
         status: 403,
         headers: corsHeaders
       })
     }
-    
+
     const sanitizedUpdateTransaction = sanitizeTransactionData(transaction)
-    const updatedTransaction = await TransactionService.updateTransaction(
-      transactionId, 
+    const updatedTransaction = await TransactionService.updateTransactionWithClient(
+      client,
+      transactionId,
       { ...sanitizedUpdateTransaction, user_id: userId },
       userId
     )
@@ -142,9 +146,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = await getUserIdFromRequest(request);
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { 
+    const authInfo = await getAuthInfoFromRequest(request)
+    if (!authInfo?.userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, {
         status: 401,
         headers: getCorsHeaders(request)
       })
@@ -152,19 +156,21 @@ export async function DELETE(
 
     const corsHeaders = getCorsHeaders(request)
     const { id: transactionId } = await params
+    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken)
+    const userId = authInfo.userId
 
-    const userTransactions = await TransactionService.getTransactions(userId)
+    const userTransactions = await TransactionService.getTransactionsWithClient(client, userId)
     const canDelete = userTransactions.some(t => t.id === transactionId)
     if (!canDelete) {
-      return NextResponse.json({ 
-        error: 'Transaction not found or access denied' 
-      }, { 
+      return NextResponse.json({
+        error: 'Transaction not found or access denied'
+      }, {
         status: 403,
         headers: corsHeaders
       })
     }
-    
-    const deleteResult = await TransactionService.deleteTransaction(transactionId, userId)
+
+    const deleteResult = await TransactionService.deleteTransactionWithClient(client, transactionId, userId)
     
     if (!deleteResult) {
       return NextResponse.json({ 

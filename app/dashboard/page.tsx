@@ -103,17 +103,20 @@ export default function DashboardPage() {
   const handleDeleteDomain = useCallback(async (id: string) => {
     if (!user?.id) return;
     try {
-      // Use RESTful DELETE /api/domains/[id]
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      if (session?.access_token) {
+        (headers as Record<string, string>)['Authorization'] = `Bearer ${session.access_token}`;
+      }
       const response = await fetch(`/api/domains/${id}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' }
+        headers
       });
       if (!response.ok) throw new Error('Failed to delete domain');
       await refreshData();
     } catch (error) {
       setError(`Failed to delete domain: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  }, [user?.id, refreshData, setError]);
+  }, [user?.id, session?.access_token, refreshData, setError]);
 
   const domainOps = useDomainOperations(
     domains,

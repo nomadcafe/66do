@@ -7,20 +7,91 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const supabase = createClient(supabaseUrl, supabaseKey)
 
+const MAX_EMAIL_LENGTH = 254
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+// 简单内存限流：IP -> [timestamp, ...]，保留最近窗口内的请求
+const rateLimitByIp = new Map<string, number[]>()
+const rateLimitByEmail = new Map<string, number[]>()
+const WINDOW_MS_IP = 15 * 60 * 1000
+const MAX_PER_IP = 5
+const WINDOW_MS_EMAIL = 60 * 60 * 1000
+const MAX_PER_EMAIL = 3
+
+function getClientIp(request: NextRequest): string {
+  return (
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip') ||
+    'unknown'
+  )
+}
+
+function isRateLimitedIp(ip: string): boolean {
+  const now = Date.now()
+  const timestamps = rateLimitByIp.get(ip) || []
+  const valid = timestamps.filter(t => now - t < WINDOW_MS_IP)
+  if (valid.length >= MAX_PER_IP) return true
+  valid.push(now)
+  rateLimitByIp.set(ip, valid)
+  return false
+}
+
+function isRateLimitedEmail(email: string): boolean {
+  const key = email.toLowerCase().trim()
+  const now = Date.now()
+  const timestamps = rateLimitByEmail.get(key) || []
+  const valid = timestamps.filter(t => now - t < WINDOW_MS_EMAIL)
+  if (valid.length >= MAX_PER_EMAIL) return true
+  valid.push(now)
+  rateLimitByEmail.set(key, valid)
+  return false
+}
+
+function validateEmail(email: unknown): string | null {
+  if (typeof email !== 'string') return null
+  const trimmed = email.trim()
+  if (!trimmed || trimmed.length > MAX_EMAIL_LENGTH) return null
+  if (!EMAIL_REGEX.test(trimmed)) return null
+  return trimmed
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { email } = body
+    const corsHeaders = getCorsHeaders(request)
 
-    if (!email) {
-      return NextResponse.json({ error: 'Email is required' }, { 
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      })
+    const ip = getClientIp(request)
+    if (isRateLimitedIp(ip)) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429, headers: corsHeaders }
+      )
     }
 
-    // 设置安全的CORS头
-    const corsHeaders = getCorsHeaders(request)
+    let body: unknown
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+    const rawEmail = body && typeof body === 'object' && !Array.isArray(body)
+      ? (body as { email?: unknown }).email
+      : undefined
+    const email = validateEmail(rawEmail)
+    if (!email) {
+      return NextResponse.json(
+        { error: 'Valid email is required' },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+    if (isRateLimitedEmail(email)) {
+      return NextResponse.json(
+        { error: 'Too many magic link requests for this email. Please try again later.' },
+        { status: 429, headers: corsHeaders }
+      )
+    }
 
     // 检查环境变量
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
