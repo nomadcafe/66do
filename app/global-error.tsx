@@ -1,12 +1,8 @@
 'use client';
 
-export default function GlobalError({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
+import Link from 'next/link';
+
+export default function GlobalError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
     <html lang="en">
       <body className="min-h-screen bg-stone-50 flex flex-col items-center justify-center px-4 antialiased">
@@ -24,12 +20,12 @@ export default function GlobalError({
           >
             Retry
           </button>
-          <a
+          <Link
             href="/"
             className="px-6 py-3 border border-stone-300 text-stone-700 rounded-lg hover:bg-stone-100 transition-colors"
           >
             Back to home
-          </a>
+          </Link>
         </div>
       </body>
     </html>

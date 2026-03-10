@@ -197,7 +197,6 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
           id="domain-form"
           onSubmit={handleSubmit}
           className="p-6 space-y-6"
-          aria-invalid={validationErrors.length > 0}
           aria-describedby={validationErrors.length > 0 ? 'domain-form-errors' : undefined}
         >
           {/* 提交/保存错误 */}
