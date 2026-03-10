@@ -1,4 +1,4 @@
-# 66Do - Domain Investment Platform
+# Domain Financial - Domain Investment Platform
 # Multi-stage Docker build for production
 
 # Stage 1: Dependencies

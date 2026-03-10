@@ -1,4 +1,4 @@
--- 66Do Database Migration Script
+-- Domain Financial Database Migration Script
 -- 添加缺失的字段到现有表
 
 -- 添加 expiry_date 字段到 domains 表
