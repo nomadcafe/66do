@@ -94,13 +94,6 @@ export default function HomePage() {
             </span>
           </Link>
           <div className="flex items-center gap-3 sm:gap-5">
-            <a
-              href="/privacy"
-              className="text-sm transition hover:opacity-80"
-              style={{ color: 'var(--home-text-muted)' }}
-            >
-              {t('nav.privacy')}
-            </a>
             <select
               value={locale}
               onChange={(e) => setLocale(e.target.value as 'en' | 'zh')}
@@ -346,7 +339,7 @@ export default function HomePage() {
               </h4>
               <p className="mt-4 flex items-center gap-2 text-sm">
                 <span className="h-2 w-2 rounded-full bg-teal-500" />
-                hello@domain.financial
+                hello###domain.financial
               </p>
             </div>
           </div>
