@@ -1,4 +1,4 @@
--- 66Do D1 Database Schema (SQLite Compatible)
+-- Domain Financial D1 Database Schema (SQLite Compatible)
 -- 智能投资管理平台数据库表结构
 
 -- 用户表
