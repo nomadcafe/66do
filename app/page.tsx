@@ -78,29 +78,34 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-stone-50 text-stone-900 antialiased">
+    <div className="min-h-screen antialiased" style={{ backgroundColor: 'var(--home-bg)', color: 'var(--home-text)' }}>
       {/* ─── Navigation ───────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 border-b border-stone-200/80 bg-stone-50/95 backdrop-blur-md">
+      <header
+        className="sticky top-0 z-50 border-b backdrop-blur-md"
+        style={{ borderColor: 'var(--home-border)', backgroundColor: 'rgba(250, 249, 246, 0.92)' }}
+      >
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-stone-800 text-white shadow-sm">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#2d2a26] text-white shadow-sm">
               <Globe className="h-5 w-5" />
             </div>
-            <span className="text-lg font-semibold tracking-tight text-stone-900">
+            <span className="text-lg font-semibold tracking-tight" style={{ color: 'var(--home-text)' }}>
               {t('platform.name')}
             </span>
           </Link>
           <div className="flex items-center gap-3 sm:gap-5">
             <a
               href="/privacy"
-              className="text-sm text-stone-500 transition hover:text-stone-800"
+              className="text-sm transition hover:opacity-80"
+              style={{ color: 'var(--home-text-muted)' }}
             >
               {t('nav.privacy')}
             </a>
             <select
               value={locale}
               onChange={(e) => setLocale(e.target.value as 'en' | 'zh')}
-              className="rounded-md border border-stone-200 bg-white px-2.5 py-1.5 text-sm text-stone-700 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+              className="rounded-lg border bg-white px-2.5 py-1.5 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+              style={{ borderColor: 'var(--home-border)', color: 'var(--home-text)' }}
             >
               <option value="zh">中文</option>
               <option value="en">English</option>
@@ -108,14 +113,14 @@ export default function HomePage() {
             {user ? (
               <button
                 onClick={() => router.push('/dashboard')}
-                className="rounded-lg bg-stone-800 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-stone-700"
+                className="rounded-xl bg-[#2d2a26] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#1c1917]"
               >
                 {t('nav.goToDashboard')}
               </button>
             ) : (
               <a
                 href="/login"
-                className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-teal-700"
+                className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-teal-700"
               >
                 {t('auth.magicLink.title')}
               </a>
@@ -125,29 +130,35 @@ export default function HomePage() {
       </header>
 
       {/* ─── Hero ─────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden border-b border-stone-200/80 bg-white">
+      <section
+        className="relative overflow-hidden border-b"
+        style={{ borderColor: 'var(--home-border)', backgroundColor: 'var(--home-bg-card)' }}
+      >
         <div
-          className="absolute inset-0 opacity-[0.03]"
+          className="absolute inset-0 opacity-[0.04]"
           style={{
-            backgroundImage: `radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)`,
-            backgroundSize: '40px 40px',
+            backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)',
+            backgroundSize: '32px 32px',
           }}
         />
-        <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-28">
+        <div className="relative mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8 lg:py-32">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-teal-200 bg-teal-50 px-3.5 py-1 text-sm font-medium text-teal-800">
+            <p
+              className="mb-6 inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium"
+              style={{ borderColor: 'rgba(20, 184, 166, 0.35)', backgroundColor: 'rgba(20, 184, 166, 0.08)', color: '#0d9488' }}
+            >
               <Star className="h-3.5 w-3.5" />
               Trusted by 200+ domain investors
             </p>
-            <h1 className="mb-6 text-4xl font-bold tracking-tight text-stone-900 sm:text-5xl lg:text-6xl">
+            <h1 className="mb-6 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl" style={{ color: 'var(--home-text)' }}>
               {t('home.title')}
             </h1>
-            <p className="mb-10 text-lg leading-relaxed text-stone-600 sm:text-xl">
+            <p className="mb-10 text-lg leading-relaxed sm:text-xl" style={{ color: 'var(--home-text-muted)' }}>
               {t('home.subtitle')}
             </p>
             <button
               onClick={handleGetStarted}
-              className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-teal-600/25 transition hover:bg-teal-700 hover:shadow-teal-600/30"
+              className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-teal-600/20 transition hover:bg-teal-700 hover:shadow-teal-600/25"
             >
               {t('home.getStarted')}
               <ArrowRight className="h-5 w-5" />
@@ -157,16 +168,17 @@ export default function HomePage() {
       </section>
 
       {/* ─── Key points (home features) ───────────────────────────────── */}
-      <section className="border-b border-stone-200/80 bg-stone-50 py-12 sm:py-16">
+      <section className="border-b py-14 sm:py-16" style={{ backgroundColor: 'var(--home-bg)', borderColor: 'var(--home-border)' }}>
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
           <ul className="grid gap-3 sm:grid-cols-2 sm:gap-4">
             {homeFeatures.map((feature, i) => (
               <li
                 key={i}
-                className="flex items-start gap-3 rounded-xl border border-stone-200/80 bg-white p-4 shadow-sm transition hover:border-stone-300 hover:shadow"
+                className="flex items-start gap-3 rounded-2xl border p-5 shadow-sm transition hover:shadow-md"
+                style={{ borderColor: 'var(--home-border)', backgroundColor: 'var(--home-bg-card)' }}
               >
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-teal-500" />
-                <span className="text-stone-700 sm:text-lg">{feature.text}</span>
+                <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-teal-500" />
+                <span className="sm:text-lg" style={{ color: 'var(--home-text-muted)' }}>{feature.text}</span>
               </li>
             ))}
           </ul>
@@ -174,13 +186,13 @@ export default function HomePage() {
       </section>
 
       {/* ─── Features grid ────────────────────────────────────────────── */}
-      <section className="border-b border-stone-200/80 bg-white py-16 sm:py-20">
+      <section className="border-b py-16 sm:py-24" style={{ backgroundColor: 'var(--home-bg-card)', borderColor: 'var(--home-border)' }}>
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-stone-900 sm:text-4xl">
+          <div className="mb-14 text-center">
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: 'var(--home-text)' }}>
               {t('features.title')}
             </h2>
-            <p className="mx-auto mt-3 max-w-2xl text-lg text-stone-600">
+            <p className="mx-auto mt-3 max-w-2xl text-lg" style={{ color: 'var(--home-text-muted)' }}>
               {t('features.subtitle')}
             </p>
           </div>
@@ -188,15 +200,16 @@ export default function HomePage() {
             {features.map((feature, i) => (
               <div
                 key={i}
-                className="group rounded-2xl border border-stone-200/80 bg-stone-50/50 p-6 transition hover:border-stone-300 hover:bg-white hover:shadow-md"
+                className="group rounded-2xl border p-6 transition hover:shadow-lg"
+                style={{ borderColor: 'var(--home-border)', backgroundColor: 'var(--home-bg)' }}
               >
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-stone-800 text-white transition group-hover:bg-teal-600">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#2d2a26] text-white transition group-hover:bg-teal-600">
                   {feature.icon}
                 </div>
-                <h3 className="mb-2 text-lg font-semibold text-stone-900">
+                <h3 className="mb-2 text-lg font-semibold" style={{ color: 'var(--home-text)' }}>
                   {feature.title}
                 </h3>
-                <p className="text-sm leading-relaxed text-stone-600">
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--home-text-muted)' }}>
                   {feature.description}
                 </p>
               </div>
@@ -206,13 +219,13 @@ export default function HomePage() {
       </section>
 
       {/* ─── Benefits ─────────────────────────────────────────────────── */}
-      <section className="border-b border-stone-200/80 bg-stone-100 py-16 sm:py-20">
+      <section className="border-b py-16 sm:py-24" style={{ backgroundColor: 'var(--home-bg-soft)', borderColor: 'var(--home-border)' }}>
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-stone-900 sm:text-4xl">
+          <div className="mb-14 text-center">
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: 'var(--home-text)' }}>
               {t('benefits.title')}
             </h2>
-            <p className="mx-auto mt-3 max-w-2xl text-lg text-stone-600">
+            <p className="mx-auto mt-3 max-w-2xl text-lg" style={{ color: 'var(--home-text-muted)' }}>
               {t('benefits.subtitle')}
             </p>
           </div>
@@ -220,15 +233,16 @@ export default function HomePage() {
             {benefits.map((benefit, i) => (
               <div
                 key={i}
-                className="rounded-2xl border border-stone-200/80 bg-white p-6 text-center shadow-sm transition hover:shadow-md"
+                className="rounded-2xl border p-6 text-center shadow-sm transition hover:shadow-md"
+                style={{ borderColor: 'var(--home-border)', backgroundColor: 'var(--home-bg-card)' }}
               >
                 <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-teal-100 text-teal-700">
                   {benefit.icon}
                 </div>
-                <h3 className="mb-2 text-lg font-semibold text-stone-900">
+                <h3 className="mb-2 text-lg font-semibold" style={{ color: 'var(--home-text)' }}>
                   {benefit.title}
                 </h3>
-                <p className="text-sm text-stone-600">{benefit.description}</p>
+                <p className="text-sm" style={{ color: 'var(--home-text-muted)' }}>{benefit.description}</p>
               </div>
             ))}
           </div>
@@ -236,7 +250,7 @@ export default function HomePage() {
       </section>
 
       {/* ─── CTA ──────────────────────────────────────────────────────── */}
-      <section className="bg-stone-900 py-16 sm:py-20">
+      <section className="py-16 sm:py-24" style={{ backgroundColor: '#2d2a26' }}>
         <div className="mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
           <h2 className="text-2xl font-bold text-white sm:text-3xl">
             {t('home.startJourney')}
@@ -255,7 +269,7 @@ export default function HomePage() {
       </section>
 
       {/* ─── Footer ──────────────────────────────────────────────────── */}
-      <footer className="bg-stone-950 text-stone-300">
+      <footer className="text-stone-300" style={{ backgroundColor: '#1c1917' }}>
         <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
             <div className="lg:col-span-1">

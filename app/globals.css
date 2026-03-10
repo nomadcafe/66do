@@ -3,6 +3,13 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* 首页温和底色，参考 magicv.art 的暖白/米白 */
+  --home-bg: #faf9f6;
+  --home-bg-soft: #f5f4f0;
+  --home-bg-card: #ffffff;
+  --home-border: rgba(0, 0, 0, 0.06);
+  --home-text: #1c1917;
+  --home-text-muted: #57534e;
 }
 
 @theme inline {

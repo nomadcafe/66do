@@ -167,7 +167,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
       style={{ zIndex: 99999 }}
       role="dialog"
       aria-modal="true"
-      aria-label={domain ? 'Edit Domain' : 'Add New Domain'}
+      aria-label={domain ? t('dashboard.domainFormTitleEdit') : t('dashboard.domainFormTitleAdd')}
     >
       <div
         data-close-domain-form
@@ -180,30 +180,36 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
       >
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between z-10 shrink-0">
           <h2 className="text-xl font-semibold text-gray-900">
-            {domain ? 'Edit Domain' : 'Add New Domain'}
+            {domain ? t('dashboard.domainFormTitleEdit') : t('dashboard.domainFormTitleAdd')}
           </h2>
           <button
             type="button"
             data-close-domain-form
             onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 cursor-pointer"
-            aria-label="Close"
+            aria-label={t('common.close')}
           >
             <X className="h-6 w-6" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form
+          id="domain-form"
+          onSubmit={handleSubmit}
+          className="p-6 space-y-6"
+          aria-invalid={validationErrors.length > 0}
+          aria-describedby={validationErrors.length > 0 ? 'domain-form-errors' : undefined}
+        >
           {/* 提交/保存错误 */}
           {submitError && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800 text-sm">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800 text-sm" role="alert">
               {submitError}
             </div>
           )}
           {/* 验证错误显示 */}
           {validationErrors.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <h3 className="text-red-800 font-medium mb-2">请修正以下错误：</h3>
+            <div id="domain-form-errors" className="bg-red-50 border border-red-200 rounded-lg p-4" role="alert">
+              <h3 className="text-red-800 font-medium mb-2">{t('common.formErrorsHeading')}</h3>
               <ul className="text-red-700 text-sm space-y-1">
                 {validationErrors.map((error, index) => (
                   <li key={index}>• {error}</li>
@@ -213,25 +219,28 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="domain-form-domain_name" className="block text-sm font-medium text-gray-700 mb-2">
                 <Globe className="h-4 w-4 inline mr-1" />
-                Domain Name *
+                {t('dashboard.domainNameLabel')} *
               </label>
               <input
+                id="domain-form-domain_name"
                 type="text"
                 required
                 value={formData.domain_name}
                 onChange={(e) => setFormData((prev) => ({ ...prev, domain_name: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="example.com"
+                aria-invalid={validationErrors.some((e) => e.toLowerCase().includes('domain'))}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Registrar
+              <label htmlFor="domain-form-registrar" className="block text-sm font-medium text-gray-700 mb-2">
+                {t('dashboard.registrarLabel')}
               </label>
               <input
+                id="domain-form-registrar"
                 type="text"
                 value={formData.registrar}
                 onChange={(e) => setFormData((prev) => ({ ...prev, registrar: e.target.value }))}
@@ -423,7 +432,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
               onClick={handleClose}
               className="px-4 py-2 text-gray-600 hover:text-gray-800 cursor-pointer"
             >
-              Cancel
+              {t('dashboard.cancel')}
             </button>
             <button
               type="submit"
@@ -435,7 +444,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
               ) : (
                 <Save className="h-4 w-4" />
               )}
-              <span>{isSubmitting ? (domain ? 'Updating…' : 'Adding…') : (domain ? 'Update Domain' : 'Add Domain')}</span>
+              <span>{isSubmitting ? (domain ? t('dashboard.updating') : t('dashboard.adding')) : (domain ? t('dashboard.updateDomain') : t('dashboard.addDomain'))}</span>
             </button>
           </div>
         </form>

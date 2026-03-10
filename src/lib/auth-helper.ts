@@ -102,16 +102,6 @@ export async function getAuthInfoFromRequest(request: NextRequest): Promise<{ us
       }
     }
 
-    // 方法3: 尝试从request body获取userId（如果前端传递了）
-    try {
-      const body = await request.clone().json();
-      if (body.userId) {
-        return { userId: body.userId };
-      }
-    } catch {
-      // 忽略JSON解析错误
-    }
-
     console.error('No valid authentication found in request');
     return null;
   } catch (error) {

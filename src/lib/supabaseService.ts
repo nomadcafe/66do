@@ -237,95 +237,130 @@ export class DomainService {
 // 交易相关操作
 export class TransactionService {
   static async getTransactions(userId: string): Promise<Transaction[]> {
-    const { data, error } = await supabase
+    return this.getTransactionsWithClient(supabase, userId)
+  }
+
+  static async getTransactionsWithClient(
+    client: SupabaseClient<Database>,
+    userId: string
+  ): Promise<Transaction[]> {
+    const { data, error } = await client
       .from('domain_transactions')
       .select('*')
       .eq('user_id', userId)
       .order('date', { ascending: false })
-    
+
     if (error) {
       logger.error('Error fetching transactions:', error)
       return []
     }
-    
+
     return data || []
   }
 
   static async createTransaction(transaction: TransactionInsert): Promise<Transaction | null> {
-    const { data, error } = await supabase
+    return this.createTransactionWithClient(supabase, transaction)
+  }
+
+  static async createTransactionWithClient(
+    client: SupabaseClient<Database>,
+    transaction: TransactionInsert
+  ): Promise<Transaction | null> {
+    const { data, error } = await (client
       .from('domain_transactions')
-      .insert(transaction)
+      .insert(transaction as never)
       .select()
-      .single()
-    
+      .single() as unknown as Promise<{ data: Transaction | null; error: { message: string } | null }>)
+
     if (error) {
       logger.error('Error creating transaction:', error)
       return null
     }
-    
+
     return data
   }
 
   static async updateTransaction(id: string, updates: TransactionUpdate, userId?: string): Promise<Transaction | null> {
-    let query = supabase
+    return this.updateTransactionWithClient(supabase, id, updates, userId)
+  }
+
+  static async updateTransactionWithClient(
+    client: SupabaseClient<Database>,
+    id: string,
+    updates: TransactionUpdate,
+    userId?: string
+  ): Promise<Transaction | null> {
+    let query = client
       .from('domain_transactions')
-      .update(updates)
+      .update(updates as never)
       .eq('id', id)
-    
-    // 如果提供了userId，确保只能更新属于该用户的交易
+
     if (userId) {
       query = query.eq('user_id', userId) as typeof query
     }
-    
-    const { data, error } = await query
+
+    const { data, error } = await (query
       .select()
-      .single()
-    
+      .single() as unknown as Promise<{ data: Transaction | null; error: { message: string } | null }>)
+
     if (error) {
       logger.error('Error updating transaction:', error)
       return null
     }
-    
+
     return data
   }
 
   static async deleteTransaction(id: string, userId?: string): Promise<boolean> {
-    let query = supabase
+    return this.deleteTransactionWithClient(supabase, id, userId)
+  }
+
+  static async deleteTransactionWithClient(
+    client: SupabaseClient<Database>,
+    id: string,
+    userId?: string
+  ): Promise<boolean> {
+    let query = client
       .from('domain_transactions')
       .delete()
       .eq('id', id)
-    
-    // 如果提供了userId，确保只能删除属于该用户的交易
+
     if (userId) {
       query = query.eq('user_id', userId) as typeof query
     }
-    
+
     const { error } = await query
-    
+
     if (error) {
       logger.error('Error deleting transaction:', error)
       return false
     }
-    
+
     return true
   }
 
   static async bulkUpdateTransactions(transactions: TransactionUpdate[], userId?: string): Promise<boolean> {
-    // 如果提供了userId，确保所有交易的user_id都是该用户
-    // 注意：这提供了额外的安全层，但主要验证应该在API层完成
-    const validatedTransactions = userId 
+    return this.bulkUpdateTransactionsWithClient(supabase, transactions, userId)
+  }
+
+  static async bulkUpdateTransactionsWithClient(
+    client: SupabaseClient<Database>,
+    transactions: TransactionUpdate[],
+    userId?: string
+  ): Promise<boolean> {
+    const validatedTransactions = userId
       ? transactions.map(t => ({ ...t, user_id: userId }))
       : transactions
-    
-    const { error } = await supabase
+
+    const { error } = await client
       .from('domain_transactions')
-      .upsert(validatedTransactions)
-    
+      .upsert(validatedTransactions as never)
+
     if (error) {
       logger.error('Error bulk updating transactions:', error)
       return false
     }
-    
+
     return true
   }
 }
