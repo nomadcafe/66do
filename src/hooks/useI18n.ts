@@ -319,7 +319,12 @@ const translations: Record<Locale, Translations> = {
       notFoundTitle: '页面未找到',
       notFoundMessage: '您访问的页面不存在或已被移除。',
       errorMessage: '发生了一些问题，请重试或返回首页。',
-      formErrorsHeading: '请修正以下错误：'
+      formErrorsHeading: '请修正以下错误：',
+      unknownDomain: '未知域名'
+    },
+    errors: {
+      deleteDomainFailed: '删除域名失败',
+      saveDomainFailed: '保存域名失败'
     },
     financial: {
       totalSales: '总销售额',
@@ -477,6 +482,22 @@ const translations: Record<Locale, Translations> = {
       mediumTerm: '中期持有',
       longTerm: '长期持有',
       veryLongTerm: '超长期持有'
+    },
+    domainList: {
+      title: '域名组合',
+      subtitle: '管理您的域名投资',
+      addDomain: '添加域名',
+      addFirstDomain: '添加第一个域名',
+      searchPlaceholder: '搜索域名、注册商或标签…',
+      allStatus: '全部状态',
+      tableView: '表格视图',
+      gridView: '网格视图',
+      listView: '列表视图',
+      showingCount: '显示 {filtered} / {total} 个域名',
+      noDomainsFound: '未找到匹配的域名',
+      noDomainsYet: '暂无域名',
+      adjustSearch: '请调整搜索或筛选条件',
+      getStarted: '添加您的第一个域名投资以开始'
     },
     analytics: {
       totalInvestment: '总投资',
@@ -1197,7 +1218,12 @@ const translations: Record<Locale, Translations> = {
       notFoundTitle: 'Page not found',
       notFoundMessage: 'The page you are looking for does not exist or has been moved.',
       errorMessage: 'Something went wrong. Please try again or go back home.',
-      formErrorsHeading: 'Please fix the following errors:'
+      formErrorsHeading: 'Please fix the following errors:',
+      unknownDomain: 'Unknown Domain'
+    },
+    errors: {
+      deleteDomainFailed: 'Failed to delete domain',
+      saveDomainFailed: 'Failed to save domain'
     },
     financial: {
       totalSales: 'Total Sales',
@@ -1339,6 +1365,22 @@ const translations: Record<Locale, Translations> = {
       mediumTerm: 'Medium Term',
       longTerm: 'Long Term',
       veryLongTerm: 'Very Long Term'
+    },
+    domainList: {
+      title: 'Domain Portfolio',
+      subtitle: 'Manage your domain investments',
+      addDomain: 'Add Domain',
+      addFirstDomain: 'Add Your First Domain',
+      searchPlaceholder: 'Search domains, registrars, or tags…',
+      allStatus: 'All Status',
+      tableView: 'Table View',
+      gridView: 'Grid View',
+      listView: 'List View',
+      showingCount: 'Showing {filtered} of {total} domains',
+      noDomainsFound: 'No domains found',
+      noDomainsYet: 'No domains yet',
+      adjustSearch: 'Try adjusting your search or filter criteria',
+      getStarted: 'Get started by adding your first domain investment'
     },
     analytics: {
       totalInvestment: 'Total Investment',
