@@ -8,7 +8,7 @@
 3. 使用GitHub登录
 4. 点击 "New Project"
 5. 填写项目信息：
-   - **Name**: 66do
+   - **Name**: domain-financial
    - **Database Password**: 设置强密码
    - **Region**: 选择离您最近的区域
 6. 点击 "Create new project"

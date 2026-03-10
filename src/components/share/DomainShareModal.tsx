@@ -149,7 +149,7 @@ export default function DomainShareModal({ isOpen, onClose, domain }: DomainShar
     ctx.font = 'bold 20px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.fillStyle = '#64748b';
     ctx.textAlign = 'center';
-    ctx.fillText('Powered by 66Do.com', 400, 480);
+    ctx.fillText('Powered by Domain Financial', 400, 480);
     
     ctx.font = '14px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.fillStyle = '#94a3b8';
@@ -188,7 +188,7 @@ export default function DomainShareModal({ isOpen, onClose, domain }: DomainShar
     if (!canvasRef.current) return;
     
     const link = document.createElement('a');
-    link.download = `66do-domain-success-${domain.domain_name}-${new Date().toISOString().split('T')[0]}.png`;
+    link.download = `domain-financial-domain-success-${domain.domain_name}-${new Date().toISOString().split('T')[0]}.png`;
     link.href = canvasRef.current.toDataURL();
     link.click();
   };
@@ -199,7 +199,7 @@ export default function DomainShareModal({ isOpen, onClose, domain }: DomainShar
 
     const profit = calculateDomainProfit();
     const roi = calculateROI();
-    const text = `Successfully invested in ${domain.domain_name} on 66Do platform! Net profit $${profit.toLocaleString()}, ROI ${roi.toFixed(1)}%! 🚀 #DomainInvestment #66Do #${domain.domain_name.replace('.', '')}`;
+    const text = `Successfully invested in ${domain.domain_name} on Domain Financial! Net profit $${profit.toLocaleString()}, ROI ${roi.toFixed(1)}%! 🚀 #DomainInvestment #DomainFinancial #${domain.domain_name.replace('.', '')}`;
     
     let url = '';
     switch (platform) {
@@ -207,10 +207,10 @@ export default function DomainShareModal({ isOpen, onClose, domain }: DomainShar
         url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
         break;
       case 'linkedin':
-        url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent('https://66do.com')}`;
+        url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent('https://www.domain.financial')}`;
         break;
       case 'facebook':
-        url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent('https://66do.com')}`;
+        url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent('https://www.domain.financial')}`;
         break;
       case 'wechat':
         // 微信分享需要特殊处理

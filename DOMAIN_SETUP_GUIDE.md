@@ -1,11 +1,11 @@
-# 66do.com 域名设置指南
+# domain.financial 域名设置指南
 
 ## 🌐 域名配置步骤
 
 ### 1. Vercel项目设置
 
 #### 导入项目时
-- **Project Name**: `66do` (可以使用原名称，因为会使用自定义域名)
+- **Project Name**: `domain-financial` (可以使用原名称，因为会使用自定义域名)
 - **Framework**: Next.js
 - **Root Directory**: `./`
 - **Build Command**: `npm run build`
@@ -13,8 +13,8 @@
 
 #### 环境变量设置
 ```
-NEXT_PUBLIC_APP_NAME = 66Do
-NEXT_PUBLIC_APP_URL = https://66do.com
+NEXT_PUBLIC_APP_NAME = Domain Financial
+NEXT_PUBLIC_APP_URL = https://domain.financial
 NEXT_PUBLIC_SUPABASE_URL = your-supabase-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY = your-supabase-anon-key
 ```
@@ -25,7 +25,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY = your-supabase-anon-key
 1. 进入项目设置
 2. 点击 "Domains" 标签
 3. 点击 "Add Domain"
-4. 输入 `66do.com`
+4. 输入 `domain.financial`
 5. 点击 "Add"
 
 #### 配置DNS记录
@@ -75,7 +75,7 @@ www → cname.vercel-dns.com (关闭代理)
 - 通常需要几分钟到几小时
 
 #### 验证SSL
-- 访问 `https://66do.com` 确认SSL正常工作
+- 访问 `https://domain.financial` 确认SSL正常工作
 - 检查浏览器地址栏的锁图标
 
 ### 5. 域名验证
@@ -95,7 +95,7 @@ www → cname.vercel-dns.com (关闭代理)
 ### 6. 测试部署
 
 #### 访问应用
-1. 访问 `https://66do.com`
+1. 访问 `https://domain.financial`
 2. 确认应用正常加载
 3. 测试用户注册和登录功能
 

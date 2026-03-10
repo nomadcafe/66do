@@ -12,7 +12,7 @@ interface Translations {
 const translations: Record<Locale, Translations> = {
   zh: {
     platform: {
-      name: '66Do',
+      name: 'Domain Financial',
       subtitle: '域名投资平台'
     },
     nav: {
@@ -669,7 +669,7 @@ const translations: Record<Locale, Translations> = {
     },
     monitoring: {
       title: '域名到期监控',
-      notificationTitle: '66Do 域名提醒',
+      notificationTitle: 'Domain Financial 域名提醒',
       startMonitoring: '开始监控',
       stopMonitoring: '停止监控',
       checkNow: '立即检查',
@@ -701,7 +701,7 @@ const translations: Record<Locale, Translations> = {
       lastUpdated: '最后更新',
       introduction: {
         title: '介绍',
-        content: '66Do致力于保护您的隐私和个人数据。本隐私政策说明了您使用我们的域名投资管理平台时，我们如何收集、使用、存储和保护您的信息。'
+        content: 'Domain Financial 致力于保护您的隐私和个人数据。本隐私政策说明了您使用我们的域名投资管理平台时，我们如何收集、使用、存储和保护您的信息。'
       },
       dataCollection: {
         title: '我们收集的数据',
@@ -799,7 +799,7 @@ const translations: Record<Locale, Translations> = {
         email: '邮箱',
         response: '我们将在48小时内回复所有询问。'
       },
-      footer: '本隐私政策自上述日期起生效，适用于66Do平台的所有用户。'
+      footer: '本隐私政策自上述日期起生效，适用于 Domain Financial 平台的所有用户。'
     },
     domain: {
       expiryMonitoring: '域名到期监控',
@@ -849,11 +849,11 @@ const translations: Record<Locale, Translations> = {
       investmentCount: '投资数量'
     },
     home: {
-      title: '66Do-域名投资平台',
+      title: 'Domain Financial - 域名投资平台',
       subtitle: '智能化的域名管理工具，帮您轻松追踪每个域名的成本、收益与表现。',
       getStarted: '开始使用',
       startJourney: '开始您的域名投资之旅',
-      joinThousands: '加入域名投资者使用66Do追踪他们的域名投资组合',
+      joinThousands: '加入域名投资者使用 Domain Financial 追踪他们的域名投资组合',
       startFree: '免费开始',
       feature1: '从一个域名开始，管理你的数字资产。',
       feature2: '记录购买、出售与到期时间。',
@@ -911,7 +911,7 @@ const translations: Record<Locale, Translations> = {
   },
   en: {
     platform: {
-      name: '66Do',
+      name: 'Domain Financial',
       subtitle: 'Domain Investment Platform'
     },
     nav: {
@@ -1552,7 +1552,7 @@ const translations: Record<Locale, Translations> = {
     },
     monitoring: {
       title: 'Domain Expiry Monitoring',
-      notificationTitle: '66Do Domain Alert',
+      notificationTitle: 'Domain Financial Domain Alert',
       startMonitoring: 'Start Monitoring',
       stopMonitoring: 'Stop Monitoring',
       checkNow: 'Check Now',
@@ -1658,7 +1658,7 @@ const translations: Record<Locale, Translations> = {
       lastUpdated: 'Last Updated',
       introduction: {
         title: 'Introduction',
-        content: '66Do is committed to protecting your privacy and personal data. This Privacy Policy explains how we collect, use, store, and protect your information when you use our domain investment management platform.'
+        content: 'Domain Financial is committed to protecting your privacy and personal data. This Privacy Policy explains how we collect, use, store, and protect your information when you use our domain investment management platform.'
       },
       dataCollection: {
         title: 'Data We Collect',
@@ -1756,7 +1756,7 @@ const translations: Record<Locale, Translations> = {
         email: 'Email',
         response: 'We will respond to all inquiries within 48 hours.'
       },
-      footer: 'This Privacy Policy is effective as of the date listed above and applies to all users of the 66Do platform.'
+      footer: 'This Privacy Policy is effective as of the date listed above and applies to all users of the Domain Financial platform.'
     },
     domain: {
       expiryMonitoring: 'Domain Expiry Monitoring',
@@ -1806,11 +1806,11 @@ const translations: Record<Locale, Translations> = {
       investmentCount: 'Investment Count'
     },
     home: {
-      title: '66Do-Domain Investment Platform',
+      title: 'Domain Financial - Domain Investment Platform',
       subtitle: 'Intelligent domain management tools to help you easily track the cost, revenue and performance of each domain.',
       getStarted: 'Get Started',
       startJourney: 'Start Your Domain Investment Journey',
-      joinThousands: 'Join domain investors using 66Do to track their domain portfolios',
+      joinThousands: 'Join domain investors using Domain Financial to track their domain portfolios',
       startFree: 'Start Free',
       feature1: 'Start with one domain and manage your digital assets.',
       feature2: 'Track purchases, sales, and expiration dates.',
@@ -1890,7 +1890,7 @@ export function useI18n() {
 
   useEffect(() => {
     // 从localStorage获取保存的语言设置
-    const savedLocale = localStorage.getItem('66do-locale') as Locale;
+    const savedLocale = localStorage.getItem('domain_financial_locale') as Locale;
     if (savedLocale && (savedLocale === 'zh' || savedLocale === 'en')) {
       setLocale(savedLocale);
     } else {
@@ -1904,7 +1904,7 @@ export function useI18n() {
 
   const changeLocale = (newLocale: Locale) => {
     setLocale(newLocale);
-    localStorage.setItem('66do-locale', newLocale);
+    localStorage.setItem('domain_financial_locale', newLocale);
   };
 
   const t = (key: string): string => {

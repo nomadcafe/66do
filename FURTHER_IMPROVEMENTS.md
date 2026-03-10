@@ -285,8 +285,8 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 # 应用配置
-NEXT_PUBLIC_APP_NAME=66Do
-NEXT_PUBLIC_APP_URL=https://www.66do.com
+NEXT_PUBLIC_APP_NAME=Domain Financial
+NEXT_PUBLIC_APP_URL=https://www.domain.financial
 
 # 调试配置（可选）
 NEXT_PUBLIC_ENABLE_DEBUG_LOGS=false

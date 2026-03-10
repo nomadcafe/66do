@@ -108,7 +108,7 @@ export default function UserPreferencesPanel() {
 
   const loadPreferences = () => {
     try {
-      const saved = localStorage.getItem('66do_preferences');
+      const saved = localStorage.getItem('domain_financial_preferences');
       if (saved) {
         const parsed = JSON.parse(saved);
         setPreferences(prev => ({ ...prev, ...parsed }));
@@ -121,7 +121,7 @@ export default function UserPreferencesPanel() {
   const savePreferences = async () => {
     setSaving(true);
     try {
-      localStorage.setItem('66do_preferences', JSON.stringify(preferences));
+      localStorage.setItem('domain_financial_preferences', JSON.stringify(preferences));
       // 这里可以添加API调用来保存到服务器
       await new Promise(resolve => setTimeout(resolve, 1000)); // 模拟API调用
     } catch (error) {
