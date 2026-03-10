@@ -107,7 +107,7 @@ interface RiskAnalysis {
 }
 
 export default function InvestmentAnalytics({ domains, transactions }: InvestmentAnalyticsProps) {
-  const { t } = useI18nContext();
+  const { t, locale } = useI18nContext();
   const [selectedTimeframe, setSelectedTimeframe] = useState<'3M' | '6M' | '1Y' | 'ALL'>('ALL');
   const [selectedMetric, setSelectedMetric] = useState<'portfolio' | 'performance' | 'risk' | 'trends'>('portfolio');
 
@@ -257,7 +257,9 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
 
     const activeDomains = filteredData.domains.filter(d => d.status === 'active').length;
     const forSaleDomains = filteredData.domains.filter(d => d.status === 'for_sale').length;
-    const liquidityRisk = totalValue > 0 ? ((activeDomains + forSaleDomains) / filteredData.domains.length) * 100 : 0;
+    const liquidityRisk = filteredData.domains.length > 0 && totalValue > 0
+      ? ((activeDomains + forSaleDomains) / filteredData.domains.length) * 100
+      : 0;
 
     const diversificationScore = Math.min(100, filteredData.domains.length * 10); // 每个域名10分，最高100分
 
@@ -270,16 +272,16 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
 
     const recommendations: string[] = [];
     if (concentrationRisk > 30) {
-      recommendations.push('考虑分散投资，降低单一域名占比');
+      recommendations.push(t('analytics.considerDiversification'));
     }
     if (portfolioMetrics.volatility > 20) {
-      recommendations.push('投资组合波动性较高，建议增加稳定收益域名');
+      recommendations.push(t('analytics.highVolatility'));
     }
     if (liquidityRisk < 50) {
-      recommendations.push('流动性不足，建议增加待售域名数量');
+      recommendations.push(t('analytics.lowLiquidity'));
     }
     if (filteredData.domains.length < 5) {
-      recommendations.push('域名数量较少，建议增加投资组合多样性');
+      recommendations.push(t('analytics.lowDiversity'));
     }
 
     return {
@@ -289,7 +291,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       liquidityRisk,
       recommendations
     };
-  }, [filteredData.domains, portfolioMetrics]);
+  }, [filteredData.domains, portfolioMetrics, t]);
 
   // 辅助函数已移至共享计算库
 
@@ -516,7 +518,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
               ]}
               labelFormatter={(value) => {
                 const date = new Date(value);
-                return date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' });
+                return date.toLocaleDateString(locale === 'zh' ? 'zh-CN' : 'en-US', { year: 'numeric', month: 'long' });
               }}
             />
             <Legend 
@@ -580,35 +582,36 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
   const renderRiskAnalysis = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">风险指标</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.riskMetrics')}</h3>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-gray-600">风险等级</span>
+            <span className="text-gray-600">{t('analytics.riskLevel')}</span>
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${
               riskAnalysis.riskLevel === 'Low' ? 'bg-green-100 text-green-800' :
               riskAnalysis.riskLevel === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
               'bg-red-100 text-red-800'
             }`}>
-              {riskAnalysis.riskLevel}
+              {riskAnalysis.riskLevel === 'Low' ? t('analytics.lowRisk') :
+               riskAnalysis.riskLevel === 'Medium' ? t('analytics.mediumRisk') : t('analytics.highRisk')}
             </span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-gray-600">分散化评分</span>
+            <span className="text-gray-600">{t('analytics.diversificationScore')}</span>
             <span className="text-lg font-semibold">{riskAnalysis.diversificationScore}/100</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-gray-600">集中度风险</span>
+            <span className="text-gray-600">{t('analytics.concentrationRisk')}</span>
             <span className="text-lg font-semibold">{riskAnalysis.concentrationRisk.toFixed(1)}%</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-gray-600">流动性风险</span>
+            <span className="text-gray-600">{t('analytics.liquidityRisk')}</span>
             <span className="text-lg font-semibold">{riskAnalysis.liquidityRisk.toFixed(1)}%</span>
           </div>
         </div>
       </div>
 
       <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">投资建议</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.investmentAdvice')}</h3>
         <div className="space-y-3">
           {riskAnalysis.recommendations.length > 0 ? (
             riskAnalysis.recommendations.map((recommendation, index) => (
@@ -620,7 +623,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
           ) : (
             <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
               <Target className="h-5 w-5 text-green-600" />
-              <p className="text-sm text-green-800">投资组合表现良好，风险控制得当</p>
+              <p className="text-sm text-green-800">{t('analytics.portfolioPerformingWell')}</p>
             </div>
           )}
         </div>
@@ -657,7 +660,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       .map(([suffix, count]) => ({
         name: `.${suffix}`,
         value: count,
-        percentage: (count / heldDomains.length) * 100
+        percentage: heldDomains.length > 0 ? (count / heldDomains.length) * 100 : 0
       }))
       .sort((a, b) => b.value - a.value);
 
@@ -665,7 +668,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       .map(([suffix, count]) => ({
         name: `.${suffix}`,
         value: count,
-        percentage: (count / soldDomains.length) * 100
+        percentage: soldDomains.length > 0 ? (count / soldDomains.length) * 100 : 0
       }))
       .sort((a, b) => b.value - a.value);
 
@@ -679,31 +682,28 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
 
   const renderTrendsAnalysis = () => (
     <div className="space-y-6">
-      {/* 月度收益趋势 */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">月度收益趋势</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.monthlyReturnTrend')}</h3>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={timeSeriesData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="date" />
             <YAxis />
-            <Tooltip formatter={(value) => [`${Number(value).toFixed(1)}%`, '月度收益']} />
+            <Tooltip formatter={(value) => [`${Number(value).toFixed(1)}%`, t('analytics.monthlyReturn')]} />
             <Line 
               type="monotone" 
               dataKey="monthlyReturn" 
               stroke="#3B82F6" 
               strokeWidth={2}
-              name="月度收益"
+              name={t('analytics.monthlyReturn')}
             />
           </LineChart>
         </ResponsiveContainer>
       </div>
 
-      {/* 域名后缀分析 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 持有域名后缀分布 */}
         <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">持有域名后缀分布</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.heldDomainSuffix')}</h3>
           {domainSuffixAnalysis.heldSuffixData.length > 0 ? (
             <div className="space-y-4">
               <ResponsiveContainer width="100%" height={250}>
@@ -721,18 +721,16 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
                       <Cell key={`cell-${index}`} fill={`hsl(${index * 60}, 70%, 50%)`} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value, name) => [`${value}个`, name]} />
+                  <Tooltip formatter={(value, name) => [`${value}${t('analytics.countUnit')}`, name]} />
                 </PieChart>
               </ResponsiveContainer>
-              
-              {/* 后缀统计列表 */}
               <div className="space-y-2">
-                <h4 className="font-medium text-gray-700">详细统计</h4>
+                <h4 className="font-medium text-gray-700">{t('analytics.detailedStats')}</h4>
                 {domainSuffixAnalysis.heldSuffixData.slice(0, 5).map((suffix, index) => (
                   <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                     <span className="text-sm font-medium">{suffix.name}</span>
                     <div className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-600">{suffix.value}个</span>
+                      <span className="text-sm text-gray-600">{suffix.value}{t('analytics.countUnit')}</span>
                       <span className="text-xs text-gray-500">({suffix.percentage.toFixed(1)}%)</span>
                     </div>
                   </div>
@@ -742,14 +740,13 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
           ) : (
             <div className="text-center py-8 text-gray-500">
               <Globe className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p>暂无持有域名数据</p>
+              <p>{t('analytics.noHeldDomains')}</p>
             </div>
           )}
         </div>
 
-        {/* 出售域名后缀分布 */}
         <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">出售域名后缀分布</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.soldDomainSuffix')}</h3>
           {domainSuffixAnalysis.soldSuffixData.length > 0 ? (
             <div className="space-y-4">
               <ResponsiveContainer width="100%" height={250}>
@@ -767,18 +764,16 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
                       <Cell key={`cell-${index}`} fill={`hsl(${index * 60 + 180}, 70%, 50%)`} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value, name) => [`${value}个`, name]} />
+                  <Tooltip formatter={(value, name) => [`${value}${t('analytics.countUnit')}`, name]} />
                 </PieChart>
               </ResponsiveContainer>
-              
-              {/* 后缀统计列表 */}
               <div className="space-y-2">
-                <h4 className="font-medium text-gray-700">详细统计</h4>
+                <h4 className="font-medium text-gray-700">{t('analytics.detailedStats')}</h4>
                 {domainSuffixAnalysis.soldSuffixData.slice(0, 5).map((suffix, index) => (
                   <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                     <span className="text-sm font-medium">{suffix.name}</span>
                     <div className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-600">{suffix.value}个</span>
+                      <span className="text-sm text-gray-600">{suffix.value}{t('analytics.countUnit')}</span>
                       <span className="text-xs text-gray-500">({suffix.percentage.toFixed(1)}%)</span>
                     </div>
                   </div>
@@ -788,19 +783,17 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
           ) : (
             <div className="text-center py-8 text-gray-500">
               <Globe className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p>暂无出售域名数据</p>
+              <p>{t('analytics.noSoldDomains')}</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* 后缀对比分析 */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">后缀对比分析</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.suffixComparison')}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* 持有域名后缀排名 */}
           <div>
-            <h4 className="font-medium text-gray-700 mb-3">持有域名后缀排名</h4>
+            <h4 className="font-medium text-gray-700 mb-3">{t('analytics.heldDomainRanking')}</h4>
             <div className="space-y-2">
               {domainSuffixAnalysis.heldSuffixData.slice(0, 8).map((suffix, index) => (
                 <div key={index} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
@@ -811,7 +804,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
                     <span className="font-medium text-gray-900">{suffix.name}</span>
                   </div>
                   <div className="text-right">
-                    <span className="text-sm font-semibold text-blue-600">{suffix.value}个</span>
+                    <span className="text-sm font-semibold text-blue-600">{suffix.value}{t('analytics.countUnit')}</span>
                     <p className="text-xs text-gray-500">{suffix.percentage.toFixed(1)}%</p>
                   </div>
                 </div>
@@ -819,9 +812,8 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
             </div>
           </div>
 
-          {/* 出售域名后缀排名 */}
           <div>
-            <h4 className="font-medium text-gray-700 mb-3">出售域名后缀排名</h4>
+            <h4 className="font-medium text-gray-700 mb-3">{t('analytics.soldDomainRanking')}</h4>
             <div className="space-y-2">
               {domainSuffixAnalysis.soldSuffixData.slice(0, 8).map((suffix, index) => (
                 <div key={index} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
@@ -832,7 +824,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
                     <span className="font-medium text-gray-900">{suffix.name}</span>
                   </div>
                   <div className="text-right">
-                    <span className="text-sm font-semibold text-green-600">{suffix.value}个</span>
+                    <span className="text-sm font-semibold text-green-600">{suffix.value}{t('analytics.countUnit')}</span>
                     <p className="text-xs text-gray-500">{suffix.percentage.toFixed(1)}%</p>
                   </div>
                 </div>
@@ -842,17 +834,16 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         </div>
       </div>
 
-      {/* 投资分布 */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">投资分布</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.investmentDistribution')}</h3>
         <ResponsiveContainer width="100%" height={300}>
           <PieChart>
             <Pie
               data={[
-                { name: '活跃域名', value: filteredData.domains.filter(d => d.status === 'active').length, color: '#10B981' },
-                { name: '待售域名', value: filteredData.domains.filter(d => d.status === 'for_sale').length, color: '#F59E0B' },
-                { name: '已售域名', value: filteredData.domains.filter(d => d.status === 'sold').length, color: '#3B82F6' },
-                { name: '已过期', value: filteredData.domains.filter(d => d.status === 'expired').length, color: '#EF4444' },
+                { name: t('analytics.activeDomains'), value: filteredData.domains.filter(d => d.status === 'active').length, color: '#10B981' },
+                { name: t('analytics.forSaleDomains'), value: filteredData.domains.filter(d => d.status === 'for_sale').length, color: '#F59E0B' },
+                { name: t('analytics.soldDomains'), value: filteredData.domains.filter(d => d.status === 'sold').length, color: '#3B82F6' },
+                { name: t('analytics.expiredDomains'), value: filteredData.domains.filter(d => d.status === 'expired').length, color: '#EF4444' },
               ]}
               cx="50%"
               cy="50%"
@@ -863,10 +854,10 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
               dataKey="value"
             >
               {[
-                { name: '活跃域名', value: filteredData.domains.filter(d => d.status === 'active').length, color: '#10B981' },
-                { name: '待售域名', value: filteredData.domains.filter(d => d.status === 'for_sale').length, color: '#F59E0B' },
-                { name: '已售域名', value: filteredData.domains.filter(d => d.status === 'sold').length, color: '#3B82F6' },
-                { name: '已过期', value: filteredData.domains.filter(d => d.status === 'expired').length, color: '#EF4444' },
+                { name: t('analytics.activeDomains'), value: filteredData.domains.filter(d => d.status === 'active').length, color: '#10B981' },
+                { name: t('analytics.forSaleDomains'), value: filteredData.domains.filter(d => d.status === 'for_sale').length, color: '#F59E0B' },
+                { name: t('analytics.soldDomains'), value: filteredData.domains.filter(d => d.status === 'sold').length, color: '#3B82F6' },
+                { name: t('analytics.expiredDomains'), value: filteredData.domains.filter(d => d.status === 'expired').length, color: '#EF4444' },
               ].map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
@@ -915,20 +906,20 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
               onChange={(e) => setSelectedMetric(e.target.value as 'portfolio' | 'performance' | 'risk' | 'trends')}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="portfolio">投资组合</option>
-              <option value="performance">表现分析</option>
-              <option value="risk">风险评估</option>
-              <option value="trends">趋势分析</option>
+              <option value="portfolio">{t('analytics.tab.portfolio')}</option>
+              <option value="performance">{t('analytics.tab.performance')}</option>
+              <option value="risk">{t('analytics.tab.risk')}</option>
+              <option value="trends">{t('analytics.tab.trends')}</option>
             </select>
             <select
               value={selectedTimeframe}
               onChange={(e) => setSelectedTimeframe(e.target.value as '3M' | '6M' | '1Y' | 'ALL')}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="3M">3个月</option>
-              <option value="6M">6个月</option>
-              <option value="1Y">1年</option>
-              <option value="ALL">全部</option>
+              <option value="3M">{t('analytics.timeframe.3M')}</option>
+              <option value="6M">{t('analytics.timeframe.6M')}</option>
+              <option value="1Y">{t('analytics.timeframe.1Y')}</option>
+              <option value="ALL">{t('analytics.timeframe.ALL')}</option>
             </select>
           </div>
         </div>
@@ -995,22 +986,22 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         <div className="space-y-6">
           {renderPerformanceChart()}
           <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">关键指标</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.keyMetrics')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">胜率</p>
+                <p className="text-sm text-gray-600">{t('analytics.winRate')}</p>
                 <p className="text-2xl font-bold text-green-600">{portfolioMetrics.winRate.toFixed(1)}%</p>
               </div>
               <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">平均持有期</p>
-                <p className="text-2xl font-bold text-blue-600">{portfolioMetrics.avgHoldingPeriod.toFixed(0)}天</p>
+                <p className="text-sm text-gray-600">{t('analytics.avgHoldingPeriodLabel')}</p>
+                <p className="text-2xl font-bold text-blue-600">{portfolioMetrics.avgHoldingPeriod.toFixed(0)}{t('analytics.daysUnit')}</p>
               </div>
               <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">最大回撤</p>
+                <p className="text-sm text-gray-600">{t('analytics.maxDrawdownLabel')}</p>
                 <p className="text-2xl font-bold text-red-600">{portfolioMetrics.maxDrawdown.toFixed(1)}%</p>
               </div>
               <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">波动率</p>
+                <p className="text-sm text-gray-600">{t('analytics.volatilityLabel')}</p>
                 <p className="text-2xl font-bold text-orange-600">{portfolioMetrics.volatility.toFixed(1)}%</p>
               </div>
             </div>
@@ -1026,19 +1017,19 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         <div className="space-y-6">
           {renderTrendsAnalysis()}
           <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">最佳/最差表现</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.bestWorstTitle')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="p-4 bg-green-50 rounded-lg">
                 <div className="flex items-center space-x-2 mb-2">
                   <TrendingUp className="h-5 w-5 text-green-600" />
-                  <span className="font-medium text-green-800">最佳表现</span>
+                  <span className="font-medium text-green-800">{t('analytics.bestPerformance')}</span>
                 </div>
                 <p className="text-lg font-semibold text-green-900">{portfolioMetrics.bestPerformingDomain}</p>
               </div>
               <div className="p-4 bg-red-50 rounded-lg">
                 <div className="flex items-center space-x-2 mb-2">
                   <TrendingDown className="h-5 w-5 text-red-600" />
-                  <span className="font-medium text-red-800">最差表现</span>
+                  <span className="font-medium text-red-800">{t('analytics.worstPerformance')}</span>
                 </div>
                 <p className="text-lg font-semibold text-red-900">{portfolioMetrics.worstPerformingDomain}</p>
               </div>
