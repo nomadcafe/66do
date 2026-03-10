@@ -78,12 +78,12 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     setLoading(true);
     try {
       console.log('Sending magic link to:', email);
-      console.log('Redirect URL:', 'https://www.66do.com/auth/magic-link');
+      console.log('Redirect URL:', 'https://www.domain.financial/auth/magic-link');
       
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `https://www.66do.com/auth/magic-link`,
+          emailRedirectTo: `https://www.domain.financial/auth/magic-link`,
           shouldCreateUser: true, // 自动创建用户
         }
       });

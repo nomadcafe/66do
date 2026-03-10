@@ -346,13 +346,13 @@ export default function HomePage() {
               </h4>
               <p className="mt-4 flex items-center gap-2 text-sm">
                 <span className="h-2 w-2 rounded-full bg-teal-500" />
-                hello # 66do.com
+                hello@domain.financial
               </p>
             </div>
           </div>
           <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-stone-800 pt-8 sm:flex-row">
             <p className="text-xs text-stone-500">
-              &copy; 2024 66Do. All rights reserved. Built with ❤️ for domain
+              &copy; 2024 Domain Financial. All rights reserved. Built with ❤️ for domain
               investors.
             </p>
             <div className="flex gap-6 text-xs">

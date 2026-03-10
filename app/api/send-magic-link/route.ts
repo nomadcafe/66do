@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 使用Supabase原生Magic Link
-    const redirectUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.66do.com'}/auth/magic-link`
+    const redirectUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.domain.financial'}/auth/magic-link`
     
     logger.log('Sending magic link to:', email)
     logger.log('Redirect URL:', redirectUrl)

@@ -78,15 +78,15 @@ export class EmailAlertService {
   // 生成邮件主题
   private generateSubject(critical: number, urgent: number, warning: number, expired: number): string {
     if (expired > 0) {
-      return `🚨 紧急：${expired} 个域名已过期 - 66Do 提醒`;
+      return `🚨 紧急：${expired} 个域名已过期 - Domain Financial 提醒`;
     } else if (critical > 0) {
-      return `🔥 紧急：${critical} 个域名即将到期 - 66Do 提醒`;
+      return `🔥 紧急：${critical} 个域名即将到期 - Domain Financial 提醒`;
     } else if (urgent > 0) {
-      return `⚠️ 重要：${urgent} 个域名需要关注 - 66Do 提醒`;
+      return `⚠️ 重要：${urgent} 个域名需要关注 - Domain Financial 提醒`;
     } else if (warning > 0) {
-      return `📢 提醒：${warning} 个域名即将到期 - 66Do 提醒`;
+      return `📢 提醒：${warning} 个域名即将到期 - Domain Financial 提醒`;
     } else {
-      return `66Do 域名到期提醒`;
+      return `Domain Financial 域名到期提醒`;
     }
   }
 
@@ -99,7 +99,7 @@ export class EmailAlertService {
       <html>
       <head>
         <meta charset="UTF-8">
-        <title>66Do 域名到期提醒</title>
+        <title>Domain Financial 域名到期提醒</title>
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
@@ -119,7 +119,7 @@ export class EmailAlertService {
       <body>
         <div class="container">
           <div class="header">
-            <h1>66Do 域名到期提醒</h1>
+            <h1>Domain Financial 域名到期提醒</h1>
             <p>检查时间：${now}</p>
           </div>
           <div class="content">
@@ -166,7 +166,7 @@ export class EmailAlertService {
     html += `
           </div>
           <div class="footer">
-            <p>此邮件由 66Do 域名投资管理系统自动发送</p>
+            <p>此邮件由 Domain Financial 域名投资管理系统自动发送</p>
             <p>如需修改提醒设置，请登录系统进行配置</p>
           </div>
         </div>
@@ -215,7 +215,7 @@ export class EmailAlertService {
   private generateTextContent(expiryInfos: DomainExpiryInfo[]): string {
     const now = new Date().toLocaleDateString('zh-CN');
     
-    let text = `66Do 域名到期提醒\n`;
+    let text = `Domain Financial 域名到期提醒\n`;
     text += `检查时间：${now}\n\n`;
 
     // 按紧急程度分组
@@ -256,7 +256,7 @@ export class EmailAlertService {
       text += '\n';
     }
 
-    text += `\n此邮件由 66Do 域名投资管理系统自动发送\n`;
+    text += `\n此邮件由 Domain Financial 域名投资管理系统自动发送\n`;
     text += `如需修改提醒设置，请登录系统进行配置`;
 
     return text;

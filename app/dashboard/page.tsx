@@ -920,7 +920,7 @@ export default function DashboardPage() {
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement('a');
                   a.href = url;
-                  a.download = `66do-backup-${new Date().toISOString().split('T')[0]}.json`;
+                  a.download = `domain-financial-backup-${new Date().toISOString().split('T')[0]}.json`;
                   a.click();
                 } else if (format === 'csv') {
                   // TODO: Implement CSV export

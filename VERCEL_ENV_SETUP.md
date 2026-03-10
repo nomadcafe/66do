@@ -14,11 +14,11 @@
 
 ```
 Name: NEXT_PUBLIC_APP_NAME
-Value: 66Do
+Value: Domain Financial
 Environment: Production, Preview, Development
 
 Name: NEXT_PUBLIC_APP_URL  
-Value: https://66do.com
+Value: https://www.domain.financial
 Environment: Production, Preview, Development
 
 Name: NEXT_PUBLIC_SUPABASE_URL
