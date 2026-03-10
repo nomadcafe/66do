@@ -82,7 +82,7 @@ export default function HomePage() {
       {/* ─── Navigation ───────────────────────────────────────────────── */}
       <header
         className="sticky top-0 z-50 border-b backdrop-blur-md"
-        style={{ borderColor: 'var(--home-border)', backgroundColor: 'rgba(250, 249, 246, 0.92)' }}
+        style={{ borderColor: 'var(--home-border)', backgroundColor: 'var(--home-header-bg)' }}
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-2.5">
@@ -123,6 +123,7 @@ export default function HomePage() {
         </div>
       </header>
 
+      <main>
       {/* ─── Hero ─────────────────────────────────────────────────────── */}
       <section
         className="relative overflow-hidden border-b"
@@ -263,6 +264,7 @@ export default function HomePage() {
           </button>
         </div>
       </section>
+      </main>
 
       {/* ─── Footer ──────────────────────────────────────────────────── */}
       <footer className="text-stone-300" style={{ backgroundColor: '#1c1917' }}>
@@ -298,17 +300,17 @@ export default function HomePage() {
               </h4>
               <ul className="mt-4 space-y-2 text-sm">
                 <li>
-                  <a href="/dashboard" className="transition hover:text-white">
+                  <a href={user ? '/dashboard' : '/login?redirect=/dashboard'} className="transition hover:text-white">
                     {t('footer.investmentManagement')}
                   </a>
                 </li>
                 <li>
-                  <a href="/dashboard" className="transition hover:text-white">
+                  <a href={user ? '/dashboard' : '/login?redirect=/dashboard'} className="transition hover:text-white">
                     {t('footer.dataAnalytics')}
                   </a>
                 </li>
                 <li>
-                  <a href="/dashboard" className="transition hover:text-white">
+                  <a href={user ? '/dashboard' : '/login?redirect=/dashboard'} className="transition hover:text-white">
                     {t('footer.performanceTracking')}
                   </a>
                 </li>
@@ -352,13 +354,13 @@ export default function HomePage() {
             </p>
             <div className="flex gap-6 text-xs">
               <a href="/privacy" className="transition hover:text-white">
-                Privacy
+                {t('footer.privacyShort')}
               </a>
               <a href="/privacy" className="transition hover:text-white" title={locale === 'zh' ? '条款即将推出' : 'Terms coming soon'}>
-                Terms
+                {t('footer.termsShort')}
               </a>
               <a href="/privacy" className="transition hover:text-white" title={locale === 'zh' ? 'Cookie 说明即将推出' : 'Cookies info coming soon'}>
-                Cookies
+                {t('footer.cookiesShort')}
               </a>
             </div>
           </div>

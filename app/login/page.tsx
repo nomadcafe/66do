@@ -2,25 +2,34 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useI18nContext } from '../../src/contexts/I18nProvider';
 import { useSupabaseAuth } from '../../src/contexts/SupabaseAuthContext';
 import { Mail, Send, ArrowLeft } from 'lucide-react';
+
+function getSafeRedirect(redirect: string | null): string {
+  if (!redirect || typeof redirect !== 'string') return '/dashboard';
+  const path = redirect.trim();
+  if (path.startsWith('/') && !path.includes('//') && !path.includes(':')) return path;
+  return '/dashboard';
+}
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const searchParams = useSearchParams();
   const { t, locale, setLocale } = useI18nContext();
   const { user, loading: authLoading } = useSupabaseAuth();
   const router = useRouter();
+  const redirectTo = getSafeRedirect(searchParams.get('redirect'));
 
   useEffect(() => {
     if (!authLoading && user) {
-      router.replace('/dashboard');
+      router.replace(redirectTo);
     }
-  }, [authLoading, user, router]);
+  }, [authLoading, user, router, redirectTo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
