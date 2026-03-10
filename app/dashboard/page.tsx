@@ -444,7 +444,7 @@ export default function DashboardPage() {
               <div>
                 <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{t('dashboard.totalDomains')}</p>
                 <p className="text-2xl font-bold text-stone-900 mt-1">{stats.totalDomains}</p>
-                <p className="text-xs text-stone-500 mt-1">{t('dashboard.active')} {stats.activeDomains} · {t('dashboard.sold')} {stats.forSaleDomains}</p>
+                <p className="text-xs text-stone-500 mt-1">{t('dashboard.active')} {stats.activeDomains} · {t('dashboard.sold')} {stats.soldDomains}</p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-stone-100 flex items-center justify-center text-stone-600"><Globe className="h-5 w-5" /></div>
             </div>
