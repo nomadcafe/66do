@@ -149,11 +149,11 @@ export default function DomainShareModal({ isOpen, onClose, domain }: DomainShar
     ctx.font = 'bold 20px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.fillStyle = '#64748b';
     ctx.textAlign = 'center';
-    ctx.fillText('Powered by Domain Financial', 400, 480);
+    ctx.fillText('Powered by Domain.Financial', 400, 480);
     
     ctx.font = '14px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.fillStyle = '#94a3b8';
-    ctx.fillText('Domain Investment Platform', 400, 500);
+    ctx.fillText('Track & Grow Your Domains', 400, 500);
 
     // 添加简洁装饰线条
     ctx.strokeStyle = '#e2e8f0';
