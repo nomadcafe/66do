@@ -67,6 +67,7 @@ import {
   RefreshCw,
   Zap,
   Database,
+  X,
 } from 'lucide-react';
 
 // Domain and Transaction types are now imported from supabaseService
@@ -84,6 +85,7 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'settings' | 'data' | 'reports'>('overview');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showShareModal, setShowShareModal] = useState(false);
+  const [mutationError, setMutationError] = useState<string | null>(null);
   
   // 使用自定义Hooks管理数据和操作
   const {
@@ -113,10 +115,12 @@ export default function DashboardPage() {
       });
       if (!response.ok) throw new Error('Failed to delete domain');
       await refreshData();
-    } catch (error) {
-      setError(`Failed to delete domain: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      setMutationError(`${t('errors.deleteDomainFailed')}: ${msg}`);
+      setTimeout(() => setMutationError(null), 5000);
     }
-  }, [user?.id, session?.access_token, refreshData, setError]);
+  }, [user?.id, session?.access_token, refreshData, t]);
 
   const domainOps = useDomainOperations(
     domains,
@@ -269,11 +273,12 @@ export default function DashboardPage() {
         domainOps.setShowDomainForm(false);
         domainOps.setShowSmartDomainForm(false);
       }
-    } catch (error) {
-      setError(`Failed to save domain: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      setTimeout(() => setError(null), 3000);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      setMutationError(`${t('errors.saveDomainFailed')}: ${msg}`);
+      setTimeout(() => setMutationError(null), 5000);
     }
-  }, [domainOps, domains, transactions, saveData, setError]);
+  }, [domainOps, domains, transactions, saveData, t]);
 
   const handleViewDomain = useCallback((domain: DomainWithTags) => {
     domainOps.setEditingDomain(domain);
@@ -437,6 +442,24 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Inline mutation error (delete/save domain) */}
+        {mutationError && (
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-800">
+            <span className="flex items-center gap-2 text-sm">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              {mutationError}
+            </span>
+            <button
+              type="button"
+              onClick={() => setMutationError(null)}
+              className="shrink-0 rounded-lg p-1.5 text-red-600 hover:bg-red-100"
+              aria-label={t('common.close')}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <div className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm hover:shadow transition">
@@ -472,7 +495,7 @@ export default function DashboardPage() {
           <div className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm hover:shadow transition">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-stone-500">ROI</p>
+                <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{t('dashboard.roi')}</p>
                 <p className="text-2xl font-bold text-stone-900 mt-1">{stats.roi.toFixed(1)}%</p>
                 <p className="text-xs text-stone-500 mt-1">{t('dashboard.totalProfit')} ${stats.totalProfit.toFixed(2)}</p>
               </div>
@@ -672,7 +695,7 @@ export default function DashboardPage() {
                   <Award className="h-4 w-4 text-emerald-500" />
                   {t('dashboard.bestPerformance')}
                 </h3>
-                <p className="text-lg font-bold text-stone-900">{stats.bestPerformingDomain}</p>
+                <p className="text-lg font-bold text-stone-900">{stats.bestPerformingDomain || '—'}</p>
                 <p className="text-xs text-stone-500 mt-1">{t('dashboard.bestInvestment')}</p>
               </div>
               <div className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm">
@@ -708,9 +731,9 @@ export default function DashboardPage() {
                           </div>
                           <div>
                             <p className="font-medium text-stone-900">
-                              {domains.find(d => d.id === transaction.domain_id)?.domain_name || 'Unknown Domain'}
+                              {domains.find(d => d.id === transaction.domain_id)?.domain_name || t('common.unknownDomain')}
                             </p>
-                            <p className="text-xs text-stone-500">{transaction.type} · {transaction.date}</p>
+                            <p className="text-xs text-stone-500">{t(`transaction.${transaction.type}`)} · {transaction.date}</p>
                           </div>
                         </div>
                         <p className={`font-semibold text-sm ${transaction.type === 'sell' ? 'text-emerald-600' : 'text-stone-700'}`}>
@@ -965,14 +988,14 @@ export default function DashboardPage() {
         {activeTab === 'reports' && (
           <div className="space-y-6">
             {/* 报告类型选择器 */}
-            <div className="bg-white p-4 rounded-lg shadow-sm border">
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-stone-200/80">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">{t('common.financialReports')}</h3>
+                <h3 className="text-lg font-semibold text-stone-900">{t('common.financialReports')}</h3>
                 <div className="flex items-center space-x-4">
                   <select
                     value={viewMode}
                     onChange={(e) => setViewMode(e.target.value as 'grid' | 'list')}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                   >
                     <option value="grid">{t('common.gridView')}</option>
                     <option value="list">{t('common.listView')}</option>
@@ -1063,7 +1086,7 @@ export default function DashboardPage() {
 
       {/* Data Source Indicator */}
       {dataSource && (
-        <div className="fixed bottom-4 right-4 bg-gray-800 text-white px-3 py-2 rounded-lg text-sm">
+        <div className="fixed bottom-4 right-4 bg-stone-800 text-white px-3 py-2 rounded-lg text-sm">
           {t('common.dataSource')}: {dataSource === 'supabase' ? t('common.cloudDatabase') : t('common.cache')}
         </div>
       )}
