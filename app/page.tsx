@@ -97,6 +97,7 @@ export default function HomePage() {
             <select
               value={locale}
               onChange={(e) => setLocale(e.target.value as 'en' | 'zh')}
+              aria-label={locale === 'zh' ? '选择语言' : 'Select language'}
               className="rounded-lg border bg-white px-2.5 py-1.5 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
               style={{ borderColor: 'var(--home-border)', color: 'var(--home-text)' }}
             >
@@ -141,7 +142,7 @@ export default function HomePage() {
               style={{ borderColor: 'rgba(20, 184, 166, 0.35)', backgroundColor: 'rgba(20, 184, 166, 0.08)', color: '#0d9488' }}
             >
               <Star className="h-3.5 w-3.5" />
-              Trusted by 200+ domain investors
+              {t('home.trustedBy')}
             </p>
             <h1 className="mb-6 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl" style={{ color: 'var(--home-text)' }}>
               {t('home.title')}
@@ -151,6 +152,7 @@ export default function HomePage() {
             </p>
             <button
               onClick={handleGetStarted}
+              aria-label={t('home.getStarted')}
               className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-teal-600/20 transition hover:bg-teal-700 hover:shadow-teal-600/25"
             >
               {t('home.getStarted')}
@@ -253,6 +255,7 @@ export default function HomePage() {
           </p>
           <button
             onClick={handleGetStarted}
+            aria-label={t('home.startFree')}
             className="mt-8 inline-flex items-center gap-2 rounded-xl bg-teal-500 px-8 py-3.5 text-base font-semibold text-white transition hover:bg-teal-400"
           >
             {t('home.startFree')}
@@ -278,15 +281,15 @@ export default function HomePage() {
                 {t('footer.description')}
               </p>
               <div className="mt-4 flex gap-2">
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-stone-800 text-xs font-medium text-stone-400 transition hover:bg-stone-700">
+                <a href="#" aria-label="Twitter" title={locale === 'zh' ? '即将推出' : 'Coming soon'} className="flex h-9 w-9 items-center justify-center rounded-lg bg-stone-800 text-xs font-medium text-stone-400 transition hover:bg-stone-700">
                   T
-                </span>
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-stone-800 text-xs font-medium text-stone-400 transition hover:bg-stone-700">
+                </a>
+                <a href="#" aria-label="Discord" title={locale === 'zh' ? '即将推出' : 'Coming soon'} className="flex h-9 w-9 items-center justify-center rounded-lg bg-stone-800 text-xs font-medium text-stone-400 transition hover:bg-stone-700">
                   D
-                </span>
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-stone-800 text-xs font-medium text-stone-400 transition hover:bg-stone-700">
+                </a>
+                <a href="#" aria-label="GitHub" title={locale === 'zh' ? '即将推出' : 'Coming soon'} className="flex h-9 w-9 items-center justify-center rounded-lg bg-stone-800 text-xs font-medium text-stone-400 transition hover:bg-stone-700">
                   G
-                </span>
+                </a>
               </div>
             </div>
             <div>
@@ -295,17 +298,17 @@ export default function HomePage() {
               </h4>
               <ul className="mt-4 space-y-2 text-sm">
                 <li>
-                  <a href="#" className="transition hover:text-white">
+                  <a href="/dashboard" className="transition hover:text-white">
                     {t('footer.investmentManagement')}
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="transition hover:text-white">
+                  <a href="/dashboard" className="transition hover:text-white">
                     {t('footer.dataAnalytics')}
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="transition hover:text-white">
+                  <a href="/dashboard" className="transition hover:text-white">
                     {t('footer.performanceTracking')}
                   </a>
                 </li>
@@ -317,7 +320,7 @@ export default function HomePage() {
               </h4>
               <ul className="mt-4 space-y-2 text-sm">
                 <li>
-                  <a href="#" className="transition hover:text-white">
+                  <a href="mailto:hello@domain.financial" className="transition hover:text-white">
                     {t('footer.contactUs')}
                   </a>
                 </li>
@@ -327,8 +330,8 @@ export default function HomePage() {
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="transition hover:text-white">
-                    Terms of Service
+                  <a href="/privacy" className="transition hover:text-white" title={locale === 'zh' ? '条款即将推出' : 'Terms coming soon'}>
+                    {locale === 'zh' ? '服务条款' : 'Terms of Service'}
                   </a>
                 </li>
               </ul>
@@ -351,10 +354,10 @@ export default function HomePage() {
               <a href="/privacy" className="transition hover:text-white">
                 Privacy
               </a>
-              <a href="#" className="transition hover:text-white">
+              <a href="/privacy" className="transition hover:text-white" title={locale === 'zh' ? '条款即将推出' : 'Terms coming soon'}>
                 Terms
               </a>
-              <a href="#" className="transition hover:text-white">
+              <a href="/privacy" className="transition hover:text-white" title={locale === 'zh' ? 'Cookie 说明即将推出' : 'Cookies info coming soon'}>
                 Cookies
               </a>
             </div>

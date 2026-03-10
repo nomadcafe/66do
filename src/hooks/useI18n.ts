@@ -12,8 +12,8 @@ interface Translations {
 const translations: Record<Locale, Translations> = {
   zh: {
     platform: {
-      name: 'Domain Financial',
-      subtitle: '域名投资平台'
+      name: 'Domain.Financial',
+      subtitle: '追踪与增值你的域名'
     },
     nav: {
       signIn: '登录',
@@ -853,7 +853,8 @@ const translations: Record<Locale, Translations> = {
       subtitle: '智能化的域名管理工具，帮您轻松追踪每个域名的成本、收益与表现。',
       getStarted: '开始使用',
       startJourney: '开始您的域名投资之旅',
-      joinThousands: '加入域名投资者使用 Domain Financial 追踪他们的域名投资组合',
+      trustedBy: '已有 200+ 域名投资者使用',
+      joinThousands: '加入域名投资者使用 Domain.Financial 追踪他们的域名投资组合',
       startFree: '免费开始',
       feature1: '从一个域名开始，管理你的数字资产。',
       feature2: '记录购买、出售与到期时间。',
@@ -882,18 +883,18 @@ const translations: Record<Locale, Translations> = {
     },
     benefits: {
       title: '为什么选择我们',
-      subtitle: '简单智能的域名管理与分析工具',
+      subtitle: '少操心、少遗漏，把时间花在好域名上',
       portfolio: {
-        title: '域名管理',
-        desc: '统一记录与追踪所有域名状态'
+        title: '一个地方管好所有域名',
+        desc: '不再遗漏续费，统一记录与追踪所有域名状态'
       },
       analytics: {
-        title: '数据概览',
-        desc: '一目了然地了解你的域名表现'
+        title: '决策更清晰',
+        desc: '数据可视化，续费与出售决策一目了然'
       },
       market: {
-        title: '灵感与趋势',
-        desc: '优化成本，发现买卖机会'
+        title: '发现趋势与机会',
+        desc: '优化成本，抓住买卖时机'
       }
     },
     footer: {
@@ -911,7 +912,7 @@ const translations: Record<Locale, Translations> = {
   },
   en: {
     platform: {
-      name: 'Domain Financial',
+      name: 'Domain.Financial',
       subtitle: 'Track & Grow Your Domains'
     },
     nav: {
@@ -1810,7 +1811,8 @@ const translations: Record<Locale, Translations> = {
       subtitle: 'Intelligent domain management tools to help you easily track the cost, revenue and performance of each domain.',
       getStarted: 'Get Started',
       startJourney: 'Start Your Domain Investment Journey',
-      joinThousands: 'Join domain investors using Domain Financial to track their domain portfolios',
+      trustedBy: 'Trusted by 200+ domain investors',
+      joinThousands: 'Join domain investors using Domain.Financial to track their domain portfolios',
       startFree: 'Start Free',
       feature1: 'Start with one domain and manage your digital assets.',
       feature2: 'Track purchases, sales, and expiration dates.',
@@ -1839,18 +1841,18 @@ const translations: Record<Locale, Translations> = {
     },
     benefits: {
       title: 'Why Choose Us',
-      subtitle: 'Simple and intelligent domain management and analysis tools',
+      subtitle: 'Spend less time on spreadsheets, more on the domains that matter',
       portfolio: {
-        title: 'Domain Management',
-        desc: 'Unified recording and tracking of all domain statuses'
+        title: 'All domains in one place',
+        desc: 'Never miss a renewal—unified recording and tracking of all domain statuses'
       },
       analytics: {
-        title: 'Data Overview',
-        desc: 'Understand your domain performance at a glance'
+        title: 'Clearer decisions',
+        desc: 'Charts and data so you know when to renew or sell'
       },
       market: {
-        title: 'Inspiration & Trends',
-        desc: 'Optimize costs and discover buying and selling opportunities'
+        title: 'Spot trends and opportunities',
+        desc: 'Optimize costs and seize buying or selling opportunities'
       }
     },
     footer: {
