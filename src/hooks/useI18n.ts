@@ -650,7 +650,8 @@ const translations: Record<Locale, Translations> = {
         loading: '加载中...',
         invalidLink: '无效的登录链接。请通过邮件中的链接访问。',
         loginFailed: '登录失败，请重试',
-        returnToLogin: '返回登录页面'
+        returnToLogin: '返回登录页面',
+        signInWithGoogle: '使用 Google 登录'
       },
       verify: {
         title: '验证邮箱',
@@ -1552,7 +1553,8 @@ const translations: Record<Locale, Translations> = {
         loading: 'Loading...',
         invalidLink: 'Invalid login link. Please access through the link in your email.',
         loginFailed: 'Login failed, please try again',
-        returnToLogin: 'Return to login page'
+        returnToLogin: 'Return to login page',
+        signInWithGoogle: 'Sign in with Google'
       },
       verify: {
         title: 'Verify Email',

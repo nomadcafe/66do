@@ -9,6 +9,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signInWithMagicLink: (email: string) => Promise<{ error: AuthError | null }>;
+  signInWithGoogle: (redirectAfter?: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   refreshSession: () => Promise<void>;
 }
@@ -77,33 +78,41 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
   const signInWithMagicLink = async (email: string) => {
     setLoading(true);
     try {
-      console.log('Sending magic link to:', email);
-      console.log('Redirect URL:', 'https://www.domain.financial/auth/magic-link');
-      
+      const redirectUrl = typeof window !== 'undefined'
+        ? `${window.location.origin}/auth/magic-link`
+        : (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://www.domain.financial') + '/auth/magic-link';
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `https://www.domain.financial/auth/magic-link`,
-          shouldCreateUser: true, // 自动创建用户
+          emailRedirectTo: redirectUrl,
+          shouldCreateUser: true,
         }
       });
-
-      if (error) {
-        console.error('Magic link error:', error);
-        console.error('Error details:', {
-          message: error.message,
-          status: error.status
-        });
-        return { error };
-      }
-
-      console.log('Magic link sent successfully');
+      if (error) return { error };
       return { error: null };
     } catch (error) {
-      console.error('Magic link error:', error);
       return { error: error as AuthError };
     } finally {
       setLoading(false);
+    }
+  };
+
+  const signInWithGoogle = async (redirectAfter?: string): Promise<{ error: AuthError | null }> => {
+    try {
+      const origin = typeof window !== 'undefined'
+        ? window.location.origin
+        : (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000');
+      const callbackUrl = new URL('/auth/callback', origin);
+      if (redirectAfter) callbackUrl.searchParams.set('redirect', redirectAfter);
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: callbackUrl.toString() }
+      });
+      if (error) return { error };
+      if (data?.url) window.location.href = data.url;
+      return { error: null };
+    } catch (error) {
+      return { error: error as AuthError };
     }
   };
 
@@ -150,6 +159,7 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     session,
     loading,
     signInWithMagicLink,
+    signInWithGoogle,
     signOut,
     refreshSession,
   };
