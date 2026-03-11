@@ -116,7 +116,7 @@ export default function HomePage() {
                 href="/login"
                 className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-teal-700"
               >
-                {t('auth.magicLink.title')}
+                {t('nav.signIn')}
               </a>
             )}
           </div>
