@@ -466,7 +466,7 @@ export async function loadTransactionsFromSupabase(userId: string): Promise<Data
       .from('domain_transactions')
       .select('*')
       .eq('user_id', userId)
-      .order('created_at', { ascending: false })
+      .order('date', { ascending: false })
 
     if (error) {
       logger.error('Error loading transactions from Supabase:', error)
