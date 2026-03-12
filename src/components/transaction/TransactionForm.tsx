@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { X, Save, DollarSign, Calendar, FileText } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { X, Save, DollarSign, Calendar, FileText, Search, ChevronDown } from 'lucide-react';
 import { formatCurrencyAmount } from '../../lib/exchangeRates';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { calculateCustomerTotalFromInstallment, calculatePaidAmountFromInstallment } from '../../lib/platformFeeCalculator';
@@ -69,6 +69,41 @@ export default function TransactionForm({
   }>>([]);
   const [showCostHistory, setShowCostHistory] = useState(false);
   const [suggestedRenewalCost, setSuggestedRenewalCost] = useState<number | null>(null);
+  const [domainSearch, setDomainSearch] = useState('');
+  const [domainDropdownOpen, setDomainDropdownOpen] = useState(false);
+  const domainPickerRef = useRef<HTMLDivElement>(null);
+
+  // 可选域名：活跃、待售、已售（已售也可添加出售记录）
+  const eligibleDomains = domains.filter(
+    (d) => d.status === 'active' || d.status === 'for_sale' || d.status === 'sold'
+  );
+  const filteredDomains = domainSearch.trim()
+    ? eligibleDomains.filter(
+        (d) =>
+          d.domain_name.toLowerCase().includes(domainSearch.toLowerCase()) ||
+          (d.registrar || '').toLowerCase().includes(domainSearch.toLowerCase())
+      )
+    : eligibleDomains;
+  const selectedDomain = formData.domain_id
+    ? domains.find((d) => d.id === formData.domain_id)
+    : null;
+
+  useEffect(() => {
+    if (!isOpen) {
+      setDomainSearch('');
+      setDomainDropdownOpen(false);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (domainPickerRef.current && !domainPickerRef.current.contains(e.target as Node)) {
+        setDomainDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (transaction) {
@@ -184,7 +219,11 @@ export default function TransactionForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+    if (!formData.domain_id) {
+      setDomainDropdownOpen(true);
+      return;
+    }
+
     // 仅 USD：base_amount 与 amount 一致
     const calculatedNetAmount = formData.amount - formData.platform_fee;
     const finalFormData = {
@@ -243,25 +282,83 @@ export default function TransactionForm({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          <div>
+          <div ref={domainPickerRef}>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t('transaction.domain')} *
             </label>
-            <select
-              required
-              value={formData.domain_id}
-              onChange={(e) => setFormData({ ...formData, domain_id: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">{t('transaction.selectDomain')}</option>
-              {domains
-                .filter(domain => domain.status === 'active' || domain.status === 'for_sale')
-                .map((domain) => (
-                  <option key={domain.id} value={domain.id}>
-                    {domain.domain_name} ({domain.status === 'active' ? t('transaction.active') : t('transaction.forSale')})
-                  </option>
-                ))}
-            </select>
+            <div className="relative">
+              {selectedDomain ? (
+                <div className="flex items-center gap-2 rounded-md border border-gray-300 bg-gray-50 px-3 py-2">
+                  <span className="flex-1 font-medium text-gray-900">{selectedDomain.domain_name}</span>
+                  <span className="text-xs text-gray-500">
+                    ({selectedDomain.status === 'active' ? t('transaction.domainStatusActive') : selectedDomain.status === 'for_sale' ? t('transaction.domainStatusForSale') : t('transaction.domainStatusSold')})
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, domain_id: '' })}
+                    className="text-gray-400 hover:text-gray-600"
+                    aria-label={t('common.close')}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex rounded-md border border-gray-300 focus-within:ring-2 focus-within:ring-blue-500">
+                    <span className="flex items-center pl-3 text-gray-400">
+                      <Search className="h-4 w-4" />
+                    </span>
+                    <input
+                      type="text"
+                      value={domainSearch}
+                      onChange={(e) => {
+                        setDomainSearch(e.target.value);
+                        setDomainDropdownOpen(true);
+                      }}
+                      onFocus={() => setDomainDropdownOpen(true)}
+                      placeholder={t('transaction.searchDomainPlaceholder')}
+                      className="flex-1 min-w-0 py-2 px-3 border-0 focus:ring-0 focus:outline-none rounded-r-md"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setDomainDropdownOpen((v) => !v)}
+                      className="pr-2 text-gray-400 hover:text-gray-600"
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </button>
+                  </div>
+                  {domainDropdownOpen && (
+                    <ul
+                      className="absolute z-10 mt-1 w-full max-h-56 overflow-auto rounded-md border border-gray-200 bg-white shadow-lg py-1"
+                      role="listbox"
+                    >
+                      {filteredDomains.length === 0 ? (
+                        <li className="px-3 py-2 text-sm text-gray-500">{t('transaction.selectDomain')}</li>
+                      ) : (
+                        filteredDomains.map((domain) => (
+                          <li
+                            key={domain.id}
+                            role="option"
+                            aria-selected={formData.domain_id === domain.id}
+                            onClick={() => {
+                              setFormData({ ...formData, domain_id: domain.id });
+                              setDomainSearch('');
+                              setDomainDropdownOpen(false);
+                            }}
+                            className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 flex justify-between items-center"
+                          >
+                            <span className="font-medium text-gray-900 truncate">{domain.domain_name}</span>
+                            <span className="text-xs text-gray-500 shrink-0 ml-2">
+                              {domain.status === 'active' ? t('transaction.domainStatusActive') : domain.status === 'for_sale' ? t('transaction.domainStatusForSale') : t('transaction.domainStatusSold')}
+                            </span>
+                          </li>
+                        ))
+                      )}
+                    </ul>
+                  )}
+                </>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
