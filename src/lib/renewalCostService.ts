@@ -161,32 +161,30 @@ export class RenewalCostService {
       costByMonth[month.toString()] = 0;
     }
 
-    activeDomains.forEach(domain => {
+    for (const domain of activeDomains) {
       const expiryDate = domain.expiry_date as string;
-      if (!expiryDate) return;
+      if (!expiryDate) continue;
 
       const expiryDateObj = new Date(expiryDate);
       const domainExpiryYear = expiryDateObj.getFullYear();
 
-      if (domainExpiryYear === year) {
-        const domainName = domain.domain_name as string;
-        domainsNeedingRenewal.push(domainName);
-        
-        // 获取该域名的历史成本趋势
-        this.getDomainRenewalCostHistory(domain.id).then(history => {
-          const predictedCost = this.predictNextRenewalCost(history) || domain.renewal_cost || 0;
-          estimatedCost += predictedCost;
+      if (domainExpiryYear !== year) continue;
 
-          // 按月份分布
-          const renewalMonth = expiryDateObj.getMonth();
-          costByMonth[renewalMonth.toString()] += predictedCost;
+      const domainName = domain.domain_name as string;
+      domainsNeedingRenewal.push(domainName);
 
-          // 按注册商分布
-          const registrar = (domain.registrar as string) || 'Unknown';
-          costByRegistrar[registrar] = (costByRegistrar[registrar] || 0) + predictedCost;
-        });
-      }
-    });
+      // 预估成本：有历史则用预测值，否则用当前 renewal_cost（同步计算，避免未 await 导致返回 0）
+      const history = await this.getDomainRenewalCostHistory(domain.id);
+      const predictedCost = history.length > 0
+        ? this.predictNextRenewalCost(history)
+        : (domain.renewal_cost ?? 0);
+
+      estimatedCost += predictedCost;
+      const renewalMonth = expiryDateObj.getMonth();
+      costByMonth[renewalMonth.toString()] = (costByMonth[renewalMonth.toString()] || 0) + predictedCost;
+      const registrar = (domain.registrar as string) || 'Unknown';
+      costByRegistrar[registrar] = (costByRegistrar[registrar] || 0) + predictedCost;
+    }
 
     // 计算成本趋势
     const costTrends = await this.calculateCostTrends(activeDomains);
