@@ -1,6 +1,12 @@
 // import { Domain, DomainTransaction as Transaction } from '../types/domain';
 import { DomainWithTags, TransactionWithRequiredFields } from '../types/dashboard';
 
+/** 统一以 USD 计价的交易金额（优先 base_amount，用于汇总） */
+function amountUSD(t: TransactionWithRequiredFields): number {
+  if (t.base_amount != null && t.base_amount !== undefined) return t.base_amount;
+  return t.net_amount != null && t.net_amount !== undefined ? t.net_amount : t.amount;
+}
+
 // 基础财务计算接口
 export interface BasicFinancialMetrics {
   totalInvestment: number;
@@ -31,7 +37,10 @@ export interface AdvancedFinancialMetrics extends BasicFinancialMetrics {
   worstPerformingDomain: string;
 }
 
-// 计算域名持有成本
+/**
+ * 域名持有成本（仅已发生）：购买成本 + 已续费次数 × 单次续费成本。
+ * 不含未来计划续费；若后续需「预估总持有成本」，可基于 next_renewal_date 扩展。
+ */
 export function calculateDomainHoldingCost(
   purchaseCost: number,
   renewalCost: number,
@@ -49,13 +58,13 @@ export function calculateBasicFinancialMetrics(
     return sum + calculateDomainHoldingCost(
       domain.purchase_cost || 0,
       domain.renewal_cost || 0,
-      domain.renewal_count
+      domain.renewal_count ?? 0
     );
   }, 0);
 
   const totalRevenue = transactions
     .filter(t => t.type === 'sell')
-    .reduce((sum, t) => sum + (t.net_amount || t.amount), 0);
+    .reduce((sum, t) => sum + amountUSD(t), 0);
 
   const totalProfit = totalRevenue - totalInvestment;
   const roi = totalInvestment > 0 ? (totalProfit / totalInvestment) * 100 : 0;
@@ -79,14 +88,14 @@ export function calculateDomainPerformance(
     const totalCost = calculateDomainHoldingCost(
       domain.purchase_cost || 0,
       domain.renewal_cost || 0,
-      domain.renewal_count
+      domain.renewal_count ?? 0
     );
     
     const domainTransactions = transactions.filter(t => t.domain_id === domain.id);
     
     const totalEarned = domainTransactions
       .filter(t => t.type === 'sell')
-      .reduce((sum, t) => sum + (t.net_amount || t.amount), 0);
+      .reduce((sum, t) => sum + amountUSD(t), 0);
     
     const revenue = domain.sale_price || domain.estimated_value || totalEarned;
     const profit = revenue - totalCost;
@@ -129,7 +138,7 @@ export function calculateInvestmentYears(domains: DomainWithTags[]): number {
   return (new Date().getTime() - new Date(oldestDomain.purchase_date || '').getTime()) / (1000 * 60 * 60 * 24 * 365);
 }
 
-// 计算月度收益
+/** 月度收益率（%）：每月出售收入 / 当月累计投资成本 */
 export function calculateMonthlyReturns(
   domains: DomainWithTags[],
   transactions: TransactionWithRequiredFields[]
@@ -137,16 +146,26 @@ export function calculateMonthlyReturns(
   return Array.from({ length: 12 }, (_, i) => {
     const date = new Date();
     date.setMonth(date.getMonth() - (11 - i));
-    
+    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+    const monthDomains = domains.filter(d => {
+      const domainMonth = (d.purchase_date || '').slice(0, 7);
+      return domainMonth <= monthKey;
+    });
+    const investment = monthDomains.reduce(
+      (sum, d) => sum + calculateDomainHoldingCost(d.purchase_cost || 0, d.renewal_cost || 0, d.renewal_count ?? 0),
+      0
+    );
+
     const monthTransactions = transactions.filter(t => {
       const transactionDate = new Date(t.date);
-      return transactionDate.getMonth() === date.getMonth() && 
-             transactionDate.getFullYear() === date.getFullYear();
+      return transactionDate.getMonth() === date.getMonth() &&
+             transactionDate.getFullYear() === date.getFullYear() && t.type === 'sell';
     });
-    
-    return monthTransactions
-      .filter(t => t.type === 'sell')
-      .reduce((sum, t) => sum + (t.net_amount || t.amount), 0);
+    const revenue = monthTransactions.reduce((sum, t) => sum + amountUSD(t), 0);
+
+    if (investment <= 0) return 0;
+    return (revenue / investment) * 100;
   });
 }
 
@@ -159,33 +178,29 @@ export function calculateVolatility(returns: number[]): number {
   return Math.sqrt(variance);
 }
 
-// 计算最大回撤
+/** 最大回撤（小数）：基于月度收益率序列的累计净值，从高点到低点的最大相对回撤 */
 export function calculateMaxDrawdown(returns: number[]): number {
   if (returns.length === 0) return 0;
-  
+  let wealth = 1;
+  let peak = 1;
   let maxDrawdown = 0;
-  let peak = returns[0];
-  
-  for (let i = 1; i < returns.length; i++) {
-    if (returns[i] > peak) {
-      peak = returns[i];
-    } else {
-      const drawdown = (peak - returns[i]) / peak;
-      maxDrawdown = Math.max(maxDrawdown, drawdown);
-    }
+  for (let i = 0; i < returns.length; i++) {
+    wealth *= 1 + returns[i] / 100;
+    if (wealth > peak) peak = wealth;
+    const drawdown = peak > 0 ? (peak - wealth) / peak : 0;
+    if (drawdown > maxDrawdown) maxDrawdown = drawdown;
   }
-  
   return maxDrawdown;
 }
 
-// 计算夏普比率
+/** 夏普比率：年化收益率与年化波动率均为小数（如 0.05, 0.12） */
 export function calculateSharpeRatio(
-  annualizedReturn: number,
+  annualizedReturnDecimal: number,
   riskFreeRate: number = 0.02,
-  volatility: number
+  annualizedVolatilityDecimal: number
 ): number {
-  if (volatility === 0) return 0;
-  return (annualizedReturn - riskFreeRate) / volatility;
+  if (annualizedVolatilityDecimal <= 0) return 0;
+  return (annualizedReturnDecimal - riskFreeRate) / annualizedVolatilityDecimal;
 }
 
 // 计算胜率
@@ -197,7 +212,7 @@ export function calculateWinRate(domains: DomainWithTags[]): number {
     const totalCost = calculateDomainHoldingCost(
       d.purchase_cost || 0,
       d.renewal_cost || 0,
-      d.renewal_count
+      d.renewal_count ?? 0
     );
     return (d.sale_price || 0) > totalCost;
   });
@@ -232,31 +247,31 @@ export function calculateAdvancedFinancialMetrics(
     years
   );
   
-  const monthlyReturns = calculateMonthlyReturns(domains, transactions);
-  const volatility = calculateVolatility(monthlyReturns);
-  const maxDrawdown = calculateMaxDrawdown(monthlyReturns);
-  const sharpeRatio = calculateSharpeRatio(annualizedReturn, 0.02, volatility);
+  const monthlyReturnPct = calculateMonthlyReturns(domains, transactions);
+  const volMonthlyPct = calculateVolatility(monthlyReturnPct);
+  const volAnnualDecimal = (volMonthlyPct / 100) * Math.sqrt(12);
+  const maxDrawdown = calculateMaxDrawdown(monthlyReturnPct);
+  const sharpeRatio = calculateSharpeRatio(annualizedReturn, 0.02, volAnnualDecimal);
   
   const winRate = calculateWinRate(domains);
   const avgHoldingPeriod = calculateAvgHoldingPeriod(domains);
   
   const domainPerformance = calculateDomainPerformance(domains, transactions);
-  const bestDomain = domainPerformance.reduce((best, current) => 
-    current.roi > best.roi ? current : best, 
-    domainPerformance[0] || { domain: { domain_name: 'N/A' }, roi: 0 }
-  );
-  
-  const worstDomain = domainPerformance.reduce((worst, current) => 
-    current.roi < worst.roi ? current : worst, 
-    domainPerformance[0] || { domain: { domain_name: 'N/A' }, roi: 0 }
-  );
+  const soldPerformance = domainPerformance.filter(p => p.domain.status === 'sold');
+  const fallback = { domain: { domain_name: 'N/A' }, roi: 0 };
+  const bestDomain = soldPerformance.length > 0
+    ? soldPerformance.reduce((best, current) => (current.roi > best.roi ? current : best), soldPerformance[0])
+    : fallback;
+  const worstDomain = soldPerformance.length > 0
+    ? soldPerformance.reduce((worst, current) => (current.roi < worst.roi ? current : worst), soldPerformance[0])
+    : fallback;
 
   return {
     ...basicMetrics,
     annualizedReturn: annualizedReturn * 100,
     sharpeRatio,
     maxDrawdown: maxDrawdown * 100,
-    volatility: volatility * 100,
+    volatility: volAnnualDecimal * 100,
     winRate,
     avgHoldingPeriod,
     bestPerformingDomain: bestDomain.domain.domain_name,
@@ -264,13 +279,13 @@ export function calculateAdvancedFinancialMetrics(
   };
 }
 
-// 计算风险等级
+/** 风险等级：volatility 为年化波动率（小数），maxDrawdown 为小数 */
 export function calculateRiskLevel(
-  volatility: number,
-  maxDrawdown: number
+  volatilityDecimal: number,
+  maxDrawdownDecimal: number
 ): 'Low' | 'Medium' | 'High' {
-  if (volatility > 0.3 || maxDrawdown > 0.5) return 'High';
-  if (volatility > 0.15 || maxDrawdown > 0.2) return 'Medium';
+  if (volatilityDecimal > 0.3 || maxDrawdownDecimal > 0.5) return 'High';
+  if (volatilityDecimal > 0.15 || maxDrawdownDecimal > 0.2) return 'Medium';
   return 'Low';
 }
 

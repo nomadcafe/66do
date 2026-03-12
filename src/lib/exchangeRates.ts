@@ -19,18 +19,9 @@ export interface CurrencyInfo {
   flag: string;
 }
 
-// 支持的货币列表
+// 仅支持美元
 export const SUPPORTED_CURRENCIES: CurrencyInfo[] = [
-  { code: 'USD', name: '美元', symbol: '$', flag: '🇺🇸' },
-  { code: 'EUR', name: '欧元', symbol: '€', flag: '🇪🇺' },
-  { code: 'GBP', name: '英镑', symbol: '£', flag: '🇬🇧' },
-  { code: 'CNY', name: '人民币', symbol: '¥', flag: '🇨🇳' },
-  { code: 'JPY', name: '日元', symbol: '¥', flag: '🇯🇵' },
-  { code: 'CAD', name: '加元', symbol: 'C$', flag: '🇨🇦' },
-  { code: 'AUD', name: '澳元', symbol: 'A$', flag: '🇦🇺' },
-  { code: 'CHF', name: '瑞士法郎', symbol: 'CHF', flag: '🇨🇭' },
-  { code: 'HKD', name: '港币', symbol: 'HK$', flag: '🇭🇰' },
-  { code: 'SGD', name: '新元', symbol: 'S$', flag: '🇸🇬' }
+  { code: 'USD', name: '美元', symbol: '$', flag: '🇺🇸' }
 ];
 
 // 汇率数据存储（实际应用中应该从API获取）
@@ -42,46 +33,9 @@ class ExchangeRateManager {
     this.initializeDefaultRates();
   }
 
-  // 初始化默认汇率（示例数据）
+  // 仅 USD，无需多币种汇率
   private initializeDefaultRates() {
-    const today = new Date().toISOString().split('T')[0];
-    
-    // 当前汇率（示例）
-    const currentRates = [
-      { from: 'USD', to: 'CNY', rate: 7.2, date: today, source: 'API' },
-      { from: 'USD', to: 'EUR', rate: 0.85, date: today, source: 'API' },
-      { from: 'USD', to: 'GBP', rate: 0.78, date: today, source: 'API' },
-      { from: 'EUR', to: 'CNY', rate: 8.5, date: today, source: 'API' },
-      { from: 'GBP', to: 'CNY', rate: 9.2, date: today, source: 'API' }
-    ];
-
-    currentRates.forEach(rate => {
-      const key = `${rate.from}-${rate.to}`;
-      this.rates.set(key, rate);
-    });
-
-    // 历史汇率数据（示例）
-    this.initializeHistoricalRates();
-  }
-
-  // 初始化历史汇率（示例数据）
-  private initializeHistoricalRates() {
-    const dates = [
-      '2023-01-01', '2023-06-01', '2023-12-01',
-      '2024-01-01', '2024-06-01', '2024-12-01'
-    ];
-
-    dates.forEach(date => {
-      const rates: Record<string, number> = {
-        'USD-CNY': 7.0 + Math.random() * 0.5,
-        'USD-EUR': 0.85 + Math.random() * 0.1,
-        'USD-GBP': 0.78 + Math.random() * 0.1,
-        'EUR-CNY': 8.0 + Math.random() * 0.8,
-        'GBP-CNY': 9.0 + Math.random() * 0.4
-      };
-
-      this.historicalRates.set(date, [{ date, rates }]);
-    });
+    this.rates.set('USD-USD', { from: 'USD', to: 'USD', rate: 1, date: new Date().toISOString().split('T')[0], source: 'default' });
   }
 
   // 获取当前汇率

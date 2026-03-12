@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useComprehensiveFinancialAnalysis } from '../../hooks/useFinancialCalculations';
+import { calculateInvestmentYears } from '../../lib/coreCalculations';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import { 
@@ -109,7 +110,7 @@ interface RiskAnalysis {
 export default function InvestmentAnalytics({ domains, transactions }: InvestmentAnalyticsProps) {
   const { t, locale } = useI18nContext();
   const [selectedTimeframe, setSelectedTimeframe] = useState<'3M' | '6M' | '1Y' | 'ALL'>('ALL');
-  const [selectedMetric, setSelectedMetric] = useState<'portfolio' | 'performance' | 'risk' | 'trends'>('portfolio');
+  const [selectedMetric, setSelectedMetric] = useState<'portfolio' | 'risk' | 'trends'>('portfolio');
 
   // 根据选择的时间范围筛选数据
   const filteredData = useMemo(() => {
@@ -143,6 +144,11 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
 
     return { domains: filteredDomains, transactions: filteredTransactions };
   }, [domains, transactions, selectedTimeframe]);
+
+  const investmentYears = useMemo(
+    () => calculateInvestmentYears(filteredData.domains),
+    [filteredData.domains]
+  );
 
   // 使用筛选后的数据计算
   const financialAnalysis = useComprehensiveFinancialAnalysis(filteredData.domains, filteredData.transactions);
@@ -202,12 +208,12 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         break;
     }
 
+    let cumulativeRevenue = 0;
     for (let i = 0; i < monthsToShow; i++) {
       const date = new Date(startDate);
       date.setMonth(date.getMonth() + i);
       const monthKey = date.toISOString().slice(0, 7);
 
-      // 只计算到当前月份为止的数据
       if (date > now) break;
 
       const monthDomains = filteredData.domains.filter(d => {
@@ -223,17 +229,18 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       });
 
       const investment = monthDomains.reduce((sum, domain) => {
-        const holdingCost = (domain.purchase_cost || 0) + (domain.renewal_count * (domain.renewal_cost || 0));
+        const holdingCost = (domain.purchase_cost || 0) + ((domain.renewal_count ?? 0) * (domain.renewal_cost || 0));
         return sum + holdingCost;
       }, 0);
 
       const revenue = monthTransactions
         .filter(t => t.type === 'sell')
-        .reduce((sum, t) => sum + (t.net_amount || t.amount), 0);
+        .reduce((sum, t) => sum + (t.base_amount ?? t.net_amount ?? t.amount), 0);
 
-      const profit = revenue - investment;
+      cumulativeRevenue += revenue;
+      const profit = cumulativeRevenue - investment;
       const portfolioValue = investment + profit;
-      const monthlyReturn = investment > 0 ? (profit / investment) * 100 : 0;
+      const monthlyReturn = investment > 0 ? (revenue / investment) * 100 : 0;
 
       data.push({
         date: monthKey,
@@ -395,7 +402,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
                 <Info className="h-4 w-4 text-red-200 cursor-help hover:text-red-100 transition-colors" />
                 <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-xs">
                   <div className="text-center whitespace-normal">
-                    {t('analytics.annualizedReturnDesc')}
+                    {investmentYears < 1 ? t('analytics.annualizedReturnShortTerm') : t('analytics.annualizedReturnDesc')}
                   </div>
                   <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
                     <div className="w-2 h-2 bg-gray-900 transform rotate-45"></div>
@@ -403,7 +410,11 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
                 </div>
               </div>
             </div>
-            <p className="text-2xl font-bold">{portfolioMetrics.annualizedReturn.toFixed(1)}%</p>
+            {investmentYears >= 1 ? (
+              <p className="text-2xl font-bold">{portfolioMetrics.annualizedReturn.toFixed(1)}%</p>
+            ) : (
+              <p className="text-sm text-red-100">{t('analytics.annualizedReturnShortTerm')}</p>
+            )}
           </div>
           <Activity className="h-8 w-8 text-red-200" />
         </div>
@@ -604,7 +615,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
             <span className="text-lg font-semibold">{riskAnalysis.concentrationRisk.toFixed(1)}%</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-gray-600">{t('analytics.liquidityRisk')}</span>
+            <span className="text-gray-600" title={t('analytics.liquidityRatioDesc')}>{t('analytics.liquidityRatio')}</span>
             <span className="text-lg font-semibold">{riskAnalysis.liquidityRisk.toFixed(1)}%</span>
           </div>
         </div>
@@ -836,35 +847,43 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
 
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.investmentDistribution')}</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <PieChart>
-            <Pie
-              data={[
-                { name: t('analytics.activeDomains'), value: filteredData.domains.filter(d => d.status === 'active').length, color: '#10B981' },
-                { name: t('analytics.forSaleDomains'), value: filteredData.domains.filter(d => d.status === 'for_sale').length, color: '#F59E0B' },
-                { name: t('analytics.soldDomains'), value: filteredData.domains.filter(d => d.status === 'sold').length, color: '#3B82F6' },
-                { name: t('analytics.expiredDomains'), value: filteredData.domains.filter(d => d.status === 'expired').length, color: '#EF4444' },
-              ]}
-              cx="50%"
-              cy="50%"
-              labelLine={false}
-              label={({ name, percent }) => `${name} ${(Number(percent) * 100).toFixed(0)}%`}
-              outerRadius={80}
-              fill="#8884d8"
-              dataKey="value"
-            >
-              {[
-                { name: t('analytics.activeDomains'), value: filteredData.domains.filter(d => d.status === 'active').length, color: '#10B981' },
-                { name: t('analytics.forSaleDomains'), value: filteredData.domains.filter(d => d.status === 'for_sale').length, color: '#F59E0B' },
-                { name: t('analytics.soldDomains'), value: filteredData.domains.filter(d => d.status === 'sold').length, color: '#3B82F6' },
-                { name: t('analytics.expiredDomains'), value: filteredData.domains.filter(d => d.status === 'expired').length, color: '#EF4444' },
-              ].map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </Pie>
-            <Tooltip />
-          </PieChart>
-        </ResponsiveContainer>
+        {(() => {
+          const statusData = [
+            { name: t('analytics.activeDomains'), value: filteredData.domains.filter(d => d.status === 'active').length, color: '#10B981' },
+            { name: t('analytics.forSaleDomains'), value: filteredData.domains.filter(d => d.status === 'for_sale').length, color: '#F59E0B' },
+            { name: t('analytics.soldDomains'), value: filteredData.domains.filter(d => d.status === 'sold').length, color: '#3B82F6' },
+            { name: t('analytics.expiredDomains'), value: filteredData.domains.filter(d => d.status === 'expired').length, color: '#EF4444' },
+          ].filter(entry => entry.value > 0);
+          if (statusData.length === 0) {
+            return (
+              <div className="flex flex-col items-center justify-center py-12 text-stone-500">
+                <Globe className="h-12 w-12 text-stone-300 mb-3" />
+                <p className="text-sm">{t('analytics.noDataAvailable')}</p>
+              </div>
+            );
+          }
+          return (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={statusData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(Number(percent) * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {statusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          );
+        })()}
       </div>
     </div>
   );
@@ -903,11 +922,10 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
           <div className="flex items-center space-x-4">
             <select
               value={selectedMetric}
-              onChange={(e) => setSelectedMetric(e.target.value as 'portfolio' | 'performance' | 'risk' | 'trends')}
+              onChange={(e) => setSelectedMetric(e.target.value as 'portfolio' | 'risk' | 'trends')}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="portfolio">{t('analytics.tab.portfolio')}</option>
-              <option value="performance">{t('analytics.tab.performance')}</option>
               <option value="risk">{t('analytics.tab.risk')}</option>
               <option value="trends">{t('analytics.tab.trends')}</option>
             </select>
@@ -978,13 +996,6 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
           </div>
           {renderPortfolioMetrics()}
           {renderPerformanceChart()}
-        </div>
-      )}
-
-      {/* 表现分析 */}
-      {selectedMetric === 'performance' && (
-        <div className="space-y-6">
-          {renderPerformanceChart()}
           <div className="bg-white p-6 rounded-lg shadow-sm border">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.keyMetrics')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -996,11 +1007,11 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
                 <p className="text-sm text-gray-600">{t('analytics.avgHoldingPeriodLabel')}</p>
                 <p className="text-2xl font-bold text-blue-600">{portfolioMetrics.avgHoldingPeriod.toFixed(0)}{t('analytics.daysUnit')}</p>
               </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
+              <div className="text-center p-4 bg-gray-50 rounded-lg" title={t('analytics.maxDrawdownDesc')}>
                 <p className="text-sm text-gray-600">{t('analytics.maxDrawdownLabel')}</p>
                 <p className="text-2xl font-bold text-red-600">{portfolioMetrics.maxDrawdown.toFixed(1)}%</p>
               </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
+              <div className="text-center p-4 bg-gray-50 rounded-lg" title={t('analytics.volatilityDesc')}>
                 <p className="text-sm text-gray-600">{t('analytics.volatilityLabel')}</p>
                 <p className="text-2xl font-bold text-orange-600">{portfolioMetrics.volatility.toFixed(1)}%</p>
               </div>
@@ -1018,6 +1029,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
           {renderTrendsAnalysis()}
           <div className="bg-white p-6 rounded-lg shadow-sm border">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.bestWorstTitle')}</h3>
+            <p className="text-sm text-stone-500 mb-4">{t('analytics.bestWorstSoldOnly')}</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="p-4 bg-green-50 rounded-lg">
                 <div className="flex items-center space-x-2 mb-2">
