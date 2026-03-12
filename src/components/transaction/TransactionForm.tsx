@@ -4,7 +4,11 @@ import { useState, useEffect, useRef } from 'react';
 import { X, Save, DollarSign, Calendar, FileText, Search, ChevronDown } from 'lucide-react';
 import { formatCurrencyAmount } from '../../lib/exchangeRates';
 import { useI18nContext } from '../../contexts/I18nProvider';
-import { calculateCustomerTotalFromInstallment, calculatePaidAmountFromInstallment } from '../../lib/platformFeeCalculator';
+import {
+  calculateCustomerTotalFromInstallment,
+  calculatePaidAmountFromInstallment,
+  calculateTotalInstallmentAmount
+} from '../../lib/platformFeeCalculator';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 // import { Domain, Transaction } from '../../lib/supabaseService';
 import DateInput from '../ui/DateInput';
@@ -848,18 +852,36 @@ export default function TransactionForm({
                         </div>
                       )}
                       
-                      {/* 进度条 */}
+                      {/* 进度条：按「已收金额 / 分期总额」，与 Installment Summary 一致；不再用语数占比 4/24 */}
+                      {(() => {
+                        const totalAmount = calculateTotalInstallmentAmount(
+                          formData.downpayment_amount,
+                          formData.installment_amount,
+                          formData.installment_period,
+                          formData.final_payment_amount
+                        );
+                        const receivedSoFar =
+                          formData.downpayment_amount + formData.paid_periods * formData.installment_amount;
+                        const pct =
+                          totalAmount > 0
+                            ? Math.min(100, Math.round((receivedSoFar / totalAmount) * 100))
+                            : formData.installment_period > 0
+                              ? Math.round((formData.paid_periods / formData.installment_period) * 100)
+                              : 0;
+                        return (
                       <div className="mt-2">
                         <div className="w-full bg-blue-200 rounded-full h-2">
-                          <div 
-                            className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                            style={{ width: `${(formData.paid_periods / formData.installment_period) * 100}%` }}
-                          ></div>
+                          <div
+                            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${pct}%` }}
+                          />
                         </div>
                         <p className="text-xs text-blue-600 mt-1">
-                          {Math.round((formData.paid_periods / formData.installment_period) * 100)}% {t('transaction.completed')}
+                          {pct}% {t('transaction.completed')} ({formatCurrencyAmount(receivedSoFar, formData.currency)} / {formatCurrencyAmount(totalAmount, formData.currency)})
                         </p>
                       </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
