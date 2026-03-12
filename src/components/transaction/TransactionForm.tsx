@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Save, DollarSign, Calendar, FileText, TrendingUp, TrendingDown } from 'lucide-react';
-import { exchangeRateManager, formatCurrencyAmount, getRateTrend } from '../../lib/exchangeRates';
+import { X, Save, DollarSign, Calendar, FileText } from 'lucide-react';
+import { formatCurrencyAmount } from '../../lib/exchangeRates';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { calculateCustomerTotalFromInstallment, calculatePaidAmountFromInstallment } from '../../lib/platformFeeCalculator';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
@@ -60,13 +60,6 @@ export default function TransactionForm({
     user_input_fee_rate: 0,
     user_input_surcharge_rate: 0
   });
-
-  const [baseCurrency] = useState('USD');
-  const [exchangeRateInfo, setExchangeRateInfo] = useState<{
-    rate: number;
-    trend: 'up' | 'down' | 'stable';
-    changePercent: number;
-  } | null>(null);
 
   // 续费成本历史状态
   const [renewalCostHistory, setRenewalCostHistory] = useState<Array<{
@@ -189,33 +182,15 @@ export default function TransactionForm({
     }
   }, [formData.amount, formData.downpayment_amount, formData.final_payment_amount, formData.installment_period, formData.payment_plan, formData.installment_amount]);
 
-  // 汇率处理逻辑
-  useEffect(() => {
-    if (formData.currency !== baseCurrency && formData.amount > 0) {
-      const rate = exchangeRateManager.getCurrentRate(formData.currency, baseCurrency);
-      const trend = getRateTrend(formData.currency, baseCurrency);
-      
-      setFormData(prev => ({
-        ...prev,
-        exchange_rate: rate,
-        base_amount: formData.amount * rate
-      }));
-      
-      setExchangeRateInfo({
-        rate,
-        trend: trend.changePercent > 0 ? 'up' : trend.changePercent < 0 ? 'down' : 'stable',
-        changePercent: trend.changePercent
-      });
-    }
-  }, [formData.currency, formData.amount, baseCurrency]);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // 自动计算净收入
+    // 仅 USD：base_amount 与 amount 一致
     const calculatedNetAmount = formData.amount - formData.platform_fee;
     const finalFormData = {
       ...formData,
+      currency: 'USD',
+      base_amount: formData.amount,
       net_amount: calculatedNetAmount,
       user_id: '',
       created_at: '',
@@ -249,11 +224,6 @@ export default function TransactionForm({
     { value: 'marketing', label: 'Marketing' },
     { value: 'advertising', label: 'Advertising' }
   ];
-
-  const currencies = exchangeRateManager.getSupportedCurrencies().map(currency => ({
-    value: currency.code,
-    label: `${currency.flag} ${currency.code}`
-  }));
 
   if (!isOpen) return null;
 
@@ -393,47 +363,6 @@ export default function TransactionForm({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Currency
-              </label>
-              <select
-                value={formData.currency}
-                onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {currencies.map((currency) => (
-                  <option key={currency.value} value={currency.value}>
-                    {currency.label}
-                  </option>
-                ))}
-              </select>
-              
-              {/* 汇率信息显示 */}
-              {exchangeRateInfo && formData.currency !== baseCurrency && (
-                <div className="mt-2 p-2 bg-blue-50 rounded-md">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">
-                      {t('transaction.exchangeRateDesc')}: 1 {formData.currency} = {exchangeRateInfo.rate.toFixed(4)} {baseCurrency}
-                    </span>
-                    <div className="flex items-center">
-                      {exchangeRateInfo.trend === 'up' && <TrendingUp className="h-4 w-4 text-green-500" />}
-                      {exchangeRateInfo.trend === 'down' && <TrendingDown className="h-4 w-4 text-red-500" />}
-                      <span className={`ml-1 text-xs ${
-                        exchangeRateInfo.trend === 'up' ? 'text-green-600' : 
-                        exchangeRateInfo.trend === 'down' ? 'text-red-600' : 'text-gray-600'
-                      }`}>
-                        {exchangeRateInfo.changePercent > 0 ? '+' : ''}{exchangeRateInfo.changePercent.toFixed(2)}%
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {t('transaction.equivalentAmount')}: {formatCurrencyAmount(formData.base_amount, baseCurrency)}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Platform
               </label>
               <input
@@ -448,21 +377,6 @@ export default function TransactionForm({
 
           {/* 新增财务字段 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Exchange Rate
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="0.0001"
-                value={formData.exchange_rate}
-                onChange={(e) => setFormData({ ...formData, exchange_rate: parseFloat(e.target.value) || 1 })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="1.0000"
-              />
-            </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Platform Fee (%)

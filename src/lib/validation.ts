@@ -184,7 +184,7 @@ const MAX_TRANSACTION_AMOUNT = 100000000; // $100M
 const MAX_NOTES_LENGTH = 1000;
 const MAX_CATEGORY_LENGTH = 100;
 const MAX_RECEIPT_URL_LENGTH = 500;
-const VALID_CURRENCIES = ['USD', 'EUR', 'GBP', 'CNY', 'JPY', 'AUD', 'CAD', 'CHF', 'HKD', 'SGD'];
+const VALID_CURRENCIES = ['USD'];
 const MAX_EXCHANGE_RATE = 1000;
 const MIN_EXCHANGE_RATE = 0.0001;
 
@@ -475,22 +475,13 @@ export function sanitizeTransactionData(transaction: unknown): Record<string, un
   // 处理金额，确保在合理范围内
   const amount = Math.max(0, Math.min(MAX_TRANSACTION_AMOUNT, Number(transactionObj.amount) || 0));
   
-  // 处理货币
-  let currency = 'USD';
-  if (typeof transactionObj.currency === 'string') {
-    const upperCurrency = transactionObj.currency.toUpperCase();
-    currency = VALID_CURRENCIES.includes(upperCurrency) ? upperCurrency : 'USD';
-  }
+  // 仅支持 USD，统一以 base_amount 存 USD 金额
+  const currency = 'USD';
 
-  // 处理汇率
-  const exchangeRate = transactionObj.exchange_rate !== null && transactionObj.exchange_rate !== undefined
-    ? Math.max(MIN_EXCHANGE_RATE, Math.min(MAX_EXCHANGE_RATE, Number(transactionObj.exchange_rate) || 1))
-    : 1;
-
-  // 处理其他金额字段
+  // 处理其他金额字段：base_amount 为统一 USD 金额，无则用 amount
   const baseAmount = transactionObj.base_amount !== null && transactionObj.base_amount !== undefined
     ? Math.max(0, Math.min(MAX_TRANSACTION_AMOUNT, Number(transactionObj.base_amount) || 0))
-    : null;
+    : amount;
   const platformFee = transactionObj.platform_fee !== null && transactionObj.platform_fee !== undefined
     ? Math.max(0, Math.min(MAX_TRANSACTION_AMOUNT, Number(transactionObj.platform_fee) || 0))
     : null;
@@ -528,7 +519,7 @@ export function sanitizeTransactionData(transaction: unknown): Record<string, un
     ...transactionObj,
     amount,
     currency,
-    exchange_rate: exchangeRate,
+    exchange_rate: 1,
     base_amount: baseAmount,
     platform_fee: platformFee,
     platform_fee_percentage: platformFeePercentage,

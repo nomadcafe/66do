@@ -62,14 +62,15 @@ export function useRiskAnalysis(
 ) {
   return useMemo(() => {
     const monthlyReturns = calculateMonthlyReturns(domains, transactions);
-    const volatility = calculateVolatility(monthlyReturns);
-    const maxDrawdown = calculateMaxDrawdown(monthlyReturns);
-    const riskLevel = calculateRiskLevel(volatility, maxDrawdown);
+    const volMonthlyPct = calculateVolatility(monthlyReturns);
+    const volAnnualDecimal = (volMonthlyPct / 100) * Math.sqrt(12);
+    const maxDrawdownDecimal = calculateMaxDrawdown(monthlyReturns);
+    const riskLevel = calculateRiskLevel(volAnnualDecimal, maxDrawdownDecimal);
     const successRate = calculateSuccessRate(domains);
 
     return {
-      volatility: volatility * 100,
-      maxDrawdown: maxDrawdown * 100,
+      volatility: volAnnualDecimal * 100,
+      maxDrawdown: maxDrawdownDecimal * 100,
       riskLevel,
       successRate,
       monthlyReturns
