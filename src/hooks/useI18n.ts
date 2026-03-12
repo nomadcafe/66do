@@ -31,7 +31,8 @@ const translations: Record<Locale, Translations> = {
       analytics: '分析',
       alerts: '即将到期',
       settings: '设置',
-    data: '数据'
+      data: '数据',
+      reports: '报告'
   },
   data: {
     dataManagement: '数据管理',
@@ -187,6 +188,7 @@ const translations: Record<Locale, Translations> = {
       alerts: '即将到期',
       settings: '设置',
       data: '数据',
+      dataAndBackup: '数据与备份',
       reports: '报告',
       userSettings: '用户设置',
       reset: '重置',
@@ -971,7 +973,8 @@ const translations: Record<Locale, Translations> = {
       analytics: 'Analytics',
       alerts: 'Expiring',
       settings: 'Settings',
-    data: 'Data'
+      data: 'Data',
+      reports: 'Reports'
   },
   data: {
     dataManagement: 'Data Management',
@@ -1127,6 +1130,7 @@ const translations: Record<Locale, Translations> = {
       alerts: 'Expiring',
       settings: 'Settings',
       data: 'Data',
+      dataAndBackup: 'Data & backup',
       reports: 'Reports',
       userSettings: 'User Settings',
       reset: 'Reset',
