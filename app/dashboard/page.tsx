@@ -229,17 +229,20 @@ export default function DashboardPage() {
       }));
     
     const validTransactions = transactions
-      .filter(transaction => transaction.amount !== null)
-      .map(transaction => ({
-        id: transaction.id,
-        domain_id: transaction.domain_id,
-        type: transaction.type,
-        amount: transaction.amount!,
-        platform_fee: transaction.platform_fee || undefined,
-        net_amount: transaction.net_amount || undefined,
-        date: transaction.date,
-        category: transaction.category
-      }));
+      .filter(transaction => (transaction.base_amount ?? transaction.amount) != null)
+      .map(transaction => {
+        const amountUSD = (transaction.base_amount ?? transaction.amount) ?? 0;
+        return {
+          id: transaction.id,
+          domain_id: transaction.domain_id,
+          type: transaction.type,
+          amount: amountUSD,
+          platform_fee: transaction.platform_fee || undefined,
+          net_amount: transaction.net_amount ?? amountUSD,
+          date: transaction.date,
+          category: transaction.category
+        };
+      });
     
     return calculateEnhancedFinancialMetrics(validDomains, validTransactions);
   }, [domains, transactions]);
@@ -622,6 +625,53 @@ export default function DashboardPage() {
               </div>
             </div>
 
+            {/* 无域名时首屏引导 */}
+            {domains.length === 0 && (
+              <div className="bg-teal-50/80 border border-teal-200/80 rounded-2xl p-6 text-center mb-8">
+                <p className="text-stone-700 mb-4">{t('domainList.getStarted')}</p>
+                <button onClick={domainOps.handleAddDomain} className="rounded-xl bg-teal-600 text-white px-5 py-2.5 text-sm font-medium inline-flex items-center gap-2 hover:bg-teal-700">
+                  <Plus className="h-4 w-4" />
+                  {t('domainList.addFirstDomain')}
+                </button>
+              </div>
+            )}
+
+            {/* Quick Actions & Highlights - 紧跟 KPI 便于首屏操作 */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+              <div className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm">
+                <h3 className="text-sm font-semibold text-stone-900 mb-3 flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-amber-500" />
+                  {t('action.quickActions')}
+                </h3>
+                <div className="flex gap-2">
+                  <button onClick={domainOps.handleAddDomain} className="flex-1 rounded-xl bg-teal-600 text-white px-4 py-2.5 text-sm font-medium flex items-center justify-center gap-2 hover:bg-teal-700">
+                    <Plus className="h-4 w-4" />
+                    {t('domain.add')}
+                  </button>
+                  <button onClick={transactionOps.handleAddTransaction} className="flex-1 rounded-xl bg-stone-800 text-white px-4 py-2.5 text-sm font-medium flex items-center justify-center gap-2 hover:bg-stone-700">
+                    <FileText className="h-4 w-4" />
+                    {t('transaction.add')}
+                  </button>
+                </div>
+              </div>
+              <div className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm">
+                <h3 className="text-sm font-semibold text-stone-900 mb-2 flex items-center gap-2">
+                  <Award className="h-4 w-4 text-emerald-500" />
+                  {t('dashboard.bestPerformance')}
+                </h3>
+                <p className="text-lg font-bold text-stone-900">{stats.bestPerformingDomain || '—'}</p>
+                <p className="text-xs text-stone-500 mt-1">{t('dashboard.bestInvestment')}</p>
+              </div>
+              <div className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm">
+                <h3 className="text-sm font-semibold text-stone-900 mb-2 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                  {t('dashboard.needAttention')}
+                </h3>
+                <p className="text-lg font-bold text-stone-900">{expiringDomains.length}</p>
+                <p className="text-xs text-stone-500 mt-1">{t('dashboard.expiringSoon')}</p>
+              </div>
+            </div>
+
             {/* 续费分析 */}
             <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm mb-8">
               <h3 className="text-base font-semibold text-stone-900 mb-4">{t('renewal.analysis')}</h3>
@@ -672,42 +722,6 @@ export default function DashboardPage() {
               <LazyExpiredDomainLossAnalysis domains={domains} />
             </LazyWrapper>
 
-            {/* Quick Actions & Highlights */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-              <div className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm">
-                <h3 className="text-sm font-semibold text-stone-900 mb-3 flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-amber-500" />
-                  {t('action.quickActions')}
-                </h3>
-                <div className="flex gap-2">
-                  <button onClick={domainOps.handleAddDomain} className="flex-1 rounded-xl bg-teal-600 text-white px-4 py-2.5 text-sm font-medium flex items-center justify-center gap-2 hover:bg-teal-700">
-                    <Plus className="h-4 w-4" />
-                    {t('domain.add')}
-                  </button>
-                  <button onClick={transactionOps.handleAddTransaction} className="flex-1 rounded-xl bg-stone-800 text-white px-4 py-2.5 text-sm font-medium flex items-center justify-center gap-2 hover:bg-stone-700">
-                    <FileText className="h-4 w-4" />
-                    {t('transaction.add')}
-                  </button>
-                </div>
-              </div>
-              <div className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm">
-                <h3 className="text-sm font-semibold text-stone-900 mb-2 flex items-center gap-2">
-                  <Award className="h-4 w-4 text-emerald-500" />
-                  {t('dashboard.bestPerformance')}
-                </h3>
-                <p className="text-lg font-bold text-stone-900">{stats.bestPerformingDomain || '—'}</p>
-                <p className="text-xs text-stone-500 mt-1">{t('dashboard.bestInvestment')}</p>
-              </div>
-              <div className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm">
-                <h3 className="text-sm font-semibold text-stone-900 mb-2 flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-red-500" />
-                  {t('dashboard.needAttention')}
-                </h3>
-                <p className="text-lg font-bold text-stone-900">{expiringDomains.length}</p>
-                <p className="text-xs text-stone-500 mt-1">{t('dashboard.expiringSoon')}</p>
-              </div>
-            </div>
-
             {/* Recent Transactions */}
             <div className="bg-white rounded-2xl border border-stone-200/80 shadow-sm overflow-hidden">
               <div className="px-5 py-4 border-b border-stone-100">
@@ -737,7 +751,7 @@ export default function DashboardPage() {
                           </div>
                         </div>
                         <p className={`font-semibold text-sm ${transaction.type === 'sell' ? 'text-emerald-600' : 'text-stone-700'}`}>
-                          {transaction.type === 'sell' ? '+' : '-'}${transaction.amount.toFixed(2)}
+                          {transaction.type === 'sell' ? '+' : '-'}{formatCurrencyEnhanced(transaction.base_amount ?? transaction.amount)}
                         </p>
                       </div>
                     ))}
