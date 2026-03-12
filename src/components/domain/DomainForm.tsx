@@ -229,7 +229,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
                 value={formData.domain_name}
                 onChange={(e) => setFormData((prev) => ({ ...prev, domain_name: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="example.com"
+                placeholder={t('dashboard.domainNamePlaceholder')}
                 aria-invalid={validationErrors.some((e) => e.toLowerCase().includes('domain'))}
               />
             </div>
@@ -244,12 +244,12 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
                 value={formData.registrar}
                 onChange={(e) => setFormData((prev) => ({ ...prev, registrar: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="GoDaddy, Namecheap, etc."
+                placeholder={t('dashboard.registrarPlaceholder')}
               />
             </div>
 
             <DateInput
-              label="Purchase Date"
+              label={`${t('dashboard.purchaseDateLabel')} *`}
               icon={<Calendar className="h-4 w-4" />}
               value={formData.purchase_date}
               onChange={(value) => setFormData((prev) => ({ ...prev, purchase_date: value }))}
@@ -260,7 +260,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <Calendar className="h-4 w-4 inline mr-1" />
-                Next Renewal Date
+                {t('dashboard.nextRenewalDateLabel')}
               </label>
               <input
                 type="date"
@@ -271,7 +271,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
             </div>
 
             <DateInput
-              label="Expiry Date"
+              label={t('dashboard.expiryDateLabel')}
               icon={<Calendar className="h-4 w-4" />}
               value={formData.expiry_date}
               onChange={(value) => setFormData((prev) => ({ ...prev, expiry_date: value }))}
@@ -281,7 +281,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <DollarSign className="h-4 w-4 inline mr-1" />
-                Purchase Cost *
+                {t('dashboard.purchaseCostLabel')} *
               </label>
               <input
                 type="number"
@@ -298,7 +298,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <DollarSign className="h-4 w-4 inline mr-1" />
-                Renewal Cost
+                {t('dashboard.renewalCostLabel')}
               </label>
               <input
                 type="number"
@@ -314,18 +314,18 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             <Calendar className="h-4 w-4 inline mr-1" />
-            Renewal Cycle (Years)
+            {t('dashboard.renewalCycleYears')}
           </label>
           <select
             value={formData.renewal_cycle}
             onChange={(e) => setFormData((prev) => ({ ...prev, renewal_cycle: parseInt(e.target.value) || 1 }))}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value={1}>1 Year (e.g., .com, .net)</option>
-            <option value={2}>2 Years (e.g., .ai)</option>
-            <option value={3}>3 Years (e.g., .tt)</option>
-            <option value={5}>5 Years</option>
-            <option value={10}>10 Years</option>
+            <option value={1}>{t('dashboard.renewalCycle1Year')}</option>
+            <option value={2}>{t('dashboard.renewalCycle2Years')}</option>
+            <option value={3}>{t('dashboard.renewalCycle3Years')}</option>
+            <option value={5}>{t('dashboard.renewalCycle5Years')}</option>
+            <option value={10}>{t('dashboard.renewalCycle10Years')}</option>
           </select>
           <p className="text-xs text-gray-500 mt-1">
             {t('dashboard.renewalCycleHelp')}
@@ -353,7 +353,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <DollarSign className="h-4 w-4 inline mr-1" />
-                Estimated Value
+                {t('dashboard.estimatedValueLabel')}
               </label>
               <input
                 type="number"
@@ -368,17 +368,17 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Status
+                {t('dashboard.statusLabel')}
               </label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value as 'active' | 'for_sale' | 'sold' | 'expired' }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="active">Active</option>
-                <option value="for_sale">For Sale</option>
-                <option value="sold">Sold</option>
-                <option value="expired">Expired</option>
+                <option value="active">{t('common.active')}</option>
+                <option value="for_sale">{t('common.forSale')}</option>
+                <option value="sold">{t('common.sold')}</option>
+                <option value="expired">{t('common.expired')}</option>
               </select>
             </div>
           </div>
@@ -386,7 +386,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <Tag className="h-4 w-4 inline mr-1" />
-              Tags
+              {t('dashboard.tagsLabel')}
             </label>
             <div className="flex flex-wrap gap-2 mb-2">
               {formData.tags.map((tag, index) => (
@@ -412,14 +412,14 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyPress={handleKeyPress}
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Add a tag..."
+                placeholder={t('dashboard.addTagPlaceholder')}
               />
               <button
                 type="button"
                 onClick={handleAddTag}
                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
               >
-                Add
+                {t('dashboard.add')}
               </button>
             </div>
           </div>
