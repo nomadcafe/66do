@@ -211,6 +211,13 @@ export default function DashboardPage() {
     }).sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
   }, [domains]);
 
+  // 最近交易：按交易日期 date 降序取前 5 条（与数据源 created_at 排序解耦）
+  const recentTransactions = useMemo(() => {
+    return [...transactions]
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+      .slice(0, 5);
+  }, [transactions]);
+
   // 计算增强的财务指标
   const enhancedFinancialMetrics = useMemo(() => {
     const validDomains = domains
@@ -728,9 +735,9 @@ export default function DashboardPage() {
                 <h3 className="text-base font-semibold text-stone-900">{t('common.recentTransactions')}</h3>
               </div>
               <div className="p-5">
-                {transactions.slice(0, 5).length > 0 ? (
+                {recentTransactions.length > 0 ? (
                   <div className="space-y-1">
-                    {transactions.slice(0, 5).map((transaction) => (
+                    {recentTransactions.map((transaction) => (
                       <div key={transaction.id} className="flex items-center justify-between py-3 px-3 rounded-lg hover:bg-stone-50/80 transition">
                         <div className="flex items-center gap-3">
                           <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
