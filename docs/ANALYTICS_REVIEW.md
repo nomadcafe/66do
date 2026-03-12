@@ -95,6 +95,11 @@
 - **当前**：持有成本 = 购买成本 + renewal_count × 单次续费成本（仅已发生）。已在 `calculateDomainHoldingCost` 上注明口径，renewal_count 使用 `?? 0` 避免 NaN。  
 - **可扩展**：若后续需「预估总持有成本」，可基于 next_renewal_date 增加计划续费；当前逻辑对「已发生」成本是合理的。
 
+### 8. 过期域名损失（Expired Domain Loss）
+
+- **口径**：与持有成本一致，损失金额 = 购买 + renewal_count×续费单价，按**全额冲销**计；未扣减售出回款（若曾部分出售需在交易层单独体现）。
+- **无 expiry_date**：`status === 'expired'` 但无到期日时仍计入列表，日期列显示「—」；年度汇总无到期日时用 purchase_date 年，否则归入 `unknown`。
+
 ---
 
 ## 四、建议的修改优先级

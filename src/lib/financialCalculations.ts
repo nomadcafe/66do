@@ -296,14 +296,23 @@ export function calculateCorrelation(x: number[], y: number[]): number {
   return denominator === 0 ? 0 : numerator / denominator;
 }
 
+/**
+ * 过期域名损失口径（与续费持有成本一致）：
+ * - 损失金额 = 购买成本 + renewal_count × renewal_cost（已发生续费成本）
+ * - 视为全额冲销：未扣减任何售出/回款；若曾部分出售需在交易层单独体现
+ * - 无 expiry_date 但 status=expired 时，仍计入列表；年度归桶优先用 purchase_date 年，否则归入 unknown
+ */
 // 过期域名损失分析接口
 export interface ExpiredDomainLoss {
   totalLoss: number;
   annualLoss: { [year: string]: number };
   expiredDomains: Array<{
+    id: string;
     domain_name: string;
     totalInvestment: number;
-    expiryDate: string;
+    /** 到期日；null 表示未填 expiry_date */
+    expiryDate: string | null;
+    /** 用于年度汇总：到期年，或购买年，或 unknown */
     lossYear: string;
   }>;
   lossByYear: Array<{
@@ -335,6 +344,7 @@ export function calculateExpiredDomainLoss(
     // 检查域名是否过期
     let isExpired = false;
     let expiryDate: Date | null = null;
+    const expiryDateStr: string | null = domain.expiry_date ?? null;
 
     if (domain.status === 'expired') {
       isExpired = true;
@@ -346,27 +356,34 @@ export function calculateExpiredDomainLoss(
       isExpired = expiryDate < now && domain.status !== 'sold';
     }
 
-    if (isExpired && expiryDate) {
-      // 计算总投资成本
-      const purchaseCost = domain.purchase_cost || 0;
-      const renewalCost = domain.renewal_count * (domain.renewal_cost || 0);
-      const totalInvestment = purchaseCost + renewalCost;
+    // 无 expiry_date 但已标记 expired：仍计入（损失按持有成本全额计）
+    if (!isExpired) return;
 
-      if (totalInvestment > 0) {
-        const lossYear = expiryDate.getFullYear().toString();
-        
-        expiredDomains.push({
-          domain_name: domain.domain_name,
-          totalInvestment,
-          expiryDate: domain.expiry_date!,
-          lossYear
-        });
+    const purchaseCost = domain.purchase_cost || 0;
+    const renewalCost = (domain.renewal_count ?? 0) * (domain.renewal_cost || 0);
+    const totalInvestment = purchaseCost + renewalCost;
 
-        // 累计年度损失
-        annualLoss[lossYear] = (annualLoss[lossYear] || 0) + totalInvestment;
-        totalLoss += totalInvestment;
-      }
+    if (totalInvestment <= 0) return;
+
+    let lossYear: string;
+    if (expiryDate) {
+      lossYear = expiryDate.getFullYear().toString();
+    } else if (domain.purchase_date) {
+      lossYear = new Date(domain.purchase_date).getFullYear().toString();
+    } else {
+      lossYear = 'unknown';
     }
+
+    expiredDomains.push({
+      id: domain.id,
+      domain_name: domain.domain_name,
+      totalInvestment,
+      expiryDate: expiryDateStr,
+      lossYear
+    });
+
+    annualLoss[lossYear] = (annualLoss[lossYear] || 0) + totalInvestment;
+    totalLoss += totalInvestment;
   });
 
   // 按年份排序
@@ -374,9 +391,13 @@ export function calculateExpiredDomainLoss(
     .map(([year, loss]) => ({
       year,
       loss,
-      domainCount: expiredDomains.filter(d => d.lossYear === year).length
+      domainCount: expiredDomains.filter((d) => d.lossYear === year).length
     }))
-    .sort((a, b) => parseInt(a.year) - parseInt(b.year));
+    .sort((a, b) => {
+      if (a.year === 'unknown') return 1;
+      if (b.year === 'unknown') return -1;
+      return parseInt(a.year, 10) - parseInt(b.year, 10);
+    });
 
   return {
     totalLoss,
