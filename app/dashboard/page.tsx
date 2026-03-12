@@ -83,7 +83,8 @@ export default function DashboardPage() {
   const { user, session, loading: authLoading, signOut } = useSupabaseAuth();
   const { t, locale, setLocale } = useI18nContext();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'settings' | 'data' | 'reports'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'settings' | 'reports'>('overview');
+  const [settingsSection, setSettingsSection] = useState<'preferences' | 'data'>('preferences');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showShareModal, setShowShareModal] = useState(false);
   const [mutationError, setMutationError] = useState<string | null>(null);
@@ -573,15 +574,6 @@ export default function DashboardPage() {
               {t('dashboard.settings')}
             </button>
             <button
-              onClick={() => setActiveTab('data')}
-              className={`rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap flex items-center gap-2 transition ${
-                activeTab === 'data' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
-              }`}
-            >
-              <Database className="h-4 w-4" />
-              {t('dashboard.data')}
-            </button>
-            <button
               onClick={() => setActiveTab('reports')}
               className={`rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap flex items-center gap-2 transition ${
                 activeTab === 'reports' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
@@ -881,14 +873,34 @@ export default function DashboardPage() {
 
 
         {activeTab === 'settings' && (
-          <LazyWrapper>
-            <LazyUserPreferencesPanel />
-          </LazyWrapper>
-        )}
-
-        {activeTab === 'data' && (
-          <LazyWrapper>
-            <LazyDataImportExport
+          <div className="space-y-4">
+            <div className="flex gap-2 p-1 rounded-xl bg-stone-100 w-fit">
+              <button
+                onClick={() => setSettingsSection('preferences')}
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+                  settingsSection === 'preferences' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                {t('dashboard.settings')}
+              </button>
+              <button
+                onClick={() => setSettingsSection('data')}
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition flex items-center gap-2 ${
+                  settingsSection === 'data' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                <Database className="h-4 w-4" />
+                {t('dashboard.dataAndBackup')}
+              </button>
+            </div>
+            {settingsSection === 'preferences' && (
+              <LazyWrapper>
+                <LazyUserPreferencesPanel />
+              </LazyWrapper>
+            )}
+            {settingsSection === 'data' && (
+              <LazyWrapper>
+                <LazyDataImportExport
             onImport={async (data: unknown) => {
               try {
                 const importData = data as { domains?: Domain[]; transactions?: TransactionWithRequiredFields[] };
@@ -990,9 +1002,11 @@ export default function DashboardPage() {
               }
             }}
           />
-          </LazyWrapper>
+              </LazyWrapper>
+            )}
+          </div>
         )}
-        
+
         {activeTab === 'reports' && (
           <div className="space-y-6">
             {/* 报告类型选择器 */}

@@ -10,13 +10,13 @@ import {
   BarChart3, 
   Bell, 
   Settings, 
-  Database,
+  FileText,
 } from 'lucide-react';
 import { useI18nContext } from '../../contexts/I18nProvider';
 
 interface MobileNavigationProps {
-  activeTab: 'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'settings' | 'data' | 'reports';
-  onTabChange: (tab: 'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'settings' | 'data' | 'reports') => void;
+  activeTab: 'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'settings' | 'reports';
+  onTabChange: (tab: 'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'settings' | 'reports') => void;
   expiringCount: number;
 }
 
@@ -31,7 +31,7 @@ export default function MobileNavigation({ activeTab, onTabChange, expiringCount
     { id: 'analytics', label: t('navigation.analytics'), icon: BarChart3 },
     { id: 'alerts', label: t('navigation.alerts'), icon: Bell, badge: expiringCount },
     { id: 'settings', label: t('navigation.settings'), icon: Settings },
-    { id: 'data', label: t('navigation.data'), icon: Database }
+    { id: 'reports', label: t('navigation.reports'), icon: FileText }
   ];
 
   return (
@@ -72,7 +72,7 @@ export default function MobileNavigation({ activeTab, onTabChange, expiringCount
                   <button
                     key={item.id}
                     onClick={() => {
-                      onTabChange(item.id as 'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'settings' | 'data' | 'reports');
+                      onTabChange(item.id as 'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'settings' | 'reports');
                       setIsOpen(false);
                     }}
                     className={`flex flex-col items-center p-4 rounded-xl transition-colors ${
