@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSupabaseAuth } from '../../src/contexts/SupabaseAuthContext';
 import { useI18nContext } from '../../src/contexts/I18nProvider';
@@ -363,28 +364,32 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900 antialiased">
       {/* Desktop Header */}
-      <header className="hidden lg:block border-b border-stone-200/80 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+      <header className="hidden lg:block border-b border-stone-200/60 bg-white/90 backdrop-blur-md sticky top-0 z-50 shadow-sm shadow-stone-200/50">
         <div className="max-w-6xl mx-auto px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-stone-800 rounded-lg flex items-center justify-center">
-                <Globe className="h-5 w-5 text-white" />
+            <Link href="/" className="flex items-center gap-3 group">
+              <div className="w-10 h-10 bg-stone-800 rounded-xl flex items-center justify-center text-white shadow-sm group-hover:bg-stone-700 transition-colors">
+                <Globe className="h-5 w-5" />
               </div>
               <div>
-                <h1 className="text-lg font-semibold tracking-tight text-stone-900">{t('platform.name')}</h1>
-                <p className="text-xs text-stone-500">{t('dashboard.title')}</p>
+                <h1 className="text-lg font-semibold tracking-tight text-stone-900 leading-tight">
+                  <span className="text-stone-800">Domain</span>
+                  <span className="text-teal-600">.Financial</span>
+                </h1>
+                <p className="text-xs text-stone-500 mt-0.5">{t('dashboard.title')}</p>
               </div>
-            </div>
+            </Link>
             <div className="flex items-center gap-4">
               <select
                 value={locale}
                 onChange={(e) => setLocale(e.target.value as 'en' | 'zh')}
-                className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                aria-label={locale === 'zh' ? '选择语言' : 'Select language'}
+                className="rounded-xl border border-stone-200 bg-stone-50/80 px-3 py-2 text-sm text-stone-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
               >
                 <option value="zh">中文</option>
                 <option value="en">English</option>
               </select>
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-stone-200 bg-white">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-stone-200/80 bg-stone-50/80">
                 <div className="w-8 h-8 bg-stone-700 rounded-full flex items-center justify-center text-white text-sm font-medium">
                   {user?.email ? user.email.charAt(0).toUpperCase() : <User className="h-4 w-4" />}
                 </div>
@@ -395,14 +400,14 @@ export default function DashboardPage() {
               </div>
               <button
                 onClick={domainOps.handleAddDomain}
-                className="bg-teal-600 text-white px-5 py-2.5 rounded-lg hover:bg-teal-700 flex items-center gap-2 text-sm font-medium shadow-sm"
+                className="bg-teal-600 text-white px-5 py-2.5 rounded-xl hover:bg-teal-700 flex items-center gap-2 text-sm font-medium shadow-sm shadow-teal-600/20 transition"
               >
                 <Plus size={18} />
                 <span>{t('dashboard.addInvestment')}</span>
               </button>
               <button
                 onClick={async () => { await signOut(); router.push('/'); }}
-                className="text-stone-500 hover:text-stone-800 flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-stone-100 text-sm font-medium"
+                className="text-stone-500 hover:text-stone-800 flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-stone-100 text-sm font-medium transition"
               >
                 <LogOut size={18} />
                 <span>{t('dashboard.signOut')}</span>
@@ -413,26 +418,29 @@ export default function DashboardPage() {
       </header>
 
       {/* Mobile Header */}
-      <header className="lg:hidden border-b border-stone-200/80 bg-white/95 backdrop-blur-sm sticky top-0 z-50">
+      <header className="lg:hidden border-b border-stone-200/60 bg-white/95 backdrop-blur-md sticky top-0 z-50 shadow-sm shadow-stone-200/50">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 bg-stone-800 rounded-lg flex items-center justify-center">
-                <Globe className="h-5 w-5 text-white" />
+            <Link href="/" className="flex items-center gap-2.5">
+              <div className="w-9 h-9 bg-stone-800 rounded-xl flex items-center justify-center text-white shadow-sm">
+                <Globe className="h-5 w-5" />
               </div>
               <div>
-                <h1 className="text-base font-semibold text-stone-900">{t('platform.name')}</h1>
-                <p className="text-xs text-stone-500">{t('dashboard.title')}</p>
+                <h1 className="text-base font-semibold tracking-tight text-stone-900 leading-tight">
+                  <span className="text-stone-800">Domain</span>
+                  <span className="text-teal-600">.Financial</span>
+                </h1>
+                <p className="text-xs text-stone-500 mt-0.5">{t('dashboard.title')}</p>
               </div>
-            </div>
+            </Link>
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-stone-700 rounded-full flex items-center justify-center text-white text-xs font-medium">
                 {user?.email ? user.email.charAt(0).toUpperCase() : <User className="h-4 w-4" />}
               </div>
-              <button onClick={domainOps.handleAddDomain} className="bg-teal-600 text-white p-2.5 rounded-lg hover:bg-teal-700">
+              <button onClick={domainOps.handleAddDomain} className="bg-teal-600 text-white p-2.5 rounded-xl hover:bg-teal-700 shadow-sm">
                 <Plus size={18} />
               </button>
-              <button onClick={async () => { await signOut(); router.push('/'); }} className="text-stone-600 p-2.5 rounded-lg hover:bg-stone-100 border border-stone-200">
+              <button onClick={async () => { await signOut(); router.push('/'); }} className="text-stone-600 p-2.5 rounded-xl hover:bg-stone-100 border border-stone-200">
                 <LogOut size={18} />
               </button>
             </div>
