@@ -733,11 +733,15 @@ export default function TransactionForm({
                               formData.installment_amount,
                               formData.installment_period,
                               formData.platform_fee_type || 'standard',
-                              undefined, // customFeeRate
-                              undefined, // escrowFee
-                              undefined, // domainHoldingFee
+                              undefined,
+                              undefined,
+                              undefined,
                               formData.user_input_fee_rate,
-                              formData.user_input_surcharge_rate
+                              formData.user_input_surcharge_rate,
+                              {
+                                downpaymentAmount: formData.downpayment_amount,
+                                finalPaymentAmount: formData.final_payment_amount
+                              }
                             );
                             
                             return (
@@ -796,13 +800,17 @@ export default function TransactionForm({
                               const result = calculatePaidAmountFromInstallment(
                                 formData.installment_amount,
                                 formData.paid_periods,
-                                formData.installment_period, // 总期数
+                                formData.installment_period,
                                 formData.platform_fee_type || 'standard',
-                                undefined, // customFeeRate
-                                undefined, // escrowFee
-                                undefined, // domainHoldingFee
+                                undefined,
+                                undefined,
+                                undefined,
                                 formData.user_input_fee_rate,
-                                formData.user_input_surcharge_rate
+                                formData.user_input_surcharge_rate,
+                                {
+                                  downpaymentAmount: formData.downpayment_amount,
+                                  finalPaymentAmount: formData.final_payment_amount
+                                }
                               );
                               
                               return (

@@ -214,8 +214,35 @@ function calculateAtomInstallmentFee(sellerAmount: number, installmentPeriod: nu
 }
 
 /**
- * Spaceship分期费用计算（统一5%）
+ * Spaceship 分期：平台费 = 出售总金额 × 5%（不是对「每期×期数」反推 customer/seller）
+ * 出售总金额 = 客户分期付款总额（与 Installment Summary 的 Total Installment 一致）
  */
+function calculateSpaceshipInstallmentFeeFromTotalSale(totalSaleAmount: number): PlatformFeeResult {
+  if (totalSaleAmount <= 0) {
+    return {
+      customerTotalAmount: 0,
+      platformFee: 0,
+      platformFeeRate: 0.05,
+      sellerNetAmount: 0,
+      breakdown: { baseAmount: 0, feeAmount: 0 }
+    };
+  }
+  const platformFee = totalSaleAmount * 0.05;
+  const sellerNetAmount = totalSaleAmount - platformFee; // 95% 归卖家
+  const platformFeeRate = platformFee / totalSaleAmount;
+  return {
+    customerTotalAmount: totalSaleAmount, // 客户支付的分期总额即「出售金额」
+    platformFee,
+    platformFeeRate,
+    sellerNetAmount,
+    breakdown: {
+      baseAmount: totalSaleAmount,
+      feeAmount: platformFee
+    }
+  };
+}
+
+/** @deprecated 旧逻辑用 sellerAmount 反推会错；Spaceship 应使用 calculateSpaceshipInstallmentFeeFromTotalSale */
 function calculateSpaceshipInstallmentFee(sellerAmount: number): PlatformFeeResult {
   return calculateStandardFee(sellerAmount, 0.05);
 }
@@ -246,7 +273,21 @@ function calculateEscrowInstallmentFee(
 }
 
 /**
- * 根据分期金额和期数计算客户总付款
+ * 与 TransactionForm Installment Summary 一致的分期总额（客户/出售总金额）
+ */
+export function calculateTotalInstallmentAmount(
+  downpayment: number,
+  installmentAmount: number,
+  installmentPeriod: number,
+  finalPaymentAmount: number
+): number {
+  const regularPeriods = installmentPeriod - (finalPaymentAmount > 0 ? 1 : 0);
+  return downpayment + installmentAmount * regularPeriods + finalPaymentAmount;
+}
+
+/**
+ * 根据分期金额和期数计算客户总付款 / 平台费
+ * Spaceship：平台费 = 分期总额 × 5%，与 Installment Summary 的 Total Installment 一致
  */
 export function calculateCustomerTotalFromInstallment(
   installmentAmount: number,
@@ -256,10 +297,25 @@ export function calculateCustomerTotalFromInstallment(
   escrowFee?: number,
   domainHoldingFee?: number,
   userInputFeeRate?: number,
-  userInputSurchargeRate?: number
+  userInputSurchargeRate?: number,
+  options?: { downpaymentAmount?: number; finalPaymentAmount?: number }
 ): PlatformFeeResult {
+  const downpayment = options?.downpaymentAmount ?? 0;
+  const finalPayment = options?.finalPaymentAmount ?? 0;
+
+  if (platformFeeType === 'spaceship_installment' && (downpayment > 0 || installmentAmount > 0)) {
+    const totalSaleAmount = calculateTotalInstallmentAmount(
+      downpayment,
+      installmentAmount,
+      installmentPeriod,
+      finalPayment
+    );
+    if (totalSaleAmount > 0) {
+      return calculateSpaceshipInstallmentFeeFromTotalSale(totalSaleAmount);
+    }
+  }
+
   const sellerAmount = installmentAmount * installmentPeriod;
-  
   return calculatePlatformFee({
     type: platformFeeType as 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment',
     installmentPeriod,
@@ -268,13 +324,13 @@ export function calculateCustomerTotalFromInstallment(
     escrowFee,
     domainHoldingFee,
     userInputFeeRate,
-    userInputSurchargeRate,
+    userInputSurchargeRate
   });
 }
 
 /**
  * 根据已付期数计算实际收到的金额和平台费用
- * 正确的逻辑：先计算总费用结构，然后按已付期数比例计算
+ * Spaceship：客户已付总额 = 首付 + 已付期数×每期金额（与业务一致）；平台费按已收款比例占 5%
  */
 export function calculatePaidAmountFromInstallment(
   installmentAmount: number,
@@ -285,9 +341,49 @@ export function calculatePaidAmountFromInstallment(
   escrowFee?: number,
   domainHoldingFee?: number,
   userInputFeeRate?: number,
-  userInputSurchargeRate?: number
+  userInputSurchargeRate?: number,
+  options?: { downpaymentAmount?: number; finalPaymentAmount?: number }
 ): PlatformFeeResult {
-  // 先计算总的费用结构（基于总期数）
+  const downpayment = options?.downpaymentAmount ?? 0;
+  const finalPayment = options?.finalPaymentAmount ?? 0;
+
+  if (platformFeeType === 'spaceship_installment') {
+    const totalSaleAmount = calculateTotalInstallmentAmount(
+      downpayment,
+      installmentAmount,
+      totalPeriods,
+      finalPayment
+    );
+    if (totalSaleAmount <= 0) {
+      return {
+        customerTotalAmount: 0,
+        platformFee: 0,
+        platformFeeRate: 0.05,
+        sellerNetAmount: 0,
+        breakdown: { baseAmount: 0, feeAmount: 0 }
+      };
+    }
+    const totalResult = calculateSpaceshipInstallmentFeeFromTotalSale(totalSaleAmount);
+    // 已付给卖家的分期部分（不含首付时仅期数×每期；若首付算已付，则 seller 已收 = 首付 + 期数×每期）
+    const sellerReceivedSoFar = downpayment + installmentAmount * paidPeriods;
+    const paidRatio = Math.min(1, sellerReceivedSoFar / totalSaleAmount);
+    const platformFeePaid = totalResult.platformFee * paidRatio;
+    // 客户已付现金 = 首付 + 已付期数对应的分期额（用户要求 Customer Paid 含首付）
+    const customerPaidTotal = downpayment + installmentAmount * paidPeriods;
+    const sellerNetSoFar = sellerReceivedSoFar - platformFeePaid;
+
+    return {
+      customerTotalAmount: customerPaidTotal,
+      platformFee: platformFeePaid,
+      platformFeeRate: totalResult.platformFeeRate,
+      sellerNetAmount: sellerNetSoFar,
+      breakdown: {
+        baseAmount: sellerReceivedSoFar,
+        feeAmount: platformFeePaid
+      }
+    };
+  }
+
   const totalSellerAmount = installmentAmount * totalPeriods;
   const totalResult = calculatePlatformFee({
     type: platformFeeType as 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment',
@@ -297,17 +393,14 @@ export function calculatePaidAmountFromInstallment(
     escrowFee,
     domainHoldingFee,
     userInputFeeRate,
-    userInputSurchargeRate,
+    userInputSurchargeRate
   });
 
-  // 计算已付期数的比例
   const paidRatio = paidPeriods / totalPeriods;
-
-  // 按比例计算已付部分
   const sellerAmount = installmentAmount * paidPeriods;
   const customerTotalAmount = totalResult.customerTotalAmount * paidRatio;
   const platformFee = totalResult.platformFee * paidRatio;
-  const platformFeeRate = totalResult.platformFeeRate; // 平台费用率保持不变
+  const platformFeeRate = totalResult.platformFeeRate;
 
   return {
     customerTotalAmount,
