@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Download, Twitter, Linkedin, Facebook, MessageCircle } from 'lucide-react';
 import { useI18nContext } from '../../contexts/I18nProvider';
 
@@ -24,28 +24,27 @@ export default function ShareModal({ isOpen, onClose, shareData }: ShareModalPro
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const generateShareImage = async () => {
+  const drawCanvas = useCallback(() => {
     if (!canvasRef.current) return;
-    
-    setIsGenerating(true);
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // 设置画布尺寸
     canvas.width = 800;
     canvas.height = 600;
 
-    // 绘制渐变背景
     const gradient = ctx.createLinearGradient(0, 0, 0, 600);
     gradient.addColorStop(0, '#667eea');
     gradient.addColorStop(1, '#764ba2');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 800, 600);
 
-    // 绘制白色内容区域
     ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-    ctx.roundRect(50, 50, 700, 500, 20);
+    if (typeof ctx.roundRect === 'function') {
+      ctx.roundRect(50, 50, 700, 500, 20);
+    } else {
+      ctx.rect(50, 50, 700, 500);
+    }
     ctx.fill();
 
     // 设置字体
@@ -54,11 +53,15 @@ export default function ShareModal({ isOpen, onClose, shareData }: ShareModalPro
     ctx.textAlign = 'center';
     ctx.fillText('🎉 My Domain Investment Results 🎉', 400, 120);
 
-    // 绘制统计数据
+    const profit = Number.isFinite(shareData.totalProfit) ? shareData.totalProfit : 0;
+    const roiVal = Number.isFinite(shareData.roi) ? shareData.roi : 0;
+    const bestName = shareData.bestDomain && shareData.bestDomain !== '—' ? shareData.bestDomain : '—';
+    const bestTrunc = bestName.length > 36 ? `${bestName.slice(0, 33)}...` : bestName;
+
     ctx.font = 'bold 24px Arial';
-    ctx.fillText(`💰 Total Profit: $${shareData.totalProfit.toLocaleString()}`, 400, 180);
-    ctx.fillText(`📈 ROI: ${shareData.roi.toFixed(1)}%`, 400, 220);
-    ctx.fillText(`🏆 Best Domain: ${shareData.bestDomain}`, 400, 260);
+    ctx.fillText(`💰 Total Profit: $${profit.toLocaleString()}`, 400, 180);
+    ctx.fillText(`📈 ROI: ${roiVal.toFixed(1)}%`, 400, 220);
+    ctx.fillText(`🏆 Best Domain: ${bestTrunc}`, 400, 260);
     ctx.fillText(`📊 Domains: ${shareData.domainCount}`, 400, 300);
     ctx.fillText(`⏰ Investment Period: ${shareData.investmentPeriod}`, 400, 340);
 
@@ -74,13 +77,25 @@ export default function ShareModal({ isOpen, onClose, shareData }: ShareModalPro
     ctx.fillText('🚀', 700, 200);
     ctx.fillText('📈', 100, 400);
     ctx.fillText('🎯', 700, 400);
+  }, [shareData]);
 
+  const generateShareImage = () => {
+    if (!canvasRef.current) return;
+    setIsGenerating(true);
+    drawCanvas();
     setIsGenerating(false);
   };
 
+  // 打开弹窗时自动生成一次预览，避免空白画布
+  useEffect(() => {
+    if (!isOpen) return;
+    const timer = setTimeout(() => drawCanvas(), 100);
+    return () => clearTimeout(timer);
+  }, [isOpen, shareData, drawCanvas]);
+
   const downloadImage = () => {
     if (!canvasRef.current) return;
-    
+    drawCanvas();
     const link = document.createElement('a');
     link.download = `domain-financial-investment-results-${new Date().toISOString().split('T')[0]}.png`;
     link.href = canvasRef.current.toDataURL();
@@ -88,6 +103,7 @@ export default function ShareModal({ isOpen, onClose, shareData }: ShareModalPro
   };
 
   const shareToSocial = (platform: string) => {
+    if (canvasRef.current) drawCanvas();
     const imageData = canvasRef.current?.toDataURL();
     if (!imageData) return;
 

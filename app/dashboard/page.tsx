@@ -49,6 +49,10 @@ import { useDomainOperations } from '../../src/hooks/useDomainOperations';
 import { useTransactionOperations } from '../../src/hooks/useTransactionOperations';
 import { useDomainStats } from '../../src/hooks/useDomainStats';
 import {
+  calculateBasicFinancialMetrics,
+  calculateDomainHoldingCost
+} from '../../src/lib/coreCalculations';
+import {
   Globe,
   Plus,
   DollarSign,
@@ -297,40 +301,57 @@ export default function DashboardPage() {
     domainOps.setShowDomainForm(true);
   }, [domainOps]);
 
-  // Calculate share data for social media - 使用useMemo优化
+  // Share 数据与 Analytics 一致：基于 transactions 的出售收入（base_amount/net_amount），非 domain.sale_price
   const shareData = useMemo(() => {
-    const soldDomains = domains.filter(d => d.status === 'sold');
-    const totalProfit = soldDomains.reduce((sum, domain) => {
-      const totalHoldingCost = (domain.purchase_cost || 0) + (domain.renewal_count * (domain.renewal_cost || 0));
-      const platformFee = domain.platform_fee || 0;
-      return sum + (domain.sale_price || 0) - totalHoldingCost - platformFee;
-    }, 0);
-    
-    const totalInvestment = domains.reduce((sum, domain) => {
-      return sum + (domain.purchase_cost || 0) + (domain.renewal_count * (domain.renewal_cost || 0));
-    }, 0);
-    
-    const roi = totalInvestment > 0 ? (totalProfit / totalInvestment) * 100 : 0;
-    
-    const bestDomain = soldDomains.reduce((best, domain) => {
-      const domainProfit = (domain.sale_price || 0) - (domain.purchase_cost || 0) - (domain.renewal_count * (domain.renewal_cost || 0)) - (domain.platform_fee || 0);
-      const bestProfit = (best.sale_price || 0) - (best.purchase_cost || 0) - (best.renewal_count * (best.renewal_cost || 0)) - (best.platform_fee || 0);
-      return domainProfit > bestProfit ? domain : best;
-    }, soldDomains[0] || { domain_name: 'N/A' });
-    
-    const investmentPeriod = domains.length > 0 ? 
-      `${Math.ceil((new Date().getTime() - new Date(Math.min(...domains.filter(d => d.purchase_date).map(d => new Date(d.purchase_date!).getTime()))).getTime()) / (1000 * 60 * 60 * 24 * 30))}个月` : 
-      '0个月';
-    
+    const metrics = calculateBasicFinancialMetrics(domains, transactions);
+    const totalInvestment = metrics.totalInvestment;
+    const totalProfit = metrics.totalProfit;
+    const roi = metrics.roi;
+
+    // 最佳表现域名：按出售交易净收入 - 持有成本 计算单域名利润，与 Analytics 口径一致
+    const sellTxByDomainId = transactions.filter((t) => t.type === 'sell').reduce((acc, t) => {
+      const id = t.domain_id;
+      const usd = t.base_amount != null ? t.base_amount : (t.net_amount != null ? t.net_amount : t.amount);
+      acc[id] = (acc[id] || 0) + usd;
+      return acc;
+    }, {} as Record<string, number>);
+
+    let bestDomain: DomainWithTags | null = null;
+    let bestProfit = -Infinity;
+    for (const domain of domains) {
+      const revenue = sellTxByDomainId[domain.id] ?? 0;
+      if (revenue <= 0) continue;
+      const holdingCost = calculateDomainHoldingCost(
+        domain.purchase_cost || 0,
+        domain.renewal_cost || 0,
+        domain.renewal_count ?? 0
+      );
+      const profit = revenue - holdingCost;
+      if (profit > bestProfit) {
+        bestProfit = profit;
+        bestDomain = domain;
+      }
+    }
+
+    const domainsWithPurchaseDate = domains.filter((d) => d.purchase_date);
+    const investmentPeriod =
+      domainsWithPurchaseDate.length > 0
+        ? `${Math.ceil(
+            (Date.now() -
+              Math.min(...domainsWithPurchaseDate.map((d) => new Date(d.purchase_date!).getTime()))) /
+              (1000 * 60 * 60 * 24 * 30)
+          )}个月`
+        : '0个月';
+
     return {
       totalProfit,
       roi,
-      bestDomain: bestDomain.domain_name,
+      bestDomain: bestDomain?.domain_name ?? '—',
       investmentPeriod,
       domainCount: domains.length,
       totalInvestment
     };
-  }, [domains]);
+  }, [domains, transactions]);
 
 
 
