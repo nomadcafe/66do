@@ -59,7 +59,8 @@ const DomainList = memo(function DomainList({ domains, onEdit, onDelete, onView,
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
             <input
-              type="text"
+              type="search"
+              aria-label={t('domainList.searchPlaceholder')}
               placeholder={t('domainList.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -72,6 +73,7 @@ const DomainList = memo(function DomainList({ domains, onEdit, onDelete, onView,
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
+            aria-label={t('domainList.allStatus')}
             className="px-3 py-2.5 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
           >
             {statusOptions.map(option => (

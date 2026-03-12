@@ -130,8 +130,8 @@ const TransactionList = memo(function TransactionList({
   }, [domains]);
 
   const getDomainName = useCallback((domainId: string) => {
-    return domainMap.get(domainId) || 'Unknown Domain';
-  }, [domainMap]);
+    return domainMap.get(domainId) || t('transactionList.unknownDomain');
+  }, [domainMap, t]);
 
   const filteredTransactions = useMemo(() => transactions.filter(transaction => {
     const matchesSearch = 
@@ -144,126 +144,118 @@ const TransactionList = memo(function TransactionList({
   }), [transactions, getDomainName, searchTerm, typeFilter]);
 
   const typeOptions = [
-    { value: 'all', label: 'All Types' },
-    { value: 'buy', label: 'Purchase' },
-    { value: 'sell', label: 'Sale' },
-    { value: 'renew', label: 'Renewal' },
-    { value: 'transfer', label: 'Transfer' },
-    { value: 'fee', label: 'Fee' },
-    { value: 'marketing', label: 'Marketing' },
-    { value: 'advertising', label: 'Advertising' }
+    { value: 'all', labelKey: 'transactionList.allTypes' as const },
+    { value: 'buy', labelKey: 'transaction.buy' as const },
+    { value: 'sell', labelKey: 'transaction.sell' as const },
+    { value: 'renew', labelKey: 'transaction.renew' as const },
+    { value: 'transfer', labelKey: 'transaction.transfer' as const },
+    { value: 'fee', labelKey: 'transaction.fee' as const },
+    { value: 'marketing', labelKey: 'transaction.marketing' as const },
+    { value: 'advertising', labelKey: 'transaction.advertising' as const }
   ];
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Transaction History</h2>
-          <p className="text-gray-600">Track all your domain-related transactions</p>
+          <h2 className="text-xl font-semibold text-stone-900">{t('transactionList.title')}</h2>
+          <p className="text-sm text-stone-500 mt-0.5">{t('transactionList.subtitle')}</p>
         </div>
         <button
           onClick={onAdd}
-          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="inline-flex items-center px-4 py-2.5 bg-teal-600 text-white rounded-xl text-sm font-medium hover:bg-teal-700 transition"
         >
           <Plus className="h-4 w-4 mr-2" />
-          Add Transaction
+          {t('transactionList.addTransaction')}
         </button>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex-1">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
             <input
-              type="text"
-              placeholder="Search transactions, domains, or notes..."
+              type="search"
+              aria-label={t('transactionList.searchPlaceholder')}
+              placeholder={t('transactionList.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2.5 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
             />
           </div>
         </div>
-        
-        <div className="flex items-center space-x-2">
-          <Filter className="h-4 w-4 text-gray-400" />
+        <div className="flex items-center gap-3">
+          <Filter className="h-4 w-4 text-stone-400" />
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-label={t('transactionList.allTypes')}
+            className="px-3 py-2.5 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
           >
             {typeOptions.map(option => (
               <option key={option.value} value={option.value}>
-                {option.label}
+                {t(option.labelKey)}
               </option>
             ))}
           </select>
         </div>
       </div>
 
-      {/* Results Count */}
-      <div className="text-sm text-gray-600">
-        Showing {filteredTransactions.length} of {transactions.length} transactions
-      </div>
+      <p className="text-sm text-stone-500">
+        {t('transactionList.showingCount').replace('{filtered}', String(filteredTransactions.length)).replace('{total}', String(transactions.length))}
+      </p>
 
-      {/* Transactions List */}
       {filteredTransactions.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="text-gray-400 mb-4">
-            <FileText className="h-12 w-12 mx-auto" />
-          </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            {searchTerm || typeFilter !== 'all' ? 'No transactions found' : 'No transactions yet'}
+        <div className="text-center py-14 bg-white rounded-2xl border border-stone-200/80 shadow-sm">
+          <FileText className="h-10 w-10 mx-auto text-stone-300 mb-4" />
+          <h3 className="text-base font-semibold text-stone-900 mb-2">
+            {searchTerm || typeFilter !== 'all' ? t('transactionList.noTransactionsFound') : t('transactionList.noTransactionsYet')}
           </h3>
-          <p className="text-gray-600 mb-4">
-            {searchTerm || typeFilter !== 'all' 
-              ? 'Try adjusting your search or filter criteria'
-              : 'Start tracking your domain investments by adding your first transaction'
-            }
+          <p className="text-sm text-stone-500 mb-5 max-w-sm mx-auto">
+            {searchTerm || typeFilter !== 'all' ? t('transactionList.adjustSearch') : t('transactionList.getStarted')}
           </p>
           {!searchTerm && typeFilter === 'all' && (
             <button
               onClick={onAdd}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="inline-flex items-center px-4 py-2.5 bg-teal-600 text-white rounded-xl text-sm font-medium hover:bg-teal-700 transition"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Add Your First Transaction
+              {t('transactionList.addFirstTransaction')}
             </button>
           )}
         </div>
       ) : (
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-stone-200/80 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-stone-200">
+              <thead className="bg-stone-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Domain
+                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
+                    {t('transactionList.domain')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Type
+                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
+                    {t('transactionList.type')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Amount
+                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
+                    {t('transactionList.amount')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date
+                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
+                    {t('transactionList.date')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Platform
+                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
+                    {t('transactionList.platform')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Notes
+                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
+                    {t('transactionList.notes')}
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
+                  <th className="px-6 py-3 text-right text-xs font-medium text-stone-500 uppercase tracking-wider">
+                    {t('transactionList.actions')}
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-stone-200">
                 {filteredTransactions.map((transaction) => (
-                  <tr key={transaction.id} className="hover:bg-gray-50">
+                  <tr key={transaction.id} className="hover:bg-stone-50/80">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
                         {getDomainName(transaction.domain_id)}
@@ -349,7 +341,7 @@ const TransactionList = memo(function TransactionList({
                       <div className="flex items-center justify-end space-x-2">
                         <button
                           onClick={() => onEdit(transaction)}
-                          className="text-blue-600 hover:text-blue-900"
+                          className="text-teal-600 hover:text-teal-800"
                         >
                           <Edit className="h-4 w-4" />
                         </button>
