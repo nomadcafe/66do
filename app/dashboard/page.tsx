@@ -196,22 +196,25 @@ export default function DashboardPage() {
     return calculateAnnualRenewalCost(validDomains);
   }, [domains]);
 
-  // 计算即将到期的域名（30天内）
+  // 即将到期 + 刚过期（7 天内）：30 天内到期或已过期 7 天内，便于续费/标记已售
+  const EXPIRING_WINDOW_DAYS = 30;
+  const RECENTLY_EXPIRED_DAYS = 7;
   const expiringDomains = useMemo(() => {
     return domains.filter(domain => {
-      // 跳过已出售的域名
       if (domain.status === 'sold') return false;
       if (!domain.expiry_date) return false;
-      
       const daysUntilExpiry = Math.ceil((new Date(domain.expiry_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-      return daysUntilExpiry <= 30 && daysUntilExpiry >= 0;
+      return daysUntilExpiry <= EXPIRING_WINDOW_DAYS && daysUntilExpiry >= -RECENTLY_EXPIRED_DAYS;
     }).map(domain => {
       const daysUntilExpiry = Math.ceil((new Date(domain.expiry_date!).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-      return {
-        ...domain,
-        daysUntilExpiry,
-        urgency: daysUntilExpiry <= 7 ? 'critical' : daysUntilExpiry <= 14 ? 'urgent' : 'normal'
-      };
+      const urgency = daysUntilExpiry < 0
+        ? 'expired'
+        : daysUntilExpiry <= 7
+          ? 'critical'
+          : daysUntilExpiry <= 14
+            ? 'urgent'
+            : 'normal';
+      return { ...domain, daysUntilExpiry, urgency };
     }).sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
   }, [domains]);
 
@@ -334,14 +337,15 @@ export default function DashboardPage() {
     }
 
     const domainsWithPurchaseDate = domains.filter((d) => d.purchase_date);
-    const investmentPeriod =
+    const monthsNum =
       domainsWithPurchaseDate.length > 0
-        ? `${Math.ceil(
+        ? Math.ceil(
             (Date.now() -
               Math.min(...domainsWithPurchaseDate.map((d) => new Date(d.purchase_date!).getTime()))) /
               (1000 * 60 * 60 * 24 * 30)
-          )}个月`
-        : '0个月';
+          )
+        : 0;
+    const investmentPeriod = locale === 'zh' ? `${monthsNum}个月` : `${monthsNum} months`;
 
     return {
       totalProfit,
@@ -351,7 +355,7 @@ export default function DashboardPage() {
       domainCount: domains.length,
       totalInvestment
     };
-  }, [domains, transactions]);
+  }, [domains, transactions, locale]);
 
 
 
@@ -833,7 +837,7 @@ export default function DashboardPage() {
 
         {activeTab === 'alerts' && (
           <div className="space-y-6">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
               <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-sm">
                 <p className="text-xs font-medium text-stone-500">{t('common.totalExpiring')}</p>
                 <p className="text-2xl font-bold text-stone-900 mt-1">{expiringDomains.length}</p>
@@ -854,6 +858,11 @@ export default function DashboardPage() {
                 <p className="text-2xl font-bold text-stone-900 mt-1">{expiringDomains.filter(d => d.urgency === 'normal').length}</p>
                 <Calendar className="h-8 w-8 text-stone-300 mt-2" />
               </div>
+              <div className="bg-white rounded-2xl border border-red-300/80 p-4 shadow-sm">
+                <p className="text-xs font-medium text-red-700">{t('common.recentlyExpired')}</p>
+                <p className="text-2xl font-bold text-stone-900 mt-1">{expiringDomains.filter(d => d.urgency === 'expired').length}</p>
+                <AlertTriangle className="h-8 w-8 text-red-500/70 mt-2" />
+              </div>
             </div>
 
             <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
@@ -869,6 +878,7 @@ export default function DashboardPage() {
                     <div
                       key={domain.id}
                       className={`p-4 rounded-xl border ${
+                        domain.urgency === 'expired' ? 'border-red-300 bg-red-50/40' :
                         domain.urgency === 'critical' ? 'border-red-200 bg-red-50/50' :
                         domain.urgency === 'urgent' ? 'border-amber-200 bg-amber-50/50' : 'border-stone-200 bg-stone-50/50'
                       }`}
@@ -878,16 +888,18 @@ export default function DashboardPage() {
                           <div className="flex items-center gap-2 flex-wrap">
                             <h4 className="font-medium text-stone-900">{domain.domain_name}</h4>
                             <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                              domain.urgency === 'expired' ? 'bg-red-200 text-red-900' :
                               domain.urgency === 'critical' ? 'bg-red-100 text-red-800' :
                               domain.urgency === 'urgent' ? 'bg-amber-100 text-amber-800' : 'bg-stone-200 text-stone-700'
                             }`}>
-                              {domain.urgency === 'critical' ? t('common.critical') : domain.urgency === 'urgent' ? t('common.urgent') : t('common.normal')}
+                              {domain.urgency === 'expired' ? t('common.expired') : domain.urgency === 'critical' ? t('common.critical') : domain.urgency === 'urgent' ? t('common.urgent') : t('common.normal')}
                             </span>
                           </div>
                           <p className="text-sm text-stone-600 mt-1">
+                            {domain.registrar && <span>{t('domain.registrar')}: {domain.registrar} · </span>}
                             {t('common.daysUntilExpiry')}: {new Date(domain.expiry_date!).toLocaleDateString()} ·
                             {domain.daysUntilExpiry === 0 ? ` ${t('common.todayExpiry')}` :
-                             domain.daysUntilExpiry < 0 ? ` ${t('common.expiredDaysAgo')} ${Math.abs(domain.daysUntilExpiry)} ${t('common.daysLeft')}` :
+                             domain.daysUntilExpiry < 0 ? ` ${t('common.expiredDaysAgo')} ${Math.abs(domain.daysUntilExpiry)} ${t('common.daysAgo')}` :
                              ` ${t('common.daysLeftExpiry')} ${domain.daysUntilExpiry} ${t('common.daysLeftExpiryEnd')}`}
                           </p>
                         </div>
@@ -906,7 +918,8 @@ export default function DashboardPage() {
               ) : (
                 <div className="text-center py-10 text-stone-500">
                   <Calendar className="h-10 w-10 mx-auto mb-3 text-stone-300" />
-                  <p className="text-sm">{t('common.noExpiringDomains')}</p>
+                  <p className="text-sm font-medium text-stone-600">{t('common.noExpiringDomains')}</p>
+                  <p className="text-xs text-stone-400 mt-1 max-w-sm mx-auto">{t('common.expiringEmptyHint')}</p>
                 </div>
               )}
             </div>
