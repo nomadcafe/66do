@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { X, Download, Twitter, Linkedin, Facebook, MessageCircle } from 'lucide-react';
+import { X, Download, Linkedin, Facebook } from 'lucide-react';
 import { DomainWithTags } from '../../types/dashboard';
 import { useI18nContext } from '../../contexts/I18nProvider';
 
@@ -203,7 +203,7 @@ export default function DomainShareModal({ isOpen, onClose, domain }: DomainShar
     
     let url = '';
     switch (platform) {
-      case 'twitter':
+      case 'x':
         url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
         break;
       case 'linkedin':
@@ -212,13 +212,7 @@ export default function DomainShareModal({ isOpen, onClose, domain }: DomainShar
       case 'facebook':
         url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent('https://www.domain.financial')}`;
         break;
-      case 'wechat':
-        // 微信分享需要特殊处理
-        navigator.clipboard.writeText(text);
-        alert(t('common.copiedToClipboard'));
-        return;
     }
-    
     if (url) {
       window.open(url, '_blank', 'width=600,height=400');
     }
@@ -265,37 +259,27 @@ export default function DomainShareModal({ isOpen, onClose, domain }: DomainShar
           <div className="space-y-4">
             <h3 className="text-lg font-medium text-gray-900">{t('common.shareToSocialMedia')}</h3>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <button
-                onClick={() => shareToSocial('twitter')}
-                className="flex items-center justify-center space-x-2 bg-blue-500 text-white px-4 py-3 rounded-lg hover:bg-blue-600"
+                onClick={() => shareToSocial('x')}
+                className="flex items-center justify-center gap-2 bg-stone-800 text-white px-4 py-3 rounded-xl hover:bg-stone-700 font-medium"
               >
-                <Twitter className="h-5 w-5" />
-                <span>Twitter</span>
+                <span className="text-lg font-bold">𝕏</span>
+                <span>X</span>
               </button>
-              
               <button
                 onClick={() => shareToSocial('linkedin')}
-                className="flex items-center justify-center space-x-2 bg-blue-700 text-white px-4 py-3 rounded-lg hover:bg-blue-800"
+                className="flex items-center justify-center gap-2 bg-stone-700 text-white px-4 py-3 rounded-xl hover:bg-stone-600"
               >
                 <Linkedin className="h-5 w-5" />
                 <span>LinkedIn</span>
               </button>
-              
               <button
                 onClick={() => shareToSocial('facebook')}
-                className="flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700"
+                className="flex items-center justify-center gap-2 bg-stone-600 text-white px-4 py-3 rounded-xl hover:bg-stone-500"
               >
                 <Facebook className="h-5 w-5" />
                 <span>Facebook</span>
-              </button>
-              
-              <button
-                onClick={() => shareToSocial('wechat')}
-                className="flex items-center justify-center space-x-2 bg-green-500 text-white px-4 py-3 rounded-lg hover:bg-green-600"
-              >
-                <MessageCircle className="h-5 w-5" />
-                <span>{t('common.wechat')}</span>
               </button>
             </div>
 
