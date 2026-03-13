@@ -568,6 +568,7 @@ const translations: Record<Locale, Translations> = {
       unknownDomain: '未知域名'
     },
     analytics: {
+      title: '投资分析',
       totalInvestment: '总投资',
       totalRevenue: '总收益',
       netProfit: '净利润',
@@ -915,7 +916,14 @@ const translations: Record<Locale, Translations> = {
       noExpiringDomains: '暂无即将到期的域名',
       registrar: '注册商',
       renewNow: '立即续费',
-      add: '添加域名'
+      add: '添加域名',
+      renewalCount: '续费次数',
+      renewals: '续费',
+      totalHoldingCost: '总持有成本',
+      salePrice: '出售价格',
+      saleDate: '出售日期',
+      netProfit: '净利润',
+      sold: '已售'
     },
     mobile: {
       menu: '菜单',
@@ -1555,6 +1563,7 @@ const translations: Record<Locale, Translations> = {
       unknownDomain: 'Unknown Domain'
     },
     analytics: {
+      title: 'Investment Analytics',
       totalInvestment: 'Total Investment',
       totalRevenue: 'Total Revenue',
       netProfit: 'Net Profit',
@@ -1976,7 +1985,14 @@ const translations: Record<Locale, Translations> = {
       noExpiringDomains: 'No expiring domains',
       registrar: 'Registrar',
       renewNow: 'Renew Now',
-      add: 'Add Domain'
+      add: 'Add Domain',
+      renewalCount: 'Renewal Count',
+      renewals: 'renewals',
+      totalHoldingCost: 'Total Holding Cost',
+      salePrice: 'Sale Price',
+      saleDate: 'Sale Date',
+      netProfit: 'Net Profit',
+      sold: 'Sold'
     },
     mobile: {
       menu: 'Menu',
