@@ -140,18 +140,18 @@ export default function ShareModal({ isOpen, onClose, shareData }: ShareModalPro
         ctx.drawImage(img, 0, 0, 800, 600);
         const roi = domainROI(domain);
         const holdingPeriod = domainHoldingPeriod(domain, t);
-        ctx.textAlign = 'center';
-        // 显示屏上 "Domain Sold" 下方（屏幕是斜的，整体左移）
-        const screenCenterX = 340;
+        ctx.textAlign = 'left';
+        // 首字母与 "Domain Sold" 的 "D" 对齐，在显示屏下方整齐排列
+        const screenLeftX = 268;
         ctx.font = 'bold 34px Inter, Arial, sans-serif';
         ctx.fillStyle = '#ffffff';
-        ctx.fillText(domain.domain_name, screenCenterX, 218);
+        ctx.fillText(domain.domain_name, screenLeftX, 218);
         ctx.font = 'bold 38px Inter, Arial, sans-serif';
         ctx.fillStyle = '#22c55e';
-        ctx.fillText(`ROI: ${roi.toFixed(1)}%`, screenCenterX, 278);
+        ctx.fillText(`ROI: ${roi.toFixed(1)}%`, screenLeftX, 278);
         ctx.font = 'bold 28px Inter, Arial, sans-serif';
         ctx.fillStyle = 'rgba(255,255,255,0.95)';
-        ctx.fillText(holdingPeriod, screenCenterX, 328);
+        ctx.fillText(holdingPeriod, screenLeftX, 328);
       } else {
         const gradient = ctx.createLinearGradient(0, 0, 800, 600);
         gradient.addColorStop(0, '#f8fafc');
