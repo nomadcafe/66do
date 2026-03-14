@@ -227,6 +227,7 @@ export function useDashboardData(
         };
 
         let response: Response;
+        let didRetryPost = false;
         if (isExisting) {
           response = await fetch(`/api/transactions/${transaction.id}`, {
             method: 'PUT',
@@ -242,6 +243,7 @@ export function useDashboardData(
                 headers,
                 body: JSON.stringify({ transaction: transactionPayload })
               });
+              didRetryPost = response.ok;
             }
           }
         } else {
@@ -260,7 +262,7 @@ export function useDashboardData(
           throw new Error(`Failed to ${isExisting ? 'update' : 'add'} transaction: ${details}`);
         }
 
-        if (!isExisting) {
+        if (!isExisting || didRetryPost) {
           const json = await response.json().catch(() => ({}));
           const created = json?.data;
           if (created && typeof created === 'object') {
