@@ -204,7 +204,8 @@ export function useDashboardData(
         return;
       }
 
-      // Save transactions to Supabase
+      // Save transactions to Supabase；收集保存后的列表（新建用服务端返回的 id，避免 refetch 覆盖掉新交易）
+      const savedTransactions: TransactionWithRequiredFields[] = [];
       for (const transaction of newTransactions) {
         const isExisting = transactions.find(t => t.id === transaction.id);
         const transactionPayload = {
@@ -214,20 +215,18 @@ export function useDashboardData(
           platform_fee_percentage: transaction.platform_fee_percentage || null,
           net_amount: transaction.net_amount || null,
           category: transaction.category || null,
-          tax_deductible: transaction.tax_deductible || false,
+          tax_deductible: transaction.tax_deductible ?? false,
           receipt_url: transaction.receipt_url || null,
           notes: transaction.notes || null
         };
 
         let response: Response;
         if (isExisting) {
-          // Update existing transaction - PUT /api/transactions/[id]
           response = await fetch(`/api/transactions/${transaction.id}`, {
             method: 'PUT',
             headers,
             body: JSON.stringify(transactionPayload)
           });
-          // 新建交易在 UI 侧有 client id，服务端无此条时返回 403，改为 POST 创建
           if (response.status === 403) {
             const errBody = await response.json().catch(() => ({}));
             const msg = (errBody?.error || '').toLowerCase();
@@ -240,7 +239,6 @@ export function useDashboardData(
             }
           }
         } else {
-          // Create new transaction - POST /api/transactions
           response = await fetch('/api/transactions', {
             method: 'POST',
             headers,
@@ -255,17 +253,24 @@ export function useDashboardData(
             : (errorData.error || response.statusText);
           throw new Error(`Failed to ${isExisting ? 'update' : 'add'} transaction: ${details}`);
         }
+
+        if (!isExisting) {
+          const json = await response.json().catch(() => ({}));
+          const created = json?.data;
+          if (created && typeof created === 'object') {
+            savedTransactions.push(ensureTransactionWithRequiredFields(created));
+          } else {
+            savedTransactions.push(transaction);
+          }
+        } else {
+          savedTransactions.push(transaction);
+        }
       }
 
-      // 先清除旧缓存，确保数据一致性
       domainCache.invalidateUserCache(userId);
 
-      // 更新本地状态
       setDomains(newDomains);
-      setTransactions(newTransactions);
-
-      // 刷新数据从Supabase，确保获取最新数据
-      await loadDashboardData({ useCache: false, showLoading: false });
+      setTransactions(savedTransactions.length > 0 ? savedTransactions : newTransactions);
 
       logger.log('Data saved to Supabase database successfully');
     } catch (error) {

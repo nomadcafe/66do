@@ -131,6 +131,12 @@ export async function POST(request: NextRequest) {
       date: sanitizedTransaction.date as string
     }
     const newTransaction = await TransactionService.createTransactionWithClient(client, payload)
+    if (!newTransaction) {
+      return NextResponse.json(
+        { error: 'Failed to create transaction in database' },
+        { status: 500, headers: getCorsHeadersForError() }
+      )
+    }
 
     return NextResponse.json({ success: true, data: newTransaction }, { headers: corsHeaders })
   } catch (error) {

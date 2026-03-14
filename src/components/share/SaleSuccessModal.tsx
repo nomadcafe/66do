@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { X, Download, Share2, Linkedin, Facebook, CheckCircle, DollarSign, TrendingUp } from 'lucide-react';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import { useI18nContext } from '../../contexts/I18nProvider';
+import { calculateTotalInstallmentAmount } from '../../lib/platformFeeCalculator';
 
 // interface Domain {
 //   id: string;
@@ -38,16 +39,34 @@ export default function SaleSuccessModal({ isOpen, onClose, domain, transaction 
   const [isGenerating, setIsGenerating] = useState(false);
   const [imageGenerated, setImageGenerated] = useState(false);
 
-  const calculateProfit = () => {
-    const totalHoldingCost = (domain.purchase_cost || 0) + (domain.renewal_count * (domain.renewal_cost || 0));
-    const platformFee = transaction.platform_fee || 0;
-    return (transaction.net_amount || transaction.amount) - totalHoldingCost - platformFee;
+  // 出售总价（客户总付款）：分期用分期总额，否则用 base_amount ?? amount
+  const getSalePriceUSD = (): number => {
+    if (transaction.payment_plan === 'installment' && (transaction.downpayment_amount != null || transaction.installment_amount != null)) {
+      const total = calculateTotalInstallmentAmount(
+        transaction.downpayment_amount ?? 0,
+        transaction.installment_amount ?? 0,
+        transaction.installment_period ?? 0,
+        transaction.final_payment_amount ?? 0
+      );
+      if (total > 0) return total;
+    }
+    return transaction.base_amount ?? transaction.amount;
   };
 
-  const calculateROI = () => {
-    const totalHoldingCost = (domain.purchase_cost || 0) + (domain.renewal_count * (domain.renewal_cost || 0));
-    const profit = calculateProfit();
-    return totalHoldingCost > 0 ? (profit / totalHoldingCost) * 100 : 0;
+  // 卖家净收入（已扣平台费）：net_amount 即为净收入，勿再减 platform_fee
+  const getSellerNetUSD = (): number => {
+    const gross = transaction.base_amount ?? transaction.amount;
+    return transaction.net_amount ?? (gross - (transaction.platform_fee || 0));
+  };
+
+  const totalHoldingCost = (domain.purchase_cost || 0) + ((domain.renewal_count ?? 0) * (domain.renewal_cost || 0));
+
+  const calculateProfit = (): number => {
+    return getSellerNetUSD() - totalHoldingCost;
+  };
+
+  const calculateROI = (): number => {
+    return totalHoldingCost > 0 ? (calculateProfit() / totalHoldingCost) * 100 : 0;
   };
 
   const calculateHoldingPeriod = () => {
@@ -102,12 +121,12 @@ export default function SaleSuccessModal({ isOpen, onClose, domain, transaction 
     ctx.fillStyle = '#10b981';
     ctx.fillText(domain.domain_name, 400, 170);
 
-    // 绘制统计数据
+    // 绘制统计数据：Sale Price = 出售总价，Net Profit = 卖家净收入 - 持有成本
     const profit = calculateProfit();
     const roi = calculateROI();
     const holdingPeriod = calculateHoldingPeriod();
-    const salePrice = transaction.net_amount || transaction.amount;
-    
+    const salePrice = getSalePriceUSD();
+
     ctx.font = 'bold 24px Arial';
     ctx.fillStyle = '#1f2937';
     ctx.fillText(`💰 Net Profit: $${profit.toLocaleString()}`, 400, 220);
