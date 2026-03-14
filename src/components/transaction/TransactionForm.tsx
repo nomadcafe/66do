@@ -656,7 +656,7 @@ export default function TransactionForm({
                       </select>
                     </div>
 
-                    {/* 用户输入费用率 */}
+                    {/* 用户输入费用率：留空 = 按期数阶梯，填数 = 覆盖 */}
                     {formData.platform_fee_type === 'afternic_installment' && (
                       <div>
                         <label className="block text-sm font-medium text-blue-800 mb-2">
@@ -668,10 +668,16 @@ export default function TransactionForm({
                             step="0.01"
                             min="0"
                             max="1"
-                            value={formData.user_input_fee_rate}
-                            onChange={(e) => setFormData({ ...formData, user_input_fee_rate: parseFloat(e.target.value) || 0 })}
+                            value={formData.user_input_fee_rate === 0 ? '' : formData.user_input_fee_rate}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              setFormData({
+                                ...formData,
+                                user_input_fee_rate: raw === '' ? 0 : parseFloat(raw) || 0
+                              });
+                            }}
                             className="flex-1 px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="0.30"
+                            placeholder={t('transaction.userInputFeeRatePlaceholder')}
                           />
                         </div>
                         <p className="text-xs text-blue-600 mt-1">
