@@ -45,7 +45,7 @@ function domainHoldingPeriod(domain: DomainWithTags, t: (key: string) => string)
   return months > 0 ? `${years}${t('common.year')}${months}${t('common.month')}` : `${years}${t('common.year')}`;
 }
 
-const CELEBRATION_IMAGE_URL = '/domainfin.png';
+const CELEBRATION_IMAGE_URL = '/domainfinancial.png';
 
 export default function ShareModal({ isOpen, onClose, shareData }: ShareModalProps) {
   const { t } = useI18nContext();
