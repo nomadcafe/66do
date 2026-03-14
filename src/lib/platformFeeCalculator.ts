@@ -88,21 +88,26 @@ function calculateStandardFee(sellerAmount: number, feeRate: number): PlatformFe
  * 3. 三部分结构：标价、服务费、佣金
  */
 function calculateAfternicInstallmentFee(sellerAmount: number, installmentPeriod: number, userInputFeeRate?: number): PlatformFeeResult {
-  // 计算客户服务费比例
+  // Buyer service fee (added to list price): 2–12 months 0%, 13–24 10%, 25–36 20%, 37–60 30%
+  // Only use userInputFeeRate when explicitly set; default 0 from form means "use tier" (so 37–60 gets 30%)
   let serviceFeeRate: number;
-  if (userInputFeeRate !== undefined) {
-    serviceFeeRate = userInputFeeRate;
+  const useTierForServiceFee =
+    userInputFeeRate === undefined ||
+    userInputFeeRate === null ||
+    (installmentPeriod > 12 && userInputFeeRate === 0);
+  if (!useTierForServiceFee) {
+    serviceFeeRate = userInputFeeRate!;
   } else {
     if (installmentPeriod <= 12) {
-      serviceFeeRate = 0; // No service fee
+      serviceFeeRate = 0; // 2–12 months: no service fee
     } else if (installmentPeriod <= 24) {
-      serviceFeeRate = 0.10; // 10% service fee
+      serviceFeeRate = 0.10; // 13–24 months: 10%
     } else if (installmentPeriod <= 36) {
-      serviceFeeRate = 0.20; // 20% service fee
+      serviceFeeRate = 0.20; // 25–36 months: 20%
     } else if (installmentPeriod <= 60) {
-      serviceFeeRate = 0.30; // 30% service fee
+      serviceFeeRate = 0.30; // 37–60 months: 30%
     } else {
-      serviceFeeRate = 0.30; // 超过60期按30%计算
+      serviceFeeRate = 0.30;
     }
   }
 

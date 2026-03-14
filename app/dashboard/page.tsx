@@ -100,7 +100,6 @@ export default function DashboardPage() {
     transactions,
     loading,
     error,
-    dataSource,
     setError,
     saveData,
     refreshData
@@ -1181,13 +1180,6 @@ export default function DashboardPage() {
             await domainOps.processRenewal(domain, renewalYears);
           }}
         />
-      )}
-
-      {/* Data Source Indicator */}
-      {dataSource && (
-        <div className="fixed bottom-4 right-4 bg-stone-800 text-white px-3 py-2 rounded-lg text-sm">
-          {t('common.dataSource')}: {dataSource === 'supabase' ? t('common.cloudDatabase') : t('common.cache')}
-        </div>
       )}
 
       {/* Mobile Components */}
