@@ -1,10 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { TransactionService } from '../../../src/lib/supabaseService'
+import { TransactionService, type TransactionInsert } from '../../../src/lib/supabaseService'
 import { validateTransaction, sanitizeTransactionData } from '../../../src/lib/validation'
 import { getAuthInfoFromRequest } from '../../../src/lib/auth-helper'
 import { createAuthenticatedSupabaseClient } from '../../../src/lib/supabaseAuthClient'
 import { getCorsHeaders, getCorsHeadersForError } from '../../../src/lib/cors'
 import { MAX_BULK_OPERATION_SIZE } from '../../../src/lib/constants'
+
+function buildTransactionInsertPayload(
+  sanitizedTransaction: Record<string, unknown>,
+  userId: string
+): TransactionInsert {
+  return {
+    id: crypto.randomUUID(),
+    user_id: userId,
+    domain_id: sanitizedTransaction.domain_id as string,
+    type: sanitizedTransaction.type as string,
+    amount: Number(sanitizedTransaction.amount),
+    currency: (sanitizedTransaction.currency as string) || 'USD',
+    exchange_rate: Number(sanitizedTransaction.exchange_rate) || 1,
+    date: sanitizedTransaction.date as string,
+    base_amount: sanitizedTransaction.base_amount != null ? Number(sanitizedTransaction.base_amount) : null,
+    platform_fee: sanitizedTransaction.platform_fee != null ? Number(sanitizedTransaction.platform_fee) : null,
+    platform_fee_percentage: sanitizedTransaction.platform_fee_percentage != null ? Number(sanitizedTransaction.platform_fee_percentage) : null,
+    net_amount: sanitizedTransaction.net_amount != null ? Number(sanitizedTransaction.net_amount) : null,
+    category: (sanitizedTransaction.category as string) || null,
+    tax_deductible: Boolean(sanitizedTransaction.tax_deductible),
+    receipt_url: (sanitizedTransaction.receipt_url as string) || null,
+    notes: (sanitizedTransaction.notes as string) || null
+  }
+}
 
 // GET /api/transactions - 获取所有交易
 export async function GET(request: NextRequest) {
@@ -80,17 +104,8 @@ export async function POST(request: NextRequest) {
         }
 
         const sanitizedTransaction = sanitizeTransactionData(transactionData)
-        const payload = {
-          ...sanitizedTransaction,
-          user_id: userId,
-          id: crypto.randomUUID(),
-          domain_id: sanitizedTransaction.domain_id as string,
-          type: sanitizedTransaction.type as string,
-          amount: sanitizedTransaction.amount as number,
-          currency: sanitizedTransaction.currency as string,
-          date: sanitizedTransaction.date as string
-        }
-        const newTransaction = await TransactionService.createTransactionWithClient(client, payload)
+        const payload = buildTransactionInsertPayload(sanitizedTransaction, userId)
+        const { data: newTransaction } = await TransactionService.createTransactionWithClient(client, payload)
 
         if (newTransaction) {
           createdTransactions.push(newTransaction)
@@ -120,20 +135,16 @@ export async function POST(request: NextRequest) {
     }
 
     const sanitizedTransaction = sanitizeTransactionData(transaction)
-    const payload = {
-      ...sanitizedTransaction,
-      user_id: userId,
-      id: crypto.randomUUID(),
-      domain_id: sanitizedTransaction.domain_id as string,
-      type: sanitizedTransaction.type as string,
-      amount: sanitizedTransaction.amount as number,
-      currency: sanitizedTransaction.currency as string,
-      date: sanitizedTransaction.date as string
-    }
-    const newTransaction = await TransactionService.createTransactionWithClient(client, payload)
-    if (!newTransaction) {
+    const payload = buildTransactionInsertPayload(sanitizedTransaction, userId)
+    const result = await TransactionService.createTransactionWithClient(client, payload)
+    const newTransaction = result.data
+    const insertError = result.error
+    if (insertError || !newTransaction) {
       return NextResponse.json(
-        { error: 'Failed to create transaction in database' },
+        {
+          error: 'Failed to create transaction in database',
+          details: insertError || 'Unknown error'
+        },
         { status: 500, headers: getCorsHeadersForError() }
       )
     }
