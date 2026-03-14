@@ -74,32 +74,60 @@ export function useDashboardData(
         }
       }
 
-      logger.log('Loading data from Supabase database...');
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      if (sessionToken) {
+        (headers as Record<string, string>)['Authorization'] = `Bearer ${sessionToken}`;
+      }
 
-      const [domainsResult, transactionsResult] = await Promise.all([
-        loadDomainsFromSupabase(userId),
-        loadTransactionsFromSupabase(userId),
-      ]);
-
-      if (domainsResult.success && transactionsResult.success) {
-        const typedDomains = (domainsResult.data || []).map(ensureDomainWithTags);
-        const typedTransactions = (transactionsResult.data || []).map(ensureTransactionWithRequiredFields);
+      if (sessionToken) {
+        logger.log('Loading data via API (authenticated)...');
+        const [domainsRes, transactionsRes] = await Promise.all([
+          fetch('/api/domains', { headers }),
+          fetch('/api/transactions', { headers }),
+        ]);
+        if (!domainsRes.ok || !transactionsRes.ok) {
+          const errMsg = !domainsRes.ok ? await domainsRes.text() : await transactionsRes.text();
+          throw new Error(errMsg || 'API load failed');
+        }
+        const domainsJson = await domainsRes.json();
+        const transactionsJson = await transactionsRes.json();
+        const domainList = domainsJson?.data ?? [];
+        const transactionList = transactionsJson?.data ?? [];
+        const typedDomains = (domainList as unknown[]).map(ensureDomainWithTags);
+        const typedTransactions = (transactionList as unknown[]).map(ensureTransactionWithRequiredFields);
         setDomains(typedDomains);
         setTransactions(typedTransactions);
         setDataSource('supabase');
-
-        domainCache.cacheDomains(userId, domainsResult.data || []);
-        domainCache.cacheTransactions(userId, transactionsResult.data || []);
-
+        domainCache.cacheDomains(userId, domainList);
+        domainCache.cacheTransactions(userId, transactionList);
         loadSummary = {
           domainsCount: typedDomains.length,
           transactionsCount: typedTransactions.length,
           dataSource: 'supabase',
         };
-
-        logger.log('Data loaded from Supabase database successfully');
+        logger.log('Data loaded via API successfully');
       } else {
-        throw new Error('Failed to load data from Supabase database');
+        logger.log('Loading data from Supabase database...');
+        const [domainsResult, transactionsResult] = await Promise.all([
+          loadDomainsFromSupabase(userId),
+          loadTransactionsFromSupabase(userId),
+        ]);
+        if (!domainsResult.success || !transactionsResult.success) {
+          throw new Error('Failed to load data from Supabase database');
+        }
+        const typedDomains = (domainsResult.data || []).map(ensureDomainWithTags);
+        const typedTransactions = (transactionsResult.data || []).map(ensureTransactionWithRequiredFields);
+        setDomains(typedDomains);
+        setTransactions(typedTransactions);
+        setDataSource('supabase');
+        domainCache.cacheDomains(userId, domainsResult.data || []);
+        domainCache.cacheTransactions(userId, transactionsResult.data || []);
+        loadSummary = {
+          domainsCount: typedDomains.length,
+          transactionsCount: typedTransactions.length,
+          dataSource: 'supabase',
+        };
+        logger.log('Data loaded from Supabase database successfully');
       }
     } catch (error) {
       logger.error('Error loading data from Supabase:', error);
@@ -116,7 +144,7 @@ export function useDashboardData(
         dataSource: loadSummary.dataSource
       });
     }
-  }, [userId, t]);
+  }, [userId, sessionToken, t]);
 
   const saveData = useCallback(async (
     newDomains: DomainWithTags[],
