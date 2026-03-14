@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { X, Download, Linkedin, Facebook } from 'lucide-react';
 import { useI18nContext } from '../../contexts/I18nProvider';
+import { DomainWithTags } from '../../types/dashboard';
 
 interface ShareData {
   totalProfit: number;
@@ -11,6 +12,7 @@ interface ShareData {
   investmentPeriod: string;
   domainCount: number;
   totalInvestment: number;
+  soldDomains?: DomainWithTags[];
 }
 
 interface ShareModalProps {
@@ -19,45 +21,65 @@ interface ShareModalProps {
   shareData: ShareData;
 }
 
+function domainProfit(domain: DomainWithTags): number {
+  if (!domain.sale_price) return 0;
+  const totalHoldingCost = (domain.purchase_cost || 0) + (domain.renewal_count || 0) * (domain.renewal_cost || 0);
+  const platformFee = domain.platform_fee || 0;
+  return domain.sale_price - totalHoldingCost - platformFee;
+}
+
+function domainROI(domain: DomainWithTags): number {
+  const totalHoldingCost = (domain.purchase_cost || 0) + (domain.renewal_count || 0) * (domain.renewal_cost || 0);
+  const profit = domainProfit(domain);
+  return totalHoldingCost > 0 ? (profit / totalHoldingCost) * 100 : 0;
+}
+
+function domainHoldingPeriod(domain: DomainWithTags, t: (key: string) => string): string {
+  const purchaseDate = new Date(domain.purchase_date || '');
+  const saleDate = domain.sale_date ? new Date(domain.sale_date) : new Date();
+  const diffDays = Math.ceil(Math.abs(saleDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays < 30) return `${diffDays}${t('common.days')}`;
+  if (diffDays < 365) return `${Math.floor(diffDays / 30)}${t('common.months')}`;
+  const years = Math.floor(diffDays / 365);
+  const months = Math.floor((diffDays % 365) / 30);
+  return months > 0 ? `${years}${t('common.year')}${months}${t('common.month')}` : `${years}${t('common.year')}`;
+}
+
 export default function ShareModal({ isOpen, onClose, shareData }: ShareModalProps) {
   const { t } = useI18nContext();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [shareMode, setShareMode] = useState<'portfolio' | 'single'>('portfolio');
+  const [selectedDomainId, setSelectedDomainId] = useState<string>('');
 
-  const drawCanvas = useCallback(() => {
-    if (!canvasRef.current) return;
+  const soldDomains = useMemo(() => shareData.soldDomains ?? [], [shareData.soldDomains]);
+  const selectedDomain = selectedDomainId ? soldDomains.find((d) => d.id === selectedDomainId) ?? null : null;
+
+  const drawPortfolioCanvas = useCallback(() => {
     const canvas = canvasRef.current;
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-
     canvas.width = 800;
     canvas.height = 600;
-
     const gradient = ctx.createLinearGradient(0, 0, 0, 600);
     gradient.addColorStop(0, '#667eea');
     gradient.addColorStop(1, '#764ba2');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 800, 600);
-
     ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-    if (typeof ctx.roundRect === 'function') {
-      ctx.roundRect(50, 50, 700, 500, 20);
-    } else {
-      ctx.rect(50, 50, 700, 500);
-    }
+    if (typeof ctx.roundRect === 'function') ctx.roundRect(50, 50, 700, 500, 20);
+    else ctx.rect(50, 50, 700, 500);
     ctx.fill();
-
     const profit = Number.isFinite(shareData.totalProfit) ? shareData.totalProfit : 0;
     const roiVal = Number.isFinite(shareData.roi) ? shareData.roi : 0;
     const investment = Number.isFinite(shareData.totalInvestment) ? shareData.totalInvestment : 0;
     const bestName = shareData.bestDomain && shareData.bestDomain !== '—' ? shareData.bestDomain : '—';
     const bestTrunc = bestName.length > 36 ? `${bestName.slice(0, 33)}...` : bestName;
-
     ctx.fillStyle = '#1f2937';
     ctx.font = 'bold 36px Arial';
     ctx.textAlign = 'center';
     ctx.fillText(`🎉 ${t('share.canvasTitle')} 🎉`, 400, 120);
-
     ctx.font = 'bold 24px Arial';
     ctx.fillText(`💰 ${t('share.totalProfit')}: $${profit.toLocaleString()}`, 400, 180);
     ctx.fillText(`📈 ${t('share.roi')}: ${roiVal.toFixed(1)}%`, 400, 220);
@@ -65,11 +87,9 @@ export default function ShareModal({ isOpen, onClose, shareData }: ShareModalPro
     ctx.fillText(`📊 ${t('share.domains')}: ${shareData.domainCount}`, 400, 300);
     ctx.fillText(`⏰ ${t('share.investmentPeriod')}: ${shareData.investmentPeriod}`, 400, 340);
     ctx.fillText(`💵 ${t('share.totalInvestment')}: $${investment.toLocaleString()}`, 400, 380);
-
     ctx.font = '18px Arial';
     ctx.fillStyle = '#6b7280';
     ctx.fillText(t('share.tagline'), 400, 480);
-
     ctx.fillStyle = '#fbbf24';
     ctx.font = '48px Arial';
     ctx.fillText('💎', 100, 200);
@@ -78,6 +98,103 @@ export default function ShareModal({ isOpen, onClose, shareData }: ShareModalPro
     ctx.fillText('🎯', 700, 400);
   }, [shareData, t]);
 
+  const drawDomainSaleCanvas = useCallback(
+    (domain: DomainWithTags) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      canvas.width = 800;
+      canvas.height = 600;
+      const gradient = ctx.createLinearGradient(0, 0, 800, 600);
+      gradient.addColorStop(0, '#f8fafc');
+      gradient.addColorStop(0.5, '#f1f5f9');
+      gradient.addColorStop(1, '#e2e8f0');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 800, 600);
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 1;
+      if (typeof ctx.roundRect === 'function') {
+        ctx.roundRect(60, 60, 680, 480, 16);
+      } else {
+        ctx.rect(60, 60, 680, 480);
+      }
+      ctx.fill();
+      ctx.stroke();
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+      ctx.shadowBlur = 20;
+      ctx.shadowOffsetY = 4;
+      ctx.fillStyle = '#ffffff';
+      if (typeof ctx.roundRect === 'function') ctx.roundRect(60, 60, 680, 480, 16);
+      else ctx.rect(60, 60, 680, 480);
+      ctx.fill();
+      ctx.shadowColor = 'transparent';
+      const profit = domainProfit(domain);
+      const roi = domainROI(domain);
+      const holdingPeriod = domainHoldingPeriod(domain, t);
+      ctx.font = 'bold 48px Inter, Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#1e293b';
+      ctx.fillText('Domain Sold Successfully', 400, 140);
+      ctx.font = 'bold 36px Inter, Arial, sans-serif';
+      ctx.fillStyle = '#3b82f6';
+      ctx.fillText(domain.domain_name, 400, 200);
+      ctx.font = 'bold 44px Inter, Arial, sans-serif';
+      ctx.fillStyle = '#059669';
+      ctx.fillText(`$${(domain.sale_price ?? 0).toLocaleString()}`, 400, 260);
+      ctx.fillStyle = '#059669';
+      ctx.fillRect(350, 290, 100, 32);
+      ctx.strokeStyle = '#047857';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(350, 290, 100, 32);
+      ctx.font = 'bold 16px Inter, Arial, sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('SOLD', 400, 310);
+      ctx.font = 'bold 24px Inter, Arial, sans-serif';
+      ctx.fillStyle = '#64748b';
+      ctx.textAlign = 'left';
+      ctx.fillText('Net Profit', 100, 380);
+      ctx.font = 'bold 32px Inter, Arial, sans-serif';
+      ctx.fillStyle = '#059669';
+      ctx.fillText(`$${profit.toLocaleString()}`, 100, 410);
+      ctx.font = 'bold 24px Inter, Arial, sans-serif';
+      ctx.fillStyle = '#64748b';
+      ctx.fillText('ROI', 300, 380);
+      ctx.font = 'bold 32px Inter, Arial, sans-serif';
+      ctx.fillStyle = '#3b82f6';
+      ctx.fillText(`${roi.toFixed(1)}%`, 300, 410);
+      ctx.font = 'bold 24px Inter, Arial, sans-serif';
+      ctx.fillStyle = '#64748b';
+      ctx.fillText('Holding Period', 500, 380);
+      ctx.font = 'bold 32px Inter, Arial, sans-serif';
+      ctx.fillStyle = '#7c3aed';
+      ctx.fillText(holdingPeriod, 500, 410);
+      ctx.font = 'bold 20px Inter, Arial, sans-serif';
+      ctx.fillStyle = '#64748b';
+      ctx.textAlign = 'center';
+      ctx.fillText('Powered by Domain.Financial', 400, 480);
+      ctx.font = '14px Inter, Arial, sans-serif';
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillText('Track & Grow Your Domains', 400, 500);
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(100, 320);
+      ctx.lineTo(700, 320);
+      ctx.stroke();
+    },
+    [t]
+  );
+
+  const drawCanvas = useCallback(() => {
+    if (shareMode === 'single' && selectedDomain) {
+      drawDomainSaleCanvas(selectedDomain);
+    } else {
+      drawPortfolioCanvas();
+    }
+  }, [shareMode, selectedDomain, drawPortfolioCanvas, drawDomainSaleCanvas]);
+
   const generateShareImage = () => {
     if (!canvasRef.current) return;
     setIsGenerating(true);
@@ -85,18 +202,30 @@ export default function ShareModal({ isOpen, onClose, shareData }: ShareModalPro
     setIsGenerating(false);
   };
 
-  // 打开弹窗时自动生成一次预览，避免空白画布
   useEffect(() => {
     if (!isOpen) return;
+    if (shareMode === 'single' && soldDomains.length > 0 && !selectedDomainId) {
+      setSelectedDomainId(soldDomains[0].id);
+    }
     const timer = setTimeout(() => drawCanvas(), 100);
     return () => clearTimeout(timer);
-  }, [isOpen, shareData, drawCanvas]);
+  }, [isOpen, shareData, shareMode, selectedDomainId, soldDomains, drawCanvas]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setShareMode('portfolio');
+      setSelectedDomainId('');
+    }
+  }, [isOpen]);
 
   const downloadImage = () => {
     if (!canvasRef.current) return;
     drawCanvas();
     const link = document.createElement('a');
-    link.download = `domain-financial-investment-results-${new Date().toISOString().split('T')[0]}.png`;
+    const base = shareMode === 'single' && selectedDomain
+      ? `domain-financial-domain-success-${selectedDomain.domain_name}`
+      : 'domain-financial-investment-results';
+    link.download = `${base}-${new Date().toISOString().split('T')[0]}.png`;
     link.href = canvasRef.current.toDataURL();
     link.click();
   };
@@ -105,11 +234,16 @@ export default function ShareModal({ isOpen, onClose, shareData }: ShareModalPro
     if (canvasRef.current) drawCanvas();
     const imageData = canvasRef.current?.toDataURL();
     if (!imageData) return;
-
-    const profit = Number.isFinite(shareData.totalProfit) ? shareData.totalProfit : 0;
-    const roiVal = Number.isFinite(shareData.roi) ? shareData.roi : 0;
-    const text = `My domain investment results on Domain Financial: Total profit $${profit.toLocaleString()}, ROI ${roiVal.toFixed(1)}%! 🚀 #DomainInvestment #DomainFinancial`;
-
+    let text: string;
+    if (shareMode === 'single' && selectedDomain) {
+      const profit = domainProfit(selectedDomain);
+      const roi = domainROI(selectedDomain);
+      text = `Successfully invested in ${selectedDomain.domain_name} on Domain Financial! Net profit $${profit.toLocaleString()}, ROI ${roi.toFixed(1)}%! 🚀 #DomainInvestment #DomainFinancial #${selectedDomain.domain_name.replace('.', '')}`;
+    } else {
+      const profit = Number.isFinite(shareData.totalProfit) ? shareData.totalProfit : 0;
+      const roiVal = Number.isFinite(shareData.roi) ? shareData.roi : 0;
+      text = `My domain investment results on Domain Financial: Total profit $${profit.toLocaleString()}, ROI ${roiVal.toFixed(1)}%! 🚀 #DomainInvestment #DomainFinancial`;
+    }
     switch (platform) {
       case 'x':
         window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank', 'width=600,height=400');
@@ -126,6 +260,7 @@ export default function ShareModal({ isOpen, onClose, shareData }: ShareModalPro
   if (!isOpen) return null;
 
   const hasData = shareData.domainCount > 0;
+  const canSelectSingle = soldDomains.length > 0;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -149,6 +284,52 @@ export default function ShareModal({ isOpen, onClose, shareData }: ShareModalPro
               {t('share.emptyHint')}
             </p>
           )}
+
+          {hasData && canSelectSingle && (
+            <div className="mb-6">
+              <h3 className="text-sm font-medium text-stone-700 mb-2">{t('share.selectDomain')}</h3>
+              <div className="flex flex-wrap items-center gap-4">
+                <label className="inline-flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="shareMode"
+                    checked={shareMode === 'portfolio'}
+                    onChange={() => setShareMode('portfolio')}
+                    className="text-teal-600 focus:ring-teal-500"
+                  />
+                  <span className="text-stone-700">{t('share.shareModePortfolio')}</span>
+                </label>
+                <label className="inline-flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="shareMode"
+                    checked={shareMode === 'single'}
+                    onChange={() => {
+                      setShareMode('single');
+                      if (soldDomains.length > 0 && !selectedDomainId) setSelectedDomainId(soldDomains[0].id);
+                    }}
+                    className="text-teal-600 focus:ring-teal-500"
+                  />
+                  <span className="text-stone-700">{t('share.shareModeSingle')}</span>
+                </label>
+                {shareMode === 'single' && (
+                  <select
+                    value={selectedDomainId}
+                    onChange={(e) => setSelectedDomainId(e.target.value)}
+                    className="ml-2 px-3 py-2 border border-stone-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    aria-label={t('share.selectDomain')}
+                  >
+                    {soldDomains.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.domain_name} {d.sale_price != null ? `($${d.sale_price.toLocaleString()})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="mb-6">
             <h3 className="text-lg font-medium text-stone-900 mb-4">{t('common.shareImagePreview')}</h3>
             <div className="border-2 border-dashed border-stone-200 rounded-xl p-4 bg-stone-50/80">
@@ -192,7 +373,6 @@ export default function ShareModal({ isOpen, onClose, shareData }: ShareModalPro
                 <span>Facebook</span>
               </button>
             </div>
-
             <div className="flex justify-center">
               <button
                 onClick={downloadImage}

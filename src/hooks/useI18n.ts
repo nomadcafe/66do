@@ -368,7 +368,10 @@ const translations: Record<Locale, Translations> = {
       totalInvestment: '总投资',
       tagline: 'Domain.Financial – 追踪与增值你的域名',
       copiedToast: '已复制到剪贴板',
-      emptyHint: '添加域名与交易后即可生成成果图'
+      emptyHint: '添加域名与交易后即可生成成果图',
+      shareModePortfolio: '组合汇总',
+      shareModeSingle: '单个域名出售',
+      selectDomain: '选择要生成图片的域名'
     },
     errors: {
       deleteDomainFailed: '删除域名失败',
@@ -1397,7 +1400,10 @@ const translations: Record<Locale, Translations> = {
       totalInvestment: 'Total Investment',
       tagline: 'Domain.Financial – Track & Grow Your Domains',
       copiedToast: 'Copied to clipboard',
-      emptyHint: 'Add domains and transactions to generate your results'
+      emptyHint: 'Add domains and transactions to generate your results',
+      shareModePortfolio: 'Portfolio summary',
+      shareModeSingle: 'Single domain sale',
+      selectDomain: 'Select domain for image'
     },
     errors: {
       deleteDomainFailed: 'Failed to delete domain',

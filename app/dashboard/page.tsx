@@ -352,13 +352,15 @@ export default function DashboardPage() {
         : 0;
     const investmentPeriod = locale === 'zh' ? `${monthsNum}个月` : `${monthsNum} months`;
 
+    const soldDomains = domains.filter((d) => d.status === 'sold');
     return {
       totalProfit,
       roi,
       bestDomain: bestDomain?.domain_name ?? '—',
       investmentPeriod,
       domainCount: domains.length,
-      totalInvestment
+      totalInvestment,
+      soldDomains
     };
   }, [domains, transactions, locale]);
 
