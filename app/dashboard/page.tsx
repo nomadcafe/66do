@@ -1151,6 +1151,8 @@ export default function DashboardPage() {
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         shareData={shareData}
+        domains={domains}
+        transactions={transactions}
       />
 
       {/* Sale Success Modal */}

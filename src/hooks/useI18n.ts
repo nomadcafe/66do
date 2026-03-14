@@ -371,7 +371,12 @@ const translations: Record<Locale, Translations> = {
       emptyHint: '添加域名与交易后即可生成成果图',
       shareModePortfolio: '组合汇总',
       shareModeSingle: '单个域名出售',
-      selectDomain: '选择要生成图片的域名'
+      selectDomain: '选择要生成图片的域名',
+      portfolioTimeRange: '统计时间范围',
+      range1y: '近一年',
+      range2y: '近两年',
+      range3y: '近三年',
+      rangeAll: '全部时间'
     },
     errors: {
       deleteDomainFailed: '删除域名失败',
@@ -642,9 +647,10 @@ const translations: Record<Locale, Translations> = {
       },
       winRate: '胜率',
       timeframe: {
-        '3M': '最近3个月',
         '6M': '最近6个月',
         '1Y': '最近1年',
+        '2Y': '近2年',
+        '3Y': '近3年',
         'ALL': '全部时间'
       },
       investment: '投资',
@@ -1403,7 +1409,12 @@ const translations: Record<Locale, Translations> = {
       emptyHint: 'Add domains and transactions to generate your results',
       shareModePortfolio: 'Portfolio summary',
       shareModeSingle: 'Single domain sale',
-      selectDomain: 'Select domain for image'
+      selectDomain: 'Select domain for image',
+      portfolioTimeRange: 'Time range',
+      range1y: 'Last 1 year',
+      range2y: 'Last 2 years',
+      range3y: 'Last 3 years',
+      rangeAll: 'All time'
     },
     errors: {
       deleteDomainFailed: 'Failed to delete domain',
@@ -1658,9 +1669,10 @@ const translations: Record<Locale, Translations> = {
       },
       winRate: 'Win Rate',
       timeframe: {
-        '3M': 'Last 3 Months',
         '6M': 'Last 6 Months',
         '1Y': 'Last 1 Year',
+        '2Y': 'Last 2 Years',
+        '3Y': 'Last 3 Years',
         'ALL': 'All Time'
       },
       investment: 'Investment',
