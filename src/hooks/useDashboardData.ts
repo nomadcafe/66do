@@ -146,11 +146,17 @@ export function useDashboardData(
         }
       }
 
-      // 准备请求头，包含认证token
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${sessionToken}`
       };
+
+      // 保存交易时先乐观更新，再持久化，避免表单长时间等待（域名多时 domain 循环很慢）
+      if (!domainsOnly) {
+        domainCache.invalidateUserCache(userId);
+        setDomains(newDomains);
+        setTransactions(newTransactions);
+      }
 
       // Save domains to Supabase
       for (const domain of newDomains) {
@@ -203,11 +209,6 @@ export function useDashboardData(
         logger.log('Domains saved successfully');
         return;
       }
-
-      // 乐观更新：先更新本地 state，再持久化；失败时 refetch 恢复
-      domainCache.invalidateUserCache(userId);
-      setDomains(newDomains);
-      setTransactions(newTransactions);
 
       // Save transactions to Supabase；收集保存后的列表（新建用服务端返回的 id）
       const savedTransactions: TransactionWithRequiredFields[] = [];

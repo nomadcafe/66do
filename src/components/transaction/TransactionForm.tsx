@@ -221,7 +221,7 @@ export default function TransactionForm({
     }
   }, [formData.amount, formData.downpayment_amount, formData.final_payment_amount, formData.installment_period, formData.payment_plan, formData.installment_amount]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.domain_id) {
       setDomainDropdownOpen(true);
@@ -245,20 +245,16 @@ export default function TransactionForm({
     const { platform, ...dataWithoutPlatform } = finalFormData;
     const finalFormDataClean = dataWithoutPlatform;
 
-    try {
-      await onSave(finalFormDataClean);
+    onSave(finalFormDataClean);
 
-      if (finalFormDataClean.type === 'sell' && onSaleComplete) {
-        const selectedDomain = domains.find(d => d.id === finalFormDataClean.domain_id);
-        if (selectedDomain) {
-          onSaleComplete(finalFormDataClean, selectedDomain);
-        }
+    if (finalFormDataClean.type === 'sell' && onSaleComplete) {
+      const selectedDomain = domains.find(d => d.id === finalFormDataClean.domain_id);
+      if (selectedDomain) {
+        onSaleComplete(finalFormDataClean, selectedDomain);
       }
-
-      onClose();
-    } catch {
-      // 错误由 onSave / useTransactionOperations 通过 onError 展示，不关闭表单
     }
+
+    onClose();
   };
 
   const transactionTypes = [
