@@ -204,7 +204,12 @@ export function useDashboardData(
         return;
       }
 
-      // Save transactions to Supabase；收集保存后的列表（新建用服务端返回的 id，避免 refetch 覆盖掉新交易）
+      // 乐观更新：先更新本地 state，再持久化；失败时 refetch 恢复
+      domainCache.invalidateUserCache(userId);
+      setDomains(newDomains);
+      setTransactions(newTransactions);
+
+      // Save transactions to Supabase；收集保存后的列表（新建用服务端返回的 id）
       const savedTransactions: TransactionWithRequiredFields[] = [];
       for (const transaction of newTransactions) {
         const isExisting = transactions.find(t => t.id === transaction.id);
@@ -267,18 +272,15 @@ export function useDashboardData(
         }
       }
 
-      domainCache.invalidateUserCache(userId);
-
-      setDomains(newDomains);
       setTransactions(savedTransactions.length > 0 ? savedTransactions : newTransactions);
 
       logger.log('Data saved to Supabase database successfully');
     } catch (error) {
       logger.error('Error saving data to Supabase:', error);
 
-      // 清除缓存，强制下次从数据库加载
       if (userId) {
         domainCache.invalidateUserCache(userId);
+        await loadDashboardData({ useCache: false, showLoading: false });
       }
 
       // 提供更详细的错误信息

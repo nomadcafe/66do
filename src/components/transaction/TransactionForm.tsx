@@ -221,7 +221,7 @@ export default function TransactionForm({
     }
   }, [formData.amount, formData.downpayment_amount, formData.final_payment_amount, formData.installment_period, formData.payment_plan, formData.installment_amount]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.domain_id) {
       setDomainDropdownOpen(true);
@@ -239,23 +239,26 @@ export default function TransactionForm({
       created_at: '',
       updated_at: ''
     };
-    
+
     // 移除数据库中不存在的字段
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { platform, ...dataWithoutPlatform } = finalFormData;
     const finalFormDataClean = dataWithoutPlatform;
-    
-    onSave(finalFormDataClean);
-    
-    // 如果是出售交易，触发分享功能
-    if (finalFormDataClean.type === 'sell' && onSaleComplete) {
-      const selectedDomain = domains.find(d => d.id === finalFormDataClean.domain_id);
-      if (selectedDomain) {
-        onSaleComplete(finalFormDataClean, selectedDomain);
+
+    try {
+      await onSave(finalFormDataClean);
+
+      if (finalFormDataClean.type === 'sell' && onSaleComplete) {
+        const selectedDomain = domains.find(d => d.id === finalFormDataClean.domain_id);
+        if (selectedDomain) {
+          onSaleComplete(finalFormDataClean, selectedDomain);
+        }
       }
+
+      onClose();
+    } catch {
+      // 错误由 onSave / useTransactionOperations 通过 onError 展示，不关闭表单
     }
-    
-    onClose();
   };
 
   const transactionTypes = [
