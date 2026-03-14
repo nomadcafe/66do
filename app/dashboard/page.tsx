@@ -119,7 +119,11 @@ export default function DashboardPage() {
         method: 'DELETE',
         headers
       });
-      if (!response.ok) throw new Error('Failed to delete domain');
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        const msg = (body?.error ?? body?.details ?? response.statusText) || 'Failed to delete domain';
+        throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      }
       await refreshData();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
