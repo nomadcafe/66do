@@ -259,25 +259,27 @@ export class TransactionService {
   }
 
   static async createTransaction(transaction: TransactionInsert): Promise<Transaction | null> {
-    return this.createTransactionWithClient(supabase, transaction)
+    const { data } = await this.createTransactionWithClient(supabase, transaction)
+    return data
   }
 
   static async createTransactionWithClient(
     client: SupabaseClient<Database>,
     transaction: TransactionInsert
-  ): Promise<Transaction | null> {
+  ): Promise<{ data: Transaction | null; error: string | null }> {
     const { data, error } = await (client
       .from('domain_transactions')
       .insert(transaction as never)
       .select()
-      .single() as unknown as Promise<{ data: Transaction | null; error: { message: string } | null }>)
+      .single() as unknown as Promise<{ data: Transaction | null; error: { message: string; details?: string } | null }>)
 
     if (error) {
-      logger.error('Error creating transaction:', error)
-      return null
+      const errMsg = error?.message || error?.details || 'Unknown error'
+      logger.error('Error creating transaction:', errMsg)
+      return { data: null, error: errMsg }
     }
 
-    return data
+    return { data, error: null }
   }
 
   static async updateTransaction(id: string, updates: TransactionUpdate, userId?: string): Promise<Transaction | null> {
