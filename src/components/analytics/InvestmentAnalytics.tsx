@@ -109,7 +109,7 @@ interface RiskAnalysis {
 
 export default function InvestmentAnalytics({ domains, transactions }: InvestmentAnalyticsProps) {
   const { t, locale } = useI18nContext();
-  const [selectedTimeframe, setSelectedTimeframe] = useState<'3M' | '6M' | '1Y' | 'ALL'>('ALL');
+  const [selectedTimeframe, setSelectedTimeframe] = useState<'6M' | '1Y' | '2Y' | '3Y' | 'ALL'>('ALL');
   const [selectedMetric, setSelectedMetric] = useState<'portfolio' | 'risk' | 'trends'>('portfolio');
 
   // 根据选择的时间范围筛选数据
@@ -118,14 +118,17 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     let startDate: Date;
 
     switch (selectedTimeframe) {
-      case '3M':
-        startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-        break;
       case '6M':
         startDate = new Date(now.getFullYear(), now.getMonth() - 6, 1);
         break;
       case '1Y':
         startDate = new Date(now.getFullYear() - 1, now.getMonth(), 1);
+        break;
+      case '2Y':
+        startDate = new Date(now.getFullYear() - 2, now.getMonth(), 1);
+        break;
+      case '3Y':
+        startDate = new Date(now.getFullYear() - 3, now.getMonth(), 1);
         break;
       case 'ALL':
       default:
@@ -176,10 +179,6 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     let startDate: Date;
 
     switch (selectedTimeframe) {
-      case '3M':
-        monthsToShow = 3;
-        startDate = new Date(now.getFullYear(), now.getMonth() - 2, 1);
-        break;
       case '6M':
         monthsToShow = 6;
         startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1);
@@ -187,6 +186,14 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       case '1Y':
         monthsToShow = 12;
         startDate = new Date(now.getFullYear() - 1, now.getMonth(), 1);
+        break;
+      case '2Y':
+        monthsToShow = 24;
+        startDate = new Date(now.getFullYear() - 2, now.getMonth(), 1);
+        break;
+      case '3Y':
+        monthsToShow = 36;
+        startDate = new Date(now.getFullYear() - 3, now.getMonth(), 1);
         break;
       case 'ALL':
       default:
@@ -891,12 +898,14 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
   // 获取时间范围显示文本
   const getTimeframeText = () => {
     switch (selectedTimeframe) {
-      case '3M':
-        return t('analytics.timeframe.3M') || '最近3个月';
       case '6M':
         return t('analytics.timeframe.6M') || '最近6个月';
       case '1Y':
         return t('analytics.timeframe.1Y') || '最近1年';
+      case '2Y':
+        return t('analytics.timeframe.2Y') || '近2年';
+      case '3Y':
+        return t('analytics.timeframe.3Y') || '近3年';
       case 'ALL':
       default:
         return t('analytics.timeframe.ALL') || '全部时间';
@@ -931,12 +940,13 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
             </select>
             <select
               value={selectedTimeframe}
-              onChange={(e) => setSelectedTimeframe(e.target.value as '3M' | '6M' | '1Y' | 'ALL')}
+              onChange={(e) => setSelectedTimeframe(e.target.value as '6M' | '1Y' | '2Y' | '3Y' | 'ALL')}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="3M">{t('analytics.timeframe.3M')}</option>
               <option value="6M">{t('analytics.timeframe.6M')}</option>
               <option value="1Y">{t('analytics.timeframe.1Y')}</option>
+              <option value="2Y">{t('analytics.timeframe.2Y')}</option>
+              <option value="3Y">{t('analytics.timeframe.3Y')}</option>
               <option value="ALL">{t('analytics.timeframe.ALL')}</option>
             </select>
           </div>
