@@ -230,24 +230,9 @@ export default function DashboardPage() {
       .slice(0, 5);
   }, [transactions]);
 
-  // 计算增强的财务指标
-  const enhancedFinancialMetrics = useMemo(() => {
-    const validDomains = domains
-      .filter(domain => 
-        domain.purchase_cost !== null && 
-        domain.renewal_cost !== null &&
-        domain.purchase_date !== null
-      )
-      .map(domain => ({
-        id: domain.id,
-        purchase_cost: domain.purchase_cost!,
-        renewal_cost: domain.renewal_cost!,
-        renewal_count: domain.renewal_count,
-        status: domain.status,
-        purchase_date: domain.purchase_date!
-      }));
-    
-    const validTransactions = transactions
+  // 分期未完成时按实际已收折算的交易列表（Overview、Analytics、Share 等统一使用）
+  const transactionsForMetrics = useMemo(() => {
+    return transactions
       .filter(transaction => (transaction.base_amount ?? transaction.amount) != null)
       .map(transaction => {
         const fullAmount = (transaction.base_amount ?? transaction.amount) ?? 0;
@@ -255,13 +240,16 @@ export default function DashboardPage() {
         let platformFee: number | undefined = transaction.platform_fee ?? undefined;
         let netAmount: number | undefined = transaction.net_amount ?? fullAmount;
 
-        // 分期出售且已取消或未付清：Total Sales / Revenue / Platform Fees 只算实际已收部分
-        if (
+        const hasInstallmentData =
+          transaction.installment_amount != null ||
+          transaction.downpayment_amount != null ||
+          (transaction.paid_periods != null && transaction.installment_period != null);
+        const isInstallmentPartialOrCancelled =
           transaction.type === 'sell' &&
-          transaction.payment_plan === 'installment' &&
+          hasInstallmentData &&
           (transaction.installment_status === 'cancelled' ||
-            (transaction.paid_periods ?? 0) < (transaction.installment_period ?? 1))
-        ) {
+            ((transaction.paid_periods ?? 0) < (transaction.installment_period ?? 1)));
+        if (isInstallmentPartialOrCancelled) {
           const down = transaction.downpayment_amount ?? 0;
           const paid = transaction.paid_periods ?? 0;
           const perPeriod = transaction.installment_amount ?? 0;
@@ -275,19 +263,44 @@ export default function DashboardPage() {
         }
 
         return {
-          id: transaction.id,
-          domain_id: transaction.domain_id,
-          type: transaction.type,
+          ...transaction,
           amount: amountUSD,
           platform_fee: platformFee,
-          net_amount: netAmount,
-          date: transaction.date,
-          category: transaction.category
+          net_amount: netAmount
         };
       });
-    
+  }, [transactions]);
+
+  // 计算增强的财务指标（使用按分期调整后的交易列表）
+  const enhancedFinancialMetrics = useMemo(() => {
+    const validDomains = domains
+      .filter(domain =>
+        domain.purchase_cost !== null &&
+        domain.renewal_cost !== null &&
+        domain.purchase_date !== null
+      )
+      .map(domain => ({
+        id: domain.id,
+        purchase_cost: domain.purchase_cost!,
+        renewal_cost: domain.renewal_cost!,
+        renewal_count: domain.renewal_count,
+        status: domain.status,
+        purchase_date: domain.purchase_date!
+      }));
+
+    const validTransactions = transactionsForMetrics.map(t => ({
+      id: t.id,
+      domain_id: t.domain_id,
+      type: t.type,
+      amount: t.amount,
+      platform_fee: t.platform_fee,
+      net_amount: t.net_amount,
+      date: t.date,
+      category: t.category
+    }));
+
     return calculateEnhancedFinancialMetrics(validDomains, validTransactions);
-  }, [domains, transactions]);
+  }, [domains, transactionsForMetrics]);
 
   // 处理域名保存（保留此函数因为需要特殊处理）- 使用useCallback优化
   const handleSaveDomain = useCallback(async (domainData: Omit<DomainWithTags, 'id'>) => {
@@ -332,15 +345,15 @@ export default function DashboardPage() {
     domainOps.setShowDomainForm(true);
   }, [domainOps]);
 
-  // Share 数据与 Analytics 一致：基于 transactions 的出售收入（base_amount/net_amount），非 domain.sale_price
+  // Share 数据与 Analytics 一致：基于按分期调整后的交易（实际已收），非 domain.sale_price
   const shareData = useMemo(() => {
-    const metrics = calculateBasicFinancialMetrics(domains, transactions);
+    const metrics = calculateBasicFinancialMetrics(domains, transactionsForMetrics);
     const totalInvestment = metrics.totalInvestment;
     const totalProfit = metrics.totalProfit;
     const roi = metrics.roi;
 
     // 最佳表现域名：按出售交易净收入 - 持有成本 计算单域名利润，与 Analytics 口径一致
-    const sellTxByDomainId = transactions.filter((t) => t.type === 'sell').reduce((acc, t) => {
+    const sellTxByDomainId = transactionsForMetrics.filter((t) => t.type === 'sell').reduce((acc, t) => {
       const id = t.domain_id;
       const usd = t.base_amount != null ? t.base_amount : (t.net_amount != null ? t.net_amount : t.amount);
       acc[id] = (acc[id] || 0) + usd;
@@ -393,7 +406,7 @@ export default function DashboardPage() {
       totalInvestment,
       soldDomains
     };
-  }, [domains, transactions, locale]);
+  }, [domains, transactions, transactionsForMetrics, locale]);
 
 
 
@@ -873,7 +886,7 @@ export default function DashboardPage() {
           <LazyWrapper>
             <LazyInvestmentAnalytics 
             domains={domains} 
-            transactions={transactions} 
+            transactions={transactionsForMetrics} 
           />
           </LazyWrapper>
         )}
@@ -1128,7 +1141,7 @@ export default function DashboardPage() {
             <LazyWrapper>
               <LazyFinancialReport
               domains={domains}
-              transactions={transactions}
+              transactions={transactionsForMetrics}
             />
             </LazyWrapper>
             
@@ -1136,7 +1149,7 @@ export default function DashboardPage() {
             <LazyWrapper>
               <LazyFinancialAnalysis
               domains={domains}
-              transactions={transactions}
+              transactions={transactionsForMetrics}
             />
             </LazyWrapper>
           </div>

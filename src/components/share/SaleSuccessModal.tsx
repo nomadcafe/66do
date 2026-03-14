@@ -65,9 +65,17 @@ export default function SaleSuccessModal({ isOpen, onClose, domain, transaction 
     img.src = CELEBRATION_IMAGE_URL;
   }, []);
 
-  // 出售总价（客户总付款）：分期用分期总额，否则用 base_amount ?? amount
+  // 出售总价（客户总付款）：分期且已取消/未付清时只算实际已收，否则分期用合同总额或一口价
   const getSalePriceUSD = (): number => {
     if (transaction.payment_plan === 'installment' && (transaction.downpayment_amount != null || transaction.installment_amount != null)) {
+      const isPartialOrCancelled =
+        transaction.installment_status === 'cancelled' ||
+        (transaction.paid_periods ?? 0) < (transaction.installment_period ?? 1);
+      if (isPartialOrCancelled) {
+        const actualReceived =
+          (transaction.downpayment_amount ?? 0) + (transaction.paid_periods ?? 0) * (transaction.installment_amount ?? 0);
+        if (actualReceived >= 0) return actualReceived;
+      }
       const total = calculateTotalInstallmentAmount(
         transaction.downpayment_amount ?? 0,
         transaction.installment_amount ?? 0,
@@ -79,10 +87,21 @@ export default function SaleSuccessModal({ isOpen, onClose, domain, transaction 
     return transaction.base_amount ?? transaction.amount;
   };
 
-  // 卖家净收入（已扣平台费）：net_amount 即为净收入，勿再减 platform_fee
+  // 卖家净收入（已扣平台费）：分期已取消/未付清时按实际已收比例算净收入
   const getSellerNetUSD = (): number => {
-    const gross = transaction.base_amount ?? transaction.amount;
-    return transaction.net_amount ?? (gross - (transaction.platform_fee || 0));
+    const fullAmount = transaction.base_amount ?? transaction.amount;
+    const isPartialOrCancelled =
+      transaction.payment_plan === 'installment' &&
+      (transaction.installment_status === 'cancelled' ||
+        (transaction.paid_periods ?? 0) < (transaction.installment_period ?? 1));
+    if (isPartialOrCancelled && fullAmount > 0) {
+      const actualReceived =
+        (transaction.downpayment_amount ?? 0) + (transaction.paid_periods ?? 0) * (transaction.installment_amount ?? 0);
+      const ratio = actualReceived / fullAmount;
+      const proportionalFee = (transaction.platform_fee ?? 0) * ratio;
+      return actualReceived - proportionalFee;
+    }
+    return transaction.net_amount ?? (fullAmount - (transaction.platform_fee || 0));
   };
 
   const totalHoldingCost = (domain.purchase_cost || 0) + ((domain.renewal_count ?? 0) * (domain.renewal_cost || 0));
