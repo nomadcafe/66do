@@ -145,15 +145,15 @@ export default function ShareModal({ isOpen, onClose, shareData }: ShareModalPro
         const screenLeftX = 150;
         ctx.font = 'bold 34px Inter, Arial, sans-serif';
         ctx.fillStyle = '#ffffff';
-        ctx.fillText(domain.domain_name, screenLeftX, 218);
+        ctx.fillText(domain.domain_name, screenLeftX, 198);
         ctx.font = 'bold 36px Inter, Arial, sans-serif';
         ctx.fillStyle = '#22c55e';
-        ctx.fillText(`$${(domain.sale_price ?? 0).toLocaleString()}`, screenLeftX, 258);
+        ctx.fillText(`$${(domain.sale_price ?? 0).toLocaleString()}`, screenLeftX, 238);
         ctx.font = 'bold 38px Inter, Arial, sans-serif';
-        ctx.fillText(`ROI: ${roi.toFixed(1)}%`, screenLeftX, 298);
+        ctx.fillText(`ROI: ${roi.toFixed(1)}%`, screenLeftX, 278);
         ctx.font = 'bold 28px Inter, Arial, sans-serif';
         ctx.fillStyle = 'rgba(255,255,255,0.95)';
-        ctx.fillText(holdingPeriod, screenLeftX, 338);
+        ctx.fillText(holdingPeriod, screenLeftX, 318);
       } else {
         const gradient = ctx.createLinearGradient(0, 0, 800, 600);
         gradient.addColorStop(0, '#f8fafc');
