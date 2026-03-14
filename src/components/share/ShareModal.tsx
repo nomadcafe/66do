@@ -45,7 +45,7 @@ function domainHoldingPeriod(domain: DomainWithTags, t: (key: string) => string)
   return months > 0 ? `${years}${t('common.year')}${months}${t('common.month')}` : `${years}${t('common.year')}`;
 }
 
-const CELEBRATION_IMAGE_URL = '/domainfinancial.png';
+const CELEBRATION_IMAGE_URL = '/domainfin.png';
 
 export default function ShareModal({ isOpen, onClose, shareData }: ShareModalProps) {
   const { t } = useI18nContext();
@@ -139,16 +139,18 @@ export default function ShareModal({ isOpen, onClose, shareData }: ShareModalPro
       if (useCelebrationImage) {
         ctx.drawImage(img, 0, 0, 800, 600);
         const roi = domainROI(domain);
+        const holdingPeriod = domainHoldingPeriod(domain, t);
         ctx.textAlign = 'center';
-        ctx.font = 'bold 32px Inter, Arial, sans-serif';
+        // 显示屏上 "Domain Sold" 下方：域名、ROI、持有时间
+        ctx.font = 'bold 34px Inter, Arial, sans-serif';
         ctx.fillStyle = '#ffffff';
         ctx.fillText(domain.domain_name, 400, 218);
-        ctx.font = 'bold 42px Inter, Arial, sans-serif';
+        ctx.font = 'bold 38px Inter, Arial, sans-serif';
         ctx.fillStyle = '#22c55e';
-        ctx.fillText(`$${(domain.sale_price ?? 0).toLocaleString()}`, 400, 278);
-        ctx.font = 'bold 36px Inter, Arial, sans-serif';
-        ctx.fillStyle = '#22c55e';
-        ctx.fillText(`ROI: ${roi.toFixed(1)}%`, 400, 328);
+        ctx.fillText(`ROI: ${roi.toFixed(1)}%`, 400, 278);
+        ctx.font = 'bold 28px Inter, Arial, sans-serif';
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        ctx.fillText(holdingPeriod, 400, 328);
       } else {
         const gradient = ctx.createLinearGradient(0, 0, 800, 600);
         gradient.addColorStop(0, '#f8fafc');
