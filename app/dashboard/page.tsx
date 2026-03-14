@@ -136,7 +136,13 @@ export default function DashboardPage() {
             netAmount = actualReceived - platformFee;
           }
         }
-        return { ...transaction, amount: amountUSD, platform_fee: platformFee, net_amount: netAmount };
+        return {
+          ...transaction,
+          base_amount: amountUSD,
+          amount: amountUSD,
+          platform_fee: platformFee ?? 0,
+          net_amount: netAmount ?? amountUSD
+        };
       });
   }, [transactions]);
 
