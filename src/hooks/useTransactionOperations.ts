@@ -26,7 +26,8 @@ export function useTransactionOperations(
   userId: string | undefined,
   onSave: (domains: DomainWithTags[], transactions: TransactionWithRequiredFields[]) => Promise<void>,
   onDelete: (id: string) => Promise<void>,
-  onError: (error: string) => void
+  onError: (error: string) => void,
+  sessionToken?: string | null
 ): UseTransactionOperationsReturn {
   const [editingTransaction, setEditingTransaction] = useState<TransactionWithRequiredFields | undefined>();
   const [showTransactionForm, setShowTransactionForm] = useState(false);
@@ -54,9 +55,13 @@ export function useTransactionOperations(
       if (!transactionToDelete) return;
 
       // Use RESTful DELETE /api/transactions/[id]
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      if (sessionToken) {
+        (headers as Record<string, string>)['Authorization'] = `Bearer ${sessionToken}`;
+      }
       const response = await fetch(`/api/transactions/${id}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' }
+        headers
       });
 
       if (!response.ok) {
@@ -90,7 +95,7 @@ export function useTransactionOperations(
       logger.error('Error deleting transaction:', error);
       onError(`Failed to delete transaction: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  }, [userId, transactions, domains, onSave, onError]);
+  }, [userId, sessionToken, transactions, domains, onSave, onError]);
 
   const handleSaveTransaction = useCallback(async (
     transactionData: Omit<TransactionWithRequiredFields, 'id'>
