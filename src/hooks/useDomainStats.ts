@@ -68,17 +68,46 @@ export function useDomainStats(
       }));
 
     const validTransactions = transactions
-      .filter(transaction => transaction.amount !== null)
-      .map(transaction => ({
-        id: transaction.id,
-        domain_id: transaction.domain_id,
-        type: transaction.type,
-        amount: transaction.amount!,
-        platform_fee: transaction.platform_fee || undefined,
-        net_amount: transaction.net_amount || undefined,
-        date: transaction.date,
-        platform: transaction.platform
-      }));
+      .filter(transaction => (transaction.base_amount ?? transaction.amount) != null)
+      .map(transaction => {
+        const fullAmount = (transaction.base_amount ?? transaction.amount) ?? 0;
+        let amountUSD = fullAmount;
+        let platformFee: number | undefined = transaction.platform_fee ?? undefined;
+        let netAmount: number | undefined = transaction.net_amount ?? fullAmount;
+
+        const hasInstallmentData =
+          transaction.installment_amount != null ||
+          transaction.downpayment_amount != null ||
+          (transaction.paid_periods != null && transaction.installment_period != null);
+        const isInstallmentPartialOrCancelled =
+          transaction.type === 'sell' &&
+          hasInstallmentData &&
+          (transaction.installment_status === 'cancelled' ||
+            ((transaction.paid_periods ?? 0) < (transaction.installment_period ?? 1)));
+        if (isInstallmentPartialOrCancelled) {
+          const down = transaction.downpayment_amount ?? 0;
+          const paid = transaction.paid_periods ?? 0;
+          const perPeriod = transaction.installment_amount ?? 0;
+          const actualReceived = down + paid * perPeriod;
+          if (fullAmount > 0 && actualReceived >= 0) {
+            const ratio = actualReceived / fullAmount;
+            amountUSD = actualReceived;
+            platformFee = (transaction.platform_fee ?? 0) * ratio;
+            netAmount = actualReceived - platformFee;
+          }
+        }
+
+        return {
+          id: transaction.id,
+          domain_id: transaction.domain_id,
+          type: transaction.type,
+          amount: amountUSD,
+          platform_fee: platformFee,
+          net_amount: netAmount,
+          date: transaction.date,
+          platform: transaction.platform
+        };
+      });
 
     return calculateEnhancedFinancialMetrics(validDomains, validTransactions);
   }, [domains, transactions]);

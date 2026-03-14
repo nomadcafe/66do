@@ -88,7 +88,7 @@ export default function FinancialReport({ domains, transactions }: FinancialRepo
   // const [reportType, setReportType] = useState('overview');
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // 报告周期选项
+  // 报告周期选项：全部时间、近一年、近两年、近三年
   const reportPeriods: ReportPeriod[] = useMemo(() => {
     const now = new Date();
     return [
@@ -99,27 +99,21 @@ export default function FinancialReport({ domains, transactions }: FinancialRepo
         endDate: now
       },
       {
-        label: t('reports.thisYear'),
-        value: 'year',
-        startDate: new Date(now.getFullYear(), 0, 1),
+        label: t('reports.last1Year'),
+        value: '1year',
+        startDate: new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()),
         endDate: now
       },
       {
-        label: t('reports.last6Months'),
-        value: '6months',
-        startDate: new Date(now.getFullYear(), now.getMonth() - 6, 1),
+        label: t('reports.last2Years'),
+        value: '2years',
+        startDate: new Date(now.getFullYear() - 2, now.getMonth(), now.getDate()),
         endDate: now
       },
       {
-        label: t('reports.last3Months'),
-        value: '3months',
-        startDate: new Date(now.getFullYear(), now.getMonth() - 3, 1),
-        endDate: now
-      },
-      {
-        label: t('reports.thisMonth'),
-        value: 'month',
-        startDate: new Date(now.getFullYear(), now.getMonth(), 1),
+        label: t('reports.last3Years'),
+        value: '3years',
+        startDate: new Date(now.getFullYear() - 3, now.getMonth(), now.getDate()),
         endDate: now
       }
     ];
