@@ -62,40 +62,49 @@ export default function ShareModal({ isOpen, onClose, shareData }: ShareModalPro
     if (!ctx) return;
     canvas.width = 800;
     canvas.height = 600;
+    // Dark blue background (reference: domainfinancial.png)
     const gradient = ctx.createLinearGradient(0, 0, 0, 600);
-    gradient.addColorStop(0, '#667eea');
-    gradient.addColorStop(1, '#764ba2');
+    gradient.addColorStop(0, '#1e3a5f');
+    gradient.addColorStop(0.5, '#0f2744');
+    gradient.addColorStop(1, '#0a1929');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 800, 600);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-    if (typeof ctx.roundRect === 'function') ctx.roundRect(50, 50, 700, 500, 20);
-    else ctx.rect(50, 50, 700, 500);
-    ctx.fill();
     const profit = Number.isFinite(shareData.totalProfit) ? shareData.totalProfit : 0;
     const roiVal = Number.isFinite(shareData.roi) ? shareData.roi : 0;
     const investment = Number.isFinite(shareData.totalInvestment) ? shareData.totalInvestment : 0;
     const bestName = shareData.bestDomain && shareData.bestDomain !== '—' ? shareData.bestDomain : '—';
-    const bestTrunc = bestName.length > 36 ? `${bestName.slice(0, 33)}...` : bestName;
-    ctx.fillStyle = '#1f2937';
-    ctx.font = 'bold 36px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(`🎉 ${t('share.canvasTitle')} 🎉`, 400, 120);
-    ctx.font = 'bold 24px Arial';
-    ctx.fillText(`💰 ${t('share.totalProfit')}: $${profit.toLocaleString()}`, 400, 180);
-    ctx.fillText(`📈 ${t('share.roi')}: ${roiVal.toFixed(1)}%`, 400, 220);
-    ctx.fillText(`🏆 ${t('share.bestDomain')}: ${bestTrunc}`, 400, 260);
-    ctx.fillText(`📊 ${t('share.domains')}: ${shareData.domainCount}`, 400, 300);
-    ctx.fillText(`⏰ ${t('share.investmentPeriod')}: ${shareData.investmentPeriod}`, 400, 340);
-    ctx.fillText(`💵 ${t('share.totalInvestment')}: $${investment.toLocaleString()}`, 400, 380);
-    ctx.font = '18px Arial';
-    ctx.fillStyle = '#6b7280';
-    ctx.fillText(t('share.tagline'), 400, 480);
+    const bestTrunc = bestName.length > 32 ? `${bestName.slice(0, 29)}...` : bestName;
+    // Title
     ctx.fillStyle = '#fbbf24';
-    ctx.font = '48px Arial';
-    ctx.fillText('💎', 100, 200);
-    ctx.fillText('🚀', 700, 200);
-    ctx.fillText('📈', 100, 400);
-    ctx.fillText('🎯', 700, 400);
+    ctx.font = 'bold 38px Inter, Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(t('share.canvasTitle'), 400, 100);
+    // Total profit - prominent green
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '24px Inter, Arial, sans-serif';
+    ctx.fillText(t('share.totalProfit'), 400, 180);
+    ctx.fillStyle = '#22c55e';
+    ctx.font = 'bold 48px Inter, Arial, sans-serif';
+    ctx.fillText(`$${profit.toLocaleString()}`, 400, 240);
+    // ROI - same green
+    ctx.fillStyle = '#22c55e';
+    ctx.font = 'bold 36px Inter, Arial, sans-serif';
+    ctx.fillText(`ROI: ${roiVal.toFixed(1)}%`, 400, 300);
+    // Best domain
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.font = '20px Inter, Arial, sans-serif';
+    ctx.fillText(`${t('share.bestDomain')}: ${bestTrunc}`, 400, 350);
+    // Total investment & period on one line
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.font = '18px Inter, Arial, sans-serif';
+    ctx.fillText(`${t('share.totalInvestment')}: $${investment.toLocaleString()}  ·  ${t('share.investmentPeriod')}: ${shareData.investmentPeriod}`, 400, 400);
+    // Powered by
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '16px Inter, Arial, sans-serif';
+    ctx.fillText('powered by', 400, 520);
+    ctx.fillStyle = '#22c55e';
+    ctx.font = 'bold 20px Inter, Arial, sans-serif';
+    ctx.fillText('Domain.financial', 400, 550);
   }, [shareData, t]);
 
   const drawDomainSaleCanvas = useCallback(

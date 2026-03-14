@@ -341,16 +341,24 @@ export default function DashboardPage() {
       }
     }
 
+    // Investment period: earliest purchase → latest activity (last sale/transaction or now)
     const domainsWithPurchaseDate = domains.filter((d) => d.purchase_date);
-    const monthsNum =
-      domainsWithPurchaseDate.length > 0
-        ? Math.ceil(
-            (Date.now() -
-              Math.min(...domainsWithPurchaseDate.map((d) => new Date(d.purchase_date!).getTime()))) /
-              (1000 * 60 * 60 * 24 * 30)
-          )
-        : 0;
-    const investmentPeriod = locale === 'zh' ? `${monthsNum}个月` : `${monthsNum} months`;
+    const purchaseDates = domainsWithPurchaseDate.map((d) => new Date(d.purchase_date!).getTime());
+    const transactionDates = transactions.map((t) => new Date(t.date).getTime());
+    const saleDates = domains.filter((d) => d.sale_date).map((d) => new Date(d.sale_date!).getTime());
+    const now = Date.now();
+    const startMs = purchaseDates.length > 0 ? Math.min(...purchaseDates) : now;
+    const endMs = Math.max(now, ...transactionDates, ...saleDates, startMs);
+    const days = Math.max(0, Math.floor((endMs - startMs) / (1000 * 60 * 60 * 24)));
+    let investmentPeriod: string;
+    if (days === 0) investmentPeriod = locale === 'zh' ? '—' : '—';
+    else if (days < 30) investmentPeriod = locale === 'zh' ? `${days}天` : `${days} days`;
+    else if (days < 365) investmentPeriod = locale === 'zh' ? `${Math.floor(days / 30)}个月` : `${Math.floor(days / 30)} months`;
+    else {
+      const years = Math.floor(days / 365);
+      const months = Math.floor((days % 365) / 30);
+      investmentPeriod = locale === 'zh' ? `${years}年${months}个月` : `${years}y ${months}mo`;
+    }
 
     const soldDomains = domains.filter((d) => d.status === 'sold');
     return {
