@@ -158,7 +158,7 @@ export default function ShareModal({ isOpen, onClose, shareData }: ShareModalPro
         y += lineGap;
         ctx.font = 'bold 28px Inter, Arial, sans-serif';
         ctx.fillStyle = 'rgba(255,255,255,0.95)';
-        ctx.fillText(`Holding Time: ${holdingPeriod}`, screenLeftX, y);
+        ctx.fillText(`HT: ${holdingPeriod}`, screenLeftX, y);
       } else {
         const gradient = ctx.createLinearGradient(0, 0, 800, 600);
         gradient.addColorStop(0, '#f8fafc');
