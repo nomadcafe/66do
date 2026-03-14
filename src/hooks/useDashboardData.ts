@@ -80,6 +80,7 @@ export function useDashboardData(
       }
 
       if (sessionToken) {
+        domainCache.invalidateUserCache(userId);
         logger.log('Loading data via API (authenticated)...');
         const [domainsRes, transactionsRes] = await Promise.all([
           fetch('/api/domains', { headers }),
@@ -352,10 +353,11 @@ export function useDashboardData(
     await loadDashboardData({ useCache: false, showLoading: true });
   }, [loadDashboardData]);
 
-  // Load data on mount
+  // Load data on mount; when sessionToken is present always bypass cache so we use API (same auth as save)
   useEffect(() => {
-    loadDashboardData();
-  }, [loadDashboardData]);
+    if (!userId) return;
+    loadDashboardData({ useCache: !sessionToken, showLoading: true });
+  }, [loadDashboardData, userId, sessionToken]);
 
   return {
     domains,
