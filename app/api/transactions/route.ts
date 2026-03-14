@@ -10,8 +10,12 @@ function buildTransactionInsertPayload(
   sanitizedTransaction: Record<string, unknown>,
   userId: string
 ): TransactionInsert {
+  const id =
+    typeof sanitizedTransaction.id === 'string' && sanitizedTransaction.id.trim().length > 0
+      ? (sanitizedTransaction.id as string).trim()
+      : crypto.randomUUID();
   return {
-    id: crypto.randomUUID(),
+    id,
     user_id: userId,
     domain_id: sanitizedTransaction.domain_id as string,
     type: sanitizedTransaction.type as string,
