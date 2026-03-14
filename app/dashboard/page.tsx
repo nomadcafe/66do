@@ -167,7 +167,8 @@ export default function DashboardPage() {
     async () => {
       // Delete handler is implemented in the hook
     },
-    setError
+    setError,
+    session?.access_token
   );
   
   // Redirect if not authenticated (but wait for auth to load)
