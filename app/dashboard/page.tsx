@@ -264,12 +264,12 @@ export default function DashboardPage() {
     }).sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
   }, [domains]);
 
-  // 最近交易：按交易日期 date 降序取前 5 条（与数据源 created_at 排序解耦）
+  // 最近交易：按交易日期降序取前 5 条，金额用 transactionsForMetrics（分期按实际已收）与 Overview 口径一致
   const recentTransactions = useMemo(() => {
-    return [...transactions]
+    return [...transactionsForMetrics]
       .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
       .slice(0, 5);
-  }, [transactions]);
+  }, [transactionsForMetrics]);
 
   // 计算增强的财务指标（使用按分期调整后的交易列表）
   const enhancedFinancialMetrics = useMemo(() => {
