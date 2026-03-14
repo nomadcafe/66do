@@ -104,8 +104,43 @@ export default function DashboardPage() {
     saveData,
     refreshData
   } = useDashboardData(user?.id, session?.access_token, t);
-  
-  const stats = useDomainStats(domains, transactions);
+
+  // 数据源约定：transactions = 原始列表（列表/编辑/保存用）；transactionsForMetrics = 分期按实际已收折算（所有指标/图表/分享用）
+  // 分期未完成时按实际已收折算的交易列表（Overview、Analytics、Share、Reports 统一使用）
+  const transactionsForMetrics = useMemo(() => {
+    return transactions
+      .filter(transaction => (transaction.base_amount ?? transaction.amount) != null)
+      .map(transaction => {
+        const fullAmount = (transaction.base_amount ?? transaction.amount) ?? 0;
+        let amountUSD = fullAmount;
+        let platformFee: number | undefined = transaction.platform_fee ?? undefined;
+        let netAmount: number | undefined = transaction.net_amount ?? fullAmount;
+        const hasInstallmentData =
+          transaction.installment_amount != null ||
+          transaction.downpayment_amount != null ||
+          (transaction.paid_periods != null && transaction.installment_period != null);
+        const isInstallmentPartialOrCancelled =
+          transaction.type === 'sell' &&
+          hasInstallmentData &&
+          (transaction.installment_status === 'cancelled' ||
+            ((transaction.paid_periods ?? 0) < (transaction.installment_period ?? 1)));
+        if (isInstallmentPartialOrCancelled) {
+          const down = transaction.downpayment_amount ?? 0;
+          const paid = transaction.paid_periods ?? 0;
+          const perPeriod = transaction.installment_amount ?? 0;
+          const actualReceived = down + paid * perPeriod;
+          if (fullAmount > 0 && actualReceived >= 0) {
+            const ratio = actualReceived / fullAmount;
+            amountUSD = actualReceived;
+            platformFee = (transaction.platform_fee ?? 0) * ratio;
+            netAmount = actualReceived - platformFee;
+          }
+        }
+        return { ...transaction, amount: amountUSD, platform_fee: platformFee, net_amount: netAmount };
+      });
+  }, [transactions]);
+
+  const stats = useDomainStats(domains, transactionsForMetrics);
   
   // 使用useCallback优化删除域名的函数
   const handleDeleteDomain = useCallback(async (id: string) => {
@@ -230,47 +265,6 @@ export default function DashboardPage() {
       .slice(0, 5);
   }, [transactions]);
 
-  // 分期未完成时按实际已收折算的交易列表（Overview、Analytics、Share 等统一使用）
-  const transactionsForMetrics = useMemo(() => {
-    return transactions
-      .filter(transaction => (transaction.base_amount ?? transaction.amount) != null)
-      .map(transaction => {
-        const fullAmount = (transaction.base_amount ?? transaction.amount) ?? 0;
-        let amountUSD = fullAmount;
-        let platformFee: number | undefined = transaction.platform_fee ?? undefined;
-        let netAmount: number | undefined = transaction.net_amount ?? fullAmount;
-
-        const hasInstallmentData =
-          transaction.installment_amount != null ||
-          transaction.downpayment_amount != null ||
-          (transaction.paid_periods != null && transaction.installment_period != null);
-        const isInstallmentPartialOrCancelled =
-          transaction.type === 'sell' &&
-          hasInstallmentData &&
-          (transaction.installment_status === 'cancelled' ||
-            ((transaction.paid_periods ?? 0) < (transaction.installment_period ?? 1)));
-        if (isInstallmentPartialOrCancelled) {
-          const down = transaction.downpayment_amount ?? 0;
-          const paid = transaction.paid_periods ?? 0;
-          const perPeriod = transaction.installment_amount ?? 0;
-          const actualReceived = down + paid * perPeriod;
-          if (fullAmount > 0 && actualReceived >= 0) {
-            const ratio = actualReceived / fullAmount;
-            amountUSD = actualReceived;
-            platformFee = (transaction.platform_fee ?? 0) * ratio;
-            netAmount = actualReceived - platformFee;
-          }
-        }
-
-        return {
-          ...transaction,
-          amount: amountUSD,
-          platform_fee: platformFee,
-          net_amount: netAmount
-        };
-      });
-  }, [transactions]);
-
   // 计算增强的财务指标（使用按分期调整后的交易列表）
   const enhancedFinancialMetrics = useMemo(() => {
     const validDomains = domains
@@ -293,8 +287,8 @@ export default function DashboardPage() {
       domain_id: t.domain_id,
       type: t.type,
       amount: t.amount,
-      platform_fee: t.platform_fee,
-      net_amount: t.net_amount,
+      platform_fee: t.platform_fee ?? 0,
+      net_amount: t.net_amount ?? t.amount,
       date: t.date,
       category: t.category
     }));
@@ -1188,7 +1182,7 @@ export default function DashboardPage() {
         onClose={() => setShowShareModal(false)}
         shareData={shareData}
         domains={domains}
-        transactions={transactions}
+        transactions={transactionsForMetrics}
       />
 
       {/* Sale Success Modal */}
