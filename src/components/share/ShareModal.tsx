@@ -142,7 +142,7 @@ export default function ShareModal({ isOpen, onClose, shareData }: ShareModalPro
         const holdingPeriod = domainHoldingPeriod(domain, t);
         ctx.textAlign = 'left';
         // 首字母与 "Domain Sold" 的 "D" 对齐，在显示屏下方整齐排列
-        const screenLeftX = 170;
+        const screenLeftX = 150;
         ctx.font = 'bold 34px Inter, Arial, sans-serif';
         ctx.fillStyle = '#ffffff';
         ctx.fillText(domain.domain_name, screenLeftX, 218);
