@@ -277,15 +277,23 @@ export function useDashboardData(
 
       logger.log('Data saved to Supabase database successfully');
     } catch (error) {
-      logger.error('Error saving data to Supabase:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const isDuplicateDomain =
+        errorMessage.includes('already in your portfolio') ||
+        errorMessage.includes('Domain already exists') ||
+        errorMessage.includes('域名已在');
+
+      if (isDuplicateDomain) {
+        logger.log('Add domain skipped: domain already in portfolio');
+      } else {
+        logger.error('Error saving data to Supabase:', error);
+      }
 
       if (userId) {
         domainCache.invalidateUserCache(userId);
         await loadDashboardData({ useCache: false, showLoading: false });
       }
 
-      // 提供更详细的错误信息
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       const isNetworkError = errorMessage.includes('fetch') || errorMessage.includes('network');
       const isAuthError = errorMessage.includes('401') || errorMessage.includes('Unauthorized');
 
@@ -293,21 +301,18 @@ export function useDashboardData(
         setError(t('common.authError') || 'Authentication failed. Please log in again.');
       } else if (isNetworkError) {
         setError(t('common.networkError') || 'Network error. Please check your connection and try again.');
-      } else if (
-        errorMessage.includes('already in your portfolio') ||
-        errorMessage.includes('Domain already exists') ||
-        errorMessage.includes('域名已在')
-      ) {
+      } else if (isDuplicateDomain) {
         setError(t('dashboard.domainAlreadyExistsDesc') || t('dashboard.domainAlreadyExists') || errorMessage);
       } else {
         setError(t('common.dataSaveFailed') || `Failed to save data: ${errorMessage}`);
       }
 
-      // 记录错误到审计日志
-      auditLogger.log(userId || 'unknown', 'data_save_failed', 'dashboard', {
-        error: errorMessage,
-        errorType: isNetworkError ? 'network' : isAuthError ? 'auth' : 'unknown'
-      });
+      if (!isDuplicateDomain) {
+        auditLogger.log(userId || 'unknown', 'data_save_failed', 'dashboard', {
+          error: errorMessage,
+          errorType: isNetworkError ? 'network' : isAuthError ? 'auth' : 'unknown'
+        });
+      }
 
       throw error;
     }

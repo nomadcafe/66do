@@ -51,7 +51,14 @@ export function calculateROI(
   return ((totalRevenue - totalInvestment) / totalInvestment) * 100;
 }
 
-// 计算单个域名的ROI（统一计算逻辑）
+/**
+ * 计算单个域名的 ROI（Domain Portfolio 表格/卡片使用）
+ * 公式：ROI = (净收入 - 总持有成本) / 总持有成本 × 100
+ * - 总持有成本 = 购买成本(purchase_cost) + 续费次数(renewal_count) × 单次续费(renewal_cost)
+ * - 已出售：净收入 = 售价(sale_price) - 平台手续费(platform_fee)
+ * - 过期：视为 -100%
+ * - 持有中且有预估价值：净收入用 estimated_value 代入
+ */
 export function calculateDomainROI(
   domain: {
     purchase_cost?: number | null;
@@ -64,40 +71,30 @@ export function calculateDomainROI(
     expiry_date?: string | null;
   }
 ): number {
-  // 计算总持有成本
   const purchaseCost = domain.purchase_cost || 0;
   const renewalCost = domain.renewal_count * (domain.renewal_cost || 0);
   const totalHoldingCost = purchaseCost + renewalCost;
-  
+
   if (totalHoldingCost === 0) return 0;
-  
-  // 如果是已出售域名，使用实际售价和平台手续费
-  if (domain.status === 'sold' && domain.sale_price) {
-    const netRevenue = domain.sale_price - (domain.platform_fee || 0);
+
+  // 已出售：净收入 = 售价 - 平台费（售价为空或 0 时按 0 收入，即 -100%）
+  if (domain.status === 'sold') {
+    const netRevenue = (domain.sale_price ?? 0) - (domain.platform_fee || 0);
     return ((netRevenue - totalHoldingCost) / totalHoldingCost) * 100;
   }
-  
-  // 如果是过期域名，计算为100%损失（负ROI）
-  if (domain.status === 'expired') {
-    return -100; // 100%损失
-  }
-  
-  // 检查域名是否实际过期（即使状态不是'expired'）
+
+  if (domain.status === 'expired') return -100;
+
   if (domain.expiry_date) {
     const now = new Date();
     const expiryDate = new Date(domain.expiry_date);
-    const isExpired = expiryDate < now;
-    
-    if (isExpired && domain.status !== 'sold') {
-      return -100; // 100%损失
-    }
+    if (!isNaN(expiryDate.getTime()) && expiryDate < now) return -100;
   }
-  
-  // 如果是其他状态，使用预估价值
-  if (domain.estimated_value && domain.estimated_value > 0) {
-    return (((domain.estimated_value - totalHoldingCost) / totalHoldingCost) * 100);
+
+  if (domain.estimated_value != null && domain.estimated_value > 0) {
+    return ((domain.estimated_value - totalHoldingCost) / totalHoldingCost) * 100;
   }
-  
+
   return 0;
 }
 

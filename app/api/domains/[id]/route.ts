@@ -215,7 +215,7 @@ export async function DELETE(
       })
     }
     
-    const deleteResult = await DomainService.deleteDomain(domainId, userId)
+    const deleteResult = await DomainService.deleteDomainWithClient(authenticatedClientForDelete, domainId, userId)
     
     if (!deleteResult) {
       return NextResponse.json({ 

@@ -200,23 +200,24 @@ export class DomainService {
   }
 
   static async deleteDomain(id: string, userId?: string): Promise<boolean> {
-    let query = supabase
-      .from('domains')
-      .delete()
-      .eq('id', id)
-    
-    // 如果提供了userId，确保只能删除属于该用户的域名
+    return this.deleteDomainWithClient(supabase, id, userId)
+  }
+
+  /** 使用带用户 JWT 的 client 执行删除，RLS 才能通过 */
+  static async deleteDomainWithClient(
+    client: SupabaseClient<Database>,
+    id: string,
+    userId?: string
+  ): Promise<boolean> {
+    let query = client.from('domains').delete().eq('id', id)
     if (userId) {
       query = query.eq('user_id', userId) as typeof query
     }
-    
     const { error } = await query
-    
     if (error) {
       logger.error('Error deleting domain:', error)
       return false
     }
-    
     return true
   }
 
