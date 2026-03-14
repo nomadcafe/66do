@@ -45,15 +45,33 @@ function domainHoldingPeriod(domain: DomainWithTags, t: (key: string) => string)
   return months > 0 ? `${years}${t('common.year')}${months}${t('common.month')}` : `${years}${t('common.year')}`;
 }
 
+const CELEBRATION_IMAGE_URL = '/domainfinancial.png';
+
 export default function ShareModal({ isOpen, onClose, shareData }: ShareModalProps) {
   const { t } = useI18nContext();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const celebrationImageRef = useRef<HTMLImageElement | null>(null);
+  const [celebrationImageReady, setCelebrationImageReady] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [shareMode, setShareMode] = useState<'portfolio' | 'single'>('portfolio');
   const [selectedDomainId, setSelectedDomainId] = useState<string>('');
 
   const soldDomains = useMemo(() => shareData.soldDomains ?? [], [shareData.soldDomains]);
   const selectedDomain = selectedDomainId ? soldDomains.find((d) => d.id === selectedDomainId) ?? null : null;
+
+  useEffect(() => {
+    if (celebrationImageRef.current) return;
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      celebrationImageRef.current = img;
+      setCelebrationImageReady(true);
+    };
+    img.onerror = () => {
+      celebrationImageRef.current = null;
+    };
+    img.src = CELEBRATION_IMAGE_URL;
+  }, []);
 
   const drawPortfolioCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -115,83 +133,98 @@ export default function ShareModal({ isOpen, onClose, shareData }: ShareModalPro
       if (!ctx) return;
       canvas.width = 800;
       canvas.height = 600;
-      const gradient = ctx.createLinearGradient(0, 0, 800, 600);
-      gradient.addColorStop(0, '#f8fafc');
-      gradient.addColorStop(0.5, '#f1f5f9');
-      gradient.addColorStop(1, '#e2e8f0');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, 800, 600);
-      ctx.fillStyle = '#ffffff';
-      ctx.strokeStyle = '#e2e8f0';
-      ctx.lineWidth = 1;
-      if (typeof ctx.roundRect === 'function') {
-        ctx.roundRect(60, 60, 680, 480, 16);
+      const img = celebrationImageRef.current;
+      const useCelebrationImage = img && img.complete && img.naturalWidth > 0;
+
+      if (useCelebrationImage) {
+        ctx.drawImage(img, 0, 0, 800, 600);
+        const roi = domainROI(domain);
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 32px Inter, Arial, sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(domain.domain_name, 400, 218);
+        ctx.font = 'bold 42px Inter, Arial, sans-serif';
+        ctx.fillStyle = '#22c55e';
+        ctx.fillText(`$${(domain.sale_price ?? 0).toLocaleString()}`, 400, 278);
+        ctx.font = 'bold 36px Inter, Arial, sans-serif';
+        ctx.fillStyle = '#22c55e';
+        ctx.fillText(`ROI: ${roi.toFixed(1)}%`, 400, 328);
       } else {
-        ctx.rect(60, 60, 680, 480);
+        const gradient = ctx.createLinearGradient(0, 0, 800, 600);
+        gradient.addColorStop(0, '#f8fafc');
+        gradient.addColorStop(0.5, '#f1f5f9');
+        gradient.addColorStop(1, '#e2e8f0');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 800, 600);
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 1;
+        if (typeof ctx.roundRect === 'function') ctx.roundRect(60, 60, 680, 480, 16);
+        else ctx.rect(60, 60, 680, 480);
+        ctx.fill();
+        ctx.stroke();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+        ctx.shadowBlur = 20;
+        ctx.shadowOffsetY = 4;
+        ctx.fillStyle = '#ffffff';
+        if (typeof ctx.roundRect === 'function') ctx.roundRect(60, 60, 680, 480, 16);
+        else ctx.rect(60, 60, 680, 480);
+        ctx.fill();
+        ctx.shadowColor = 'transparent';
+        const profit = domainProfit(domain);
+        const roi = domainROI(domain);
+        const holdingPeriod = domainHoldingPeriod(domain, t);
+        ctx.font = 'bold 48px Inter, Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#1e293b';
+        ctx.fillText('Domain Sold Successfully', 400, 140);
+        ctx.font = 'bold 36px Inter, Arial, sans-serif';
+        ctx.fillStyle = '#3b82f6';
+        ctx.fillText(domain.domain_name, 400, 200);
+        ctx.font = 'bold 44px Inter, Arial, sans-serif';
+        ctx.fillStyle = '#059669';
+        ctx.fillText(`$${(domain.sale_price ?? 0).toLocaleString()}`, 400, 260);
+        ctx.fillStyle = '#059669';
+        ctx.fillRect(350, 290, 100, 32);
+        ctx.strokeStyle = '#047857';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(350, 290, 100, 32);
+        ctx.font = 'bold 16px Inter, Arial, sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText('SOLD', 400, 310);
+        ctx.font = 'bold 24px Inter, Arial, sans-serif';
+        ctx.fillStyle = '#64748b';
+        ctx.textAlign = 'left';
+        ctx.fillText('Net Profit', 100, 380);
+        ctx.font = 'bold 32px Inter, Arial, sans-serif';
+        ctx.fillStyle = '#059669';
+        ctx.fillText(`$${profit.toLocaleString()}`, 100, 410);
+        ctx.font = 'bold 24px Inter, Arial, sans-serif';
+        ctx.fillStyle = '#64748b';
+        ctx.fillText('ROI', 300, 380);
+        ctx.font = 'bold 32px Inter, Arial, sans-serif';
+        ctx.fillStyle = '#3b82f6';
+        ctx.fillText(`${roi.toFixed(1)}%`, 300, 410);
+        ctx.font = 'bold 24px Inter, Arial, sans-serif';
+        ctx.fillStyle = '#64748b';
+        ctx.fillText('Holding Period', 500, 380);
+        ctx.font = 'bold 32px Inter, Arial, sans-serif';
+        ctx.fillStyle = '#7c3aed';
+        ctx.fillText(holdingPeriod, 500, 410);
+        ctx.font = 'bold 20px Inter, Arial, sans-serif';
+        ctx.fillStyle = '#64748b';
+        ctx.textAlign = 'center';
+        ctx.fillText('Powered by Domain.Financial', 400, 480);
+        ctx.font = '14px Inter, Arial, sans-serif';
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillText('Track & Grow Your Domains', 400, 500);
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(100, 320);
+        ctx.lineTo(700, 320);
+        ctx.stroke();
       }
-      ctx.fill();
-      ctx.stroke();
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
-      ctx.shadowBlur = 20;
-      ctx.shadowOffsetY = 4;
-      ctx.fillStyle = '#ffffff';
-      if (typeof ctx.roundRect === 'function') ctx.roundRect(60, 60, 680, 480, 16);
-      else ctx.rect(60, 60, 680, 480);
-      ctx.fill();
-      ctx.shadowColor = 'transparent';
-      const profit = domainProfit(domain);
-      const roi = domainROI(domain);
-      const holdingPeriod = domainHoldingPeriod(domain, t);
-      ctx.font = 'bold 48px Inter, Arial, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#1e293b';
-      ctx.fillText('Domain Sold Successfully', 400, 140);
-      ctx.font = 'bold 36px Inter, Arial, sans-serif';
-      ctx.fillStyle = '#3b82f6';
-      ctx.fillText(domain.domain_name, 400, 200);
-      ctx.font = 'bold 44px Inter, Arial, sans-serif';
-      ctx.fillStyle = '#059669';
-      ctx.fillText(`$${(domain.sale_price ?? 0).toLocaleString()}`, 400, 260);
-      ctx.fillStyle = '#059669';
-      ctx.fillRect(350, 290, 100, 32);
-      ctx.strokeStyle = '#047857';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(350, 290, 100, 32);
-      ctx.font = 'bold 16px Inter, Arial, sans-serif';
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText('SOLD', 400, 310);
-      ctx.font = 'bold 24px Inter, Arial, sans-serif';
-      ctx.fillStyle = '#64748b';
-      ctx.textAlign = 'left';
-      ctx.fillText('Net Profit', 100, 380);
-      ctx.font = 'bold 32px Inter, Arial, sans-serif';
-      ctx.fillStyle = '#059669';
-      ctx.fillText(`$${profit.toLocaleString()}`, 100, 410);
-      ctx.font = 'bold 24px Inter, Arial, sans-serif';
-      ctx.fillStyle = '#64748b';
-      ctx.fillText('ROI', 300, 380);
-      ctx.font = 'bold 32px Inter, Arial, sans-serif';
-      ctx.fillStyle = '#3b82f6';
-      ctx.fillText(`${roi.toFixed(1)}%`, 300, 410);
-      ctx.font = 'bold 24px Inter, Arial, sans-serif';
-      ctx.fillStyle = '#64748b';
-      ctx.fillText('Holding Period', 500, 380);
-      ctx.font = 'bold 32px Inter, Arial, sans-serif';
-      ctx.fillStyle = '#7c3aed';
-      ctx.fillText(holdingPeriod, 500, 410);
-      ctx.font = 'bold 20px Inter, Arial, sans-serif';
-      ctx.fillStyle = '#64748b';
-      ctx.textAlign = 'center';
-      ctx.fillText('Powered by Domain.Financial', 400, 480);
-      ctx.font = '14px Inter, Arial, sans-serif';
-      ctx.fillStyle = '#94a3b8';
-      ctx.fillText('Track & Grow Your Domains', 400, 500);
-      ctx.strokeStyle = '#e2e8f0';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(100, 320);
-      ctx.lineTo(700, 320);
-      ctx.stroke();
     },
     [t]
   );
@@ -218,7 +251,7 @@ export default function ShareModal({ isOpen, onClose, shareData }: ShareModalPro
     }
     const timer = setTimeout(() => drawCanvas(), 100);
     return () => clearTimeout(timer);
-  }, [isOpen, shareData, shareMode, selectedDomainId, soldDomains, drawCanvas]);
+  }, [isOpen, shareData, shareMode, selectedDomainId, soldDomains, drawCanvas, celebrationImageReady]);
 
   useEffect(() => {
     if (isOpen) {
