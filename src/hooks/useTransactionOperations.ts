@@ -127,29 +127,33 @@ export function useTransactionOperations(
             return domain;
           });
         } else if (oldTransaction.type !== 'sell' && newTransaction.type === 'sell' && newTransaction.domain_id) {
+          const isCancelledInstallment = newTransaction.payment_plan === 'installment' && newTransaction.installment_status === 'cancelled';
           updatedDomains = domains.map(domain => {
-            if (domain.id === newTransaction.domain_id) {
-              return {
-                ...domain,
-                status: 'sold' as const,
-                sale_date: newTransaction.date,
-                sale_price: newTransaction.amount,
-                platform_fee: newTransaction.platform_fee || 0
-              };
+            if (domain.id !== newTransaction.domain_id) return domain;
+            if (isCancelledInstallment) {
+              return { ...domain, status: 'active' as const, sale_date: null, sale_price: null, platform_fee: null };
             }
-            return domain;
+            return {
+              ...domain,
+              status: 'sold' as const,
+              sale_date: newTransaction.date,
+              sale_price: newTransaction.amount,
+              platform_fee: newTransaction.platform_fee || 0
+            };
           });
         } else if (oldTransaction.type === 'sell' && newTransaction.type === 'sell' && oldTransaction.domain_id === newTransaction.domain_id) {
+          const isCancelledInstallment = newTransaction.payment_plan === 'installment' && newTransaction.installment_status === 'cancelled';
           updatedDomains = domains.map(domain => {
-            if (domain.id === newTransaction.domain_id) {
-              return {
-                ...domain,
-                sale_date: newTransaction.date,
-                sale_price: newTransaction.amount,
-                platform_fee: newTransaction.platform_fee || 0
-              };
+            if (domain.id !== newTransaction.domain_id) return domain;
+            if (isCancelledInstallment) {
+              return { ...domain, status: 'active' as const, sale_date: null, sale_price: null, platform_fee: null };
             }
-            return domain;
+            return {
+              ...domain,
+              sale_date: newTransaction.date,
+              sale_price: newTransaction.amount,
+              platform_fee: newTransaction.platform_fee || 0
+            };
           });
         }
 
@@ -164,17 +168,19 @@ export function useTransactionOperations(
 
         let domainUpdates: DomainWithTags[] = domains;
         if (newTransaction.type === 'sell' && newTransaction.domain_id) {
+          const isCancelledInstallment = newTransaction.payment_plan === 'installment' && newTransaction.installment_status === 'cancelled';
           domainUpdates = domains.map(domain => {
-            if (domain.id === newTransaction.domain_id) {
-              return {
-                ...domain,
-                status: 'sold' as const,
-                sale_date: newTransaction.date,
-                sale_price: newTransaction.amount,
-                platform_fee: newTransaction.platform_fee || 0
-              };
+            if (domain.id !== newTransaction.domain_id) return domain;
+            if (isCancelledInstallment) {
+              return { ...domain, status: 'active' as const, sale_date: null, sale_price: null, platform_fee: null };
             }
-            return domain;
+            return {
+              ...domain,
+              status: 'sold' as const,
+              sale_date: newTransaction.date,
+              sale_price: newTransaction.amount,
+              platform_fee: newTransaction.platform_fee || 0
+            };
           });
         }
 

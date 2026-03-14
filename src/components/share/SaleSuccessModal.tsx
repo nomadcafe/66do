@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Download, Share2, Linkedin, Facebook, CheckCircle, DollarSign, TrendingUp } from 'lucide-react';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { calculateTotalInstallmentAmount } from '../../lib/platformFeeCalculator';
+
+const CELEBRATION_IMAGE_URL = '/domainfinancial.png';
 
 // interface Domain {
 //   id: string;
@@ -33,11 +35,35 @@ interface SaleSuccessModalProps {
   transaction: TransactionWithRequiredFields;
 }
 
+function holdingPeriodShort(purchaseDate: Date, saleDate: Date): string {
+  const diffDays = Math.ceil(Math.abs(saleDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays < 30) return `${diffDays}d`;
+  if (diffDays < 365) return `${Math.floor(diffDays / 30)}m`;
+  const years = Math.floor(diffDays / 365);
+  const months = Math.floor((diffDays % 365) / 30);
+  return months > 0 ? `${years}y ${months}m` : `${years}y`;
+}
+
 export default function SaleSuccessModal({ isOpen, onClose, domain, transaction }: SaleSuccessModalProps) {
   const { t } = useI18nContext();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const celebrationImageRef = useRef<HTMLImageElement | null>(null);
+  const [celebrationImageReady, setCelebrationImageReady] = useState(false);
   const [imageGenerated, setImageGenerated] = useState(false);
+
+  useEffect(() => {
+    if (celebrationImageRef.current) return;
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      celebrationImageRef.current = img;
+      setCelebrationImageReady(true);
+    };
+    img.onerror = () => {
+      celebrationImageRef.current = null;
+    };
+    img.src = CELEBRATION_IMAGE_URL;
+  }, []);
 
   // 出售总价（客户总付款）：分期用分期总额，否则用 base_amount ?? amount
   const getSalePriceUSD = (): number => {
@@ -86,79 +112,103 @@ export default function SaleSuccessModal({ isOpen, onClose, domain, transaction 
     }
   };
 
-  const generateShareImage = async () => {
-    if (!canvasRef.current) return;
-    
-    setIsGenerating(true);
+  // Same style as ShareModal → Single domain sale: domainfinancial.png + overlay (name, sale price, ROI, HT)
+  const drawShareImage = useCallback(() => {
     const canvas = canvasRef.current;
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-
-    // 设置画布尺寸
     canvas.width = 800;
     canvas.height = 600;
 
-    // 绘制渐变背景
-    const gradient = ctx.createLinearGradient(0, 0, 0, 600);
-    gradient.addColorStop(0, '#10b981'); // 绿色渐变
-    gradient.addColorStop(1, '#059669');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 800, 600);
-
-    // 绘制白色内容区域
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-    ctx.roundRect(50, 50, 700, 500, 20);
-    ctx.fill();
-
-    // 设置字体
-    ctx.fillStyle = '#1f2937';
-    ctx.font = 'bold 36px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('🎉 Domain Sale Success! 🎉', 400, 120);
-
-    // 绘制域名信息
-    ctx.font = 'bold 28px Arial';
-    ctx.fillStyle = '#10b981';
-    ctx.fillText(domain.domain_name, 400, 170);
-
-    // 绘制统计数据：Sale Price = 出售总价，Net Profit = 卖家净收入 - 持有成本
-    const profit = calculateProfit();
-    const roi = calculateROI();
-    const holdingPeriod = calculateHoldingPeriod();
     const salePrice = getSalePriceUSD();
+    const roi = calculateROI();
+    const purchaseDate = new Date(domain.purchase_date || '');
+    const saleDate = new Date(transaction.date);
+    const holdingPeriodStr = holdingPeriodShort(purchaseDate, saleDate);
 
-    ctx.font = 'bold 24px Arial';
-    ctx.fillStyle = '#1f2937';
-    ctx.fillText(`💰 Net Profit: $${profit.toLocaleString()}`, 400, 220);
-    ctx.fillText(`📈 ROI: ${roi.toFixed(1)}%`, 400, 260);
-    ctx.fillText(`⏰ Holding Period: ${holdingPeriod}`, 400, 300);
-    ctx.fillText(`💵 Sale Price: $${salePrice.toLocaleString()}`, 400, 340);
+    const img = celebrationImageRef.current;
+    const useCelebrationImage = img && img.complete && img.naturalWidth > 0;
 
-    // 绘制品牌信息
-    ctx.font = '18px Arial';
-    ctx.fillStyle = '#6b7280';
-    ctx.fillText('Domain.Financial – Track & Grow Your Domains', 400, 480);
-
-    // 绘制装饰元素
-    ctx.fillStyle = '#fbbf24';
-    ctx.font = '48px Arial';
-    ctx.fillText('💎', 100, 200);
-    ctx.fillText('🚀', 700, 200);
-    ctx.fillText('📈', 100, 400);
-    ctx.fillText('🎯', 700, 400);
-
-    // 绘制成功图标
-    ctx.fillStyle = '#10b981';
-    ctx.font = '64px Arial';
-    ctx.fillText('✅', 400, 420);
-
-    setIsGenerating(false);
+    if (useCelebrationImage) {
+      ctx.drawImage(img, 0, 0, 800, 600);
+      ctx.textAlign = 'left';
+      const screenLeftX = 120;
+      const lineGap = 54;
+      let y = 168;
+      ctx.font = 'bold 34px Inter, Arial, sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(domain.domain_name, screenLeftX, y);
+      y += lineGap;
+      ctx.font = 'bold 36px Inter, Arial, sans-serif';
+      ctx.fillStyle = '#22c55e';
+      ctx.fillText(`$${salePrice.toLocaleString()}`, screenLeftX, y);
+      y += lineGap;
+      ctx.font = 'bold 38px Inter, Arial, sans-serif';
+      ctx.fillText(`ROI: ${roi.toFixed(1)}%`, screenLeftX, y);
+      y += lineGap;
+      ctx.font = 'bold 28px Inter, Arial, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.95)';
+      ctx.fillText(`HT: ${holdingPeriodStr}`, screenLeftX, y);
+    } else {
+      const gradient = ctx.createLinearGradient(0, 0, 800, 600);
+      gradient.addColorStop(0, '#f8fafc');
+      gradient.addColorStop(0.5, '#f1f5f9');
+      gradient.addColorStop(1, '#e2e8f0');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 800, 600);
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 1;
+      if (typeof ctx.roundRect === 'function') ctx.roundRect(60, 60, 680, 480, 16);
+      else ctx.rect(60, 60, 680, 480);
+      ctx.fill();
+      ctx.stroke();
+      ctx.shadowColor = 'transparent';
+      const profit = calculateProfit();
+      ctx.font = 'bold 48px Inter, Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#1e293b';
+      ctx.fillText('Domain Sold Successfully', 400, 140);
+      ctx.font = 'bold 36px Inter, Arial, sans-serif';
+      ctx.fillStyle = '#3b82f6';
+      ctx.fillText(domain.domain_name, 400, 200);
+      ctx.font = 'bold 44px Inter, Arial, sans-serif';
+      ctx.fillStyle = '#059669';
+      ctx.fillText(`$${salePrice.toLocaleString()}`, 400, 260);
+      ctx.font = 'bold 24px Inter, Arial, sans-serif';
+      ctx.fillStyle = '#64748b';
+      ctx.textAlign = 'left';
+      ctx.fillText('Net Profit', 100, 380);
+      ctx.font = 'bold 32px Inter, Arial, sans-serif';
+      ctx.fillStyle = '#059669';
+      ctx.fillText(`$${profit.toLocaleString()}`, 100, 410);
+      ctx.fillText('ROI', 300, 380);
+      ctx.font = 'bold 32px Inter, Arial, sans-serif';
+      ctx.fillStyle = '#3b82f6';
+      ctx.fillText(`${roi.toFixed(1)}%`, 300, 410);
+      ctx.fillText('Holding Period', 500, 380);
+      ctx.font = 'bold 32px Inter, Arial, sans-serif';
+      ctx.fillStyle = '#7c3aed';
+      ctx.fillText(holdingPeriodStr, 500, 410);
+      ctx.font = 'bold 20px Inter, Arial, sans-serif';
+      ctx.fillStyle = '#64748b';
+      ctx.textAlign = 'center';
+      ctx.fillText('Powered by Domain.Financial', 400, 480);
+    }
     setImageGenerated(true);
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- getSalePriceUSD, calculateROI, calculateProfit are stable given domain/transaction
+  }, [domain, transaction]);
+
+  useEffect(() => {
+    if (!isOpen || !domain || !transaction) return;
+    const timer = setTimeout(() => drawShareImage(), 100);
+    return () => clearTimeout(timer);
+  }, [isOpen, domain, transaction, celebrationImageReady, drawShareImage]);
 
   const downloadImage = () => {
     if (!canvasRef.current) return;
-    
+    drawShareImage();
     const link = document.createElement('a');
     link.download = `domain-financial-sale-success-${domain.domain_name}-${new Date().toISOString().split('T')[0]}.png`;
     link.href = canvasRef.current.toDataURL();
@@ -166,6 +216,7 @@ export default function SaleSuccessModal({ isOpen, onClose, domain, transaction 
   };
 
   const shareToSocial = (platform: string) => {
+    drawShareImage();
     const imageData = canvasRef.current?.toDataURL();
     if (!imageData) return;
 
@@ -263,26 +314,17 @@ export default function SaleSuccessModal({ isOpen, onClose, domain, transaction 
             </div>
             <div className="flex justify-center mt-4">
               <button
-                onClick={generateShareImage}
-                disabled={isGenerating}
-                className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center space-x-2"
+                type="button"
+                onClick={() => drawShareImage()}
+                className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 flex items-center space-x-2"
               >
-                {isGenerating ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>{t('common.generating')}</span>
-                  </>
-                ) : (
-                  <>
-                    <Share2 className="h-4 w-4" />
-                    <span>{t('common.generateShareImage')}</span>
-                  </>
-                )}
+                <Share2 className="h-4 w-4" />
+                <span>{t('common.refreshImage')}</span>
               </button>
             </div>
           </div>
 
-          {/* 分享选项 */}
+          {/* 分享选项：与 Share Investment Results 单域名样式一致，自动生成后即可分享 */}
           {imageGenerated && (
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900">{t('common.shareToSocialMedia')}</h3>
