@@ -118,6 +118,17 @@ export interface Database {
           date: string
           created_at: string
           updated_at: string
+          payment_plan: string | null
+          installment_period: number | null
+          downpayment_amount: number | null
+          installment_amount: number | null
+          final_payment_amount: number | null
+          total_installment_amount: number | null
+          paid_periods: number | null
+          installment_status: string | null
+          platform_fee_type: string | null
+          user_input_fee_rate: number | null
+          user_input_surcharge_rate: number | null
         }
         Insert: {
           id: string
@@ -138,6 +149,17 @@ export interface Database {
           date: string
           created_at?: string
           updated_at?: string
+          payment_plan?: string | null
+          installment_period?: number | null
+          downpayment_amount?: number | null
+          installment_amount?: number | null
+          final_payment_amount?: number | null
+          total_installment_amount?: number | null
+          paid_periods?: number | null
+          installment_status?: string | null
+          platform_fee_type?: string | null
+          user_input_fee_rate?: number | null
+          user_input_surcharge_rate?: number | null
         }
         Update: {
           id?: string
@@ -158,6 +180,17 @@ export interface Database {
           date?: string
           created_at?: string
           updated_at?: string
+          payment_plan?: string | null
+          installment_period?: number | null
+          downpayment_amount?: number | null
+          installment_amount?: number | null
+          final_payment_amount?: number | null
+          total_installment_amount?: number | null
+          paid_periods?: number | null
+          installment_status?: string | null
+          platform_fee_type?: string | null
+          user_input_fee_rate?: number | null
+          user_input_surcharge_rate?: number | null
         }
       }
       verification_tokens: {

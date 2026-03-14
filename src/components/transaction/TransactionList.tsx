@@ -267,13 +267,20 @@ const TransactionList = memo(function TransactionList({
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex flex-col">
+                        <div className="flex flex-col">
                         <div className="flex items-center">
                           <DollarSign className="h-4 w-4 text-gray-400 mr-1" />
                           <span className="text-sm font-medium text-gray-900">
                             {formatCurrency(transaction.amount, transaction.currency)}
                           </span>
                         </div>
+                        {transaction.type === 'sell' && transaction.payment_plan === 'installment' && (
+                          <div className="mt-1 text-xs text-stone-500">
+                            {transaction.installment_status === 'cancelled'
+                              ? t('transaction.installment') + ' · ' + t('transaction.cancelled')
+                              : `${t('transaction.installment')} ${transaction.paid_periods ?? 0}/${transaction.installment_period ?? 0}`}
+                          </div>
+                        )}
                         {transaction.type === 'sell' && transaction.platform_fee && transaction.platform_fee > 0 && (
                           <div className="mt-1">
                             <span className="text-xs text-green-600 font-medium">

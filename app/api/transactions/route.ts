@@ -26,7 +26,18 @@ function buildTransactionInsertPayload(
     category: (sanitizedTransaction.category as string) || null,
     tax_deductible: Boolean(sanitizedTransaction.tax_deductible),
     receipt_url: (sanitizedTransaction.receipt_url as string) || null,
-    notes: (sanitizedTransaction.notes as string) || null
+    notes: (sanitizedTransaction.notes as string) || null,
+    payment_plan: (sanitizedTransaction.payment_plan as string) || null,
+    installment_period: sanitizedTransaction.installment_period != null ? Number(sanitizedTransaction.installment_period) : null,
+    downpayment_amount: sanitizedTransaction.downpayment_amount != null ? Number(sanitizedTransaction.downpayment_amount) : null,
+    installment_amount: sanitizedTransaction.installment_amount != null ? Number(sanitizedTransaction.installment_amount) : null,
+    final_payment_amount: sanitizedTransaction.final_payment_amount != null ? Number(sanitizedTransaction.final_payment_amount) : null,
+    total_installment_amount: sanitizedTransaction.total_installment_amount != null ? Number(sanitizedTransaction.total_installment_amount) : null,
+    paid_periods: sanitizedTransaction.paid_periods != null ? Number(sanitizedTransaction.paid_periods) : null,
+    installment_status: (sanitizedTransaction.installment_status as string) || null,
+    platform_fee_type: (sanitizedTransaction.platform_fee_type as string) || null,
+    user_input_fee_rate: sanitizedTransaction.user_input_fee_rate != null ? Number(sanitizedTransaction.user_input_fee_rate) : null,
+    user_input_surcharge_rate: sanitizedTransaction.user_input_surcharge_rate != null ? Number(sanitizedTransaction.user_input_surcharge_rate) : null
   }
 }
 
