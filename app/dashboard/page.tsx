@@ -73,6 +73,7 @@ import {
   Zap,
   Database,
   X,
+  Info,
 } from 'lucide-react';
 
 // Domain and Transaction types are now imported from supabaseService
@@ -533,7 +534,12 @@ export default function DashboardPage() {
           <div className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm hover:shadow transition">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{t('dashboard.totalRevenue')}</p>
+                <p className="text-xs font-medium uppercase tracking-wider text-stone-500 flex items-center gap-1">
+                  {t('dashboard.totalRevenue')}
+                  <span className="inline-flex text-stone-400 hover:text-stone-600" title={t('dashboard.totalRevenueDesc')} aria-label={t('dashboard.totalRevenueDesc')}>
+                    <Info className="h-3.5 w-3.5" />
+                  </span>
+                </p>
                 <p className="text-2xl font-bold text-stone-900 mt-1">${stats.totalRevenue.toFixed(2)}</p>
                 <p className="text-xs text-stone-500 mt-1">{t('dashboard.afterFees')}</p>
               </div>
