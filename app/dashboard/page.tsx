@@ -250,14 +250,37 @@ export default function DashboardPage() {
     const validTransactions = transactions
       .filter(transaction => (transaction.base_amount ?? transaction.amount) != null)
       .map(transaction => {
-        const amountUSD = (transaction.base_amount ?? transaction.amount) ?? 0;
+        const fullAmount = (transaction.base_amount ?? transaction.amount) ?? 0;
+        let amountUSD = fullAmount;
+        let platformFee: number | undefined = transaction.platform_fee ?? undefined;
+        let netAmount: number | undefined = transaction.net_amount ?? fullAmount;
+
+        // 分期出售且已取消或未付清：Total Sales / Revenue / Platform Fees 只算实际已收部分
+        if (
+          transaction.type === 'sell' &&
+          transaction.payment_plan === 'installment' &&
+          (transaction.installment_status === 'cancelled' ||
+            (transaction.paid_periods ?? 0) < (transaction.installment_period ?? 1))
+        ) {
+          const down = transaction.downpayment_amount ?? 0;
+          const paid = transaction.paid_periods ?? 0;
+          const perPeriod = transaction.installment_amount ?? 0;
+          const actualReceived = down + paid * perPeriod;
+          if (fullAmount > 0 && actualReceived >= 0) {
+            const ratio = actualReceived / fullAmount;
+            amountUSD = actualReceived;
+            platformFee = (transaction.platform_fee ?? 0) * ratio;
+            netAmount = actualReceived - platformFee;
+          }
+        }
+
         return {
           id: transaction.id,
           domain_id: transaction.domain_id,
           type: transaction.type,
           amount: amountUSD,
-          platform_fee: transaction.platform_fee || undefined,
-          net_amount: transaction.net_amount ?? amountUSD,
+          platform_fee: platformFee,
+          net_amount: netAmount,
           date: transaction.date,
           category: transaction.category
         };
