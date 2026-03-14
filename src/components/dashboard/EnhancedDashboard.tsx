@@ -17,6 +17,7 @@ import {
 
 interface EnhancedDashboardProps {
   domains: DomainWithTags[];
+  /** 若需分期按实际已收统计，应传入 transactionsForMetrics（与 dashboard 一致） */
   transactions: TransactionWithRequiredFields[];
 }
 
