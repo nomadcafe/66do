@@ -56,8 +56,9 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined
     const corsHeaders = getCorsHeaders(request)
-    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken)
+    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
     const transactionList = await TransactionService.getTransactionsWithClient(client, authInfo.userId)
 
     return NextResponse.json({ success: true, data: transactionList }, { headers: corsHeaders })
@@ -79,7 +80,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { transaction, transactions } = body
+    const { transaction, transactions, refreshToken } = body
 
     const authInfo = await getAuthInfoFromRequest(request)
     if (!authInfo?.userId) {
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
     }
 
     const corsHeaders = getCorsHeaders(request)
-    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken)
+    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
     const userId = authInfo.userId
 
     // 支持批量创建
@@ -183,7 +184,7 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json()
-    const { transactions } = body
+    const { transactions, refreshToken } = body
 
     const authInfo = await getAuthInfoFromRequest(request)
     if (!authInfo?.userId) {
@@ -194,7 +195,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const corsHeaders = getCorsHeaders(request)
-    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken)
+    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
     const userId = authInfo.userId
 
     if (!transactions || !Array.isArray(transactions)) {

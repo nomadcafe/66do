@@ -31,6 +31,7 @@ interface UseDashboardDataReturn {
 export function useDashboardData(
   userId: string | undefined,
   sessionToken: string | undefined,
+  refreshToken: string | undefined,
   t: (key: string) => string
 ): UseDashboardDataReturn {
   const [domains, setDomains] = useState<DomainWithTags[]>([]);
@@ -77,6 +78,7 @@ export function useDashboardData(
       const headers: HeadersInit = { 'Content-Type': 'application/json' };
       if (sessionToken) {
         (headers as Record<string, string>)['Authorization'] = `Bearer ${sessionToken}`;
+        if (refreshToken) (headers as Record<string, string>)['X-Refresh-Token'] = refreshToken;
       }
 
       if (sessionToken) {
@@ -145,7 +147,7 @@ export function useDashboardData(
         dataSource: loadSummary.dataSource
       });
     }
-  }, [userId, sessionToken, t]);
+  }, [userId, sessionToken, refreshToken, t]);
 
   const saveData = useCallback(async (
     newDomains: DomainWithTags[],
@@ -179,6 +181,7 @@ export function useDashboardData(
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${sessionToken}`
       };
+      if (refreshToken) (headers as Record<string, string>)['X-Refresh-Token'] = refreshToken;
 
       // 保存交易时先乐观更新，再持久化，避免表单长时间等待（域名多时 domain 循环很慢）
       if (!domainsOnly) {
@@ -270,7 +273,7 @@ export function useDashboardData(
               response = await fetch('/api/transactions', {
                 method: 'POST',
                 headers,
-                body: JSON.stringify({ transaction: transactionPayload })
+                body: JSON.stringify({ transaction: transactionPayload, refreshToken })
               });
               didRetryPost = response.ok;
             }
@@ -279,7 +282,7 @@ export function useDashboardData(
           response = await fetch('/api/transactions', {
             method: 'POST',
             headers,
-            body: JSON.stringify({ transaction: transactionPayload })
+            body: JSON.stringify({ transaction: transactionPayload, refreshToken })
           });
         }
 
@@ -322,7 +325,7 @@ export function useDashboardData(
 
       if (userId) {
         domainCache.invalidateUserCache(userId);
-        await loadDashboardData({ useCache: false, showLoading: false });
+        // 保存失败时不重新拉取，保留当前列表和乐观更新，用户可重试或刷新
       }
 
       const isNetworkError = errorMessage.includes('fetch') || errorMessage.includes('network');
@@ -347,7 +350,7 @@ export function useDashboardData(
 
       throw error;
     }
-  }, [userId, sessionToken, domains, transactions, loadDashboardData, t]);
+  }, [userId, sessionToken, refreshToken, domains, transactions, loadDashboardData, t]);
 
   const refreshData = useCallback(async () => {
     await loadDashboardData({ useCache: false, showLoading: true });

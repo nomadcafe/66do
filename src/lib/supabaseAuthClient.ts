@@ -4,8 +4,12 @@ import { validateEnvVars } from './env-validator'
 
 /**
  * 创建带用户认证的 Supabase 客户端（用于 API 路由，与 RLS 配合）
+ * 传入 refreshToken 以便 setSession 成功，RLS 才能正确识别 auth.uid()
  */
-export async function createAuthenticatedSupabaseClient(accessToken?: string) {
+export async function createAuthenticatedSupabaseClient(
+  accessToken?: string,
+  refreshToken?: string
+) {
   const envValidation = validateEnvVars(true)
   if (!envValidation.valid) {
     throw new Error(`Missing required environment variables: ${envValidation.missing.join(', ')}`)
@@ -29,7 +33,7 @@ export async function createAuthenticatedSupabaseClient(accessToken?: string) {
     try {
       await client.auth.setSession({
         access_token: accessToken,
-        refresh_token: '',
+        refresh_token: refreshToken || '',
       })
     } catch (err) {
       console.error('Error setting session in Supabase client:', err)
