@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { TransactionService } from '../../../../src/lib/supabaseService'
 import { validateTransaction, sanitizeTransactionData } from '../../../../src/lib/validation'
 import { getAuthInfoFromRequest } from '../../../../src/lib/auth-helper'
-import { createAuthenticatedSupabaseClient } from '../../../../src/lib/supabaseAuthClient'
+import { createAuthenticatedSupabaseClient, createServiceRoleSupabaseClient } from '../../../../src/lib/supabaseAuthClient'
 import { getCorsHeaders, getCorsHeadersForError } from '../../../../src/lib/cors'
 
 // GET /api/transactions/[id] - 获取单个交易
@@ -22,7 +22,8 @@ export async function GET(
     const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined
     const corsHeaders = getCorsHeaders(request)
     const { id: transactionId } = await params
-    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
+    const serviceClient = createServiceRoleSupabaseClient()
+    const client = serviceClient ?? await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
     const userTransactions = await TransactionService.getTransactionsWithClient(client, authInfo.userId)
     const transaction = userTransactions.find(t => t.id === transactionId)
     
@@ -70,8 +71,9 @@ export async function PUT(
     const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined
     const corsHeaders = getCorsHeaders(request)
     const { id: transactionId } = await params
-    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
     const userId = authInfo.userId
+    const serviceClient = createServiceRoleSupabaseClient()
+    const client = serviceClient ?? await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
 
     if (!transaction) {
       return NextResponse.json({ error: 'Transaction data is required' }, {
@@ -159,8 +161,9 @@ export async function DELETE(
     const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined
     const corsHeaders = getCorsHeaders(request)
     const { id: transactionId } = await params
-    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
     const userId = authInfo.userId
+    const serviceClient = createServiceRoleSupabaseClient()
+    const client = serviceClient ?? await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
 
     const userTransactions = await TransactionService.getTransactionsWithClient(client, userId)
     const canDelete = userTransactions.some(t => t.id === transactionId)
