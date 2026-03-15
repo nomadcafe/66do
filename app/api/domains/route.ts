@@ -2,48 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { DomainService } from '../../../src/lib/supabaseService'
 import { validateDomain, sanitizeDomainData } from '../../../src/lib/validation'
 import { getAuthInfoFromRequest } from '../../../src/lib/auth-helper'
-import { createClient } from '@supabase/supabase-js'
-import { Database } from '../../../src/lib/supabase'
+import { createAuthenticatedSupabaseClient } from '../../../src/lib/supabaseAuthClient'
 import { getCorsHeaders, getCorsHeadersForError } from '../../../src/lib/cors'
-import { validateEnvVars } from '../../../src/lib/env-validator'
 import { MAX_BULK_OPERATION_SIZE } from '../../../src/lib/constants'
-
-// 创建带有用户认证的 Supabase 客户端
-async function createAuthenticatedSupabaseClient(accessToken?: string) {
-  const envValidation = validateEnvVars(true)
-  if (!envValidation.valid) {
-    throw new Error(`Missing required environment variables: ${envValidation.missing.join(', ')}`)
-  }
-  
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  
-  const client = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-    global: {
-      headers: accessToken ? {
-        Authorization: `Bearer ${accessToken}`
-      } : {}
-    },
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
-  })
-  
-  if (accessToken) {
-    try {
-      await client.auth.setSession({
-        access_token: accessToken,
-        refresh_token: '',
-      });
-    } catch (err) {
-      console.error('Error setting session in Supabase client:', err);
-    }
-  }
-  
-  return client
-}
 
 // GET /api/domains - 获取所有域名
 export async function GET(request: NextRequest) {
@@ -56,10 +17,10 @@ export async function GET(request: NextRequest) {
       })
     }
     
-    const { userId, accessToken } = authInfo;
+    const { userId, accessToken } = authInfo
+    const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined
     const corsHeaders = getCorsHeaders(request)
-    
-    const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken)
+    const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken, refreshToken)
     const domainList = await DomainService.getDomainsWithClient(authenticatedClient, userId)
     
     return NextResponse.json({ success: true, data: domainList }, { headers: corsHeaders })
@@ -81,7 +42,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { domain, domains } = body
+    const { domain, domains, refreshToken } = body
 
     const authInfo = await getAuthInfoFromRequest(request);
     if (!authInfo || !authInfo.userId) {
@@ -93,6 +54,7 @@ export async function POST(request: NextRequest) {
     
     const { userId, accessToken } = authInfo;
     const corsHeaders = getCorsHeaders(request)
+    const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken, refreshToken)
 
     // 支持批量创建
     if (domains && Array.isArray(domains)) {
@@ -104,8 +66,6 @@ export async function POST(request: NextRequest) {
           headers: corsHeaders
         })
       }
-
-      const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken)
       const createdDomains = []
       
       for (const domainData of domains) {
@@ -163,8 +123,7 @@ export async function POST(request: NextRequest) {
       })
     }
     
-    const authenticatedClientForCheck = await createAuthenticatedSupabaseClient(accessToken)
-    const existingDomains = await DomainService.getDomainsWithClient(authenticatedClientForCheck, userId)
+    const existingDomains = await DomainService.getDomainsWithClient(authenticatedClient, userId)
     const domainName = domain.domain_name?.toLowerCase().trim()
     const isDuplicate = existingDomains.some(d => 
       d.domain_name.toLowerCase().trim() === domainName
@@ -187,8 +146,7 @@ export async function POST(request: NextRequest) {
     const status = ['active', 'for_sale', 'sold', 'expired'].includes((sanitizedDomain.status as string) || '')
       ? (sanitizedDomain.status as string)
       : 'active'
-    const authenticatedClientForCreate = await createAuthenticatedSupabaseClient(accessToken)
-    const newDomain = await DomainService.createDomainWithClient(authenticatedClientForCreate, { 
+    const newDomain = await DomainService.createDomainWithClient(authenticatedClient, { 
       ...sanitizedDomain, 
       tags: tagsForDb,
       status,
@@ -226,7 +184,7 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json()
-    const { domains } = body
+    const { domains, refreshToken } = body
 
     const authInfo = await getAuthInfoFromRequest(request);
     if (!authInfo || !authInfo.userId) {
@@ -246,8 +204,7 @@ export async function PATCH(request: NextRequest) {
       })
     }
 
-    // 验证所有域名都属于当前用户
-    const authenticatedClient = await createAuthenticatedSupabaseClient(authInfo.accessToken)
+    const authenticatedClient = await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
     const userDomains = await DomainService.getDomainsWithClient(authenticatedClient, userId)
     const userDomainIds = new Set(userDomains.map(d => d.id))
     

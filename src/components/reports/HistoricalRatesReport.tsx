@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { DollarSign } from 'lucide-react';
 import { formatCurrencyAmount } from '../../lib/exchangeRates';
 import { useI18nContext } from '../../contexts/I18nProvider';
+import { TransactionUtils } from '../../types/transaction';
 
 interface HistoricalRatesReportProps {
   transactions: Array<{
@@ -124,7 +125,7 @@ export default function HistoricalRatesReport({ transactions }: HistoricalRatesR
                       transaction.type === 'buy' ? 'bg-blue-100 text-blue-700' :
                       'bg-gray-100 text-gray-700'
                     }`}>
-                      {transaction.type}
+                      {t(TransactionUtils.formatTransactionType(transaction.type))}
                     </span>
                   </td>
                   <td className="py-2">

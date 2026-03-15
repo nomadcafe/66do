@@ -109,6 +109,7 @@ const translations: Record<Locale, Translations> = {
   },
   settings: {
     language: '语言',
+    selectLanguage: '选择语言',
     chinese: '中文',
     english: 'English',
     timezone: '时区',
@@ -1148,6 +1149,7 @@ const translations: Record<Locale, Translations> = {
   },
   settings: {
     language: 'Language',
+    selectLanguage: 'Select language',
     chinese: '中文',
     english: 'English',
     timezone: 'Timezone',

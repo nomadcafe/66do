@@ -1,5 +1,6 @@
--- 临时禁用RLS以解决400错误
--- 这是一个快速修复方案，用于解决立即的访问问题
+-- 【仅调试用，勿在生产长期使用】临时禁用 RLS 以解决 400 错误。
+-- 用后请尽快执行 enable_rls_when_ready.sql 或对应 fix_*_rls.sql 重新启用 RLS。
+-- 详见 database/README.md
 
 -- 1. 禁用所有相关表的RLS
 ALTER TABLE public.domains DISABLE ROW LEVEL SECURITY;
