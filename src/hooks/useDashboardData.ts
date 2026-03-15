@@ -43,6 +43,12 @@ export function useDashboardData(
   const loadDashboardData = useCallback(async (options: LoadOptions = {}) => {
     if (!userId) return;
 
+    // 有 userId 时必须用 API（带 session）拉取，否则 RLS 会返回空；无 session 时不拉取，避免走直接 Supabase 得到空列表
+    if (userId && !sessionToken) {
+      if (options.showLoading) setLoading(true);
+      return;
+    }
+
     const { useCache = true, showLoading = true } = options;
     let loadSummary = {
       domainsCount: 0,
@@ -309,6 +315,8 @@ export function useDashboardData(
 
       setTransactions(savedTransactions.length > 0 ? savedTransactions : newTransactions);
 
+      // 保存成功后从 API 再拉取一次，确保列表与数据库一致（便于发现 RLS/插入异常）
+      await loadDashboardData({ useCache: false, showLoading: false });
       logger.log('Data saved to Supabase database successfully');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
