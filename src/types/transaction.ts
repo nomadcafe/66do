@@ -261,26 +261,28 @@ export class TransactionUtils {
     return Math.max(0, totalPeriods - paidPeriods);
   }
 
+  /** 返回 i18n 键，展示时请用 t(TransactionUtils.formatTransactionType(type)) */
   static formatTransactionType(type: string): string {
-    const typeMap: Record<string, string> = {
-      'buy': '购买',
-      'sell': '出售',
-      'renew': '续费',
-      'transfer': '转移',
-      'fee': '费用',
-      'marketing': '营销',
-      'advertising': '广告'
+    const keyMap: Record<string, string> = {
+      buy: 'transaction.buy',
+      sell: 'transaction.sell',
+      renew: 'transaction.renew',
+      transfer: 'transaction.transfer',
+      fee: 'transaction.fee',
+      marketing: 'transaction.marketing',
+      advertising: 'transaction.advertising'
     };
-    return typeMap[type] || type;
+    return keyMap[type] || type;
   }
 
+  /** 返回 i18n 键，展示时请用 t(TransactionUtils.formatInstallmentStatus(status)) */
   static formatInstallmentStatus(status: string): string {
-    const statusMap: Record<string, string> = {
-      'active': '进行中',
-      'completed': '已完成',
-      'cancelled': '已取消',
-      'paused': '已暂停'
+    const keyMap: Record<string, string> = {
+      active: 'transaction.active',
+      completed: 'transaction.completed',
+      cancelled: 'transaction.cancelled',
+      paused: 'transaction.paused'
     };
-    return statusMap[status] || status;
+    return keyMap[status] || status;
   }
 }

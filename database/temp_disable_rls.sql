@@ -1,5 +1,4 @@
--- 临时禁用RLS进行测试
--- 这个脚本需要在Supabase SQL编辑器中运行
+-- 【仅调试用，勿在生产长期使用】临时禁用 RLS 进行测试。用后请重新启用 RLS。详见 database/README.md
 
 -- 1. 临时禁用RLS
 ALTER TABLE domains DISABLE ROW LEVEL SECURITY;

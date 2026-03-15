@@ -221,7 +221,7 @@ export function useDashboardData(
           response = await fetch('/api/domains', {
             method: 'POST',
             headers,
-            body: JSON.stringify({ domain: domainPayload })
+            body: JSON.stringify({ domain: domainPayload, refreshToken })
           });
         }
 

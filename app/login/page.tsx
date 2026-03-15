@@ -91,7 +91,7 @@ function LoginContent() {
           <select
             value={locale}
             onChange={(e) => setLocale(e.target.value as 'en' | 'zh')}
-            aria-label={locale === 'zh' ? '选择语言' : 'Select language'}
+            aria-label={t('settings.selectLanguage')}
             className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
           >
             <option value="zh">中文</option>

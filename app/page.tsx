@@ -97,7 +97,7 @@ export default function HomePage() {
             <select
               value={locale}
               onChange={(e) => setLocale(e.target.value as 'en' | 'zh')}
-              aria-label={locale === 'zh' ? '选择语言' : 'Select language'}
+              aria-label={t('settings.selectLanguage')}
               className="rounded-lg border bg-white px-2.5 py-1.5 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
               style={{ borderColor: 'var(--home-border)', color: 'var(--home-text)' }}
             >

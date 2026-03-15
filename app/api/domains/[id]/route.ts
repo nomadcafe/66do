@@ -2,47 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { DomainService } from '../../../../src/lib/supabaseService'
 import { validateDomain, sanitizeDomainData } from '../../../../src/lib/validation'
 import { getAuthInfoFromRequest } from '../../../../src/lib/auth-helper'
-import { createClient } from '@supabase/supabase-js'
-import { Database } from '../../../../src/lib/supabase'
+import { createAuthenticatedSupabaseClient } from '../../../../src/lib/supabaseAuthClient'
 import { getCorsHeaders, getCorsHeadersForError } from '../../../../src/lib/cors'
-import { validateEnvVars } from '../../../../src/lib/env-validator'
-
-// 创建带有用户认证的 Supabase 客户端
-async function createAuthenticatedSupabaseClient(accessToken?: string) {
-  const envValidation = validateEnvVars(true)
-  if (!envValidation.valid) {
-    throw new Error(`Missing required environment variables: ${envValidation.missing.join(', ')}`)
-  }
-  
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  
-  const client = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-    global: {
-      headers: accessToken ? {
-        Authorization: `Bearer ${accessToken}`
-      } : {}
-    },
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
-  })
-  
-  if (accessToken) {
-    try {
-      await client.auth.setSession({
-        access_token: accessToken,
-        refresh_token: '',
-      });
-    } catch (err) {
-      console.error('Error setting session in Supabase client:', err);
-    }
-  }
-  
-  return client
-}
 
 // GET /api/domains/[id] - 获取单个域名
 export async function GET(
@@ -58,11 +19,11 @@ export async function GET(
       })
     }
     
-    const { userId, accessToken } = authInfo;
+    const { userId, accessToken } = authInfo
+    const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined
     const corsHeaders = getCorsHeaders(request)
     const { id: domainId } = await params
-
-    const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken)
+    const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken, refreshToken)
     const userDomains = await DomainService.getDomainsWithClient(authenticatedClient, userId)
     const domain = userDomains.find(d => d.id === domainId)
     
@@ -138,8 +99,9 @@ export async function PUT(
     }
     
     const sanitizedUpdateDomain = sanitizeDomainData(domain)
-    const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken)
-    
+    const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined
+    const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken, refreshToken)
+
     // 验证域名所有权
     const userDomains = await DomainService.getDomainsWithClient(authenticatedClient, userId)
     const canUpdate = userDomains.some(d => d.id === domainId)
@@ -198,11 +160,11 @@ export async function DELETE(
       })
     }
     
-    const { userId, accessToken } = authInfo;
+    const { userId, accessToken } = authInfo
+    const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined
     const corsHeaders = getCorsHeaders(request)
     const { id: domainId } = await params
-
-    const authenticatedClientForDelete = await createAuthenticatedSupabaseClient(accessToken)
+    const authenticatedClientForDelete = await createAuthenticatedSupabaseClient(accessToken, refreshToken)
     const userDomains = await DomainService.getDomainsWithClient(authenticatedClientForDelete, userId)
     const canDeleteDomain = userDomains.some(d => d.id === domainId)
     

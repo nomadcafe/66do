@@ -470,7 +470,7 @@ export default function DashboardPage() {
               <select
                 value={locale}
                 onChange={(e) => setLocale(e.target.value as 'en' | 'zh')}
-                aria-label={locale === 'zh' ? '选择语言' : 'Select language'}
+                aria-label={t('settings.selectLanguage')}
                 className="rounded-xl border border-stone-200 bg-stone-50/80 px-3 py-2 text-sm text-stone-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
               >
                 <option value="zh">中文</option>
