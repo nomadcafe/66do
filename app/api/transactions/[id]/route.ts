@@ -19,9 +19,10 @@ export async function GET(
       })
     }
 
+    const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined
     const corsHeaders = getCorsHeaders(request)
     const { id: transactionId } = await params
-    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken)
+    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
     const userTransactions = await TransactionService.getTransactionsWithClient(client, authInfo.userId)
     const transaction = userTransactions.find(t => t.id === transactionId)
     
@@ -66,9 +67,10 @@ export async function PUT(
       })
     }
 
+    const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined
     const corsHeaders = getCorsHeaders(request)
     const { id: transactionId } = await params
-    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken)
+    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
     const userId = authInfo.userId
 
     if (!transaction) {
@@ -154,9 +156,10 @@ export async function DELETE(
       })
     }
 
+    const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined
     const corsHeaders = getCorsHeaders(request)
     const { id: transactionId } = await params
-    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken)
+    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
     const userId = authInfo.userId
 
     const userTransactions = await TransactionService.getTransactionsWithClient(client, userId)

@@ -103,7 +103,7 @@ export default function DashboardPage() {
     setError,
     saveData,
     refreshData
-  } = useDashboardData(user?.id, session?.access_token, t);
+  } = useDashboardData(user?.id, session?.access_token, session?.refresh_token, t);
 
   // 数据源约定：transactions = 原始列表（列表/编辑/保存用）；transactionsForMetrics = 分期按实际已收折算（所有指标/图表/分享用）
   // 分期未完成时按实际已收折算的交易列表（Overview、Analytics、Share、Reports 统一使用）
