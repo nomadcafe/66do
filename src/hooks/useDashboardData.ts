@@ -164,6 +164,13 @@ export function useDashboardData(
 
     const domainsOnly = options?.domainsOnly === true;
 
+    // 先乐观更新，再校验与持久化：添加交易后立即更新列表和 Total Revenue / Total Sales 等
+    if (!domainsOnly) {
+      domainCache.invalidateUserCache(userId);
+      setDomains(newDomains);
+      setTransactions(newTransactions);
+    }
+
     try {
       logger.log(domainsOnly ? 'Saving domains to Supabase...' : 'Saving data to Supabase database...');
 
@@ -188,13 +195,6 @@ export function useDashboardData(
         'Authorization': `Bearer ${sessionToken}`
       };
       if (refreshToken) (headers as Record<string, string>)['X-Refresh-Token'] = refreshToken;
-
-      // 保存交易时先乐观更新，再持久化，避免表单长时间等待（域名多时 domain 循环很慢）
-      if (!domainsOnly) {
-        domainCache.invalidateUserCache(userId);
-        setDomains(newDomains);
-        setTransactions(newTransactions);
-      }
 
       // Save domains to Supabase
       for (const domain of newDomains) {

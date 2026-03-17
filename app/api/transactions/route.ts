@@ -3,7 +3,7 @@ import { TransactionService, type TransactionInsert } from '../../../src/lib/sup
 import { validateTransaction, sanitizeTransactionData } from '../../../src/lib/validation'
 import { getAuthInfoFromRequest } from '../../../src/lib/auth-helper'
 import { createAuthenticatedSupabaseClient, createServiceRoleSupabaseClient } from '../../../src/lib/supabaseAuthClient'
-import { getCorsHeaders, getCorsHeadersForError } from '../../../src/lib/cors'
+import { getCorsHeaders, getCorsHeadersForError, noCacheHeaders } from '../../../src/lib/cors'
 import { MAX_BULK_OPERATION_SIZE } from '../../../src/lib/constants'
 
 function buildTransactionInsertPayload(
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    const corsHeaders = getCorsHeaders(request)
+    const corsHeaders = { ...getCorsHeaders(request), ...noCacheHeaders }
     const serviceClient = createServiceRoleSupabaseClient()
     const client = serviceClient ?? await createAuthenticatedSupabaseClient(authInfo.accessToken, request.headers.get('X-Refresh-Token') ?? undefined)
     const transactionList = await TransactionService.getTransactionsWithClient(client, authInfo.userId)
