@@ -3,7 +3,7 @@ import { DomainService } from '../../../src/lib/supabaseService'
 import { validateDomain, sanitizeDomainData } from '../../../src/lib/validation'
 import { getAuthInfoFromRequest } from '../../../src/lib/auth-helper'
 import { createAuthenticatedSupabaseClient } from '../../../src/lib/supabaseAuthClient'
-import { getCorsHeaders, getCorsHeadersForError } from '../../../src/lib/cors'
+import { getCorsHeaders, getCorsHeadersForError, noCacheHeaders } from '../../../src/lib/cors'
 import { MAX_BULK_OPERATION_SIZE } from '../../../src/lib/constants'
 
 // GET /api/domains - 获取所有域名
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     
     const { userId, accessToken } = authInfo
     const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined
-    const corsHeaders = getCorsHeaders(request)
+    const corsHeaders = { ...getCorsHeaders(request), ...noCacheHeaders }
     const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken, refreshToken)
     const domainList = await DomainService.getDomainsWithClient(authenticatedClient, userId)
     
