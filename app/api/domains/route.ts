@@ -81,6 +81,9 @@ export async function POST(request: NextRequest) {
         }
         
         const sanitizedDomain = sanitizeDomainData(domainData) as Record<string, unknown>
+        const domainId = (typeof sanitizedDomain.id === 'string' && sanitizedDomain.id.trim())
+          ? (sanitizedDomain.id as string).trim()
+          : crypto.randomUUID()
         const tagsForDb = Array.isArray(sanitizedDomain.tags)
           ? JSON.stringify(sanitizedDomain.tags)
           : (typeof sanitizedDomain.tags === 'string' ? sanitizedDomain.tags : '[]')
@@ -92,7 +95,7 @@ export async function POST(request: NextRequest) {
           tags: tagsForDb,
           status,
           user_id: userId,
-          id: crypto.randomUUID(),
+          id: domainId,
           domain_name: (sanitizedDomain.domain_name as string) || ''
         })
         
@@ -140,6 +143,9 @@ export async function POST(request: NextRequest) {
     }
     
     const sanitizedDomain = sanitizeDomainData(domain) as Record<string, unknown>
+    const domainId = (typeof sanitizedDomain.id === 'string' && sanitizedDomain.id.trim())
+      ? (sanitizedDomain.id as string).trim()
+      : crypto.randomUUID()
     const tagsForDb = Array.isArray(sanitizedDomain.tags)
       ? JSON.stringify(sanitizedDomain.tags)
       : (typeof sanitizedDomain.tags === 'string' ? sanitizedDomain.tags : '[]')
@@ -151,7 +157,7 @@ export async function POST(request: NextRequest) {
       tags: tagsForDb,
       status,
       user_id: userId,
-      id: crypto.randomUUID(),
+      id: domainId,
       domain_name: (sanitizedDomain.domain_name as string) || ''
     })
     
