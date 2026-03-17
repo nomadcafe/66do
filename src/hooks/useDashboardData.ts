@@ -315,8 +315,7 @@ export function useDashboardData(
 
       setTransactions(savedTransactions.length > 0 ? savedTransactions : newTransactions);
 
-      // 保存成功后从 API 再拉取一次，确保列表与数据库一致（便于发现 RLS/插入异常）
-      await loadDashboardData({ useCache: false, showLoading: false });
+      // 不再在此处自动 re-fetch，避免 GET 因 RLS 返回空列表时覆盖当前状态；用户可手动刷新
       logger.log('Data saved to Supabase database successfully');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
