@@ -1,49 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { TransactionService, type TransactionInsert } from '../../../src/lib/supabaseService'
+import { TransactionService } from '../../../src/lib/supabaseService'
 import { validateTransaction, sanitizeTransactionData } from '../../../src/lib/validation'
+import { buildTransactionInsertPayload } from '../../../src/lib/transactionInsertPayload'
 import { getAuthInfoFromRequest } from '../../../src/lib/auth-helper'
 import { createAuthenticatedSupabaseClient, createServiceRoleSupabaseClient } from '../../../src/lib/supabaseAuthClient'
 import { getCorsHeaders, getCorsHeadersForError, noCacheHeaders } from '../../../src/lib/cors'
 import { MAX_BULK_OPERATION_SIZE } from '../../../src/lib/constants'
-
-function buildTransactionInsertPayload(
-  sanitizedTransaction: Record<string, unknown>,
-  userId: string
-): TransactionInsert {
-  const id =
-    typeof sanitizedTransaction.id === 'string' && sanitizedTransaction.id.trim().length > 0
-      ? (sanitizedTransaction.id as string).trim()
-      : crypto.randomUUID();
-  return {
-    id,
-    user_id: userId,
-    domain_id: sanitizedTransaction.domain_id as string,
-    type: sanitizedTransaction.type as string,
-    amount: Number(sanitizedTransaction.amount),
-    currency: (sanitizedTransaction.currency as string) || 'USD',
-    exchange_rate: Number(sanitizedTransaction.exchange_rate) || 1,
-    date: sanitizedTransaction.date as string,
-    base_amount: sanitizedTransaction.base_amount != null ? Number(sanitizedTransaction.base_amount) : null,
-    platform_fee: sanitizedTransaction.platform_fee != null ? Number(sanitizedTransaction.platform_fee) : null,
-    platform_fee_percentage: sanitizedTransaction.platform_fee_percentage != null ? Number(sanitizedTransaction.platform_fee_percentage) : null,
-    net_amount: sanitizedTransaction.net_amount != null ? Number(sanitizedTransaction.net_amount) : null,
-    category: (sanitizedTransaction.category as string) || null,
-    tax_deductible: Boolean(sanitizedTransaction.tax_deductible),
-    receipt_url: (sanitizedTransaction.receipt_url as string) || null,
-    notes: (sanitizedTransaction.notes as string) || null,
-    payment_plan: (sanitizedTransaction.payment_plan as string) || null,
-    installment_period: sanitizedTransaction.installment_period != null ? Number(sanitizedTransaction.installment_period) : null,
-    downpayment_amount: sanitizedTransaction.downpayment_amount != null ? Number(sanitizedTransaction.downpayment_amount) : null,
-    installment_amount: sanitizedTransaction.installment_amount != null ? Number(sanitizedTransaction.installment_amount) : null,
-    final_payment_amount: sanitizedTransaction.final_payment_amount != null ? Number(sanitizedTransaction.final_payment_amount) : null,
-    total_installment_amount: sanitizedTransaction.total_installment_amount != null ? Number(sanitizedTransaction.total_installment_amount) : null,
-    paid_periods: sanitizedTransaction.paid_periods != null ? Number(sanitizedTransaction.paid_periods) : null,
-    installment_status: (sanitizedTransaction.installment_status as string) || null,
-    platform_fee_type: (sanitizedTransaction.platform_fee_type as string) || null,
-    user_input_fee_rate: sanitizedTransaction.user_input_fee_rate != null ? Number(sanitizedTransaction.user_input_fee_rate) : null,
-    user_input_surcharge_rate: sanitizedTransaction.user_input_surcharge_rate != null ? Number(sanitizedTransaction.user_input_surcharge_rate) : null
-  }
-}
 
 // GET /api/transactions - 获取所有交易
 export async function GET(request: NextRequest) {
