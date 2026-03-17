@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { domainCache } from '../lib/cache';
-import { loadDomainsFromSupabase, loadTransactionsFromSupabase } from '../lib/supabaseService';
+import { loadDomainsFromSupabase, loadTransactionsFromSupabase, TransactionService } from '../lib/supabaseService';
+import { supabase } from '../lib/supabase';
+import { buildTransactionInsertPayload } from '../lib/transactionInsertPayload';
 import {
   DomainWithTags,
   TransactionWithRequiredFields,
@@ -207,7 +209,7 @@ export function useDashboardData(
         return;
       }
 
-      // Save transactions to Supabase；收集保存后的列表（新建用服务端返回的 id）
+      // Save transactions: 更新走 API；新建用浏览器端 Supabase 插入（带 session，RLS 通过），避免 API 插入失败导致刷新后记录消失
       const savedTransactions: TransactionWithRequiredFields[] = [];
       for (const transaction of newTransactions) {
         const isExisting = transactions.find(t => t.id === transaction.id);
@@ -223,52 +225,30 @@ export function useDashboardData(
           notes: transaction.notes || null
         };
 
-        let response: Response;
-        let didRetryPost = false;
         if (isExisting) {
-          response = await fetch(`/api/transactions/${transaction.id}`, {
+          const response = await fetch(`/api/transactions/${transaction.id}`, {
             method: 'PUT',
             headers,
             body: JSON.stringify(transactionPayload)
           });
-          if (response.status === 403) {
-            const errBody = await response.json().catch(() => ({}));
-            const msg = (errBody?.error || '').toLowerCase();
-            if (msg.includes('not found') || msg.includes('access denied')) {
-              response = await fetch('/api/transactions', {
-                method: 'POST',
-                headers,
-                body: JSON.stringify({ transaction: transactionPayload, refreshToken })
-              });
-              didRetryPost = response.ok;
-            }
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            const details = errorData.details
+              ? (Array.isArray(errorData.details) ? errorData.details.join('; ') : String(errorData.details))
+              : (errorData.error || response.statusText);
+            throw new Error(`Failed to update transaction: ${details}`);
           }
-        } else {
-          response = await fetch('/api/transactions', {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({ transaction: transactionPayload, refreshToken })
-          });
-        }
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          const details = errorData.details
-            ? (Array.isArray(errorData.details) ? errorData.details.join('; ') : String(errorData.details))
-            : (errorData.error || response.statusText);
-          throw new Error(`Failed to ${isExisting ? 'update' : 'add'} transaction: ${details}`);
-        }
-
-        if (!isExisting || didRetryPost) {
-          const json = await response.json().catch(() => ({}));
-          const created = json?.data;
-          if (created && typeof created === 'object') {
-            savedTransactions.push(ensureTransactionWithRequiredFields(created));
-          } else {
-            savedTransactions.push(transaction);
-          }
-        } else {
           savedTransactions.push(transaction);
+        } else {
+          const payload = buildTransactionInsertPayload(
+            transactionPayload as Record<string, unknown>,
+            userId
+          );
+          const { data: created, error: insertError } = await TransactionService.createTransactionWithClient(supabase, payload);
+          if (insertError || !created) {
+            throw new Error(insertError || 'Failed to add transaction');
+          }
+          savedTransactions.push(ensureTransactionWithRequiredFields(created));
         }
       }
 
