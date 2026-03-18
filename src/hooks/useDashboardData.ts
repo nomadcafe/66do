@@ -121,7 +121,7 @@ export function useDashboardData(
     newTransactions: TransactionWithRequiredFields[],
     options?: { domainsOnly?: boolean }
   ) => {
-    if (!userId || !sessionToken) return;
+    if (!userId) return;
 
     const domainsOnly = options?.domainsOnly === true;
 
@@ -133,6 +133,19 @@ export function useDashboardData(
     }
 
     try {
+      // 页面传入的 sessionToken 可能短暂为空；从 Supabase 客户端再取一次，避免静默 return 导致「什么都没保存」
+      let accessToken = sessionToken ?? null;
+      let refreshTok = refreshToken ?? null;
+      if (!accessToken) {
+        const { data: { session } } = await supabase.auth.getSession();
+        accessToken = session?.access_token ?? null;
+        refreshTok = refreshTok || session?.refresh_token || null;
+      }
+      if (!accessToken) {
+        setError(t('common.authError') || 'Please sign in again to save.');
+        throw new Error('No access token for save');
+      }
+
       logger.log(domainsOnly ? 'Saving domains to Supabase...' : 'Saving data to Supabase database...');
 
       for (const domain of newDomains) {
@@ -153,9 +166,9 @@ export function useDashboardData(
 
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${sessionToken}`
+        'Authorization': `Bearer ${accessToken}`
       };
-      if (refreshToken) (headers as Record<string, string>)['X-Refresh-Token'] = refreshToken;
+      if (refreshTok) (headers as Record<string, string>)['X-Refresh-Token'] = refreshTok;
 
       // Save domains to Supabase
       for (const domain of newDomains) {
@@ -188,7 +201,7 @@ export function useDashboardData(
           response = await fetch('/api/domains', {
             method: 'POST',
             headers,
-            body: JSON.stringify({ domain: domainPayload, refreshToken })
+            body: JSON.stringify({ domain: domainPayload, refreshToken: refreshTok })
           });
         }
 
