@@ -199,6 +199,7 @@ export function useTransactionOperations(
       logger.error('Error saving transaction:', error);
       onError(`Failed to save transaction: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setTimeout(() => onError(''), ERROR_MESSAGE_TIMEOUT);
+      throw error;
     }
   }, [editingTransaction, transactions, domains, onSave, onError]);
 

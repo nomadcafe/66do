@@ -20,7 +20,7 @@ interface TransactionFormProps {
   domains: DomainWithTags[];
   isOpen: boolean;
   onClose: () => void;
-  onSave: (transaction: Omit<TransactionWithRequiredFields, 'id'>) => void;
+  onSave: (transaction: Omit<TransactionWithRequiredFields, 'id'>) => void | Promise<void>;
   onSaleComplete?: (transaction: Omit<TransactionWithRequiredFields, 'id'>, domain: DomainWithTags) => void;
 }
 
@@ -33,6 +33,8 @@ export default function TransactionForm({
   onSaleComplete
 }: TransactionFormProps) {
   const { t } = useI18nContext();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     domain_id: '',
     type: 'buy' as 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising',
@@ -221,8 +223,9 @@ export default function TransactionForm({
     }
   }, [formData.amount, formData.downpayment_amount, formData.final_payment_amount, formData.installment_period, formData.payment_plan, formData.installment_amount]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     if (!formData.domain_id) {
       setDomainDropdownOpen(true);
       return;
@@ -245,16 +248,25 @@ export default function TransactionForm({
     const { platform, ...dataWithoutPlatform } = finalFormData;
     const finalFormDataClean = dataWithoutPlatform;
 
-    onSave(finalFormDataClean);
+    setSubmitError(null);
+    setIsSubmitting(true);
+    try {
+      // 须等待持久化完成再关窗；否则用户刷新时 saveData 可能仍在遍历域名，交易尚未 insert
+      await Promise.resolve(onSave(finalFormDataClean));
 
-    if (finalFormDataClean.type === 'sell' && onSaleComplete) {
-      const selectedDomain = domains.find(d => d.id === finalFormDataClean.domain_id);
-      if (selectedDomain) {
-        onSaleComplete(finalFormDataClean, selectedDomain);
+      if (finalFormDataClean.type === 'sell' && onSaleComplete) {
+        const selectedDomain = domains.find(d => d.id === finalFormDataClean.domain_id);
+        if (selectedDomain) {
+          onSaleComplete(finalFormDataClean, selectedDomain);
+        }
       }
-    }
 
-    onClose();
+      onClose();
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Save failed. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const transactionTypes = [
@@ -949,20 +961,27 @@ export default function TransactionForm({
             />
           </div>
 
+          {submitError && (
+            <p className="text-sm text-red-600" role="alert">
+              {submitError}
+            </p>
+          )}
           <div className="flex justify-end space-x-3 pt-6 border-t">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              disabled={isSubmitting}
+              className="px-4 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center space-x-2"
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center space-x-2 disabled:opacity-50"
             >
               <Save className="h-4 w-4" />
-              <span>{transaction ? 'Update Transaction' : 'Add Transaction'}</span>
+              <span>{isSubmitting ? 'Saving…' : transaction ? 'Update Transaction' : 'Add Transaction'}</span>
             </button>
           </div>
         </form>

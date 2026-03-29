@@ -8,3 +8,7 @@
 | **saveData** | 曾 `if (!sessionToken) return` | **静默退出**：不保存、不更新界面。已改为 `getSession()` 补 token。 |
 
 当前：列表与**新建交易**均走浏览器 Supabase（带登录 session）。
+
+| 后续修复 | 说明 |
+|----------|------|
+| **session 等待 + 去掉内存 cache 捷径** | 硬刷新后 JWT 未恢复时 RLS 返回空 → 曾把空列表当有效数据；`/dashboard` 设 `force-dynamic` 减轻 HTML 304 干扰。保存成功后再次拉库与 DB 对齐。 |
