@@ -37,6 +37,7 @@ export interface AnnualRenewalCostAnalysis {
   total_actual_cost: number;
   cost_accuracy: number; // 预测准确性
   domains_needing_renewal: number;
+  /** @deprecated 已不再按月统计；保留为空对象以兼容旧类型 */
   cost_by_month: { [month: string]: number };
   cost_by_registrar: { [registrar: string]: number };
   cost_trends: {
@@ -46,7 +47,172 @@ export interface AnnualRenewalCostAnalysis {
   };
 }
 
+/** 按自然年的续费预估与实际（用于多年对比） */
+export interface RenewalYearSummary {
+  year: number;
+  total_estimated_cost: number;
+  total_actual_cost: number;
+  domains_needing_renewal: number;
+}
+
 export class RenewalCostService {
+  /** 批量拉取续费历史，避免按域名 N 次查询 */
+  private static async batchFetchRenewalHistories(domainIds: string[]): Promise<Map<string, RenewalCostHistory[]>> {
+    const map = new Map<string, RenewalCostHistory[]>();
+    if (domainIds.length === 0) return map;
+    const { data, error } = await supabase
+      .from('renewal_cost_history')
+      .select('*')
+      .in('domain_id', domainIds);
+    if (error) {
+      console.error('batchFetchRenewalHistories:', error);
+      return map;
+    }
+    for (const row of data || []) {
+      const id = row.domain_id as string;
+      const list = map.get(id) || [];
+      list.push(row as RenewalCostHistory);
+      map.set(id, list);
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) => b.renewal_date.localeCompare(a.renewal_date));
+    }
+    return map;
+  }
+
+  /** 某年到期域名的预估续费总额、数量、按注册商分布（基于已分组的历史） */
+  private static buildAnnualEstimatedBreakdown(
+    year: number,
+    activeDomains: Array<{
+      id: string;
+      domain_name?: string;
+      renewal_cost?: number | null;
+      expiry_date?: string | null;
+      registrar?: string | null;
+    }>,
+    historyByDomain: Map<string, RenewalCostHistory[]>
+  ): {
+    total_estimated_cost: number;
+    domains_needing_renewal: number;
+    cost_by_registrar: { [registrar: string]: number };
+  } {
+    let total_estimated_cost = 0;
+    let domains_needing_renewal = 0;
+    const cost_by_registrar: { [registrar: string]: number } = {};
+
+    for (const domain of activeDomains) {
+      const expiryDate = domain.expiry_date;
+      if (!expiryDate) continue;
+      const expiryDateObj = new Date(expiryDate);
+      if (expiryDateObj.getFullYear() !== year) continue;
+
+      domains_needing_renewal += 1;
+      const history = historyByDomain.get(domain.id) || [];
+      const predictedCost =
+        history.length > 0 ? this.predictNextRenewalCost(history) : (domain.renewal_cost ?? 0);
+      total_estimated_cost += predictedCost;
+      const registrar = (domain.registrar as string) || 'Unknown';
+      cost_by_registrar[registrar] = (cost_by_registrar[registrar] || 0) + predictedCost;
+    }
+
+    return { total_estimated_cost, domains_needing_renewal, cost_by_registrar };
+  }
+
+  /**
+   * 高级续费面板：一次批量拉历史，返回所选年度详情 + 过去/未来多年的年度汇总
+   */
+  static async getAdvancedRenewalPanelData(
+    domains: Array<{
+      id: string;
+      status: string;
+      renewal_cost?: number | null;
+      renewal_cycle?: number;
+      created_at?: string;
+      domain_name?: string;
+      expiry_date?: string | null;
+      registrar?: string | null;
+    }>,
+    selectedYear: number,
+    options?: { pastYears?: number; futureYears?: number }
+  ): Promise<{
+    analysis: AnnualRenewalCostAnalysis;
+    yearSummaries: RenewalYearSummary[];
+  }> {
+    const pastYears = options?.pastYears ?? 2;
+    const futureYears = options?.futureYears ?? 3;
+    const activeDomains = domains.filter((d) => d.status === 'active');
+
+    if (activeDomains.length === 0) {
+      return {
+        analysis: this.getEmptyAnnualAnalysis(selectedYear),
+        yearSummaries: [],
+      };
+    }
+
+    const ids = activeDomains.map((d) => d.id);
+    const historyByDomain = await this.batchFetchRenewalHistories(ids);
+
+    const yearStartStr = `${selectedYear}-01-01`;
+    const yearEndStr = `${selectedYear}-12-31`;
+    const { data: actualSelectedYear } = await supabase
+      .from('renewal_cost_history')
+      .select('renewal_cost')
+      .in('domain_id', ids)
+      .gte('renewal_date', yearStartStr)
+      .lte('renewal_date', yearEndStr);
+
+    const actualCost =
+      actualSelectedYear?.reduce((sum, record) => sum + (record.renewal_cost as number), 0) || 0;
+
+    const breakdown = this.buildAnnualEstimatedBreakdown(selectedYear, activeDomains, historyByDomain);
+    const costTrends = await this.calculateCostTrends(activeDomains);
+
+    const analysis: AnnualRenewalCostAnalysis = {
+      year: selectedYear,
+      total_estimated_cost: breakdown.total_estimated_cost,
+      total_actual_cost: actualCost,
+      cost_accuracy:
+        actualCost > 0
+          ? (1 - Math.abs(breakdown.total_estimated_cost - actualCost) / actualCost) * 100
+          : 0,
+      domains_needing_renewal: breakdown.domains_needing_renewal,
+      cost_by_month: {},
+      cost_by_registrar: breakdown.cost_by_registrar,
+      cost_trends: costTrends,
+    };
+
+    const sumStart = selectedYear - pastYears;
+    const sumEnd = selectedYear + futureYears;
+    const rangeStart = `${sumStart}-01-01`;
+    const rangeEnd = `${sumEnd}-12-31`;
+
+    const { data: actualsInRange } = await supabase
+      .from('renewal_cost_history')
+      .select('renewal_date, renewal_cost')
+      .in('domain_id', ids)
+      .gte('renewal_date', rangeStart)
+      .lte('renewal_date', rangeEnd);
+
+    const actualByYear = new Map<number, number>();
+    for (const row of actualsInRange || []) {
+      const y = new Date(row.renewal_date as string).getFullYear();
+      actualByYear.set(y, (actualByYear.get(y) || 0) + (row.renewal_cost as number));
+    }
+
+    const yearSummaries: RenewalYearSummary[] = [];
+    for (let y = sumStart; y <= sumEnd; y++) {
+      const b = this.buildAnnualEstimatedBreakdown(y, activeDomains, historyByDomain);
+      yearSummaries.push({
+        year: y,
+        total_estimated_cost: b.total_estimated_cost,
+        total_actual_cost: actualByYear.get(y) || 0,
+        domains_needing_renewal: b.domains_needing_renewal,
+      });
+    }
+
+    return { analysis, yearSummaries };
+  }
+
   // 获取域名的续费成本历史（通过RLS策略自动过滤）
   static async getDomainRenewalCostHistory(domainId: string): Promise<RenewalCostHistory[]> {
     const { data, error } = await supabase
@@ -142,62 +308,34 @@ export class RenewalCostService {
     const yearStart = new Date(year, 0, 1).toISOString().split('T')[0];
     const yearEnd = new Date(year, 11, 31).toISOString().split('T')[0];
 
+    const ids = activeDomains.map((d) => d.id);
+    const historyByDomain = await this.batchFetchRenewalHistories(ids);
+
     const { data: actualRenewals } = await supabase
       .from('renewal_cost_history')
-      .select('*')
+      .select('renewal_cost')
+      .in('domain_id', ids)
       .gte('renewal_date', yearStart)
       .lte('renewal_date', yearEnd);
 
-    const actualCost = actualRenewals?.reduce((sum, record) => sum + record.renewal_cost, 0) || 0;
+    const actualCost =
+      actualRenewals?.reduce((sum, record) => sum + (record.renewal_cost as number), 0) || 0;
 
-    // 计算预计续费成本
-    let estimatedCost = 0;
-    const domainsNeedingRenewal: string[] = [];
-    const costByMonth: { [month: string]: number } = {};
-    const costByRegistrar: { [registrar: string]: number } = {};
-
-    // 初始化月度分布
-    for (let month = 0; month < 12; month++) {
-      costByMonth[month.toString()] = 0;
-    }
-
-    for (const domain of activeDomains) {
-      const expiryDate = domain.expiry_date as string;
-      if (!expiryDate) continue;
-
-      const expiryDateObj = new Date(expiryDate);
-      const domainExpiryYear = expiryDateObj.getFullYear();
-
-      if (domainExpiryYear !== year) continue;
-
-      const domainName = domain.domain_name as string;
-      domainsNeedingRenewal.push(domainName);
-
-      // 预估成本：有历史则用预测值，否则用当前 renewal_cost（同步计算，避免未 await 导致返回 0）
-      const history = await this.getDomainRenewalCostHistory(domain.id);
-      const predictedCost = history.length > 0
-        ? this.predictNextRenewalCost(history)
-        : (domain.renewal_cost ?? 0);
-
-      estimatedCost += predictedCost;
-      const renewalMonth = expiryDateObj.getMonth();
-      costByMonth[renewalMonth.toString()] = (costByMonth[renewalMonth.toString()] || 0) + predictedCost;
-      const registrar = (domain.registrar as string) || 'Unknown';
-      costByRegistrar[registrar] = (costByRegistrar[registrar] || 0) + predictedCost;
-    }
-
-    // 计算成本趋势
+    const breakdown = this.buildAnnualEstimatedBreakdown(year, activeDomains, historyByDomain);
     const costTrends = await this.calculateCostTrends(activeDomains);
 
     return {
       year,
-      total_estimated_cost: estimatedCost,
+      total_estimated_cost: breakdown.total_estimated_cost,
       total_actual_cost: actualCost,
-      cost_accuracy: actualCost > 0 ? (1 - Math.abs(estimatedCost - actualCost) / actualCost) * 100 : 0,
-      domains_needing_renewal: domainsNeedingRenewal.length,
-      cost_by_month: costByMonth,
-      cost_by_registrar: costByRegistrar,
-      cost_trends: costTrends
+      cost_accuracy:
+        actualCost > 0
+          ? (1 - Math.abs(breakdown.total_estimated_cost - actualCost) / actualCost) * 100
+          : 0,
+      domains_needing_renewal: breakdown.domains_needing_renewal,
+      cost_by_month: {},
+      cost_by_registrar: breakdown.cost_by_registrar,
+      cost_trends: costTrends,
     };
   }
 

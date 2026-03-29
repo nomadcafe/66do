@@ -63,8 +63,8 @@ export function calculateAnnualRenewalCost(
     if (renewalInfo.needsRenewalThisYear) {
       domainsNeedingRenewal.push(renewalInfo);
       
-      // 按续费周期统计成本
-      const cycleKey = `${renewalInfo.renewalCycle}年`;
+      // 按续费周期统计成本（键为数字字符串，界面层按语言格式化「1年 / 1 year」）
+      const cycleKey = String(renewalInfo.renewalCycle);
       costByCycle[cycleKey] = (costByCycle[cycleKey] || 0) + renewalInfo.renewalCost;
       
       // 按月份分布（假设在到期月份续费）
@@ -272,7 +272,7 @@ export function getRenewalOptimizationSuggestions(
     const dominantPercentage = (dominantCycle[1] / totalCost) * 100;
     
     if (dominantPercentage > 70) {
-      suggestions.push(`📊 您的域名主要集中在${dominantCycle[0]}续费周期，占总成本的${dominantPercentage.toFixed(1)}%。考虑是否适合您的投资策略。`);
+      suggestions.push(`📊 您的域名主要集中在${dominantCycle[0]}年续费周期，占总成本的${dominantPercentage.toFixed(1)}%。考虑是否适合您的投资策略。`);
     } else if (dominantPercentage < 40) {
       suggestions.push(`🔄 续费周期分布较为分散，这提供了很好的灵活性，但可能增加管理复杂度。`);
     }
@@ -314,6 +314,25 @@ export function getRenewalOptimizationSuggestions(
   }
   
   return suggestions;
+}
+
+/** Annual Renewal Analysis「续费周期分布」：将 costByCycle 的数字键格式化为当前语言文案 */
+export function formatRenewalCycleDistributionLabel(
+  cycleKey: string,
+  locale: 'zh' | 'en',
+  translate: (key: string) => string
+): string {
+  let n = parseInt(cycleKey, 10);
+  if (Number.isNaN(n) && /年$/.test(cycleKey)) {
+    n = parseInt(cycleKey.replace(/年$/, '').trim(), 10);
+  }
+  if (Number.isNaN(n)) return cycleKey;
+  if (locale === 'zh') {
+    return translate('renewal.cycleCountYearsZh').replace('{n}', String(n));
+  }
+  return n === 1
+    ? translate('renewal.cycleCountYearEn').replace('{n}', String(n))
+    : translate('renewal.cycleCountYearsEn').replace('{n}', String(n));
 }
 
 // 格式化续费信息显示
