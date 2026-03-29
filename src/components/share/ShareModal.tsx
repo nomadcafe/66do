@@ -186,54 +186,50 @@ export default function ShareModal({ isOpen, onClose, shareData, domains = [], t
     if (!ctx) return;
     canvas.width = 800;
     canvas.height = 600;
-    const img = celebrationImageRef.current;
-    const useCelebrationImage = img && img.complete && img.naturalWidth > 0;
-    if (useCelebrationImage) {
-      ctx.drawImage(img, 0, 0, 800, 600);
-      ctx.fillStyle = 'rgba(10, 25, 45, 0.28)';
-      ctx.fillRect(0, 0, 800, 600);
-    } else {
-      const gradient = ctx.createLinearGradient(0, 0, 0, 600);
-      gradient.addColorStop(0, '#1e3a5f');
-      gradient.addColorStop(0.5, '#0f2744');
-      gradient.addColorStop(1, '#0a1929');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, 800, 600);
-    }
+    // Portfolio 摘要：米白色暖渐变；单域名出售仍用 domainfinancial.png（见 drawDomainSaleCanvas）
+    const gradient = ctx.createLinearGradient(0, 0, 0, 600);
+    gradient.addColorStop(0, '#faf8f5');
+    gradient.addColorStop(0.45, '#f3efe8');
+    gradient.addColorStop(1, '#e8e2d8');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 800, 600);
     const profit = Number.isFinite(data.totalProfit) ? data.totalProfit : 0;
     const roiVal = Number.isFinite(data.roi) ? data.roi : 0;
     const investment = Number.isFinite(data.totalInvestment) ? data.totalInvestment : 0;
     const bestName = data.bestDomain && data.bestDomain !== '—' ? data.bestDomain : '—';
     const bestTrunc = bestName.length > 32 ? `${bestName.slice(0, 29)}...` : bestName;
+    const ink = '#1c1917';
+    const muted = '#57534e';
+    const soft = '#78716c';
     // Title
-    ctx.fillStyle = '#fbbf24';
+    ctx.fillStyle = '#92400e';
     ctx.font = 'bold 38px Inter, Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(t('share.canvasTitle'), 400, 100);
-    // Total profit - prominent green
-    ctx.fillStyle = '#ffffff';
+    // Total profit - label + prominent green
+    ctx.fillStyle = muted;
     ctx.font = '24px Inter, Arial, sans-serif';
     ctx.fillText(t('share.totalProfit'), 400, 180);
-    ctx.fillStyle = '#22c55e';
+    ctx.fillStyle = '#15803d';
     ctx.font = 'bold 48px Inter, Arial, sans-serif';
     ctx.fillText(`$${profit.toLocaleString()}`, 400, 240);
-    // ROI - same green
-    ctx.fillStyle = '#22c55e';
+    // ROI
+    ctx.fillStyle = '#15803d';
     ctx.font = 'bold 36px Inter, Arial, sans-serif';
     ctx.fillText(`ROI: ${roiVal.toFixed(1)}%`, 400, 300);
     // Best domain
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillStyle = ink;
     ctx.font = '20px Inter, Arial, sans-serif';
     ctx.fillText(`${t('share.bestDomain')}: ${bestTrunc}`, 400, 350);
     // Total investment & period on one line
-    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.fillStyle = soft;
     ctx.font = '18px Inter, Arial, sans-serif';
     ctx.fillText(`${t('share.totalInvestment')}: $${investment.toLocaleString()}  ·  ${t('share.investmentPeriod')}: ${data.investmentPeriod}`, 400, 400);
     // Powered by
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.fillStyle = '#a8a29e';
     ctx.font = '16px Inter, Arial, sans-serif';
     ctx.fillText('powered by', 400, 520);
-    ctx.fillStyle = '#22c55e';
+    ctx.fillStyle = '#166534';
     ctx.font = 'bold 20px Inter, Arial, sans-serif';
     ctx.fillText('Domain.financial', 400, 550);
   }, [effectivePortfolioData, t]);
