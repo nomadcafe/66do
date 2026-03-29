@@ -75,12 +75,15 @@ export function useDomainStats(
         let platformFee: number | undefined = transaction.platform_fee ?? undefined;
         let netAmount: number | undefined = transaction.net_amount ?? fullAmount;
 
+        const isInstallmentSell =
+          transaction.type === 'sell' && transaction.payment_plan === 'installment';
         const hasInstallmentData =
-          transaction.installment_amount != null ||
-          transaction.downpayment_amount != null ||
-          (transaction.paid_periods != null && transaction.installment_period != null);
+          isInstallmentSell &&
+          (transaction.installment_amount != null ||
+            transaction.downpayment_amount != null ||
+            (transaction.paid_periods != null && transaction.installment_period != null));
         const isInstallmentPartialOrCancelled =
-          transaction.type === 'sell' &&
+          isInstallmentSell &&
           hasInstallmentData &&
           (transaction.installment_status === 'cancelled' ||
             ((transaction.paid_periods ?? 0) < (transaction.installment_period ?? 1)));
