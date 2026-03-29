@@ -14,8 +14,27 @@ import { validateDomain, validateTransaction } from '../lib/validation';
 import { logger } from '../lib/logger';
 
 interface LoadOptions {
-  useCache?: boolean;
   showLoading?: boolean;
+}
+
+/** 硬刷新后 Supabase 客户端可能尚未恢复 JWT，此时 RLS 会返回空列表，表现为「交易消失」 */
+async function waitForSupabaseSession(
+  userId: string,
+  maxAttempts = 40,
+  delayMs = 100
+): Promise<boolean> {
+  for (let i = 0; i < maxAttempts; i++) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (session?.user?.id === userId) {
+      // getSession() 可能读到本地缓存；getUser() 会向 Auth 校验 JWT，再查库更不容易空列表
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (!error && user?.id === userId) return true;
+    }
+    await new Promise((r) => setTimeout(r, delayMs));
+  }
+  return false;
 }
 
 interface UseDashboardDataReturn {
@@ -45,39 +64,26 @@ export function useDashboardData(
   const loadDashboardData = useCallback(async (options: LoadOptions = {}) => {
     if (!userId) return;
 
-    const { useCache = true, showLoading = true } = options;
+    const { showLoading = true } = options;
     let loadSummary = {
       domainsCount: 0,
       transactionsCount: 0,
-      dataSource: (useCache ? 'cache' : 'supabase') as 'cache' | 'supabase',
+      dataSource: 'supabase' as const,
     };
 
     try {
       if (showLoading) setLoading(true);
       setError(null);
 
-      if (useCache) {
-        const cachedDomains = domainCache.getCachedDomains(userId);
-        const cachedTransactions = domainCache.getCachedTransactions(userId);
-
-        if (cachedDomains && cachedTransactions) {
-          const typedDomains = cachedDomains.map(ensureDomainWithTags);
-          const typedTransactions = cachedTransactions.map(ensureTransactionWithRequiredFields);
-          setDomains(typedDomains);
-          setTransactions(typedTransactions);
-          setDataSource('cache');
-
-          loadSummary = {
-            domainsCount: typedDomains.length,
-            transactionsCount: typedTransactions.length,
-            dataSource: 'cache',
-          };
-          if (showLoading) setLoading(false);
-          return;
-        }
+      const sessionReady = await waitForSupabaseSession(userId);
+      if (!sessionReady) {
+        logger.error('Dashboard load: Supabase session not ready for userId', userId);
+        setError(t('common.authError') || 'Please sign in again to load your data.');
+        if (showLoading) setLoading(false);
+        return;
       }
 
-      // 始终用浏览器端 Supabase 客户端拉取（带登录 session），RLS 正常；避免用 API 拉取时服务端 setSession 不可靠导致返回空
+      // 不再走内存 cache 捷径：曾导致刷新后仍展示旧列表或 session 未就绪时空列表被当作有效数据
       logger.log('Loading data from Supabase database...');
       const [domainsResult, transactionsResult] = await Promise.all([
         loadDomainsFromSupabase(userId),
@@ -217,7 +223,7 @@ export function useDashboardData(
       if (domainsOnly) {
         domainCache.invalidateUserCache(userId);
         setDomains(newDomains);
-        await loadDashboardData({ useCache: false, showLoading: false });
+        await loadDashboardData({ showLoading: false });
         logger.log('Domains saved successfully');
         return;
       }
@@ -267,7 +273,8 @@ export function useDashboardData(
 
       setTransactions(savedTransactions.length > 0 ? savedTransactions : newTransactions);
 
-      // 不再在此处自动 re-fetch，避免 GET 因 RLS 返回空列表时覆盖当前状态；用户可手动刷新
+      // session 就绪后再拉取，避免 RLS 空列表覆盖刚保存的数据
+      await loadDashboardData({ showLoading: false });
       logger.log('Data saved to Supabase database successfully');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -312,14 +319,18 @@ export function useDashboardData(
   }, [userId, sessionToken, refreshToken, domains, transactions, loadDashboardData, t]);
 
   const refreshData = useCallback(async () => {
-    await loadDashboardData({ useCache: false, showLoading: true });
+    await loadDashboardData({ showLoading: true });
   }, [loadDashboardData]);
 
-  // Load data on mount; when sessionToken is present always bypass cache so we use API (same auth as save)
   useEffect(() => {
-    if (!userId) return;
-    loadDashboardData({ useCache: !sessionToken, showLoading: true });
-  }, [loadDashboardData, userId, sessionToken]);
+    if (!userId) {
+      setLoading(false);
+      setDomains([]);
+      setTransactions([]);
+      return;
+    }
+    loadDashboardData({ showLoading: true });
+  }, [loadDashboardData, userId]);
 
   return {
     domains,

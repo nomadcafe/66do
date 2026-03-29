@@ -61,7 +61,21 @@ const nextConfig: NextConfig = {
   async headers() {
     const isProduction = process.env.NODE_ENV === 'production'
     
+    const noStoreDocument = 'private, no-store, no-cache, must-revalidate, max-age=0';
+
     return [
+      {
+        source: '/',
+        headers: [{ key: 'Cache-Control', value: noStoreDocument }],
+      },
+      {
+        source: '/dashboard',
+        headers: [{ key: 'Cache-Control', value: noStoreDocument }],
+      },
+      {
+        source: '/dashboard/:path*',
+        headers: [{ key: 'Cache-Control', value: noStoreDocument }],
+      },
       {
         source: '/(.*)',
         headers: [
