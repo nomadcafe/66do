@@ -593,7 +593,23 @@ const translations: Record<Locale, Translations> = {
       platform: '平台',
       notes: '备注',
       actions: '操作',
-      unknownDomain: '未知域名'
+      unknownDomain: '未知域名',
+      viewList: '交易列表',
+      viewTimeline: '域名时间线'
+    },
+    timeline: {
+      subtitle: '按时间顺序查看购入、续费与出售',
+      selectDomain: '选择域名',
+      purchase: '购入',
+      renew: '续费',
+      sell: '出售',
+      other: '其他',
+      openTransaction: '点击编辑此交易',
+      noEvents: '该域名暂无可用记录，可添加购入、续费或出售交易',
+      virtualPurchaseHint: '来自域名档案的购入日与成本（未单独记购入交易时）',
+      noDomains: '请先添加域名',
+      noDomainMatch: '没有匹配的域名，请调整搜索',
+      searchHint: '使用上方搜索框按域名名称筛选列表'
     },
     analytics: {
       title: '投资分析',
@@ -1617,7 +1633,23 @@ const translations: Record<Locale, Translations> = {
       platform: 'Platform',
       notes: 'Notes',
       actions: 'Actions',
-      unknownDomain: 'Unknown Domain'
+      unknownDomain: 'Unknown Domain',
+      viewList: 'Transaction list',
+      viewTimeline: 'Domain timeline'
+    },
+    timeline: {
+      subtitle: 'Purchase, renewals, and sales in chronological order',
+      selectDomain: 'Select a domain',
+      purchase: 'Purchase',
+      renew: 'Renewal',
+      sell: 'Sale',
+      other: 'Other',
+      openTransaction: 'Click to edit this transaction',
+      noEvents: 'No timeline entries yet — add purchase, renewal, or sale transactions',
+      virtualPurchaseHint: 'From domain profile (purchase date & cost) when no separate purchase transaction exists',
+      noDomains: 'Add a domain to get started',
+      noDomainMatch: 'No domains match your search',
+      searchHint: 'Use the search box above to filter domains in the list'
     },
     analytics: {
       title: 'Investment Analytics',
