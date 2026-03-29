@@ -19,7 +19,7 @@ import { isMobile } from '../../src/lib/utils';
 import ShareModal from '../../src/components/share/ShareModal';
 import SaleSuccessModal from '../../src/components/share/SaleSuccessModal';
 import RenewalModal from '../../src/components/domain/RenewalModal';
-import { calculateAnnualRenewalCost } from '../../src/lib/renewalCalculations';
+import { calculateAnnualRenewalCost, formatRenewalCycleDistributionLabel } from '../../src/lib/renewalCalculations';
 // import { domainExpiryManager } from '../../src/lib/domainExpiryManager';
 import { calculateEnhancedFinancialMetrics, formatCurrency as formatCurrencyEnhanced } from '../../src/lib/enhancedFinancialMetrics';
 // 懒加载组件
@@ -795,7 +795,9 @@ export default function DashboardPage() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {Object.entries(renewalAnalysis.costByCycle).map(([cycle, cost]) => (
                       <div key={cycle} className="bg-stone-50 rounded-lg p-3">
-                        <p className="text-xs text-stone-500">{cycle}</p>
+                        <p className="text-xs text-stone-500">
+                          {formatRenewalCycleDistributionLabel(cycle, locale, t)}
+                        </p>
                         <p className="text-base font-semibold text-stone-900">{formatCurrencyEnhanced(cost, 'USD')}</p>
                       </div>
                     ))}
