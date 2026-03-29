@@ -115,12 +115,16 @@ export default function DashboardPage() {
         let amountUSD = fullAmount;
         let platformFee: number | undefined = transaction.platform_fee ?? undefined;
         let netAmount: number | undefined = transaction.net_amount ?? fullAmount;
+        // 仅真实「分期」出售才按已收款比例折算；lump_sum 时表单仍带 installment_amount=0 等字段，若误判会导致销售额/收入在指标里恒为 0
+        const isInstallmentSell =
+          transaction.type === 'sell' && transaction.payment_plan === 'installment';
         const hasInstallmentData =
-          transaction.installment_amount != null ||
-          transaction.downpayment_amount != null ||
-          (transaction.paid_periods != null && transaction.installment_period != null);
+          isInstallmentSell &&
+          (transaction.installment_amount != null ||
+            transaction.downpayment_amount != null ||
+            (transaction.paid_periods != null && transaction.installment_period != null));
         const isInstallmentPartialOrCancelled =
-          transaction.type === 'sell' &&
+          isInstallmentSell &&
           hasInstallmentData &&
           (transaction.installment_status === 'cancelled' ||
             ((transaction.paid_periods ?? 0) < (transaction.installment_period ?? 1)));
