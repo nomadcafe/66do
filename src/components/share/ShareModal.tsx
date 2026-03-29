@@ -186,13 +186,20 @@ export default function ShareModal({ isOpen, onClose, shareData, domains = [], t
     if (!ctx) return;
     canvas.width = 800;
     canvas.height = 600;
-    // Dark blue background (reference: domainfinancial.png)
-    const gradient = ctx.createLinearGradient(0, 0, 0, 600);
-    gradient.addColorStop(0, '#1e3a5f');
-    gradient.addColorStop(0.5, '#0f2744');
-    gradient.addColorStop(1, '#0a1929');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 800, 600);
+    const img = celebrationImageRef.current;
+    const useCelebrationImage = img && img.complete && img.naturalWidth > 0;
+    if (useCelebrationImage) {
+      ctx.drawImage(img, 0, 0, 800, 600);
+      ctx.fillStyle = 'rgba(10, 25, 45, 0.28)';
+      ctx.fillRect(0, 0, 800, 600);
+    } else {
+      const gradient = ctx.createLinearGradient(0, 0, 0, 600);
+      gradient.addColorStop(0, '#1e3a5f');
+      gradient.addColorStop(0.5, '#0f2744');
+      gradient.addColorStop(1, '#0a1929');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 800, 600);
+    }
     const profit = Number.isFinite(data.totalProfit) ? data.totalProfit : 0;
     const roiVal = Number.isFinite(data.roi) ? data.roi : 0;
     const investment = Number.isFinite(data.totalInvestment) ? data.totalInvestment : 0;
