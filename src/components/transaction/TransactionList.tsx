@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useMemo, memo, useCallback } from 'react';
-import { Search, Filter, Plus, Edit, Trash2, DollarSign, Calendar, FileText, TrendingUp, TrendingDown } from 'lucide-react';
+import { Search, Filter, Plus, Edit, Trash2, DollarSign, Calendar, FileText, TrendingUp, TrendingDown, LayoutList, GitBranch } from 'lucide-react';
 import { calculateDomainROI, getROIColor, getROIBgColor, formatPercentage } from '../../lib/enhancedFinancialMetrics';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
+import DomainTimelineView from './DomainTimelineView';
 // import { Domain, Transaction } from '../../lib/supabaseService';
 
 // 计算持有时间
@@ -76,6 +77,7 @@ const TransactionList = memo(function TransactionList({
   const { t } = useI18nContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list');
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -161,13 +163,41 @@ const TransactionList = memo(function TransactionList({
           <h2 className="text-xl font-semibold text-stone-900">{t('transactionList.title')}</h2>
           <p className="text-sm text-stone-500 mt-0.5">{t('transactionList.subtitle')}</p>
         </div>
-        <button
-          onClick={onAdd}
-          className="inline-flex items-center px-4 py-2.5 bg-teal-600 text-white rounded-xl text-sm font-medium hover:bg-teal-700 transition"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          {t('transactionList.addTransaction')}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex rounded-xl border border-stone-200 bg-stone-50/80 p-0.5">
+            <button
+              type="button"
+              onClick={() => setViewMode('list')}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition ${
+                viewMode === 'list'
+                  ? 'bg-white text-stone-900 shadow-sm'
+                  : 'text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              <LayoutList className="h-4 w-4" />
+              {t('transactionList.viewList')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('timeline')}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition ${
+                viewMode === 'timeline'
+                  ? 'bg-white text-stone-900 shadow-sm'
+                  : 'text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              <GitBranch className="h-4 w-4" />
+              {t('transactionList.viewTimeline')}
+            </button>
+          </div>
+          <button
+            onClick={onAdd}
+            className="inline-flex items-center px-4 py-2.5 bg-teal-600 text-white rounded-xl text-sm font-medium hover:bg-teal-700 transition"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            {t('transactionList.addTransaction')}
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -184,28 +214,43 @@ const TransactionList = memo(function TransactionList({
             />
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Filter className="h-4 w-4 text-stone-400" />
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            aria-label={t('transactionList.allTypes')}
-            className="px-3 py-2.5 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-          >
-            {typeOptions.map(option => (
-              <option key={option.value} value={option.value}>
-                {t(option.labelKey)}
-              </option>
-            ))}
-          </select>
-        </div>
+        {viewMode === 'list' && (
+          <div className="flex items-center gap-3">
+            <Filter className="h-4 w-4 text-stone-400" />
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              aria-label={t('transactionList.allTypes')}
+              className="px-3 py-2.5 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+            >
+              {typeOptions.map(option => (
+                <option key={option.value} value={option.value}>
+                  {t(option.labelKey)}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
-      <p className="text-sm text-stone-500">
-        {t('transactionList.showingCount').replace('{filtered}', String(filteredTransactions.length)).replace('{total}', String(transactions.length))}
-      </p>
+      {viewMode === 'timeline' && (
+        <p className="text-sm text-stone-500">{t('timeline.searchHint')}</p>
+      )}
 
-      {filteredTransactions.length === 0 ? (
+      {viewMode === 'list' && (
+        <p className="text-sm text-stone-500">
+          {t('transactionList.showingCount').replace('{filtered}', String(filteredTransactions.length)).replace('{total}', String(transactions.length))}
+        </p>
+      )}
+
+      {viewMode === 'timeline' ? (
+        <DomainTimelineView
+          domains={domains}
+          transactions={transactions}
+          onEditTransaction={onEdit}
+          domainSearch={searchTerm}
+        />
+      ) : filteredTransactions.length === 0 ? (
         <div className="text-center py-14 bg-white rounded-2xl border border-stone-200/80 shadow-sm">
           <FileText className="h-10 w-10 mx-auto text-stone-300 mb-4" />
           <h3 className="text-base font-semibold text-stone-900 mb-2">
