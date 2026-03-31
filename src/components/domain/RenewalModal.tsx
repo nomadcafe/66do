@@ -12,6 +12,8 @@ export interface RenewalSubmission {
   registrar: string | null;
   notes: string | null;
   updateRenewalCost: boolean;
+  createTransferTransaction: boolean;
+  transferFee: number;
 }
 
 interface RenewalModalProps {
@@ -29,6 +31,8 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
   const [registrar, setRegistrar] = useState<string>(domain.registrar || '');
   const [notes, setNotes] = useState<string>('');
   const [updateRenewalCost, setUpdateRenewalCost] = useState<boolean>(true);
+  const [createTransferTransaction, setCreateTransferTransaction] = useState<boolean>(false);
+  const [transferFee, setTransferFee] = useState<number>(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,8 +45,15 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
     setRegistrar(domain.registrar || '');
     setNotes('');
     setUpdateRenewalCost(true);
+    setCreateTransferTransaction(false);
+    setTransferFee(0);
     setError(null);
   }, [isOpen, domain]);
+
+  const unitRenewalCost = useMemo(() => {
+    if (!renewalYears || renewalYears < 1) return 0;
+    return amount / renewalYears;
+  }, [amount, renewalYears]);
 
   if (!isOpen) return null;
 
@@ -68,10 +79,6 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
   
   const renewalCost = amount;
   const newRenewalCount = (domain.renewal_count || 0) + 1;
-  const unitRenewalCost = useMemo(() => {
-    if (!renewalYears || renewalYears < 1) return 0;
-    return renewalCost / renewalYears;
-  }, [renewalCost, renewalYears]);
 
   const handleRenew = async () => {
     if (!renewalYears || renewalYears < 1) {
@@ -86,6 +93,21 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
       setError('Renewal date is required');
       return;
     }
+    if (createTransferTransaction) {
+      const toRegistrar = registrar.trim();
+      if (!toRegistrar) {
+        setError('Please enter new registrar when transfer is enabled');
+        return;
+      }
+      if ((domain.registrar || '').trim().toLowerCase() === toRegistrar.toLowerCase()) {
+        setError('New registrar must be different from current registrar');
+        return;
+      }
+      if (transferFee < 0) {
+        setError('Transfer fee cannot be negative');
+        return;
+      }
+    }
 
     setIsProcessing(true);
     setError(null);
@@ -98,6 +120,8 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
         registrar: registrar.trim() ? registrar.trim() : null,
         notes: notes.trim() ? notes.trim() : null,
         updateRenewalCost,
+        createTransferTransaction,
+        transferFee,
       });
       onClose();
     } catch (err) {
@@ -222,7 +246,9 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Registrar (optional)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {createTransferTransaction ? 'New registrar' : 'Registrar (optional)'}
+              </label>
               <input
                 type="text"
                 value={registrar}
@@ -244,6 +270,32 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
                 Update current renewal cost to {unitRenewalCost.toFixed(2)} / year
               </label>
             </div>
+            <div className="md:col-span-2">
+              <label className="inline-flex items-center gap-2 text-sm text-gray-700 mb-2">
+                <input
+                  type="checkbox"
+                  checked={createTransferTransaction}
+                  onChange={(e) => setCreateTransferTransaction(e.target.checked)}
+                  disabled={isProcessing}
+                  className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                />
+                Create transfer transaction and update registrar
+              </label>
+            </div>
+            {createTransferTransaction && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Transfer fee (USD)</label>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={Number.isFinite(transferFee) ? transferFee : 0}
+                  onChange={(e) => setTransferFee(parseFloat(e.target.value) || 0)}
+                  disabled={isProcessing}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+            )}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">Notes (optional)</label>
               <textarea

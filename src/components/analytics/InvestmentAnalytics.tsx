@@ -698,6 +698,28 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     };
   }, [filteredData.domains]);
 
+  // 按当前持有域名统计注册商分布（active + for_sale）
+  const registrarAnalysis = useMemo(() => {
+    const heldDomains = filteredData.domains.filter(
+      (d) => d.status === 'active' || d.status === 'for_sale'
+    );
+    const registrarCount: { [key: string]: number } = {};
+    heldDomains.forEach((domain) => {
+      const registrar = (domain.registrar || '').trim() || t('analytics.unknownRegistrar');
+      registrarCount[registrar] = (registrarCount[registrar] || 0) + 1;
+    });
+
+    const data = Object.entries(registrarCount)
+      .map(([name, value]) => ({
+        name,
+        value,
+        percentage: heldDomains.length > 0 ? (value / heldDomains.length) * 100 : 0,
+      }))
+      .sort((a, b) => b.value - a.value);
+
+    return { data, totalHeld: heldDomains.length };
+  }, [filteredData.domains, t]);
+
   const renderTrendsAnalysis = () => (
     <div className="space-y-6">
       <div className="bg-white p-6 rounded-lg shadow-sm border">
@@ -891,6 +913,38 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
             </ResponsiveContainer>
           );
         })()}
+      </div>
+
+      <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">{t('analytics.registrarDistribution')}</h3>
+          <span className="text-xs text-stone-500">
+            {t('analytics.domainsCount')}: {registrarAnalysis.totalHeld}
+          </span>
+        </div>
+        {registrarAnalysis.data.length > 0 ? (
+          <div className="space-y-2">
+            {registrarAnalysis.data.slice(0, 12).map((item, index) => (
+              <div key={`${item.name}-${index}`} className="flex items-center justify-between p-3 bg-stone-50 rounded-lg">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-stone-900 truncate">{item.name}</p>
+                  <div className="mt-1 h-2 bg-stone-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-teal-500 rounded-full" style={{ width: `${item.percentage}%` }} />
+                  </div>
+                </div>
+                <div className="ml-3 text-right shrink-0">
+                  <p className="text-sm font-semibold text-stone-800">{item.value}{t('analytics.countUnit')}</p>
+                  <p className="text-xs text-stone-500">{item.percentage.toFixed(1)}%</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            <Globe className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+            <p>{t('analytics.noRegistrarData')}</p>
+          </div>
+        )}
       </div>
     </div>
   );
