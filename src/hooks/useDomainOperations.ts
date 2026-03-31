@@ -123,13 +123,41 @@ export function useDomainOperations(
       updated_at: new Date().toISOString()
     };
 
+    let transferTransaction: TransactionWithRequiredFields | null = null;
+    if (input.createTransferTransaction && input.registrar) {
+      const baseNotes = `Registrar transfer: ${domain.registrar || 'Unknown'} -> ${input.registrar}`;
+      transferTransaction = {
+        id: crypto.randomUUID(),
+        domain_id: domain.id,
+        type: 'transfer',
+        amount: input.transferFee || 0,
+        currency: 'USD',
+        exchange_rate: 1,
+        base_amount: input.transferFee || 0,
+        platform_fee: undefined,
+        platform_fee_percentage: undefined,
+        net_amount: input.transferFee || 0,
+        category: 'transfer',
+        tax_deductible: false,
+        receipt_url: undefined,
+        notes: input.notes ? `${baseNotes}; ${input.notes}` : baseNotes,
+        date: input.date,
+        platform: input.registrar,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+    }
+
     // 更新域名列表
     const updatedDomains = domains.map(d =>
       d.id === domain.id ? renewedDomain : d
     );
 
     // 保存数据（追加新交易，不覆盖现有交易）
-    await onSave(updatedDomains, [...transactions, renewalTransaction]);
+    const nextTransactions = transferTransaction
+      ? [...transactions, renewalTransaction, transferTransaction]
+      : [...transactions, renewalTransaction];
+    await onSave(updatedDomains, nextTransactions);
 
     return {
       updatedDomain: renewedDomain,
