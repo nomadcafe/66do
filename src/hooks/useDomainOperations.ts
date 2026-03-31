@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { DomainWithTags, TransactionWithRequiredFields } from '../types/dashboard';
 import { DomainExpiryManager } from '../lib/domainExpiryManager';
 import { Domain } from '../types/domain';
+import type { RenewalSubmission } from '../components/domain/RenewalModal';
 
 interface UseDomainOperationsReturn {
   editingDomain: DomainWithTags | undefined;
@@ -18,7 +19,7 @@ interface UseDomainOperationsReturn {
   handleEditDomain: (domain: DomainWithTags) => void;
   handleRenewDomain: (domain: DomainWithTags) => void;
   handleDeleteDomain: (id: string) => Promise<void>;
-  processRenewal: (domain: DomainWithTags, renewalYears: number) => Promise<{
+  processRenewal: (domain: DomainWithTags, input: RenewalSubmission) => Promise<{
     updatedDomain: DomainWithTags;
     newTransaction: TransactionWithRequiredFields;
   }>;
@@ -26,6 +27,7 @@ interface UseDomainOperationsReturn {
 
 export function useDomainOperations(
   domains: DomainWithTags[],
+  transactions: TransactionWithRequiredFields[],
   onSave: (domains: DomainWithTags[], transactions: TransactionWithRequiredFields[]) => Promise<void>,
   onDelete: (id: string) => Promise<void>
 ): UseDomainOperationsReturn {
@@ -56,8 +58,9 @@ export function useDomainOperations(
 
   const processRenewal = useCallback(async (
     domain: DomainWithTags,
-    renewalYears: number
+    input: RenewalSubmission
   ): Promise<{ updatedDomain: DomainWithTags; newTransaction: TransactionWithRequiredFields }> => {
+    const renewalYears = input.renewalYears;
     // 将DomainWithTags转换为Domain类型（来自types/domain.ts）以使用DomainExpiryManager
     const domainForRenewal: Domain = {
       id: domain.id,
@@ -89,6 +92,8 @@ export function useDomainOperations(
     // 更新域名数据
     const renewedDomain: DomainWithTags = {
       ...domain,
+      registrar: input.registrar || domain.registrar,
+      renewal_cost: input.updateRenewalCost ? (input.amount / renewalYears) : domain.renewal_cost,
       renewal_count: renewedDomainResult.renewal_count,
       expiry_date: renewedDomainResult.expiry_date ?? null,
       next_renewal_date: renewedDomainResult.next_renewal_date ?? null,
@@ -96,7 +101,7 @@ export function useDomainOperations(
     };
 
     // 创建续费交易记录
-    const renewalCost = (domain.renewal_cost || 0) * renewalYears;
+    const renewalCost = input.amount;
     const renewalTransaction: TransactionWithRequiredFields = {
       id: crypto.randomUUID(),
       domain_id: domain.id,
@@ -111,9 +116,9 @@ export function useDomainOperations(
       category: 'renewal',
       tax_deductible: false,
       receipt_url: undefined,
-      notes: `Renewed for ${renewalYears} year(s)`,
-      date: new Date().toISOString().split('T')[0],
-      platform: domain.registrar || undefined,
+      notes: input.notes || `Renewed for ${renewalYears} year(s)`,
+      date: input.date,
+      platform: input.registrar || domain.registrar || undefined,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
@@ -123,14 +128,14 @@ export function useDomainOperations(
       d.id === domain.id ? renewedDomain : d
     );
 
-    // 保存数据
-    await onSave(updatedDomains, [renewalTransaction]);
+    // 保存数据（追加新交易，不覆盖现有交易）
+    await onSave(updatedDomains, [...transactions, renewalTransaction]);
 
     return {
       updatedDomain: renewedDomain,
       newTransaction: renewalTransaction as TransactionWithRequiredFields
     };
-  }, [domains, onSave]);
+  }, [domains, transactions, onSave]);
 
   return {
     editingDomain,

@@ -1,29 +1,55 @@
 'use client';
 
-import { useState } from 'react';
-import { X, Calendar, DollarSign, AlertCircle, CheckCircle } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { X, Calendar, AlertCircle, CheckCircle } from 'lucide-react';
 import { DomainWithTags } from '../../types/dashboard';
 import { useI18nContext } from '../../contexts/I18nProvider';
+
+export interface RenewalSubmission {
+  renewalYears: number;
+  amount: number;
+  date: string;
+  registrar: string | null;
+  notes: string | null;
+  updateRenewalCost: boolean;
+}
 
 interface RenewalModalProps {
   isOpen: boolean;
   onClose: () => void;
   domain: DomainWithTags;
-  onRenew: (domain: DomainWithTags, renewalYears: number) => Promise<void>;
+  onRenew: (domain: DomainWithTags, input: RenewalSubmission) => Promise<void>;
 }
 
 export default function RenewalModal({ isOpen, onClose, domain, onRenew }: RenewalModalProps) {
   const { t } = useI18nContext();
   const [renewalYears, setRenewalYears] = useState<number>(domain.renewal_cycle || 1);
+  const [amount, setAmount] = useState<number>((domain.renewal_cost || 0) * (domain.renewal_cycle || 1));
+  const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [registrar, setRegistrar] = useState<string>(domain.registrar || '');
+  const [notes, setNotes] = useState<string>('');
+  const [updateRenewalCost, setUpdateRenewalCost] = useState<boolean>(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const years = domain.renewal_cycle || 1;
+    setRenewalYears(years);
+    setAmount((domain.renewal_cost || 0) * years);
+    setDate(new Date().toISOString().split('T')[0]);
+    setRegistrar(domain.registrar || '');
+    setNotes('');
+    setUpdateRenewalCost(true);
+    setError(null);
+  }, [isOpen, domain]);
 
   if (!isOpen) return null;
 
   // 直接计算续费后的信息，避免类型转换问题
   const renewalCycle = renewalYears || domain.renewal_cycle || 1;
   const currentExpiryDate = domain.expiry_date ? new Date(domain.expiry_date) : null;
-  
+
   // 计算新的到期日期
   let newExpiryDate: Date;
   if (domain.expiry_date) {
@@ -40,12 +66,24 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
     newExpiryDate.setFullYear(newExpiryDate.getFullYear() + renewalCycle);
   }
   
-  const renewalCost = (domain.renewal_cost || 0) * renewalYears;
+  const renewalCost = amount;
   const newRenewalCount = (domain.renewal_count || 0) + 1;
+  const unitRenewalCost = useMemo(() => {
+    if (!renewalYears || renewalYears < 1) return 0;
+    return renewalCost / renewalYears;
+  }, [renewalCost, renewalYears]);
 
   const handleRenew = async () => {
     if (!renewalYears || renewalYears < 1) {
       setError(t('renewal.invalidYears') || 'Please select valid renewal years');
+      return;
+    }
+    if (!amount || amount <= 0) {
+      setError('Renewal amount must be greater than 0');
+      return;
+    }
+    if (!date) {
+      setError('Renewal date is required');
       return;
     }
 
@@ -53,7 +91,14 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
     setError(null);
 
     try {
-      await onRenew(domain, renewalYears);
+      await onRenew(domain, {
+        renewalYears,
+        amount,
+        date,
+        registrar: registrar.trim() ? registrar.trim() : null,
+        notes: notes.trim() ? notes.trim() : null,
+        updateRenewalCost,
+      });
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : t('renewal.renewalFailed') || 'Renewal failed');
@@ -64,7 +109,7 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
+      <div className="bg-white rounded-xl shadow-2xl max-w-xl w-full mx-4 transform transition-all">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center space-x-3">
@@ -106,7 +151,7 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
                 {t('renewal.currentExpiry') || 'Current Expiry Date'}
               </span>
               <span className="text-sm font-semibold text-gray-900">
-                {currentExpiryDate 
+                {currentExpiryDate
                   ? currentExpiryDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
                   : t('renewal.noExpiryDate') || 'Not set'}
               </span>
@@ -152,6 +197,66 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
             </div>
           </div>
 
+          {/* Unified renewal input */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Renewal date</label>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                disabled={isProcessing}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Total renewal amount (USD)</label>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={Number.isFinite(amount) ? amount : 0}
+                onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
+                disabled={isProcessing}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Registrar (optional)</label>
+              <input
+                type="text"
+                value={registrar}
+                onChange={(e) => setRegistrar(e.target.value)}
+                disabled={isProcessing}
+                placeholder="e.g. Namecheap"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+            <div className="flex items-center mt-7">
+              <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={updateRenewalCost}
+                  onChange={(e) => setUpdateRenewalCost(e.target.checked)}
+                  disabled={isProcessing}
+                  className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                />
+                Update current renewal cost to {unitRenewalCost.toFixed(2)} / year
+              </label>
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Notes (optional)</label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                disabled={isProcessing}
+                rows={2}
+                placeholder="e.g. Transfer promo renewal"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+          </div>
+
           {/* Renewal Preview */}
           {newExpiryDate && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
@@ -173,10 +278,7 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
                 <span className="text-sm font-medium text-green-700">
                   {t('renewal.renewalCost') || 'Renewal Cost'}
                 </span>
-                <span className="text-sm font-semibold text-green-900 flex items-center space-x-1">
-                  <DollarSign className="h-4 w-4" />
-                  <span>{renewalCost.toFixed(2)}</span>
-                </span>
+                <span className="text-sm font-semibold text-green-900">${renewalCost.toFixed(2)}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-green-700">
