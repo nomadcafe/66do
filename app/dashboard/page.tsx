@@ -179,6 +179,7 @@ export default function DashboardPage() {
 
   const domainOps = useDomainOperations(
     domains,
+    transactions,
     saveData,
     handleDeleteDomain
   );
@@ -1219,8 +1220,8 @@ export default function DashboardPage() {
             domainOps.setRenewalDomain(null);
           }}
           domain={domainOps.renewalDomain}
-          onRenew={async (domain, renewalYears) => {
-            await domainOps.processRenewal(domain, renewalYears);
+          onRenew={async (domain, input) => {
+            await domainOps.processRenewal(domain, input);
           }}
         />
       )}
