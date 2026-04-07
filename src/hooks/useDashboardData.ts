@@ -268,6 +268,19 @@ export function useDashboardData(
             body: JSON.stringify(transactionPayload)
           });
           if (!response.ok) {
+            // 交易在本地存在但远端缺失（例如历史保存中断）时，回退为创建，避免持续 404/403 卡死。
+            if (response.status === 404 || response.status === 403) {
+              const payload = buildTransactionInsertPayload(
+                transactionPayload as Record<string, unknown>,
+                userId
+              );
+              const { data: created, error: insertError } = await TransactionService.createTransactionWithClient(supabase, payload);
+              if (insertError || !created) {
+                throw new Error(insertError || 'Failed to add transaction');
+              }
+              savedTransactions.push(ensureTransactionWithRequiredFields(created));
+              continue;
+            }
             const errorData = await response.json().catch(() => ({}));
             const details = errorData.details
               ? (Array.isArray(errorData.details)
