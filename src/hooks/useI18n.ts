@@ -708,7 +708,7 @@ const translations: Record<Locale, Translations> = {
       monthlyReturn: '月度收益',
       yearlyRenewalProfit: {
         title: '年度续费与售出对比',
-        desc: '按自然年汇总当前时间范围内的交易：续费支出、购入与其他费用、售出净收入。净现金流 = 售出净收入 − 续费 − 购入与费用。「续费/售出」为续费占该年售出净收入的比例；「续费占支出」为续费占当年全部流出的比例。',
+        desc: '按自然年汇总当前时间范围内的交易；若未记购入/续费交易，则用域名档案补充：购入年计入 purchase_cost，续费按 renewal_count、renewal_cost、renewal_cycle 从购入日起推算到出售年（或今年），且不与已有 renew 交易重复。售出仍以 sell 交易为准。净现金流 = 售出净收入 − 续费 − 购入与费用。',
         year: '年份',
         renewal: '续费支出',
         otherOutflow: '购入与费用',
@@ -1790,7 +1790,7 @@ const translations: Record<Locale, Translations> = {
       monthlyReturn: 'Monthly Return',
       yearlyRenewalProfit: {
         title: 'Annual renewal vs. sales',
-        desc: 'Calendar-year totals within the selected range: renewal spend, purchases & fees, and net sale proceeds. Net cash flow = net sales − renewals − purchases & fees. “Renewal / sales” is renewals as a share of net sales; “Renewal share of outflows” is renewals as a share of total outflows.',
+        desc: 'Calendar-year totals from transactions in the selected range. If you did not log buy/renewal transactions, values are filled from domain records: purchase_cost in the purchase year; renewals inferred from renewal_count, renewal_cost, and renewal_cycle from purchase through sale year (or current year), without duplicating years that already have renew transactions. Sales use sell transactions only. Net cash flow = net sales − renewals − purchases & fees.',
         year: 'Year',
         renewal: 'Renewal spend',
         otherOutflow: 'Purchases & fees',

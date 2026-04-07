@@ -311,22 +311,47 @@ const OUTFLOW_TYPES: TransactionWithRequiredFields['type'][] = [
   'advertising',
 ];
 
+function txCalendarYear(t: TransactionWithRequiredFields): number {
+  const y = new Date(t.date).getFullYear();
+  return Number.isFinite(y) ? y : NaN;
+}
+
+function calendarYearFromIso(dateStr: string | null | undefined, fallback: number): number {
+  if (dateStr == null || dateStr === '') return fallback;
+  const y = new Date(dateStr).getFullYear();
+  return Number.isFinite(y) ? y : fallback;
+}
+
+/**
+ * 按自然年汇总续费、购入类流出与售出净收入。
+ * - 优先使用交易记录（renew / buy / sell 等）。
+ * - 若某域名在购入年无任何 buy 交易，则将档案中的 purchase_cost 计入该年「购入与费用」。
+ * - 若某次续费年份无 renew 交易，则按 renewal_count、renewal_cost、renewal_cycle 从购入日起推算并计入续费（避免与已有 renew 同年重复）。
+ */
 export function calculateYearlyRenewalVsProfit(
-  transactions: TransactionWithRequiredFields[]
+  transactions: TransactionWithRequiredFields[],
+  domains: DomainWithTags[],
+  referenceDate: Date = new Date()
 ): YearlyRenewalProfitRow[] {
+  const refYear = referenceDate.getFullYear();
+
   const byYear = new Map<
     number,
     { renewalSpend: number; otherOutflow: number; saleNet: number }
   >();
 
-  for (const t of transactions) {
-    const y = new Date(t.date).getFullYear();
-    if (!Number.isFinite(y)) continue;
-
+  const ensureYear = (y: number) => {
     if (!byYear.has(y)) {
       byYear.set(y, { renewalSpend: 0, otherOutflow: 0, saleNet: 0 });
     }
-    const row = byYear.get(y)!;
+    return byYear.get(y)!;
+  };
+
+  for (const t of transactions) {
+    const y = txCalendarYear(t);
+    if (!Number.isFinite(y)) continue;
+
+    const row = ensureYear(y);
     const amt = amountUSD(t);
 
     if (t.type === 'sell') {
@@ -335,6 +360,49 @@ export function calculateYearlyRenewalVsProfit(
       row.renewalSpend += amt;
     } else if (OUTFLOW_TYPES.includes(t.type)) {
       row.otherOutflow += amt;
+    }
+  }
+
+  const renewByDomainYear = new Set<string>();
+  for (const t of transactions) {
+    if (t.type !== 'renew') continue;
+    const y = txCalendarYear(t);
+    if (!Number.isFinite(y)) continue;
+    renewByDomainYear.add(`${t.domain_id}-${y}`);
+  }
+
+  for (const d of domains) {
+    const purchaseY = calendarYearFromIso(d.purchase_date, refYear);
+    if (!Number.isFinite(purchaseY)) continue;
+
+    let endY = refYear;
+    if (d.status === 'sold' && d.sale_date) {
+      endY = calendarYearFromIso(d.sale_date, refYear);
+    }
+
+    const buyInPurchaseYear = transactions
+      .filter(
+        (t) =>
+          t.domain_id === d.id &&
+          t.type === 'buy' &&
+          txCalendarYear(t) === purchaseY
+      )
+      .reduce((sum, t) => sum + amountUSD(t), 0);
+
+    if (buyInPurchaseYear === 0 && (d.purchase_cost || 0) > 0) {
+      ensureYear(purchaseY).otherOutflow += d.purchase_cost || 0;
+    }
+
+    const unitRenew = d.renewal_cost || 0;
+    const nRenewals = Math.max(0, d.renewal_count ?? 0);
+    const cycleYears = Math.max(1, Math.floor(d.renewal_cycle || 1));
+
+    let y = purchaseY;
+    for (let i = 0; i < nRenewals; i++) {
+      y += cycleYears;
+      if (y > endY) break;
+      if (renewByDomainYear.has(`${d.id}-${y}`)) continue;
+      ensureYear(y).renewalSpend += unitRenew;
     }
   }
 
