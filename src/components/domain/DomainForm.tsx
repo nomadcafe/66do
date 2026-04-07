@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Save, Globe, Calendar, DollarSign, Tag, Loader2 } from 'lucide-react';
 import { validateDomain, sanitizeDomainData } from '../../lib/validation';
+import { localCalendarDateISO } from '../../lib/localCalendarDate';
 import { DomainWithTags } from '../../types/dashboard';
 import DateInput from '../ui/DateInput';
 import { useI18nContext } from '../../contexts/I18nProvider';
@@ -99,7 +100,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
         renewal_cost: 0,
         renewal_cycle: 1,
         renewal_count: 0,
-        baseline_renewal_as_of: '',
+        baseline_renewal_as_of: localCalendarDateISO(),
         next_renewal_date: '',
         expiry_date: '',
         status: 'active' as 'active' | 'for_sale' | 'sold' | 'expired',

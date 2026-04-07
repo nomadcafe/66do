@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Domain } from '../../types/domain';
 import { DomainWithTags } from '../../types/dashboard';
 import { domainExpiryManager } from '../../lib/domainExpiryManager';
+import { localCalendarDateISO } from '../../lib/localCalendarDate';
 // import { useI18nContext } from '../../contexts/I18nProvider';
 import { Calendar, AlertCircle, Info } from 'lucide-react';
 import DateInput from '../ui/DateInput';
@@ -26,7 +27,7 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
     renewal_cost: 0,
     renewal_cycle: 1,
     renewal_count: 0,
-    baseline_renewal_as_of: null,
+    baseline_renewal_as_of: localCalendarDateISO(),
     next_renewal_date: '',
     expiry_date: '',
     status: 'active',
@@ -58,7 +59,7 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
         renewal_cost: 0,
         renewal_cycle: 1,
         renewal_count: 0,
-        baseline_renewal_as_of: null,
+        baseline_renewal_as_of: localCalendarDateISO(),
         next_renewal_date: '',
         expiry_date: '',
         status: 'active',
@@ -224,7 +225,7 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
 
             <div className="space-y-1">
               <DateInput
-                label="续费成本基线日（可选）"
+                label="续费成本基线日（新建默认今天，可清空）"
                 value={
                   formData.baseline_renewal_as_of != null
                     ? String(formData.baseline_renewal_as_of).slice(0, 10)
@@ -236,7 +237,7 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
                 className="w-full max-w-md"
               />
               <p className="text-xs text-gray-500">
-                填写后：已续费次数×续费成本表示截至该日的历史估算；该日之后的 renew 交易会额外计入持有成本。
+                新建域名时默认今天：此前用「已续费次数×续费成本」概括；之后每笔续费请用「续费」交易记账，金额会计入持有成本。若清空，则持有成本不按交易叠加（旧版逻辑）。
               </p>
             </div>
 

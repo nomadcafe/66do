@@ -355,8 +355,8 @@ export function calculateYearlyRenewalVsProfit(
         ? String(dom.baseline_renewal_as_of).slice(0, 10)
         : null;
       const td = String(t.date).slice(0, 10);
-      if (bk && td.length >= 10 && td <= bk) {
-        // 已计入档案基线估算，避免按年与增量双算
+      if (bk && td.length >= 10 && td < bk) {
+        // 基线日之前的 renew 视为已反映在 renewal_count×renewal_cost 中，避免按年与增量双算
       } else {
         row.renewalSpend += amt;
       }
