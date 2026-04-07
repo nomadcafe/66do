@@ -241,22 +241,51 @@ export class TransactionService {
     return this.getTransactionsWithClient(supabase, userId)
   }
 
+  /** PostgREST 默认每页有上限（常见 1000），必须分页否则 GET/PUT 用全表扫描会漏掉旧记录 */
+  private static readonly TRANSACTION_PAGE_SIZE = 1000
+
+  static async getTransactionByIdWithClient(
+    client: SupabaseClient<Database>,
+    transactionId: string,
+    userId: string
+  ): Promise<Transaction | null> {
+    const { data, error } = await client
+      .from('domain_transactions')
+      .select('*')
+      .eq('id', transactionId)
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (error) {
+      logger.error('Error fetching transaction by id:', error)
+      return null
+    }
+    return data
+  }
+
   static async getTransactionsWithClient(
     client: SupabaseClient<Database>,
     userId: string
   ): Promise<Transaction[]> {
-    const { data, error } = await client
-      .from('domain_transactions')
-      .select('*')
-      .eq('user_id', userId)
-      .order('date', { ascending: false })
+    const pageSize = TransactionService.TRANSACTION_PAGE_SIZE
+    const all: Transaction[] = []
+    for (let from = 0; ; from += pageSize) {
+      const { data, error } = await client
+        .from('domain_transactions')
+        .select('*')
+        .eq('user_id', userId)
+        .order('date', { ascending: false })
+        .range(from, from + pageSize - 1)
 
-    if (error) {
-      logger.error('Error fetching transactions:', error)
-      return []
+      if (error) {
+        logger.error('Error fetching transactions:', error)
+        return all.length > 0 ? all : []
+      }
+      const batch = data || []
+      all.push(...batch)
+      if (batch.length < pageSize) break
     }
-
-    return data || []
+    return all
   }
 
   static async createTransaction(transaction: TransactionInsert): Promise<Transaction | null> {
@@ -465,20 +494,7 @@ export async function loadDomainsFromSupabase(userId: string): Promise<DataServi
 
 export async function loadTransactionsFromSupabase(userId: string): Promise<DataServiceResult<Transaction[]>> {
   try {
-    const { data, error } = await supabase
-      .from('domain_transactions')
-      .select('*')
-      .eq('user_id', userId)
-      .order('date', { ascending: false })
-
-    if (error) {
-      logger.error('Error loading transactions from Supabase:', error)
-      return {
-        success: false,
-        error: error.message,
-        source: 'supabase'
-      }
-    }
+    const data = await TransactionService.getTransactionsWithClient(supabase, userId)
 
     return {
       success: true,

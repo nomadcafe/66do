@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { domainCache } from '../lib/cache';
-import { loadDomainsFromSupabase, loadTransactionsFromSupabase, TransactionService } from '../lib/supabaseService';
+import {
+  loadDomainsFromSupabase,
+  loadTransactionsFromSupabase,
+  TransactionService,
+  type TransactionUpdate,
+} from '../lib/supabaseService';
 import { supabase } from '../lib/supabase';
 import { buildTransactionInsertPayload } from '../lib/transactionInsertPayload';
 import {
@@ -274,12 +279,32 @@ export function useDashboardData(
                 transactionPayload as Record<string, unknown>,
                 userId
               );
-              const { data: created, error: insertError } = await TransactionService.createTransactionWithClient(supabase, payload);
-              if (insertError || !created) {
-                throw new Error(insertError || 'Failed to add transaction');
+              const { data: created, error: insertError } =
+                await TransactionService.createTransactionWithClient(supabase, payload);
+              if (!insertError && created) {
+                savedTransactions.push(ensureTransactionWithRequiredFields(created));
+                continue;
               }
-              savedTransactions.push(ensureTransactionWithRequiredFields(created));
-              continue;
+              const msg = insertError || '';
+              const isDuplicatePkey =
+                msg.includes('duplicate key') ||
+                msg.includes('domain_transactions_pkey') ||
+                msg.includes('23505');
+              if (isDuplicatePkey) {
+                const { id: txId, user_id: _uid, ...updates } = payload;
+                const updated = await TransactionService.updateTransactionWithClient(
+                  supabase,
+                  txId,
+                  updates as TransactionUpdate,
+                  userId
+                );
+                if (!updated) {
+                  throw new Error(insertError || 'Failed to update existing transaction after duplicate key');
+                }
+                savedTransactions.push(ensureTransactionWithRequiredFields(updated));
+                continue;
+              }
+              throw new Error(insertError || 'Failed to add transaction');
             }
             const errorData = await response.json().catch(() => ({}));
             const details = errorData.details
