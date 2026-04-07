@@ -73,7 +73,7 @@ interface AnalysisResult {
     quarterlyGrowth: number;
     yearlyGrowth: number;
   };
-  recommendations: string[];
+  recommendationKeys: Array<'negativeRoi' | 'lowSuccessRate' | 'longHolding' | 'performingWell'>;
 }
 
 export default function FinancialAnalysis({ domains, transactions }: FinancialAnalysisProps) {
@@ -163,21 +163,11 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
     const quarterlyGrowth = monthlyReturns.slice(currentMonth - 2, currentMonth + 1).reduce((sum, val) => sum + val, 0);
     const yearlyGrowth = monthlyReturns.reduce((sum, val) => sum + val, 0);
 
-    // 建议
-    const recommendations: string[] = [];
-    
-    if (roi < 0) {
-      recommendations.push('Consider reviewing your investment strategy - current ROI is negative');
-    }
-    if (successRate < 30) {
-      recommendations.push('Low success rate - consider improving domain selection criteria');
-    }
-    if (avgHoldingPeriod > 365) {
-      recommendations.push('Long holding periods detected - consider more active portfolio management');
-    }
-    if (recommendations.length === 0) {
-      recommendations.push('Portfolio is performing well - continue current strategy');
-    }
+    const recommendationKeys: Array<'negativeRoi' | 'lowSuccessRate' | 'longHolding' | 'performingWell'> = [];
+    if (roi < 0) recommendationKeys.push('negativeRoi');
+    if (successRate < 30) recommendationKeys.push('lowSuccessRate');
+    if (avgHoldingPeriod > 365) recommendationKeys.push('longHolding');
+    if (recommendationKeys.length === 0) recommendationKeys.push('performingWell');
 
     return {
       overall: {
@@ -207,7 +197,7 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
         quarterlyGrowth,
         yearlyGrowth
       },
-      recommendations
+      recommendationKeys
     };
   }, [domains, transactions]);
 
@@ -374,18 +364,42 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
         </div>
       )}
 
-      {/* 建议 */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recommendations</h3>
-        <div className="space-y-3">
-          {analysisResult.recommendations.map((recommendation, index) => (
-            <div key={index} className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg">
-              <div className="flex-shrink-0">
-                <div className="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>
-              </div>
-              <p className="text-sm text-gray-700">{recommendation}</p>
+      {/* 组合概况与建议 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('reports.portfolioSnapshot')}</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">{t('reports.averageHoldingPeriod')}</span>
+              <span className="font-semibold">
+                {Math.round(analysisResult.performance.avgHoldingPeriod)}
+                {t('analytics.daysUnit')}
+              </span>
             </div>
-          ))}
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">{t('reports.successRate')}</span>
+              <span className="font-semibold">{formatPercentage(analysisResult.performance.successRate)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">{t('reports.roi')}</span>
+              <span className={`font-semibold ${analysisResult.overall.roi >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {formatPercentage(analysisResult.overall.roi)}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('reports.recommendations')}</h3>
+          <div className="space-y-3">
+            {analysisResult.recommendationKeys.map((key, index) => (
+              <div key={index} className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg">
+                <div className="flex-shrink-0">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>
+                </div>
+                <p className="text-sm text-gray-700">{t(`reports.rec.${key}`)}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
