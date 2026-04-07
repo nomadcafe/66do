@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { TransactionWithRequiredFields, ensureTransactionWithRequiredFields } from '../types/dashboard';
 import { DomainWithTags } from '../types/dashboard';
+import { supabase } from '../lib/supabase';
 import { logger } from '../lib/logger';
 import { ERROR_MESSAGE_TIMEOUT } from '../lib/constants';
 
@@ -54,18 +55,31 @@ export function useTransactionOperations(
       const transactionToDelete = transactions.find(t => t.id === id);
       if (!transactionToDelete) return;
 
-      // Use RESTful DELETE /api/transactions/[id]
-      const headers: HeadersInit = { 'Content-Type': 'application/json' };
-      if (sessionToken) {
-        (headers as Record<string, string>)['Authorization'] = `Bearer ${sessionToken}`;
+      const { data: { session: liveSession } } = await supabase.auth.getSession();
+      const accessToken = liveSession?.access_token ?? sessionToken ?? null;
+      const refreshTok = liveSession?.refresh_token ?? null;
+      if (!accessToken) {
+        throw new Error('Not authenticated');
+      }
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      };
+      if (refreshTok) {
+        (headers as Record<string, string>)['X-Refresh-Token'] = refreshTok;
       }
       const response = await fetch(`/api/transactions/${id}`, {
         method: 'DELETE',
-        headers
+        headers,
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete transaction');
+        const errText = await response.text().catch(() => '');
+        throw new Error(
+          response.status === 401
+            ? 'Unauthorized'
+            : `Failed to delete transaction${errText ? `: ${errText}` : ''}`
+        );
       }
 
       const updatedTransactions = transactions.filter(transaction => transaction.id !== id);

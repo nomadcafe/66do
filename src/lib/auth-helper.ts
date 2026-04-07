@@ -14,6 +14,19 @@ export async function getAuthInfoFromRequest(request: NextRequest): Promise<{ us
       const token = authHeader.substring(7);
       const { data: { user }, error } = await supabase.auth.getUser(token);
       if (error || !user) {
+        const refreshToken =
+          request.headers.get('x-refresh-token') || request.headers.get('X-Refresh-Token');
+        if (refreshToken) {
+          const { data: refreshData, error: refError } = await supabase.auth.refreshSession({
+            refresh_token: refreshToken,
+          });
+          if (!refError && refreshData.session?.user && refreshData.session.access_token) {
+            return {
+              userId: refreshData.session.user.id,
+              accessToken: refreshData.session.access_token,
+            };
+          }
+        }
         logger.error('Error getting user from token:', error);
         return null;
       }

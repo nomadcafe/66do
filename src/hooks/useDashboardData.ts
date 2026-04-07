@@ -148,14 +148,12 @@ export function useDashboardData(
     }
 
     try {
-      // 页面传入的 sessionToken 可能短暂为空；从 Supabase 客户端再取一次，避免静默 return 导致「什么都没保存」
-      let accessToken = sessionToken ?? null;
-      let refreshTok = refreshToken ?? null;
-      if (!accessToken) {
-        const { data: { session } } = await supabase.auth.getSession();
-        accessToken = session?.access_token ?? null;
-        refreshTok = refreshTok || session?.refresh_token || null;
-      }
+      // 优先用浏览器内 getSession()（可自动刷新过期的 access_token）；页面 props 里的 token 可能已过期
+      const { data: { session: liveSession } } = await supabase.auth.getSession();
+      const accessToken =
+        liveSession?.access_token ?? sessionToken ?? null;
+      const refreshTok =
+        liveSession?.refresh_token ?? refreshToken ?? null;
       if (!accessToken) {
         setError(t('common.authError') || 'Please sign in again to save.');
         throw new Error('No access token for save');
