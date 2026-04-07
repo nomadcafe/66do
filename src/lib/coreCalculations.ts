@@ -289,6 +289,83 @@ export function calculateRiskLevel(
   return 'Low';
 }
 
+/** 按自然年汇总：续费支出、其他流出（购入/费用/转移/营销等）、售出净收入与年度净现金流 */
+export interface YearlyRenewalProfitRow {
+  year: number;
+  renewalSpend: number;
+  otherOutflow: number;
+  saleNet: number;
+  /** 售出净收入 − 续费 − 其他流出 */
+  netCashflow: number;
+  /** 续费 / (续费 + 其他流出)，0–100 */
+  renewalShareOfOutflowsPercent: number;
+  /** 续费 / 售出净收入；无售出时为 null */
+  renewalToSalePercent: number | null;
+}
+
+const OUTFLOW_TYPES: TransactionWithRequiredFields['type'][] = [
+  'buy',
+  'fee',
+  'transfer',
+  'marketing',
+  'advertising',
+];
+
+export function calculateYearlyRenewalVsProfit(
+  transactions: TransactionWithRequiredFields[]
+): YearlyRenewalProfitRow[] {
+  const byYear = new Map<
+    number,
+    { renewalSpend: number; otherOutflow: number; saleNet: number }
+  >();
+
+  for (const t of transactions) {
+    const y = new Date(t.date).getFullYear();
+    if (!Number.isFinite(y)) continue;
+
+    if (!byYear.has(y)) {
+      byYear.set(y, { renewalSpend: 0, otherOutflow: 0, saleNet: 0 });
+    }
+    const row = byYear.get(y)!;
+    const amt = amountUSD(t);
+
+    if (t.type === 'sell') {
+      row.saleNet += amt;
+    } else if (t.type === 'renew') {
+      row.renewalSpend += amt;
+    } else if (OUTFLOW_TYPES.includes(t.type)) {
+      row.otherOutflow += amt;
+    }
+  }
+
+  const years = [...byYear.keys()].sort((a, b) => a - b);
+
+  return years
+    .map((year) => {
+      const { renewalSpend, otherOutflow, saleNet } = byYear.get(year)!;
+      const totalOut = renewalSpend + otherOutflow;
+      const netCashflow = saleNet - totalOut;
+      const renewalShareOfOutflowsPercent =
+        totalOut > 0 ? (renewalSpend / totalOut) * 100 : 0;
+      const renewalToSalePercent =
+        saleNet > 0 ? (renewalSpend / saleNet) * 100 : null;
+
+      return {
+        year,
+        renewalSpend,
+        otherOutflow,
+        saleNet,
+        netCashflow,
+        renewalShareOfOutflowsPercent,
+        renewalToSalePercent,
+      };
+    })
+    .filter(
+      (r) =>
+        r.renewalSpend > 0 || r.otherOutflow > 0 || r.saleNet > 0
+    );
+}
+
 // 计算成功率
 export function calculateSuccessRate(domains: DomainWithTags[]): number {
   const soldDomains = domains.filter(d => d.status === 'sold');

@@ -2,7 +2,10 @@
 
 import React, { useState, useMemo } from 'react';
 import { useComprehensiveFinancialAnalysis } from '../../hooks/useFinancialCalculations';
-import { calculateInvestmentYears } from '../../lib/coreCalculations';
+import {
+  calculateInvestmentYears,
+  calculateYearlyRenewalVsProfit,
+} from '../../lib/coreCalculations';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import { 
@@ -614,8 +617,96 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     return { data, totalHeld: heldDomains.length };
   }, [filteredData.domains, t]);
 
+  const yearlyRenewalProfitRows = useMemo(
+    () => calculateYearlyRenewalVsProfit(filteredData.transactions),
+    [filteredData.transactions]
+  );
+
   const renderTrendsAnalysis = () => (
     <div className="space-y-6">
+      <div className="bg-white p-6 rounded-lg shadow-sm border overflow-x-auto">
+        <h3 className="text-lg font-semibold text-gray-900 mb-1">
+          {t('analytics.yearlyRenewalProfit.title')}
+        </h3>
+        <p className="text-sm text-gray-500 mb-4">{t('analytics.yearlyRenewalProfit.desc')}</p>
+        {yearlyRenewalProfitRows.length === 0 ? (
+          <p className="text-center py-8 text-gray-500">{t('analytics.yearlyRenewalProfit.noData')}</p>
+        ) : (
+          <div className="min-w-[720px]">
+            <table className="w-full text-sm text-left">
+              <thead>
+                <tr className="border-b border-gray-200 text-gray-600">
+                  <th className="py-2 pr-3 font-medium">{t('analytics.yearlyRenewalProfit.year')}</th>
+                  <th className="py-2 pr-3 font-medium text-right">{t('analytics.yearlyRenewalProfit.renewal')}</th>
+                  <th className="py-2 pr-3 font-medium text-right">{t('analytics.yearlyRenewalProfit.otherOutflow')}</th>
+                  <th className="py-2 pr-3 font-medium text-right">{t('analytics.yearlyRenewalProfit.saleNet')}</th>
+                  <th className="py-2 pr-3 font-medium text-right">{t('analytics.yearlyRenewalProfit.netCashflow')}</th>
+                  <th className="py-2 pr-3 font-medium text-right">{t('analytics.yearlyRenewalProfit.renewalVsSale')}</th>
+                  <th className="py-2 pr-3 font-medium text-right">{t('analytics.yearlyRenewalProfit.renewalOfOutflows')}</th>
+                  <th className="py-2 font-medium text-center">
+                    {t('analytics.yearlyRenewalProfit.resultColumn')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {yearlyRenewalProfitRows.map((row) => (
+                  <tr key={row.year} className="border-b border-gray-100">
+                    <td className="py-2.5 pr-3 font-medium text-gray-900">{row.year}</td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums">
+                      ${row.renewalSpend.toLocaleString()}
+                    </td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums">
+                      ${row.otherOutflow.toLocaleString()}
+                    </td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums text-green-700">
+                      ${row.saleNet.toLocaleString()}
+                    </td>
+                    <td
+                      className={`py-2.5 pr-3 text-right font-semibold tabular-nums ${
+                        row.netCashflow > 0
+                          ? 'text-green-600'
+                          : row.netCashflow < 0
+                            ? 'text-red-600'
+                            : 'text-gray-700'
+                      }`}
+                    >
+                      ${row.netCashflow.toLocaleString()}
+                    </td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums text-gray-700">
+                      {row.renewalToSalePercent != null
+                        ? `${row.renewalToSalePercent.toFixed(1)}%`
+                        : t('analytics.yearlyRenewalProfit.notApplicable')}
+                    </td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums text-gray-700">
+                      {row.renewalSpend + row.otherOutflow > 0
+                        ? `${row.renewalShareOfOutflowsPercent.toFixed(1)}%`
+                        : t('analytics.yearlyRenewalProfit.notApplicable')}
+                    </td>
+                    <td className="py-2.5 text-center">
+                      <span
+                        className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                          row.netCashflow > 0
+                            ? 'bg-green-100 text-green-800'
+                            : row.netCashflow < 0
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-gray-100 text-gray-700'
+                        }`}
+                      >
+                        {row.netCashflow > 0
+                          ? t('analytics.yearlyRenewalProfit.statusProfit')
+                          : row.netCashflow < 0
+                            ? t('analytics.yearlyRenewalProfit.statusLoss')
+                            : t('analytics.yearlyRenewalProfit.statusFlat')}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.monthlyReturnTrend')}</h3>
         <ResponsiveContainer width="100%" height={300}>
