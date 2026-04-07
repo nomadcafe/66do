@@ -188,12 +188,26 @@ const VALID_CURRENCIES = ['USD'];
 const MAX_EXCHANGE_RATE = 1000;
 const MIN_EXCHANGE_RATE = 0.0001;
 
-// 验证交易数据
+/** 将校验结果中的 i18n 键（validation.*）转为当前语言文案；非键字符串原样返回（如域名校验仍为中文）。 */
+export function translateValidationMessages(
+  errors: string[],
+  t: (key: string) => string
+): string[] {
+  return errors.map((e) => {
+    if (e.startsWith('validation.')) {
+      const translated = t(e);
+      return translated !== e ? translated : e;
+    }
+    return e;
+  });
+}
+
+// 验证交易数据（errors 使用 i18n 键，由前端 t() 或 translateValidationMessages 展示）
 export function validateTransaction(transaction: unknown): ValidationResult {
   const errors: string[] = [];
 
   if (!transaction || typeof transaction !== 'object' || transaction === null) {
-    errors.push('交易数据格式不正确');
+    errors.push('validation.transaction.invalidFormat');
     return { valid: false, errors };
   }
 
@@ -201,54 +215,54 @@ export function validateTransaction(transaction: unknown): ValidationResult {
 
   // 域名ID验证
   if (!transactionObj.domain_id || typeof transactionObj.domain_id !== 'string') {
-    errors.push('域名ID是必需的');
+    errors.push('validation.transaction.domainIdRequired');
   } else if ((transactionObj.domain_id as string).trim().length === 0) {
-    errors.push('域名ID不能为空');
+    errors.push('validation.transaction.domainIdEmpty');
   }
 
   // 交易类型验证
   if (!transactionObj.type || typeof transactionObj.type !== 'string') {
-    errors.push('交易类型是必需的');
+    errors.push('validation.transaction.typeRequired');
   } else if (!['buy', 'renew', 'sell', 'transfer', 'fee', 'marketing', 'advertising'].includes(transactionObj.type as string)) {
-    errors.push('交易类型不正确');
+    errors.push('validation.transaction.typeInvalid');
   }
 
   // 金额验证
   if (transactionObj.amount === null || transactionObj.amount === undefined) {
-    errors.push('交易金额是必需的');
+    errors.push('validation.transaction.amountRequired');
   } else {
     const amount = Number(transactionObj.amount);
     if (isNaN(amount) || !isFinite(amount)) {
-      errors.push('交易金额必须是有效数字');
+      errors.push('validation.transaction.amountInvalidNumber');
     } else if (amount <= 0) {
-      errors.push('交易金额必须是正数');
+      errors.push('validation.transaction.amountMustBePositive');
     } else if (amount > MAX_TRANSACTION_AMOUNT) {
-      errors.push(`交易金额不能超过$${MAX_TRANSACTION_AMOUNT.toLocaleString()}`);
+      errors.push('validation.transaction.amountExceedsMax');
     }
   }
 
   // 货币验证
   if (!transactionObj.currency || typeof transactionObj.currency !== 'string') {
-    errors.push('货币类型是必需的');
+    errors.push('validation.transaction.currencyRequired');
   } else {
     const currency = (transactionObj.currency as string).toUpperCase();
     if (!VALID_CURRENCIES.includes(currency)) {
-      errors.push(`货币类型必须是以下之一: ${VALID_CURRENCIES.join(', ')}`);
+      errors.push('validation.transaction.currencyInvalid');
     }
   }
 
   // 交易日期验证
   if (!transactionObj.date || typeof transactionObj.date !== 'string') {
-    errors.push('交易日期是必需的');
+    errors.push('validation.transaction.dateRequired');
   } else {
     const date = new Date(transactionObj.date as string);
     if (isNaN(date.getTime())) {
-      errors.push('交易日期格式不正确');
+      errors.push('validation.transaction.dateInvalid');
     } else {
       const now = new Date();
       const maxDate = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000); // 未来1年
       if (date > maxDate) {
-        errors.push('交易日期不能是未来1年之后的日期');
+        errors.push('validation.transaction.dateBeyondOneYear');
       }
     }
   }
@@ -257,9 +271,9 @@ export function validateTransaction(transaction: unknown): ValidationResult {
   if (transactionObj.exchange_rate !== null && transactionObj.exchange_rate !== undefined) {
     const rate = Number(transactionObj.exchange_rate);
     if (isNaN(rate) || !isFinite(rate)) {
-      errors.push('汇率必须是有效数字');
+      errors.push('validation.transaction.exchangeRateInvalid');
     } else if (rate < MIN_EXCHANGE_RATE || rate > MAX_EXCHANGE_RATE) {
-      errors.push(`汇率必须在${MIN_EXCHANGE_RATE}和${MAX_EXCHANGE_RATE}之间`);
+      errors.push('validation.transaction.exchangeRateOutOfRange');
     }
   }
 
@@ -267,9 +281,9 @@ export function validateTransaction(transaction: unknown): ValidationResult {
   if (transactionObj.platform_fee_percentage !== null && transactionObj.platform_fee_percentage !== undefined) {
     const percentage = Number(transactionObj.platform_fee_percentage);
     if (isNaN(percentage) || !isFinite(percentage)) {
-      errors.push('平台手续费百分比必须是有效数字');
+      errors.push('validation.transaction.platformFeePercentageInvalid');
     } else if (percentage < 0 || percentage > 100) {
-      errors.push('平台手续费百分比必须在0-100之间');
+      errors.push('validation.transaction.platformFeePercentageRange');
     }
   }
 
@@ -277,11 +291,11 @@ export function validateTransaction(transaction: unknown): ValidationResult {
   if (transactionObj.platform_fee !== null && transactionObj.platform_fee !== undefined) {
     const fee = Number(transactionObj.platform_fee);
     if (isNaN(fee) || !isFinite(fee)) {
-      errors.push('平台手续费必须是有效数字');
+      errors.push('validation.transaction.platformFeeInvalid');
     } else if (fee < 0) {
-      errors.push('平台手续费必须是非负数');
+      errors.push('validation.transaction.platformFeeNonNegative');
     } else if (fee > MAX_TRANSACTION_AMOUNT) {
-      errors.push(`平台手续费不能超过$${MAX_TRANSACTION_AMOUNT.toLocaleString()}`);
+      errors.push('validation.transaction.platformFeeExceedsMax');
     }
   }
 
@@ -289,42 +303,41 @@ export function validateTransaction(transaction: unknown): ValidationResult {
   if (transactionObj.net_amount !== null && transactionObj.net_amount !== undefined) {
     const netAmount = Number(transactionObj.net_amount);
     if (isNaN(netAmount) || !isFinite(netAmount)) {
-      errors.push('净金额必须是有效数字');
+      errors.push('validation.transaction.netAmountInvalid');
     } else if (netAmount < 0) {
-      errors.push('净金额必须是非负数');
+      errors.push('validation.transaction.netAmountNonNegative');
     }
   }
 
   // 备注验证
   if (transactionObj.notes !== null && transactionObj.notes !== undefined) {
     if (typeof transactionObj.notes !== 'string') {
-      errors.push('备注必须是字符串');
+      errors.push('validation.transaction.notesMustBeString');
     } else if (transactionObj.notes.length > MAX_NOTES_LENGTH) {
-      errors.push(`备注长度不能超过${MAX_NOTES_LENGTH}个字符`);
+      errors.push('validation.transaction.notesTooLong');
     }
   }
 
   // 分类验证
   if (transactionObj.category !== null && transactionObj.category !== undefined) {
     if (typeof transactionObj.category !== 'string') {
-      errors.push('分类必须是字符串');
+      errors.push('validation.transaction.categoryMustBeString');
     } else if (transactionObj.category.length > MAX_CATEGORY_LENGTH) {
-      errors.push(`分类长度不能超过${MAX_CATEGORY_LENGTH}个字符`);
+      errors.push('validation.transaction.categoryTooLong');
     }
   }
 
   // 收据URL验证
   if (transactionObj.receipt_url !== null && transactionObj.receipt_url !== undefined) {
     if (typeof transactionObj.receipt_url !== 'string') {
-      errors.push('收据URL必须是字符串');
+      errors.push('validation.transaction.receiptUrlMustBeString');
     } else if (transactionObj.receipt_url.length > MAX_RECEIPT_URL_LENGTH) {
-      errors.push(`收据URL长度不能超过${MAX_RECEIPT_URL_LENGTH}个字符`);
+      errors.push('validation.transaction.receiptUrlTooLong');
     } else if (transactionObj.receipt_url.trim().length > 0) {
-      // 验证URL格式
       try {
         new URL(transactionObj.receipt_url);
       } catch {
-        errors.push('收据URL格式不正确');
+        errors.push('validation.transaction.receiptUrlInvalidFormat');
       }
     }
   }

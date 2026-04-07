@@ -12,6 +12,7 @@ import {
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 // import { Domain, Transaction } from '../../lib/supabaseService';
 import DateInput from '../ui/DateInput';
+import { supabase } from '../../lib/supabase';
 
 // 使用统一的类型定义，从 supabaseService 导入
 
@@ -184,7 +185,18 @@ export default function TransactionForm({
     const loadRenewalCostHistory = async () => {
       if (formData.domain_id && formData.type === 'renew') {
         try {
-          const response = await fetch(`/api/renewal-cost-history?domain_id=${formData.domain_id}`);
+          const { data: { session } } = await supabase.auth.getSession();
+          const headers: HeadersInit = {};
+          if (session?.access_token) {
+            headers['Authorization'] = `Bearer ${session.access_token}`;
+          }
+          if (session?.refresh_token) {
+            headers['X-Refresh-Token'] = session.refresh_token;
+          }
+          const response = await fetch(`/api/renewal-cost-history?domain_id=${formData.domain_id}`, {
+            headers,
+            credentials: 'include'
+          });
           if (response.ok) {
             const history = await response.json();
             setRenewalCostHistory(history.data || []);
