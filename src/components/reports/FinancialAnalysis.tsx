@@ -4,7 +4,6 @@ import { useState, useMemo } from 'react';
 import { 
   TrendingUp, 
   DollarSign, 
-  AlertTriangle,
   CheckCircle,
   XCircle,
   Target
@@ -14,9 +13,6 @@ import {
   calculateROI, 
   calculateProfitMargin, 
   calculateAnnualizedReturn,
-  calculateSharpeRatio,
-  calculateMaxDrawdown,
-  calculateVolatility,
   formatCurrency,
   formatPercentage
 } from '../../lib/financialCalculations';
@@ -71,12 +67,6 @@ interface AnalysisResult {
     worstDomain: { name: string; profit: number; roi: number };
     avgHoldingPeriod: number;
     successRate: number;
-  };
-  risk: {
-    volatility: number;
-    maxDrawdown: number;
-    sharpeRatio: number;
-    riskLevel: 'Low' | 'Medium' | 'High';
   };
   trends: {
     monthlyGrowth: number;
@@ -166,18 +156,6 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
         .reduce((sum, t) => sum + t.amount, 0);
     });
 
-    const volatility = calculateVolatility(monthlyReturns);
-    const maxDrawdown = calculateMaxDrawdown(monthlyReturns);
-    const sharpeRatio = calculateSharpeRatio(annualizedReturn, 0.02, volatility); // 假设无风险利率2%
-
-    // 风险等级
-    let riskLevel: 'Low' | 'Medium' | 'High' = 'Low';
-    if (volatility > 0.3 || maxDrawdown > 0.5) {
-      riskLevel = 'High';
-    } else if (volatility > 0.15 || maxDrawdown > 0.2) {
-      riskLevel = 'Medium';
-    }
-
     // 趋势分析
     const currentMonth = new Date().getMonth();
     
@@ -196,12 +174,6 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
     }
     if (avgHoldingPeriod > 365) {
       recommendations.push('Long holding periods detected - consider more active portfolio management');
-    }
-    if (riskLevel === 'High') {
-      recommendations.push('High risk detected - consider diversifying your portfolio');
-    }
-    if (volatility > 0.2) {
-      recommendations.push('High volatility - consider more stable domain investments');
     }
     if (recommendations.length === 0) {
       recommendations.push('Portfolio is performing well - continue current strategy');
@@ -230,12 +202,6 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
         avgHoldingPeriod,
         successRate
       },
-      risk: {
-        volatility,
-        maxDrawdown,
-        sharpeRatio,
-        riskLevel
-      },
       trends: {
         monthlyGrowth,
         quarterlyGrowth,
@@ -244,15 +210,6 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
       recommendations
     };
   }, [domains, transactions]);
-
-  const getRiskColor = (level: string) => {
-    switch (level) {
-      case 'Low': return 'text-green-600 bg-green-100';
-      case 'Medium': return 'text-yellow-600 bg-yellow-100';
-      case 'High': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-gray-100';
-    }
-  };
 
   const getPerformanceIcon = (value: number, threshold: number = 0) => {
     if (value >= threshold) {
@@ -291,16 +248,6 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
               }`}
             >
 {t('reports.performance')}
-            </button>
-            <button
-              onClick={() => setSelectedMetric('risk')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                selectedMetric === 'risk' 
-                  ? 'bg-blue-100 text-blue-700' 
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-{t('reports.risk')}
             </button>
           </div>
         </div>
@@ -421,64 +368,6 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
                   {getPerformanceIcon(analysisResult.performance.successRate, 50)}
                   <span className="font-semibold">{formatPercentage(analysisResult.performance.successRate)}</span>
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 风险分析 */}
-      {selectedMetric === 'risk' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Risk Metrics</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">Volatility</span>
-                <span className="font-semibold">{formatPercentage(analysisResult.risk.volatility * 100)}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">Max Drawdown</span>
-                <span className="font-semibold">{formatPercentage(analysisResult.risk.maxDrawdown * 100)}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">Sharpe Ratio</span>
-                <span className="font-semibold">{analysisResult.risk.sharpeRatio.toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Risk Assessment</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">Risk Level</span>
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRiskColor(analysisResult.risk.riskLevel)}`}>
-                  {analysisResult.risk.riskLevel}
-                </span>
-              </div>
-              <div className="mt-4">
-                <p className="text-sm text-gray-600 mb-2">Risk Factors:</p>
-                <ul className="space-y-1 text-sm">
-                  {analysisResult.risk.volatility > 0.2 && (
-                    <li className="flex items-center text-red-600">
-                      <AlertTriangle className="h-4 w-4 mr-2" />
-                      High volatility detected
-                    </li>
-                  )}
-                  {analysisResult.risk.maxDrawdown > 0.3 && (
-                    <li className="flex items-center text-red-600">
-                      <AlertTriangle className="h-4 w-4 mr-2" />
-                      Significant drawdowns
-                    </li>
-                  )}
-                  {analysisResult.risk.sharpeRatio < 1 && (
-                    <li className="flex items-center text-yellow-600">
-                      <AlertTriangle className="h-4 w-4 mr-2" />
-                      Low risk-adjusted returns
-                    </li>
-                  )}
-                </ul>
               </div>
             </div>
           </div>
