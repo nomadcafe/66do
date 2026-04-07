@@ -7,6 +7,8 @@ export interface Domain {
   renewal_cost: number;
   renewal_cycle: number; // 续费周期（年数）：1, 2, 3等
   renewal_count: number; // 已续费次数
+  /** 续费成本基线日：此前历史用 renewal_count×renewal_cost；之后叠加 renew 交易 */
+  baseline_renewal_as_of?: string | null;
   next_renewal_date?: string;
   expiry_date?: string; // 改为可选字段
   status: 'active' | 'for_sale' | 'sold' | 'expired';

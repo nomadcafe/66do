@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { DomainWithTags, TransactionWithRequiredFields } from '../types/dashboard';
+import { totalHoldingCostForDomain } from '../lib/renewalCostBasis';
 
 // 数据缓存接口
 interface DataCache<T> {
@@ -75,9 +76,10 @@ export function useOptimizedData() {
     const soldDomains = domains.filter(d => d.status === 'sold').length;
     const expiredDomains = domains.filter(d => d.status === 'expired').length;
     
-    const totalInvestment = domains.reduce((sum, domain) => {
-      return sum + (domain.purchase_cost || 0) + (domain.renewal_count * (domain.renewal_cost || 0));
-    }, 0);
+    const totalInvestment = domains.reduce(
+      (sum, domain) => sum + totalHoldingCostForDomain(domain, transactions),
+      0
+    );
 
     const totalRevenue = transactions
       .filter(t => t.type === 'sell')

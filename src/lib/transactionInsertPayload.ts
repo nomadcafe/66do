@@ -38,6 +38,10 @@ export function buildTransactionInsertPayload(
     installment_status: (transaction.installment_status as string) || null,
     platform_fee_type: (transaction.platform_fee_type as string) || null,
     user_input_fee_rate: transaction.user_input_fee_rate != null ? Number(transaction.user_input_fee_rate) : null,
-    user_input_surcharge_rate: transaction.user_input_surcharge_rate != null ? Number(transaction.user_input_surcharge_rate) : null
+    user_input_surcharge_rate: transaction.user_input_surcharge_rate != null ? Number(transaction.user_input_surcharge_rate) : null,
+    renewal_period_years:
+      transaction.type === 'renew' && transaction.renewal_period_years != null
+        ? Math.max(1, Math.min(10, Math.floor(Number(transaction.renewal_period_years))))
+        : null
   }
 }

@@ -43,6 +43,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
     renewal_cost: 0,
     renewal_cycle: 1, // 默认1年续费
     renewal_count: 0, // 默认未续费
+    baseline_renewal_as_of: '',
     next_renewal_date: '',
     expiry_date: '',
     status: 'active' as 'active' | 'for_sale' | 'sold' | 'expired',
@@ -79,6 +80,10 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
         renewal_cost: domain.renewal_cost || 0,
         renewal_cycle: domain.renewal_cycle,
         renewal_count: domain.renewal_count,
+        baseline_renewal_as_of:
+          domain.baseline_renewal_as_of != null
+            ? String(domain.baseline_renewal_as_of).slice(0, 10)
+            : '',
         next_renewal_date: domain.next_renewal_date || '',
         expiry_date: domain.expiry_date || '',
         status: domain.status as 'active' | 'for_sale' | 'sold' | 'expired',
@@ -94,6 +99,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
         renewal_cost: 0,
         renewal_cycle: 1,
         renewal_count: 0,
+        baseline_renewal_as_of: '',
         next_renewal_date: '',
         expiry_date: '',
         status: 'active' as 'active' | 'for_sale' | 'sold' | 'expired',
@@ -336,6 +342,19 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
             {t('dashboard.renewalCountHelp')}
           </p>
         </div>
+
+            <DateInput
+              label={t('dashboard.baselineRenewalAsOfLabel')}
+              icon={<Calendar className="h-4 w-4" />}
+              value={formData.baseline_renewal_as_of}
+              onChange={(value) =>
+                setFormData((prev) => ({ ...prev, baseline_renewal_as_of: value }))
+              }
+              className="w-full md:col-span-2"
+            />
+            <p className="text-xs text-gray-500 md:col-span-2 -mt-4">
+              {t('dashboard.baselineRenewalAsOfHelp')}
+            </p>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

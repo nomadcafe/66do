@@ -4,6 +4,7 @@ import { useState, useMemo, memo } from 'react';
 import { Edit, Trash2, Eye, Share2, Calendar, Tag, Globe } from 'lucide-react';
 import DomainShareModal from '../share/DomainShareModal';
 import { DomainWithTags } from '../../types/dashboard';
+import type { TransactionWithRequiredFields } from '../../types/transaction';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { calculateDomainROI } from '../../lib/financialCalculations';
 
@@ -28,12 +29,13 @@ interface Domain {
 
 interface DomainTableProps {
   domains: DomainWithTags[];
+  transactions?: TransactionWithRequiredFields[];
   onEdit: (domain: DomainWithTags) => void;
   onDelete: (id: string) => void;
   onView: (domain: DomainWithTags) => void;
 }
 
-const DomainTable = memo(function DomainTable({ domains, onEdit, onDelete, onView }: DomainTableProps) {
+const DomainTable = memo(function DomainTable({ domains, transactions = [], onEdit, onDelete, onView }: DomainTableProps) {
   const [sortField, setSortField] = useState('domain_name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [showShareModal, setShowShareModal] = useState(false);
@@ -197,7 +199,7 @@ const DomainTable = memo(function DomainTable({ domains, onEdit, onDelete, onVie
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {sortedDomains.map((domain) => {
-                const roi = calculateDomainROI(domain);
+                const roi = calculateDomainROI(domain, transactions);
                 
                 const expiryStatus = getExpiryStatus(domain);
 
@@ -326,6 +328,7 @@ const DomainTable = memo(function DomainTable({ domains, onEdit, onDelete, onVie
         <DomainShareModal
           isOpen={showShareModal}
           domain={selectedDomain}
+          transactions={transactions}
           onClose={() => {
             setShowShareModal(false);
             setSelectedDomain(null);

@@ -5,7 +5,8 @@ import { X, Download, Linkedin, Facebook } from 'lucide-react';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags } from '../../types/dashboard';
 import type { TransactionWithRequiredFields } from '../../types/transaction';
-import { calculateBasicFinancialMetrics, calculateDomainHoldingCost } from '../../lib/coreCalculations';
+import { calculateBasicFinancialMetrics } from '../../lib/coreCalculations';
+import { totalHoldingCostForDomain } from '../../lib/renewalCostBasis';
 
 export interface ShareData {
   totalProfit: number;
@@ -28,16 +29,16 @@ interface ShareModalProps {
   transactions?: TransactionWithRequiredFields[];
 }
 
-function domainProfit(domain: DomainWithTags): number {
+function domainProfit(domain: DomainWithTags, transactions: TransactionWithRequiredFields[]): number {
   if (!domain.sale_price) return 0;
-  const totalHoldingCost = (domain.purchase_cost || 0) + (domain.renewal_count || 0) * (domain.renewal_cost || 0);
+  const totalHoldingCost = totalHoldingCostForDomain(domain, transactions);
   const platformFee = domain.platform_fee || 0;
   return domain.sale_price - totalHoldingCost - platformFee;
 }
 
-function domainROI(domain: DomainWithTags): number {
-  const totalHoldingCost = (domain.purchase_cost || 0) + (domain.renewal_count || 0) * (domain.renewal_cost || 0);
-  const profit = domainProfit(domain);
+function domainROI(domain: DomainWithTags, transactions: TransactionWithRequiredFields[]): number {
+  const totalHoldingCost = totalHoldingCostForDomain(domain, transactions);
+  const profit = domainProfit(domain, transactions);
   return totalHoldingCost > 0 ? (profit / totalHoldingCost) * 100 : 0;
 }
 
@@ -101,11 +102,7 @@ function computeShareDataFromData(
   for (const domain of domains) {
     const revenue = sellTxByDomainId[domain.id] ?? 0;
     if (revenue <= 0) continue;
-    const holdingCost = calculateDomainHoldingCost(
-      domain.purchase_cost || 0,
-      domain.renewal_cost || 0,
-      domain.renewal_count ?? 0
-    );
+    const holdingCost = totalHoldingCostForDomain(domain, transactions);
     const profit = revenue - holdingCost;
     if (profit > bestProfit) {
       bestProfit = profit;
@@ -247,7 +244,7 @@ export default function ShareModal({ isOpen, onClose, shareData, domains = [], t
 
       if (useCelebrationImage) {
         ctx.drawImage(img, 0, 0, 800, 600);
-        const roi = domainROI(domain);
+        const roi = domainROI(domain, transactions);
         const holdingPeriod = domainHoldingPeriod(domain, t, true);
         ctx.textAlign = 'left';
         // 首字母与 "Domain Sold" 的 "D" 对齐，在显示屏下方整齐排列（时间用 y/m 缩写）
@@ -290,8 +287,8 @@ export default function ShareModal({ isOpen, onClose, shareData, domains = [], t
         else ctx.rect(60, 60, 680, 480);
         ctx.fill();
         ctx.shadowColor = 'transparent';
-        const profit = domainProfit(domain);
-        const roi = domainROI(domain);
+        const profit = domainProfit(domain, transactions);
+        const roi = domainROI(domain, transactions);
         const holdingPeriod = domainHoldingPeriod(domain, t);
         ctx.font = 'bold 48px Inter, Arial, sans-serif';
         ctx.textAlign = 'center';
@@ -345,7 +342,7 @@ export default function ShareModal({ isOpen, onClose, shareData, domains = [], t
         ctx.stroke();
       }
     },
-    [t]
+    [t, transactions]
   );
 
   const drawCanvas = useCallback(() => {
@@ -390,8 +387,8 @@ export default function ShareModal({ isOpen, onClose, shareData, domains = [], t
     if (!imageData) return;
     let text: string;
     if (shareMode === 'single' && selectedDomain) {
-      const profit = domainProfit(selectedDomain);
-      const roi = domainROI(selectedDomain);
+      const profit = domainProfit(selectedDomain, transactions);
+      const roi = domainROI(selectedDomain, transactions);
       text = `Successfully invested in ${selectedDomain.domain_name} on Domain Financial! Net profit $${profit.toLocaleString()}, ROI ${roi.toFixed(1)}%! 🚀 #DomainInvestment #DomainFinancial #${selectedDomain.domain_name.replace('.', '')}`;
     } else {
       const profit = Number.isFinite(portfolioShareData.totalProfit) ? portfolioShareData.totalProfit : 0;

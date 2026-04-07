@@ -5,17 +5,19 @@ import { Search, Filter, Grid, List, Plus, Table } from 'lucide-react';
 import DomainCard from './DomainCard';
 import DomainTable from './DomainTable';
 import { DomainWithTags } from '../../types/dashboard';
+import type { TransactionWithRequiredFields } from '../../types/transaction';
 import { useI18nContext } from '../../contexts/I18nProvider';
 
 interface DomainListProps {
   domains: DomainWithTags[];
+  transactions?: TransactionWithRequiredFields[];
   onEdit: (domain: DomainWithTags) => void;
   onDelete: (id: string) => void;
   onView: (domain: DomainWithTags) => void;
   onAdd: () => void;
 }
 
-const DomainList = memo(function DomainList({ domains, onEdit, onDelete, onView, onAdd }: DomainListProps) {
+const DomainList = memo(function DomainList({ domains, transactions = [], onEdit, onDelete, onView, onAdd }: DomainListProps) {
   const { t } = useI18nContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -115,6 +117,7 @@ const DomainList = memo(function DomainList({ domains, onEdit, onDelete, onView,
       {viewMode === 'table' ? (
         <DomainTable
           domains={filteredDomains}
+          transactions={transactions}
           onEdit={onEdit}
           onDelete={onDelete}
           onView={onView}
@@ -145,6 +148,7 @@ const DomainList = memo(function DomainList({ domains, onEdit, onDelete, onView,
             <DomainCard
               key={domain.id}
               domain={domain}
+              transactions={transactions}
               onEdit={onEdit}
               onDelete={onDelete}
               onView={onView}

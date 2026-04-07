@@ -14,6 +14,7 @@ import {
   Eye,
   EyeOff
 } from 'lucide-react';
+import { totalHoldingCostForDomain } from '../../lib/renewalCostBasis';
 
 interface EnhancedDashboardProps {
   domains: DomainWithTags[];
@@ -38,9 +39,10 @@ export default function EnhancedDashboard({
     const expiredDomains = domains.filter(d => d.status === 'expired');
     const forSaleDomains = domains.filter(d => d.status === 'for_sale');
 
-    const totalInvestment = domains.reduce((sum, domain) => {
-      return sum + (domain.purchase_cost || 0) + (domain.renewal_count * (domain.renewal_cost || 0));
-    }, 0);
+    const totalInvestment = domains.reduce(
+      (sum, domain) => sum + totalHoldingCostForDomain(domain, transactions),
+      0
+    );
 
     const totalRevenue = transactions
       .filter(t => t.type === 'sell')

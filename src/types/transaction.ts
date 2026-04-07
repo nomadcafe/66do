@@ -36,6 +36,13 @@ export interface Transaction {
   // 用户输入的费用率
   user_input_fee_rate?: number;
   user_input_surcharge_rate?: number;
+
+  /** renew：延长到期的年数（写入 domain_transactions.renewal_period_years） */
+  renewal_period_years?: number | null;
+  /** renew：保存时是否同步延长域名 expiry（默认 true） */
+  extend_domain_expiry_on_renew?: boolean;
+  /** renew：是否手填续费年数 */
+  renewal_years_use_custom?: boolean;
 }
 
 // 扩展的Transaction接口，包含所有必需字段

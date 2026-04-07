@@ -255,6 +255,9 @@ const translations: Record<Locale, Translations> = {
       renewalCountLabel: '已续费次数',
       renewalCountHelp: '输入该域名已经续费的次数，用于计算总持有成本',
       renewalCountPlaceholder: '输入已续费次数',
+      baselineRenewalAsOfLabel: '续费成本基线日（可选）',
+      baselineRenewalAsOfHelp:
+        '填写后：「已续费次数×续费成本」表示截至该日的历史估算；该日之后的 renew 交易金额会额外计入持有成本。留空则与以前一致（不按交易叠加）。',
       updating: '更新中…',
       adding: '添加中…',
       updateDomain: '更新域名',
@@ -297,7 +300,8 @@ const translations: Record<Locale, Translations> = {
         categoryTooLong: '分类长度不能超过 100 个字符',
         receiptUrlMustBeString: '收据 URL 必须是字符串',
         receiptUrlTooLong: '收据 URL 长度不能超过 500 个字符',
-        receiptUrlInvalidFormat: '收据 URL 格式不正确'
+        receiptUrlInvalidFormat: '收据 URL 格式不正确',
+        renewalPeriodYearsRange: '续费年数须为 1–10 的整数'
       }
     },
     common: {
@@ -509,6 +513,10 @@ const translations: Record<Locale, Translations> = {
       netAmount: '净收入',
       buy: '购买',
       renew: '续费',
+      renewExtendExpiry: '保存后续费延长域名到期日',
+      renewPeriodYears: '续费年数',
+      renewUseCustomYears: '自定义续费年数',
+      renewUseDomainCycle: '使用域名续费周期（{years} 年）',
       sell: '出售',
       transfer: '转移',
       fee: '费用',
@@ -571,6 +579,9 @@ const translations: Record<Locale, Translations> = {
       renewalCountLabel: '已续费次数',
       renewalCountHelp: '输入该域名已经续费的次数，用于计算总持有成本',
       renewalCountPlaceholder: '输入已续费次数',
+      baselineRenewalAsOfLabel: '续费成本基线日（可选）',
+      baselineRenewalAsOfHelp:
+        '填写后：「已续费次数×续费成本」表示截至该日的历史估算；该日之后的 renew 交易金额会额外计入持有成本。留空则与以前一致（不按交易叠加）。',
       domainFormTitleEdit: '编辑域名',
       domainFormTitleAdd: '添加新域名',
       updateDomain: '更新域名',
@@ -1387,6 +1398,9 @@ const translations: Record<Locale, Translations> = {
       renewalCountLabel: 'Renewal count',
       renewalCountHelp: 'Times this domain has been renewed (for total holding cost)',
       renewalCountPlaceholder: 'Enter renewal count',
+      baselineRenewalAsOfLabel: 'Renewal cost baseline date (optional)',
+      baselineRenewalAsOfHelp:
+        'If set: renewal_count × renewal_cost estimates history through this date; renew transactions after this date add to holding cost. If empty, behavior matches the legacy model (no transactional add-on).',
       updating: 'Updating…',
       adding: 'Adding…',
       updateDomain: 'Update Domain',
@@ -1429,7 +1443,8 @@ const translations: Record<Locale, Translations> = {
         categoryTooLong: 'Category cannot exceed 100 characters',
         receiptUrlMustBeString: 'Receipt URL must be a string',
         receiptUrlTooLong: 'Receipt URL cannot exceed 500 characters',
-        receiptUrlInvalidFormat: 'Invalid receipt URL format'
+        receiptUrlInvalidFormat: 'Invalid receipt URL format',
+        renewalPeriodYearsRange: 'Renewal period must be a whole number of years from 1 to 10'
       }
     },
     common: {
@@ -1625,6 +1640,10 @@ const translations: Record<Locale, Translations> = {
       netAmount: 'Net Amount',
       buy: 'Buy',
       renew: 'Renew',
+      renewExtendExpiry: 'Extend domain expiry after save',
+      renewPeriodYears: 'Renewal period (years)',
+      renewUseCustomYears: 'Custom renewal years',
+      renewUseDomainCycle: 'Use domain renewal cycle ({years} yr)',
       sell: 'Sell',
       transfer: 'Transfer',
       fee: 'Fee',
@@ -1687,6 +1706,9 @@ const translations: Record<Locale, Translations> = {
       renewalCountLabel: 'Renewal count',
       renewalCountHelp: 'Enter how many times this domain has been renewed for total holding cost',
       renewalCountPlaceholder: 'Enter renewal count',
+      baselineRenewalAsOfLabel: 'Renewal cost baseline date (optional)',
+      baselineRenewalAsOfHelp:
+        'If set: renewal_count × renewal_cost estimates history through this date; renew transactions after this date add to holding cost. If empty, behavior matches the legacy model (no transactional add-on).',
       domainFormTitleEdit: 'Edit Domain',
       domainFormTitleAdd: 'Add New Domain',
       updateDomain: 'Update Domain',

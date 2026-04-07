@@ -1,4 +1,5 @@
 // 增强的财务指标计算工具
+import { totalRenewalCostForHolding } from './renewalCostBasis';
 export interface EnhancedFinancialMetrics {
   // 收入相关（更清晰的命名）
   totalSales: number;           // 总销售额（未扣除任何费用）
@@ -53,6 +54,7 @@ export function calculateDomainROI(
     purchase_cost: number | null;
     renewal_cost: number | null;
     renewal_count: number;
+    baseline_renewal_as_of?: string | null;
     purchase_date: string | null;
     status: string;
     expiry_date?: string | null;
@@ -71,7 +73,15 @@ export function calculateDomainROI(
   
   // 投资成本
   const purchaseCost = domain.purchase_cost || 0;
-  const renewalCost = domain.renewal_count * (domain.renewal_cost || 0);
+  const renewalCost = totalRenewalCostForHolding(
+    {
+      id: domain.id,
+      renewal_count: domain.renewal_count,
+      renewal_cost: domain.renewal_cost,
+      baseline_renewal_as_of: domain.baseline_renewal_as_of ?? null
+    },
+    domainTransactions
+  );
   const totalInvestment = purchaseCost + renewalCost;
   
   // 销售收入
@@ -133,6 +143,7 @@ export function calculateAllDomainROIs(
     purchase_cost: number;
     renewal_cost: number;
     renewal_count: number;
+    baseline_renewal_as_of?: string | null;
     purchase_date: string;
     status: string;
     expiry_date?: string | null;
@@ -156,6 +167,7 @@ export function calculateEnhancedFinancialMetrics(
     purchase_cost: number;
     renewal_cost: number;
     renewal_count: number;
+    baseline_renewal_as_of?: string | null;
     status: string;
     purchase_date: string;
   }>,
@@ -202,10 +214,18 @@ export function calculateEnhancedFinancialMetrics(
   }, 0);
   
   const totalRenewalCost = domains.reduce((sum, domain) => {
-    const renewalCost = Number(domain.renewal_cost) || 0;
-    const renewalCount = Number(domain.renewal_count) || 0;
-    if (!isFinite(renewalCost) || renewalCost < 0 || !isFinite(renewalCount) || renewalCount < 0) return sum;
-    return sum + (renewalCount * renewalCost);
+    return (
+      sum +
+      totalRenewalCostForHolding(
+        {
+          id: domain.id,
+          renewal_count: domain.renewal_count,
+          renewal_cost: domain.renewal_cost,
+          baseline_renewal_as_of: domain.baseline_renewal_as_of ?? null
+        },
+        transactions
+      )
+    );
   }, 0);
   
   const totalHoldingCost = totalInvestment + totalRenewalCost;

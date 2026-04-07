@@ -1,4 +1,5 @@
 // 财务指标计算工具
+import { totalRenewalCostForHolding } from './renewalCostBasis';
 export interface FinancialMetrics {
   // 销售额相关
   totalSales: number;           // 总销售额（未扣除手续费）
@@ -161,6 +162,7 @@ export function calculateFinancialMetrics(
     purchase_cost: number;
     renewal_cost: number;
     renewal_count: number;
+    baseline_renewal_as_of?: string | null;
     status: string;
     purchase_date: string;
   }>,
@@ -187,10 +189,16 @@ export function calculateFinancialMetrics(
   }, 0);
   
   const totalRenewalCost = domains.reduce((sum, domain) => {
-    const renewalCost = Number(domain.renewal_cost) || 0;
-    const renewalCount = Number(domain.renewal_count) || 0;
-    if (!isFinite(renewalCost) || renewalCost < 0 || !isFinite(renewalCount) || renewalCount < 0) return sum;
-    return sum + (renewalCount * renewalCost);
+    const r = totalRenewalCostForHolding(
+      {
+        id: domain.id,
+        renewal_count: domain.renewal_count,
+        renewal_cost: domain.renewal_cost,
+        baseline_renewal_as_of: domain.baseline_renewal_as_of ?? null
+      },
+      transactions
+    );
+    return sum + r;
   }, 0);
   
   const totalHoldingCost = totalInvestment + totalRenewalCost;
@@ -296,6 +304,7 @@ export function calculateDomainPerformance(
     purchase_cost: number;
     renewal_cost: number;
     renewal_count: number;
+    baseline_renewal_as_of?: string | null;
     purchase_date: string;
     status: string;
   },
@@ -322,7 +331,15 @@ export function calculateDomainPerformance(
   
   // 投资成本
   const purchaseCost = domain.purchase_cost;
-  const renewalCost = domain.renewal_count * domain.renewal_cost;
+  const renewalCost = totalRenewalCostForHolding(
+    {
+      id: domain.id,
+      renewal_count: domain.renewal_count,
+      renewal_cost: domain.renewal_cost,
+      baseline_renewal_as_of: domain.baseline_renewal_as_of ?? null
+    },
+    transactions
+  );
   const totalInvestment = purchaseCost + renewalCost;
   
   // 销售收入

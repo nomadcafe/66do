@@ -65,7 +65,10 @@ export default function TransactionForm({
     platform_fee_type: 'standard' as 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment',
     // 用户输入的费用率
     user_input_fee_rate: 0,
-    user_input_surcharge_rate: 0
+    user_input_surcharge_rate: 0,
+    renewal_period_years: 1,
+    extend_domain_expiry_on_renew: true,
+    renewal_years_use_custom: false
   });
 
   // 续费成本历史状态
@@ -112,8 +115,18 @@ export default function TransactionForm({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // 仅随「打开/切换编辑的交易」同步表单；勿将 domains 列入依赖，否则新建交易时列表刷新会清空已填内容。
+  // 域名续费周期在下方专用 effect 中与 domains 同步。
   useEffect(() => {
     if (transaction) {
+      const dom = domains.find((d) => d.id === transaction.domain_id);
+      const cycle = Math.min(10, Math.max(1, dom?.renewal_cycle ?? 1));
+      const stored = transaction.renewal_period_years;
+      const hasStored = stored != null && !Number.isNaN(Number(stored));
+      const years = hasStored
+        ? Math.min(10, Math.max(1, Math.floor(Number(stored))))
+        : cycle;
+      const useCustom = hasStored && years !== cycle;
       setFormData({
         domain_id: transaction.domain_id,
         type: transaction.type,
@@ -143,7 +156,10 @@ export default function TransactionForm({
         platform_fee_type: transaction.platform_fee_type || 'standard',
         // 用户输入的费用率
         user_input_fee_rate: transaction.user_input_fee_rate || 0,
-        user_input_surcharge_rate: transaction.user_input_surcharge_rate || 0
+        user_input_surcharge_rate: transaction.user_input_surcharge_rate || 0,
+        renewal_period_years: years,
+        extend_domain_expiry_on_renew: transaction.extend_domain_expiry_on_renew !== false,
+        renewal_years_use_custom: useCustom
       });
     } else {
       setFormData({
@@ -175,10 +191,25 @@ export default function TransactionForm({
         platform_fee_type: 'standard' as 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment',
         // 用户输入的费用率
         user_input_fee_rate: 0,
-        user_input_surcharge_rate: 0
+        user_input_surcharge_rate: 0,
+        renewal_period_years: 1,
+        extend_domain_expiry_on_renew: true,
+        renewal_years_use_custom: false
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅随 transaction 重置；domains 见下方续费周期同步 effect
   }, [transaction]);
+
+  useEffect(() => {
+    if (formData.type !== 'renew' || !formData.domain_id || formData.renewal_years_use_custom) return;
+    const dom = domains.find((d) => d.id === formData.domain_id);
+    if (!dom) return;
+    const next = Math.min(10, Math.max(1, dom.renewal_cycle || 1));
+    setFormData((prev) => {
+      if (prev.type !== 'renew' || !prev.domain_id || prev.renewal_years_use_custom) return prev;
+      return prev.renewal_period_years === next ? prev : { ...prev, renewal_period_years: next };
+    });
+  }, [formData.type, formData.domain_id, formData.renewal_years_use_custom, domains]);
 
   // 加载续费成本历史
   useEffect(() => {
@@ -245,6 +276,10 @@ export default function TransactionForm({
 
     // 仅 USD：base_amount 与 amount 一致
     const calculatedNetAmount = formData.amount - formData.platform_fee;
+    const clampRenewalYears = Math.min(
+      10,
+      Math.max(1, Math.floor(Number(formData.renewal_period_years)) || 1)
+    );
     const finalFormData = {
       ...formData,
       currency: 'USD',
@@ -252,7 +287,18 @@ export default function TransactionForm({
       net_amount: calculatedNetAmount,
       user_id: '',
       created_at: '',
-      updated_at: ''
+      updated_at: '',
+      ...(formData.type === 'renew'
+        ? {
+            renewal_period_years: clampRenewalYears,
+            extend_domain_expiry_on_renew: formData.extend_domain_expiry_on_renew,
+            renewal_years_use_custom: formData.renewal_years_use_custom
+          }
+        : {
+            renewal_period_years: null,
+            extend_domain_expiry_on_renew: undefined,
+            renewal_years_use_custom: undefined
+          })
     };
 
     // 移除数据库中不存在的字段
@@ -454,6 +500,73 @@ export default function TransactionForm({
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+
+            {formData.type === 'renew' && formData.domain_id && (
+              <div className="md:col-span-2 space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <label className="flex items-center gap-2 text-sm text-gray-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.extend_domain_expiry_on_renew}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        extend_domain_expiry_on_renew: e.target.checked
+                      }))
+                    }
+                    className="rounded border-gray-300"
+                  />
+                  {t('transaction.renewExtendExpiry')}
+                </label>
+                <label className="flex items-center gap-2 text-sm text-gray-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.renewal_years_use_custom}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        renewal_years_use_custom: e.target.checked
+                      }))
+                    }
+                    className="rounded border-gray-300"
+                  />
+                  {t('transaction.renewUseCustomYears')}
+                </label>
+                {!formData.renewal_years_use_custom && selectedDomain ? (
+                  <p className="text-xs text-gray-600">
+                    {t('transaction.renewUseDomainCycle').replace(
+                      '{years}',
+                      String(Math.min(10, Math.max(1, selectedDomain.renewal_cycle || 1)))
+                    )}
+                  </p>
+                ) : (
+                  <div>
+                    <label
+                      htmlFor="transaction-renewal-period-years"
+                      className="block text-xs font-medium text-gray-600 mb-1"
+                    >
+                      {t('transaction.renewPeriodYears')}
+                    </label>
+                    <input
+                      id="transaction-renewal-period-years"
+                      type="number"
+                      min={1}
+                      max={10}
+                      value={formData.renewal_period_years}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          renewal_period_years: Math.min(
+                            10,
+                            Math.max(1, parseInt(e.target.value, 10) || 1)
+                          )
+                        }))
+                      }
+                      className="w-24 px-2 py-1 border border-gray-300 rounded-md text-sm"
+                    />
+                  </div>
+                )}
               </div>
             )}
 

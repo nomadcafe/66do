@@ -1,4 +1,5 @@
 // 财务计算工具函数
+import { totalRenewalCostForHolding } from './renewalCostBasis';
 export interface FinancialCalculation {
   grossAmount: number;
   platformFee: number;
@@ -61,18 +62,32 @@ export function calculateROI(
  */
 export function calculateDomainROI(
   domain: {
+    id?: string;
     purchase_cost?: number | null;
     renewal_cost?: number | null;
     renewal_count: number;
+    baseline_renewal_as_of?: string | null;
     status: string;
     sale_price?: number | null;
     platform_fee?: number | null;
     estimated_value?: number | null;
     expiry_date?: string | null;
-  }
+  },
+  transactions?: Array<{ domain_id: string; type: string; date: string; amount: number }>
 ): number {
   const purchaseCost = domain.purchase_cost || 0;
-  const renewalCost = domain.renewal_count * (domain.renewal_cost || 0);
+  const renewalCost =
+    domain.id && transactions
+      ? totalRenewalCostForHolding(
+          {
+            id: domain.id,
+            renewal_count: domain.renewal_count,
+            renewal_cost: domain.renewal_cost,
+            baseline_renewal_as_of: domain.baseline_renewal_as_of ?? null
+          },
+          transactions
+        )
+      : domain.renewal_count * (domain.renewal_cost || 0);
   const totalHoldingCost = purchaseCost + renewalCost;
 
   if (totalHoldingCost === 0) return 0;
@@ -327,10 +342,12 @@ export function calculateExpiredDomainLoss(
     purchase_cost?: number | null;
     renewal_cost?: number | null;
     renewal_count: number;
+    baseline_renewal_as_of?: string | null;
     status: string;
     expiry_date?: string | null;
     purchase_date?: string | null;
-  }>
+  }>,
+  transactions?: Array<{ domain_id: string; type: string; date: string; amount: number }>
 ): ExpiredDomainLoss {
   const now = new Date();
   const expiredDomains: ExpiredDomainLoss['expiredDomains'] = [];
@@ -357,7 +374,17 @@ export function calculateExpiredDomainLoss(
     if (!isExpired) return;
 
     const purchaseCost = domain.purchase_cost || 0;
-    const renewalCost = (domain.renewal_count ?? 0) * (domain.renewal_cost || 0);
+    const renewalCost = transactions
+      ? totalRenewalCostForHolding(
+          {
+            id: domain.id,
+            renewal_count: domain.renewal_count,
+            renewal_cost: domain.renewal_cost,
+            baseline_renewal_as_of: domain.baseline_renewal_as_of ?? null
+          },
+          transactions
+        )
+      : (domain.renewal_count ?? 0) * (domain.renewal_cost || 0);
     const totalInvestment = purchaseCost + renewalCost;
 
     if (totalInvestment <= 0) return;

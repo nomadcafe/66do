@@ -48,10 +48,8 @@ import { useDashboardData } from '../../src/hooks/useDashboardData';
 import { useDomainOperations } from '../../src/hooks/useDomainOperations';
 import { useTransactionOperations } from '../../src/hooks/useTransactionOperations';
 import { useDomainStats } from '../../src/hooks/useDomainStats';
-import {
-  calculateBasicFinancialMetrics,
-  calculateDomainHoldingCost
-} from '../../src/lib/coreCalculations';
+import { calculateBasicFinancialMetrics } from '../../src/lib/coreCalculations';
+import { totalHoldingCostForDomain } from '../../src/lib/renewalCostBasis';
 import {
   Globe,
   Plus,
@@ -370,11 +368,7 @@ export default function DashboardPage() {
     for (const domain of domains) {
       const revenue = sellTxByDomainId[domain.id] ?? 0;
       if (revenue <= 0) continue;
-      const holdingCost = calculateDomainHoldingCost(
-        domain.purchase_cost || 0,
-        domain.renewal_cost || 0,
-        domain.renewal_count ?? 0
-      );
+      const holdingCost = totalHoldingCostForDomain(domain, transactionsForMetrics);
       const profit = revenue - holdingCost;
       if (profit > bestProfit) {
         bestProfit = profit;
@@ -814,7 +808,7 @@ export default function DashboardPage() {
             
             {/* 过期域名损失分析 */}
             <LazyWrapper>
-              <LazyExpiredDomainLossAnalysis domains={domains} />
+              <LazyExpiredDomainLossAnalysis domains={domains} transactions={transactions} />
             </LazyWrapper>
 
             {/* Recent Transactions */}
@@ -871,6 +865,7 @@ export default function DashboardPage() {
           <div className="space-y-6">
             <DomainList
               domains={domains}
+              transactions={transactions}
               onEdit={domainOps.handleEditDomain}
               onDelete={domainOps.handleDeleteDomain}
               onView={handleViewDomain}
@@ -1208,6 +1203,7 @@ export default function DashboardPage() {
           }}
           domain={transactionOps.saleSuccessData.domain}
           transaction={transactionOps.saleSuccessData.transaction}
+          transactions={transactions}
         />
       )}
 

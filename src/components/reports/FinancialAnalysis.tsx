@@ -16,6 +16,7 @@ import {
   formatCurrency,
   formatPercentage
 } from '../../lib/financialCalculations';
+import { totalHoldingCostForDomain } from '../../lib/renewalCostBasis';
 import { useI18nContext } from '../../contexts/I18nProvider';
 
 interface Domain {
@@ -26,6 +27,7 @@ interface Domain {
   renewal_cost: number;
   renewal_cycle: number;
   renewal_count: number;
+  baseline_renewal_as_of?: string | null;
   expiry_date?: string; // 改为可选字段
   status: 'active' | 'for_sale' | 'sold' | 'expired';
   estimated_value: number;
@@ -83,10 +85,10 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
   // 计算财务分析结果
   const analysisResult: AnalysisResult = useMemo(() => {
     // 总体指标
-    const totalInvestment = domains.reduce((sum, domain) => {
-      const holdingCost = domain.purchase_cost + (domain.renewal_count * domain.renewal_cost);
-      return sum + holdingCost;
-    }, 0);
+    const totalInvestment = domains.reduce(
+      (sum, domain) => sum + totalHoldingCostForDomain(domain, transactions),
+      0
+    );
 
     const totalRevenue = transactions
       .filter(t => t.type === 'sell')

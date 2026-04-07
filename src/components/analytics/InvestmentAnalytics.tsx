@@ -34,6 +34,7 @@ import {
   Globe,
   Info
 } from 'lucide-react';
+import { totalHoldingCostForDomain } from '../../lib/renewalCostBasis';
 
 // interface Domain {
 //   id: string;
@@ -229,10 +230,10 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         return transactionMonth === monthKey;
       });
 
-      const investment = monthDomains.reduce((sum, domain) => {
-        const holdingCost = (domain.purchase_cost || 0) + ((domain.renewal_count ?? 0) * (domain.renewal_cost || 0));
-        return sum + holdingCost;
-      }, 0);
+      const investment = monthDomains.reduce(
+        (sum, domain) => sum + totalHoldingCostForDomain(domain, filteredData.transactions),
+        0
+      );
 
       const revenue = monthTransactions
         .filter(t => t.type === 'sell')
