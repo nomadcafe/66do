@@ -6,6 +6,15 @@ export interface ValidationResult {
 }
 
 // 常量定义
+/** 日期字段允许相对「今天」的最远未来年数（与最长续费/登记周期一致） */
+const MAX_DATE_YEARS_IN_FUTURE = 10;
+
+function isDateBeyondAllowedFuture(date: Date, reference: Date = new Date()): boolean {
+  const max = new Date(reference.getTime());
+  max.setFullYear(max.getFullYear() + MAX_DATE_YEARS_IN_FUTURE);
+  return date > max;
+}
+
 const MAX_DOMAIN_NAME_LENGTH = 255;
 const MAX_REGISTRAR_LENGTH = 100;
 const MAX_TAG_LENGTH = 50;
@@ -58,12 +67,8 @@ export function validateDomain(domain: unknown): ValidationResult {
       const date = new Date(domainObj.purchase_date as string);
       if (isNaN(date.getTime())) {
         errors.push('购买日期格式不正确');
-      } else {
-        const now = new Date();
-        const maxDate = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000); // 未来1年
-        if (date > maxDate) {
-          errors.push('购买日期不能是未来1年之后的日期');
-        }
+      } else if (isDateBeyondAllowedFuture(date)) {
+        errors.push(`购买日期不能是当前起 ${MAX_DATE_YEARS_IN_FUTURE} 年之后的日期`);
       }
     }
   }
@@ -270,12 +275,8 @@ export function validateTransaction(transaction: unknown): ValidationResult {
     const date = new Date(transactionObj.date as string);
     if (isNaN(date.getTime())) {
       errors.push('validation.transaction.dateInvalid');
-    } else {
-      const now = new Date();
-      const maxDate = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000); // 未来1年
-      if (date > maxDate) {
-        errors.push('validation.transaction.dateBeyondOneYear');
-      }
+    } else if (isDateBeyondAllowedFuture(date)) {
+      errors.push('validation.transaction.dateBeyondMaxFuture');
     }
   }
 
