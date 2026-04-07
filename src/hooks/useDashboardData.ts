@@ -15,6 +15,7 @@ import {
   validateDomain,
   validateTransaction
 } from '../lib/validation';
+import { mergeRenewTransactionDomainUpdates } from '../lib/renewDomainPatch';
 import { logger } from '../lib/logger';
 
 interface LoadOptions {
@@ -135,10 +136,14 @@ export function useDashboardData(
 
     const domainsOnly = options?.domainsOnly === true;
 
+    const domainsForSave = domainsOnly
+      ? newDomains
+      : mergeRenewTransactionDomainUpdates(newDomains, newTransactions, transactions);
+
     // 先乐观更新，再校验与持久化：添加交易后立即更新列表和 Total Revenue / Total Sales 等
     if (!domainsOnly) {
       domainCache.invalidateUserCache(userId);
-      setDomains(newDomains);
+      setDomains(domainsForSave);
       setTransactions(newTransactions);
     }
 
@@ -158,7 +163,7 @@ export function useDashboardData(
 
       logger.log(domainsOnly ? 'Saving domains to Supabase...' : 'Saving data to Supabase database...');
 
-      for (const domain of newDomains) {
+      for (const domain of domainsForSave) {
         const validation = validateDomain(domain);
         if (!validation.valid) {
           const msgs = translateValidationMessages(validation.errors, t);
@@ -183,7 +188,7 @@ export function useDashboardData(
       if (refreshTok) (headers as Record<string, string>)['X-Refresh-Token'] = refreshTok;
 
       // Save domains to Supabase
-      for (const domain of newDomains) {
+      for (const domain of domainsForSave) {
         const isExisting = domains.find(d => d.id === domain.id);
         const domainPayload = {
           ...domain,
@@ -191,6 +196,7 @@ export function useDashboardData(
           purchase_date: domain.purchase_date || null,
           purchase_cost: domain.purchase_cost || null,
           renewal_cost: domain.renewal_cost || null,
+          baseline_renewal_as_of: domain.baseline_renewal_as_of || null,
           next_renewal_date: domain.next_renewal_date || null,
           expiry_date: domain.expiry_date || null,
           estimated_value: domain.estimated_value || null,
@@ -230,7 +236,7 @@ export function useDashboardData(
 
       if (domainsOnly) {
         domainCache.invalidateUserCache(userId);
-        setDomains(newDomains);
+        setDomains(domainsForSave);
         await loadDashboardData({ showLoading: false });
         logger.log('Domains saved successfully');
         return;

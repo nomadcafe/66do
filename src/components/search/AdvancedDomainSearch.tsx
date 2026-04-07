@@ -12,6 +12,7 @@ import {
   Download,
   RefreshCw
 } from 'lucide-react';
+import { totalHoldingCostForDomain } from '../../lib/renewalCostBasis';
 
 interface AdvancedDomainSearchProps {
   domains: DomainWithTags[];
@@ -112,10 +113,10 @@ export default function AdvancedDomainSearch({
     if (domain.status !== 'sold' || !domain.sale_price || !domain.purchase_cost) {
       return 0;
     }
-    const investment = domain.purchase_cost + (domain.renewal_count * (domain.renewal_cost || 0));
+    const investment = totalHoldingCostForDomain(domain, transactions);
     const revenue = domain.sale_price;
     return investment > 0 ? ((revenue - investment) / investment) * 100 : 0;
-  }, []);
+  }, [transactions]);
 
   // 计算持有天数
   const calculateHoldingDays = useCallback((domain: DomainWithTags) => {

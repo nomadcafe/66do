@@ -6,24 +6,27 @@ import DomainShareModal from '../share/DomainShareModal';
 import { DomainWithTags } from '../../types/dashboard';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { calculateDomainROI } from '../../lib/financialCalculations';
-
+import { totalHoldingCostForDomain } from '../../lib/renewalCostBasis';
+import type { TransactionWithRequiredFields } from '../../types/transaction';
 
 interface DomainCardProps {
   domain: DomainWithTags;
+  /** 用于基线续费口径；不传则与仅档案一致 */
+  transactions?: TransactionWithRequiredFields[];
   onEdit: (domain: DomainWithTags) => void;
   onDelete: (id: string) => void;
   onView: (domain: DomainWithTags) => void;
 }
 
-const DomainCard = memo(function DomainCard({ domain, onEdit, onDelete, onView }: DomainCardProps) {
+const DomainCard = memo(function DomainCard({ domain, transactions = [], onEdit, onDelete, onView }: DomainCardProps) {
   const [showShareModal, setShowShareModal] = useState(false);
   const { t } = useI18nContext();
 
   // 计算总持有成本 - 使用useMemo优化
-  const totalHoldingCost = useMemo(() => {
-    const totalRenewalCost = domain.renewal_count * (domain.renewal_cost || 0);
-    return (domain.purchase_cost || 0) + totalRenewalCost;
-  }, [domain.purchase_cost, domain.renewal_count, domain.renewal_cost]);
+  const totalHoldingCost = useMemo(
+    () => totalHoldingCostForDomain(domain, transactions),
+    [domain, transactions]
+  );
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -128,7 +131,7 @@ const DomainCard = memo(function DomainCard({ domain, onEdit, onDelete, onView }
                 {t('domain.netProfit')}: {formatCurrency(domain.sale_price - totalHoldingCost - (domain.platform_fee || 0))}
               </span>
               <span className="ml-2 text-emerald-600">
-                (ROI: {calculateDomainROI(domain).toFixed(1)}%)
+                (ROI: {calculateDomainROI(domain, transactions).toFixed(1)}%)
               </span>
             </div>
           </div>
@@ -166,6 +169,7 @@ const DomainCard = memo(function DomainCard({ domain, onEdit, onDelete, onView }
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         domain={domain}
+        transactions={transactions}
       />
     </div>
   );

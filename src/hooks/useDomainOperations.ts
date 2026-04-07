@@ -106,6 +106,7 @@ export function useDomainOperations(
       id: crypto.randomUUID(),
       domain_id: domain.id,
       type: 'renew' as const,
+      renewal_period_years: renewalYears,
       amount: renewalCost,
       currency: 'USD',
       exchange_rate: 1,

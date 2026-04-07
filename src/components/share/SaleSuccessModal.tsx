@@ -5,6 +5,7 @@ import { X, Download, Share2, Linkedin, Facebook, CheckCircle, DollarSign, Trend
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { calculateTotalInstallmentAmount } from '../../lib/platformFeeCalculator';
+import { totalHoldingCostForDomain } from '../../lib/renewalCostBasis';
 
 const CELEBRATION_IMAGE_URL = '/domainfinancial.png';
 
@@ -33,6 +34,7 @@ interface SaleSuccessModalProps {
   onClose: () => void;
   domain: DomainWithTags;
   transaction: TransactionWithRequiredFields;
+  transactions?: TransactionWithRequiredFields[];
 }
 
 function holdingPeriodShort(purchaseDate: Date, saleDate: Date): string {
@@ -44,7 +46,7 @@ function holdingPeriodShort(purchaseDate: Date, saleDate: Date): string {
   return months > 0 ? `${years}y ${months}m` : `${years}y`;
 }
 
-export default function SaleSuccessModal({ isOpen, onClose, domain, transaction }: SaleSuccessModalProps) {
+export default function SaleSuccessModal({ isOpen, onClose, domain, transaction, transactions = [] }: SaleSuccessModalProps) {
   const { t } = useI18nContext();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const celebrationImageRef = useRef<HTMLImageElement | null>(null);
@@ -104,7 +106,7 @@ export default function SaleSuccessModal({ isOpen, onClose, domain, transaction 
     return transaction.net_amount ?? (fullAmount - (transaction.platform_fee || 0));
   };
 
-  const totalHoldingCost = (domain.purchase_cost || 0) + ((domain.renewal_count ?? 0) * (domain.renewal_cost || 0));
+  const totalHoldingCost = totalHoldingCostForDomain(domain, transactions);
 
   const calculateProfit = (): number => {
     return getSellerNetUSD() - totalHoldingCost;

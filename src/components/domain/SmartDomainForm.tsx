@@ -26,6 +26,7 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
     renewal_cost: 0,
     renewal_cycle: 1,
     renewal_count: 0,
+    baseline_renewal_as_of: null,
     next_renewal_date: '',
     expiry_date: '',
     status: 'active',
@@ -57,6 +58,7 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
         renewal_cost: 0,
         renewal_cycle: 1,
         renewal_count: 0,
+        baseline_renewal_as_of: null,
         next_renewal_date: '',
         expiry_date: '',
         status: 'active',
@@ -85,7 +87,10 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
     }
   }, [formData.expiry_date, formData.purchase_date, formData.renewal_cycle, formData]);
 
-  const handleInputChange = (field: keyof Domain, value: string | number | string[]) => {
+  const handleInputChange = (
+    field: keyof Domain,
+    value: string | number | string[] | null
+  ) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -215,6 +220,24 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+            </div>
+
+            <div className="space-y-1">
+              <DateInput
+                label="续费成本基线日（可选）"
+                value={
+                  formData.baseline_renewal_as_of != null
+                    ? String(formData.baseline_renewal_as_of).slice(0, 10)
+                    : ''
+                }
+                onChange={(value) =>
+                  handleInputChange('baseline_renewal_as_of', value.trim() ? value.slice(0, 10) : null)
+                }
+                className="w-full max-w-md"
+              />
+              <p className="text-xs text-gray-500">
+                填写后：已续费次数×续费成本表示截至该日的历史估算；该日之后的 renew 交易会额外计入持有成本。
+              </p>
             </div>
 
             {/* 到期日期输入 */}

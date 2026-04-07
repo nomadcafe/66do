@@ -23,6 +23,7 @@ import {
   Filter,
   RefreshCw
 } from 'lucide-react';
+import { totalHoldingCostForDomain } from '../../lib/renewalCostBasis';
 
 interface EnhancedFinancialReportProps {
   domains: DomainWithTags[];
@@ -42,9 +43,10 @@ export default function EnhancedFinancialReport({ domains, transactions }: Enhan
     const expiredDomains = domains.filter(d => d.status === 'expired');
     const forSaleDomains = domains.filter(d => d.status === 'for_sale');
 
-    const totalInvestment = domains.reduce((sum, domain) => {
-      return sum + (domain.purchase_cost || 0) + (domain.renewal_count * (domain.renewal_cost || 0));
-    }, 0);
+    const totalInvestment = domains.reduce(
+      (sum, domain) => sum + totalHoldingCostForDomain(domain, transactions),
+      0
+    );
 
     const totalRevenue = transactions
       .filter(t => t.type === 'sell')
@@ -132,7 +134,7 @@ export default function EnhancedFinancialReport({ domains, transactions }: Enhan
     const roiData = domains
       .filter(d => d.status === 'sold' && d.sale_price && d.purchase_cost)
       .map(domain => {
-        const investment = (domain.purchase_cost || 0) + (domain.renewal_count * (domain.renewal_cost || 0));
+        const investment = totalHoldingCostForDomain(domain, transactions);
         const revenue = domain.sale_price || 0;
         const roi = investment > 0 ? ((revenue - investment) / investment) * 100 : 0;
         return {

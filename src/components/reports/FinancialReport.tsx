@@ -15,9 +15,9 @@ import {
   calculateROI, 
   calculateProfitMargin, 
   formatCurrency,
-  formatPercentage,
-  calculateDomainHoldingCost
+  formatPercentage
 } from '../../lib/financialCalculations';
+import { totalHoldingCostForDomain } from '../../lib/renewalCostBasis';
 import { useI18nContext } from '../../contexts/I18nProvider';
 
 // interface Domain {
@@ -142,14 +142,10 @@ export default function FinancialReport({ domains, transactions }: FinancialRepo
     const { domains: filteredDomains, transactions: filteredTransactions } = filteredData;
     
     // 基础计算
-    const totalInvestment = filteredDomains.reduce((sum, domain) => {
-      const holdingCost = calculateDomainHoldingCost(
-        domain.purchase_cost || 0,
-        domain.renewal_cost || 0,
-        domain.renewal_count
-      );
-      return sum + holdingCost;
-    }, 0);
+    const totalInvestment = filteredDomains.reduce(
+      (sum, domain) => sum + totalHoldingCostForDomain(domain, filteredTransactions),
+      0
+    );
 
     const totalRevenue = filteredTransactions
       .filter(t => t.type === 'sell')

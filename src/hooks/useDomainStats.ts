@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { DomainWithTags, TransactionWithRequiredFields } from '../types/dashboard';
 import { calculateEnhancedFinancialMetrics } from '../lib/enhancedFinancialMetrics';
 import { calculateAnnualRenewalCost } from '../lib/renewalCalculations';
+import { totalHoldingCostForDomain } from '../lib/renewalCostBasis';
 
 export interface DomainStats {
   totalDomains: number;
@@ -142,7 +143,7 @@ export function useDomainStats(
     let worstProfit = Infinity;
 
     soldDomainsList.forEach(domain => {
-      const holdingCost = (domain.purchase_cost || 0) + (domain.renewal_count * (domain.renewal_cost || 0));
+      const holdingCost = totalHoldingCostForDomain(domain, transactions);
       const profit = (domain.sale_price || 0) - holdingCost - (domain.platform_fee || 0);
       if (profit > bestProfit) {
         bestProfit = profit;

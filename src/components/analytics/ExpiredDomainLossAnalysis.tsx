@@ -4,6 +4,7 @@ import React from 'react';
 import { calculateExpiredDomainLoss, formatCurrency } from '../../lib/financialCalculations';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { TrendingDown, Calendar, DollarSign, AlertTriangle } from 'lucide-react';
+import type { TransactionWithRequiredFields } from '../../types/transaction';
 
 interface ExpiredDomainLossAnalysisProps {
   domains: Array<{
@@ -12,15 +13,17 @@ interface ExpiredDomainLossAnalysisProps {
     purchase_cost?: number | null;
     renewal_cost?: number | null;
     renewal_count: number;
+    baseline_renewal_as_of?: string | null;
     status: string;
     expiry_date?: string | null;
     purchase_date?: string | null;
   }>;
+  transactions?: TransactionWithRequiredFields[];
 }
 
-export default function ExpiredDomainLossAnalysis({ domains }: ExpiredDomainLossAnalysisProps) {
+export default function ExpiredDomainLossAnalysis({ domains, transactions = [] }: ExpiredDomainLossAnalysisProps) {
   const { t } = useI18nContext();
-  const lossAnalysis = calculateExpiredDomainLoss(domains);
+  const lossAnalysis = calculateExpiredDomainLoss(domains, transactions);
 
   const currentYear = new Date().getFullYear().toString();
   const thisYearLoss = lossAnalysis.annualLoss[currentYear] || 0;

@@ -3,15 +3,18 @@
 import { useState, useRef } from 'react';
 import { X, Download, Linkedin, Facebook } from 'lucide-react';
 import { DomainWithTags } from '../../types/dashboard';
+import type { TransactionWithRequiredFields } from '../../types/transaction';
 import { useI18nContext } from '../../contexts/I18nProvider';
+import { totalHoldingCostForDomain } from '../../lib/renewalCostBasis';
 
 interface DomainShareModalProps {
   isOpen: boolean;
   onClose: () => void;
   domain: DomainWithTags;
+  transactions?: TransactionWithRequiredFields[];
 }
 
-export default function DomainShareModal({ isOpen, onClose, domain }: DomainShareModalProps) {
+export default function DomainShareModal({ isOpen, onClose, domain, transactions = [] }: DomainShareModalProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const { t } = useI18nContext();
@@ -19,13 +22,13 @@ export default function DomainShareModal({ isOpen, onClose, domain }: DomainShar
   const calculateDomainProfit = () => {
     if (!domain.sale_price) return 0;
     
-    const totalHoldingCost = (domain.purchase_cost || 0) + (domain.renewal_count * (domain.renewal_cost || 0));
+    const totalHoldingCost = totalHoldingCostForDomain(domain, transactions);
     const platformFee = domain.platform_fee || 0;
     return domain.sale_price - totalHoldingCost - platformFee;
   };
 
   const calculateROI = () => {
-    const totalHoldingCost = (domain.purchase_cost || 0) + (domain.renewal_count * (domain.renewal_cost || 0));
+    const totalHoldingCost = totalHoldingCostForDomain(domain, transactions);
     const profit = calculateDomainProfit();
     return totalHoldingCost > 0 ? (profit / totalHoldingCost) * 100 : 0;
   };

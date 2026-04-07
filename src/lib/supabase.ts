@@ -44,6 +44,7 @@ export interface Database {
           renewal_cost: number | null
           renewal_cycle: number
           renewal_count: number
+          baseline_renewal_as_of: string | null
           next_renewal_date: string | null
           expiry_date: string | null
           status: string
@@ -65,6 +66,7 @@ export interface Database {
           renewal_cost?: number | null
           renewal_cycle?: number
           renewal_count?: number
+          baseline_renewal_as_of?: string | null
           next_renewal_date?: string | null
           expiry_date?: string | null
           status?: string
@@ -86,6 +88,7 @@ export interface Database {
           renewal_cost?: number | null
           renewal_cycle?: number
           renewal_count?: number
+          baseline_renewal_as_of?: string | null
           next_renewal_date?: string | null
           expiry_date?: string | null
           status?: string
@@ -129,6 +132,7 @@ export interface Database {
           platform_fee_type: string | null
           user_input_fee_rate: number | null
           user_input_surcharge_rate: number | null
+          renewal_period_years: number | null
         }
         Insert: {
           id: string
@@ -160,6 +164,7 @@ export interface Database {
           platform_fee_type?: string | null
           user_input_fee_rate?: number | null
           user_input_surcharge_rate?: number | null
+          renewal_period_years?: number | null
         }
         Update: {
           id?: string
@@ -191,6 +196,7 @@ export interface Database {
           platform_fee_type?: string | null
           user_input_fee_rate?: number | null
           user_input_surcharge_rate?: number | null
+          renewal_period_years?: number | null
         }
       }
       verification_tokens: {

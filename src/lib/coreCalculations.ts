@@ -1,5 +1,6 @@
 // import { Domain, DomainTransaction as Transaction } from '../types/domain';
 import { DomainWithTags, TransactionWithRequiredFields } from '../types/dashboard';
+import { totalHoldingCostForDomain } from './renewalCostBasis';
 
 /** 统一以 USD 计价的交易金额（优先 base_amount，用于汇总） */
 function amountUSD(t: TransactionWithRequiredFields): number {
@@ -54,13 +55,10 @@ export function calculateBasicFinancialMetrics(
   domains: DomainWithTags[],
   transactions: TransactionWithRequiredFields[]
 ): BasicFinancialMetrics {
-  const totalInvestment = domains.reduce((sum, domain) => {
-    return sum + calculateDomainHoldingCost(
-      domain.purchase_cost || 0,
-      domain.renewal_cost || 0,
-      domain.renewal_count ?? 0
-    );
-  }, 0);
+  const totalInvestment = domains.reduce(
+    (sum, domain) => sum + totalHoldingCostForDomain(domain, transactions),
+    0
+  );
 
   const totalRevenue = transactions
     .filter(t => t.type === 'sell')
@@ -85,11 +83,7 @@ export function calculateDomainPerformance(
   transactions: TransactionWithRequiredFields[]
 ): DomainPerformance[] {
   return domains.map(domain => {
-    const totalCost = calculateDomainHoldingCost(
-      domain.purchase_cost || 0,
-      domain.renewal_cost || 0,
-      domain.renewal_count ?? 0
-    );
+    const totalCost = totalHoldingCostForDomain(domain, transactions);
     
     const domainTransactions = transactions.filter(t => t.domain_id === domain.id);
     
@@ -153,7 +147,7 @@ export function calculateMonthlyReturns(
       return domainMonth <= monthKey;
     });
     const investment = monthDomains.reduce(
-      (sum, d) => sum + calculateDomainHoldingCost(d.purchase_cost || 0, d.renewal_cost || 0, d.renewal_count ?? 0),
+      (sum, d) => sum + totalHoldingCostForDomain(d, transactions),
       0
     );
 
@@ -204,16 +198,15 @@ export function calculateSharpeRatio(
 }
 
 // 计算胜率
-export function calculateWinRate(domains: DomainWithTags[]): number {
+export function calculateWinRate(
+  domains: DomainWithTags[],
+  transactions: TransactionWithRequiredFields[] = []
+): number {
   const soldDomains = domains.filter(d => d.status === 'sold');
   if (soldDomains.length === 0) return 0;
   
   const profitableDomains = soldDomains.filter(d => {
-    const totalCost = calculateDomainHoldingCost(
-      d.purchase_cost || 0,
-      d.renewal_cost || 0,
-      d.renewal_count ?? 0
-    );
+    const totalCost = totalHoldingCostForDomain(d, transactions);
     return (d.sale_price || 0) > totalCost;
   });
   
@@ -253,7 +246,7 @@ export function calculateAdvancedFinancialMetrics(
   const maxDrawdown = calculateMaxDrawdown(monthlyReturnPct);
   const sharpeRatio = calculateSharpeRatio(annualizedReturn, 0.02, volAnnualDecimal);
   
-  const winRate = calculateWinRate(domains);
+  const winRate = calculateWinRate(domains, transactions);
   const avgHoldingPeriod = calculateAvgHoldingPeriod(domains);
   
   const domainPerformance = calculateDomainPerformance(domains, transactions);
@@ -357,7 +350,16 @@ export function calculateYearlyRenewalVsProfit(
     if (t.type === 'sell') {
       row.saleNet += amt;
     } else if (t.type === 'renew') {
-      row.renewalSpend += amt;
+      const dom = domains.find((d) => d.id === t.domain_id);
+      const bk = dom?.baseline_renewal_as_of
+        ? String(dom.baseline_renewal_as_of).slice(0, 10)
+        : null;
+      const td = String(t.date).slice(0, 10);
+      if (bk && td.length >= 10 && td <= bk) {
+        // 已计入档案基线估算，避免按年与增量双算
+      } else {
+        row.renewalSpend += amt;
+      }
     } else if (OUTFLOW_TYPES.includes(t.type)) {
       row.otherOutflow += amt;
     }
@@ -372,6 +374,11 @@ export function calculateYearlyRenewalVsProfit(
   }
 
   for (const d of domains) {
+    if (d.baseline_renewal_as_of) {
+      // 已启用续费基线：不按 renewal_count 推算按年续费，仅依赖交易中的 renew
+      continue;
+    }
+
     const purchaseY = calendarYearFromIso(d.purchase_date, refYear);
     if (!Number.isFinite(purchaseY)) continue;
 

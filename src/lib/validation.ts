@@ -128,6 +128,18 @@ export function validateDomain(domain: unknown): ValidationResult {
     }
   }
 
+  // 续费成本基线日（可选）
+  if (domainObj.baseline_renewal_as_of !== null && domainObj.baseline_renewal_as_of !== undefined && domainObj.baseline_renewal_as_of !== '') {
+    if (typeof domainObj.baseline_renewal_as_of !== 'string') {
+      errors.push('续费成本基线日格式不正确');
+    } else {
+      const d = new Date(domainObj.baseline_renewal_as_of as string);
+      if (isNaN(d.getTime())) {
+        errors.push('续费成本基线日格式不正确');
+      }
+    }
+  }
+
   // 状态验证
   if (!domainObj.status || typeof domainObj.status !== 'string') {
     errors.push('域名状态是必需的');
@@ -342,6 +354,18 @@ export function validateTransaction(transaction: unknown): ValidationResult {
     }
   }
 
+  if (transactionObj.type === 'renew') {
+    if (
+      transactionObj.renewal_period_years !== null &&
+      transactionObj.renewal_period_years !== undefined
+    ) {
+      const y = Number(transactionObj.renewal_period_years);
+      if (!Number.isInteger(y) || y < 1 || y > 10) {
+        errors.push('validation.transaction.renewalPeriodYearsRange');
+      }
+    }
+  }
+
   return {
     valid: errors.length === 0,
     errors
@@ -464,6 +488,11 @@ export function sanitizeDomainData(domain: unknown): Record<string, unknown> {
     }
   }
 
+  let baselineRenewalAsOf: string | null = null;
+  if (typeof domainObj.baseline_renewal_as_of === 'string' && domainObj.baseline_renewal_as_of.trim()) {
+    baselineRenewalAsOf = domainObj.baseline_renewal_as_of.trim().slice(0, 10);
+  }
+
   return {
     ...domainObj,
     domain_name: domainName,
@@ -473,6 +502,7 @@ export function sanitizeDomainData(domain: unknown): Record<string, unknown> {
     renewal_cost: renewalCost,
     renewal_cycle: renewalCycle,
     renewal_count: renewalCount,
+    baseline_renewal_as_of: baselineRenewalAsOf,
     estimated_value: estimatedValue,
     tags
   };
@@ -528,6 +558,12 @@ export function sanitizeTransactionData(transaction: unknown): Record<string, un
     }
   }
 
+  let renewalPeriodYears: number | null = null;
+  if (transactionObj.type === 'renew' && transactionObj.renewal_period_years != null) {
+    const y = Math.floor(Number(transactionObj.renewal_period_years));
+    if (Number.isInteger(y) && y >= 1 && y <= 10) renewalPeriodYears = y;
+  }
+
   return {
     ...transactionObj,
     amount,
@@ -540,6 +576,7 @@ export function sanitizeTransactionData(transaction: unknown): Record<string, un
     notes,
     category,
     tax_deductible: Boolean(transactionObj.tax_deductible),
-    receipt_url: receiptUrl
+    receipt_url: receiptUrl,
+    renewal_period_years: renewalPeriodYears
   };
 }
