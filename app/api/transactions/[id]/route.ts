@@ -24,9 +24,12 @@ export async function GET(
     const { id: transactionId } = await params
     const serviceClient = createServiceRoleSupabaseClient()
     const client = serviceClient ?? await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
-    const userTransactions = await TransactionService.getTransactionsWithClient(client, authInfo.userId)
-    const transaction = userTransactions.find(t => t.id === transactionId)
-    
+    const transaction = await TransactionService.getTransactionByIdWithClient(
+      client,
+      transactionId,
+      authInfo.userId
+    )
+
     if (!transaction) {
       return NextResponse.json({ 
         error: 'Transaction not found or access denied' 
@@ -101,9 +104,8 @@ export async function PUT(
       })
     }
 
-    const existingTransactions = await TransactionService.getTransactionsWithClient(client, userId)
-    const transactionExists = existingTransactions.some(t => t.id === transactionId)
-    if (!transactionExists) {
+    const existingRow = await TransactionService.getTransactionByIdWithClient(client, transactionId, userId)
+    if (!existingRow) {
       return NextResponse.json({
         error: 'Transaction not found or access denied'
       }, {
@@ -165,9 +167,8 @@ export async function DELETE(
     const serviceClient = createServiceRoleSupabaseClient()
     const client = serviceClient ?? await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
 
-    const userTransactions = await TransactionService.getTransactionsWithClient(client, userId)
-    const canDelete = userTransactions.some(t => t.id === transactionId)
-    if (!canDelete) {
+    const rowToDelete = await TransactionService.getTransactionByIdWithClient(client, transactionId, userId)
+    if (!rowToDelete) {
       return NextResponse.json({
         error: 'Transaction not found or access denied'
       }, {
