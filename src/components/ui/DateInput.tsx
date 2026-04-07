@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 
 interface DateInputProps {
   value: string;
@@ -11,91 +11,101 @@ interface DateInputProps {
   icon?: React.ReactNode;
 }
 
-export default function DateInput({ 
-  value, 
-  onChange, 
+/** 从 YYYY-MM-DD 拆成输入框展示用字符串（月日不带无意义的前导 0，避免与输入中的「1」冲突） */
+function parseValueToParts(value: string): { year: string; month: string; day: string } {
+  if (!value) return { year: '', month: '', day: '' };
+  const datePart = value.includes('T') ? value.split('T')[0] : value;
+  const m = datePart.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (!m) return { year: '', month: '', day: '' };
+  return {
+    year: m[1],
+    month: String(parseInt(m[2], 10)),
+    day: String(parseInt(m[3], 10)),
+  };
+}
+
+export default function DateInput({
+  value,
+  onChange,
   required = false,
-  className = "",
+  className = '',
   label,
-  icon
+  icon,
 }: DateInputProps) {
   const yearRef = useRef<HTMLInputElement>(null);
   const monthRef = useRef<HTMLInputElement>(null);
   const dayRef = useRef<HTMLInputElement>(null);
-  
-  // 从 value 解析出年月日
-  const parsedDate = useMemo(() => {
-    if (value) {
-      // 如果 value 包含时间信息，只取日期部分
-      const dateString = value.includes('T') ? value.split('T')[0] : value;
-      const date = new Date(dateString);
-      if (!isNaN(date.getTime())) {
-        return {
-          year: date.getFullYear().toString(),
-          month: (date.getMonth() + 1).toString().padStart(2, '0'),
-          day: date.getDate().toString().padStart(2, '0')
-        };
-      }
-    }
-    return { year: '', month: '', day: '' };
-  }, [value]);
+
+  const parsedDate = useMemo(() => parseValueToParts(value), [value]);
 
   const [year, setYear] = useState('');
   const [month, setMonth] = useState('');
   const [day, setDay] = useState('');
 
-  // 同步外部 value 到内部状态
   useEffect(() => {
     setYear(parsedDate.year);
     setMonth(parsedDate.month);
     setDay(parsedDate.day);
   }, [parsedDate.year, parsedDate.month, parsedDate.day]);
 
-  const updateParentValue = (newYear: string, newMonth: string, newDay: string) => {
-    if (newYear && newMonth && newDay) {
-      const dateString = `${newYear}-${newMonth.padStart(2, '0')}-${newDay.padStart(2, '0')}`;
-      const date = new Date(dateString);
-      if (!isNaN(date.getTime())) {
-        onChange(dateString);
+  const tryCommit = useCallback(
+    (y: string, mo: string, d: string) => {
+      if (!y && !mo && !d) {
+        onChange('');
+        return;
       }
-    } else if (!newYear && !newMonth && !newDay) {
-      onChange('');
-    }
-  };
+      if (y.length !== 4 || !mo || !d) return;
+
+      const yNum = parseInt(y, 10);
+      const mNum = parseInt(mo, 10);
+      const dNum = parseInt(d, 10);
+      if (!Number.isFinite(yNum) || !Number.isFinite(mNum) || !Number.isFinite(dNum)) return;
+      if (mNum < 1 || mNum > 12 || dNum < 1 || dNum > 31) return;
+
+      const dt = new Date(yNum, mNum - 1, dNum);
+      if (dt.getFullYear() !== yNum || dt.getMonth() !== mNum - 1 || dt.getDate() !== dNum) return;
+
+      const iso = `${yNum}-${String(mNum).padStart(2, '0')}-${String(dNum).padStart(2, '0')}`;
+      onChange(iso);
+    },
+    [onChange]
+  );
 
   const handleYearChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    if (val.length <= 4) {
-      setYear(val);
-      if (val.length === 4) {
-        monthRef.current?.focus();
-      }
-      updateParentValue(val, month, day);
+    const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+    setYear(val);
+    if (val.length === 4) {
+      monthRef.current?.focus();
+      tryCommit(val, month, day);
     }
   };
 
   const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    if (val.length <= 2) {
-      setMonth(val);
-      if (val.length === 2) {
-        dayRef.current?.focus();
-      }
-      updateParentValue(year, val, day);
+    const val = e.target.value.replace(/\D/g, '').slice(0, 2);
+    setMonth(val);
+    if (val.length === 2) {
+      dayRef.current?.focus();
+      tryCommit(year, val, day);
     }
   };
 
   const handleDayChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    if (val.length <= 2) {
-      setDay(val);
-      updateParentValue(year, month, val);
+    const val = e.target.value.replace(/\D/g, '').slice(0, 2);
+    setDay(val);
+    if (val.length === 2) {
+      tryCommit(year, month, val);
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, nextRef: React.RefObject<HTMLInputElement | null>) => {
+  const handleBlurCommit = () => {
+    tryCommit(year, month, day);
+  };
+
+  const handleKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    nextRef: React.RefObject<HTMLInputElement | null>
+  ) => {
     if (e.key === 'Backspace' && e.currentTarget.value === '') {
-      // 如果当前字段为空且按下退格键，回到上一个字段
       if (nextRef === monthRef) {
         yearRef.current?.focus();
       } else if (nextRef === dayRef) {
@@ -104,7 +114,6 @@ export default function DateInput({
     } else if (e.key === 'ArrowRight' || e.key === 'Tab') {
       nextRef.current?.focus();
     } else if (e.key === 'ArrowLeft') {
-      // 左箭头键回到上一个字段
       if (nextRef === monthRef) {
         yearRef.current?.focus();
       } else if (nextRef === dayRef) {
@@ -126,8 +135,10 @@ export default function DateInput({
         <input
           ref={yearRef}
           type="text"
+          inputMode="numeric"
           value={year}
           onChange={handleYearChange}
+          onBlur={handleBlurCommit}
           onKeyDown={(e) => handleKeyDown(e, monthRef)}
           placeholder="YYYY"
           maxLength={4}
@@ -137,8 +148,10 @@ export default function DateInput({
         <input
           ref={monthRef}
           type="text"
+          inputMode="numeric"
           value={month}
           onChange={handleMonthChange}
+          onBlur={handleBlurCommit}
           onKeyDown={(e) => handleKeyDown(e, dayRef)}
           placeholder="MM"
           maxLength={2}
@@ -148,8 +161,10 @@ export default function DateInput({
         <input
           ref={dayRef}
           type="text"
+          inputMode="numeric"
           value={day}
           onChange={handleDayChange}
+          onBlur={handleBlurCommit}
           onKeyDown={(e) => handleKeyDown(e, dayRef)}
           placeholder="DD"
           maxLength={2}
