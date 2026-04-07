@@ -39,7 +39,7 @@ export interface Transaction {
 
   /** renew：延长到期的年数（写入 domain_transactions.renewal_period_years） */
   renewal_period_years?: number | null;
-  /** renew：保存时是否同步延长域名 expiry（默认 true） */
+  /** renew：仅当为 false 时不延长到期（旧数据/导入）；表单已移除该选项，保存 renew 默认始终延长 */
   extend_domain_expiry_on_renew?: boolean;
   /** renew：是否手填续费年数 */
   renewal_years_use_custom?: boolean;

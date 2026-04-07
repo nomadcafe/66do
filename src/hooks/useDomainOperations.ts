@@ -73,7 +73,6 @@ export function useDomainOperations(
       id: crypto.randomUUID(),
       domain_id: domain.id,
       type: 'renew' as const,
-      extend_domain_expiry_on_renew: true,
       renewal_period_years: renewalYears,
       amount: renewalCost,
       currency: 'USD',

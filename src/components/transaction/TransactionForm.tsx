@@ -67,7 +67,6 @@ export default function TransactionForm({
     user_input_fee_rate: 0,
     user_input_surcharge_rate: 0,
     renewal_period_years: 1,
-    extend_domain_expiry_on_renew: true,
     renewal_years_use_custom: false
   });
 
@@ -158,7 +157,6 @@ export default function TransactionForm({
         user_input_fee_rate: transaction.user_input_fee_rate || 0,
         user_input_surcharge_rate: transaction.user_input_surcharge_rate || 0,
         renewal_period_years: years,
-        extend_domain_expiry_on_renew: transaction.extend_domain_expiry_on_renew !== false,
         renewal_years_use_custom: useCustom
       });
     } else {
@@ -193,7 +191,6 @@ export default function TransactionForm({
         user_input_fee_rate: 0,
         user_input_surcharge_rate: 0,
         renewal_period_years: 1,
-        extend_domain_expiry_on_renew: true,
         renewal_years_use_custom: false
       });
     }
@@ -291,12 +288,10 @@ export default function TransactionForm({
       ...(formData.type === 'renew'
         ? {
             renewal_period_years: clampRenewalYears,
-            extend_domain_expiry_on_renew: formData.extend_domain_expiry_on_renew,
             renewal_years_use_custom: formData.renewal_years_use_custom
           }
         : {
             renewal_period_years: null,
-            extend_domain_expiry_on_renew: undefined,
             renewal_years_use_custom: undefined
           })
     };
@@ -505,20 +500,6 @@ export default function TransactionForm({
 
             {formData.type === 'renew' && formData.domain_id && (
               <div className="md:col-span-2 space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
-                <label className="flex items-center gap-2 text-sm text-gray-800 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.extend_domain_expiry_on_renew}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        extend_domain_expiry_on_renew: e.target.checked
-                      }))
-                    }
-                    className="rounded border-gray-300"
-                  />
-                  {t('transaction.renewExtendExpiry')}
-                </label>
                 <label className="flex items-center gap-2 text-sm text-gray-800 cursor-pointer">
                   <input
                     type="checkbox"
