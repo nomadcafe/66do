@@ -5,7 +5,6 @@ import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashb
 import { 
   TrendingUp, 
   DollarSign, 
-  AlertTriangle,
   CheckCircle,
   XCircle,
   Target
@@ -49,14 +48,6 @@ interface AnalysisResult {
     soldDomains: number;
     activeDomains: number;
   };
-  risk: {
-    volatility: number;
-    maxDrawdown: number;
-    sharpeRatio: number;
-    riskLevel: 'Low' | 'Medium' | 'High';
-    monthlyReturns: number[];
-    yearlyGrowth: number;
-  };
   recommendations: string[];
 }
 
@@ -72,27 +63,12 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
   if (financialAnalysis.basic.roi < 0) {
     recommendations.push('投资回报率为负，建议重新评估投资策略');
   }
-  if (financialAnalysis.risk.volatility > 30) {
-    recommendations.push('投资波动性较高，建议分散投资风险');
-  }
-  if (financialAnalysis.risk.successRate < 50) {
-    recommendations.push('成功率较低，建议提高域名选择标准');
+  if (financialAnalysis.advanced.winRate < 50) {
+    recommendations.push('胜率较低，建议提高域名选择标准');
   }
   if (financialAnalysis.advanced.avgHoldingPeriod > 365) {
     recommendations.push('平均持有期较长，建议考虑更积极的交易策略');
   }
-
-  // 年度增长计算
-  const currentYear = new Date().getFullYear();
-  const currentYearRevenue = transactions
-    .filter(t => t.type === 'sell' && new Date(t.date).getFullYear() === currentYear)
-    .reduce((sum, t) => sum + t.amount, 0);
-  
-  const lastYearRevenue = transactions
-    .filter(t => t.type === 'sell' && new Date(t.date).getFullYear() === currentYear - 1)
-    .reduce((sum, t) => sum + t.amount, 0);
-  
-  const yearlyGrowth = lastYearRevenue > 0 ? ((currentYearRevenue - lastYearRevenue) / lastYearRevenue) * 100 : 0;
 
   const analysisResult: AnalysisResult = {
     overall: {
@@ -118,14 +94,6 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
       totalDomains: domains.length,
       soldDomains: domains.filter(d => d.status === 'sold').length,
       activeDomains: domains.filter(d => d.status === 'active').length
-    },
-    risk: {
-      volatility: financialAnalysis.risk.volatility,
-      maxDrawdown: financialAnalysis.risk.maxDrawdown,
-      sharpeRatio: financialAnalysis.advanced.sharpeRatio,
-      riskLevel: financialAnalysis.risk.riskLevel,
-      monthlyReturns: financialAnalysis.risk.monthlyReturns,
-      yearlyGrowth
     },
     recommendations
   };
@@ -169,16 +137,6 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
               }`}
             >
 {t('reports.performance')}
-            </button>
-            <button
-              onClick={() => setSelectedMetric('risk')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                selectedMetric === 'risk' 
-                  ? 'bg-blue-100 text-blue-700' 
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-{t('reports.risk')}
             </button>
           </div>
         </div>
@@ -227,14 +185,14 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
 
           <div className="bg-white p-6 rounded-lg border border-gray-200">
             <div className="flex items-center">
-              <AlertTriangle className="h-8 w-8 text-orange-500" />
+              <Target className="h-8 w-8 text-orange-500" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Risk Level</p>
+                <p className="text-sm font-medium text-gray-600">Win Rate</p>
                 <p className={`text-2xl font-bold ${
-                  analysisResult.risk.riskLevel === 'Low' ? 'text-green-600' :
-                  analysisResult.risk.riskLevel === 'Medium' ? 'text-yellow-600' : 'text-red-600'
+                  analysisResult.overall.winRate >= 50 ? 'text-green-600' :
+                  analysisResult.overall.winRate >= 30 ? 'text-yellow-600' : 'text-red-600'
                 }`}>
-                  {analysisResult.risk.riskLevel}
+                  {analysisResult.overall.winRate.toFixed(1)}%
                 </p>
               </div>
             </div>
@@ -269,40 +227,21 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
         </div>
       )}
 
-      {/* 风险评估 */}
-      {selectedMetric === 'risk' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white p-6 rounded-lg border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Risk Metrics</h3>
-            <div className="space-y-4">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Volatility</span>
-                <span className="font-semibold">{analysisResult.risk.volatility.toFixed(1)}%</span>
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">建议</h3>
+        <div className="space-y-2">
+          {analysisResult.recommendations.length > 0 ? (
+            analysisResult.recommendations.map((recommendation, index) => (
+              <div key={index} className="flex items-start space-x-2">
+                <CheckCircle className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-gray-700">{recommendation}</p>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Max Drawdown</span>
-                <span className="font-semibold">{analysisResult.risk.maxDrawdown.toFixed(1)}%</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Sharpe Ratio</span>
-                <span className="font-semibold">{analysisResult.risk.sharpeRatio.toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Recommendations</h3>
-            <div className="space-y-2">
-              {analysisResult.recommendations.map((recommendation, index) => (
-                <div key={index} className="flex items-start space-x-2">
-                  <CheckCircle className="h-5 w-5 text-blue-500 mt-0.5" />
-                  <p className="text-sm text-gray-700">{recommendation}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+            ))
+          ) : (
+            <p className="text-sm text-gray-500">当前暂无额外建议。</p>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

@@ -25,7 +25,6 @@ import {
   TrendingDown, 
   DollarSign, 
   Target, 
-  AlertTriangle,
   BarChart3,
   Activity,
   Zap,
@@ -99,18 +98,10 @@ interface TimeSeriesData {
   monthlyReturn: number;
 }
 
-interface RiskAnalysis {
-  riskLevel: 'Low' | 'Medium' | 'High';
-  diversificationScore: number;
-  concentrationRisk: number;
-  liquidityRisk: number;
-  recommendations: string[];
-}
-
 export default function InvestmentAnalytics({ domains, transactions }: InvestmentAnalyticsProps) {
   const { t, locale } = useI18nContext();
   const [selectedTimeframe, setSelectedTimeframe] = useState<'6M' | '1Y' | '2Y' | '3Y' | 'ALL'>('ALL');
-  const [selectedMetric, setSelectedMetric] = useState<'portfolio' | 'risk' | 'trends'>('portfolio');
+  const [selectedMetric, setSelectedMetric] = useState<'portfolio' | 'trends'>('portfolio');
 
   // 根据选择的时间范围筛选数据
   const filteredData = useMemo(() => {
@@ -261,51 +252,6 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
 
     return data;
   }, [filteredData, selectedTimeframe]);
-
-  // 计算风险分析（基于筛选后的数据）
-  const riskAnalysis: RiskAnalysis = useMemo(() => {
-    const totalValue = portfolioMetrics.totalInvestment + portfolioMetrics.totalProfit;
-    const domainValues = filteredData.domains.map(d => d.estimated_value || 0);
-    const maxDomainValue = Math.max(...domainValues);
-    const concentrationRisk = totalValue > 0 ? (maxDomainValue / totalValue) * 100 : 0;
-
-    const activeDomains = filteredData.domains.filter(d => d.status === 'active').length;
-    const forSaleDomains = filteredData.domains.filter(d => d.status === 'for_sale').length;
-    const liquidityRisk = filteredData.domains.length > 0 && totalValue > 0
-      ? ((activeDomains + forSaleDomains) / filteredData.domains.length) * 100
-      : 0;
-
-    const diversificationScore = Math.min(100, filteredData.domains.length * 10); // 每个域名10分，最高100分
-
-    let riskLevel: 'Low' | 'Medium' | 'High' = 'Low';
-    if (concentrationRisk > 50 || portfolioMetrics.volatility > 30 || liquidityRisk < 30) {
-      riskLevel = 'High';
-    } else if (concentrationRisk > 30 || portfolioMetrics.volatility > 20 || liquidityRisk < 50) {
-      riskLevel = 'Medium';
-    }
-
-    const recommendations: string[] = [];
-    if (concentrationRisk > 30) {
-      recommendations.push(t('analytics.considerDiversification'));
-    }
-    if (portfolioMetrics.volatility > 20) {
-      recommendations.push(t('analytics.highVolatility'));
-    }
-    if (liquidityRisk < 50) {
-      recommendations.push(t('analytics.lowLiquidity'));
-    }
-    if (filteredData.domains.length < 5) {
-      recommendations.push(t('analytics.lowDiversity'));
-    }
-
-    return {
-      riskLevel,
-      diversificationScore,
-      concentrationRisk,
-      liquidityRisk,
-      recommendations
-    };
-  }, [filteredData.domains, portfolioMetrics, t]);
 
   // 辅助函数已移至共享计算库
 
@@ -596,58 +542,6 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       </div>
     );
   };
-
-  const renderRiskAnalysis = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.riskMetrics')}</h3>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">{t('analytics.riskLevel')}</span>
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-              riskAnalysis.riskLevel === 'Low' ? 'bg-green-100 text-green-800' :
-              riskAnalysis.riskLevel === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
-              'bg-red-100 text-red-800'
-            }`}>
-              {riskAnalysis.riskLevel === 'Low' ? t('analytics.lowRisk') :
-               riskAnalysis.riskLevel === 'Medium' ? t('analytics.mediumRisk') : t('analytics.highRisk')}
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">{t('analytics.diversificationScore')}</span>
-            <span className="text-lg font-semibold">{riskAnalysis.diversificationScore}/100</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">{t('analytics.concentrationRisk')}</span>
-            <span className="text-lg font-semibold">{riskAnalysis.concentrationRisk.toFixed(1)}%</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600" title={t('analytics.liquidityRatioDesc')}>{t('analytics.liquidityRatio')}</span>
-            <span className="text-lg font-semibold">{riskAnalysis.liquidityRisk.toFixed(1)}%</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.investmentAdvice')}</h3>
-        <div className="space-y-3">
-          {riskAnalysis.recommendations.length > 0 ? (
-            riskAnalysis.recommendations.map((recommendation, index) => (
-              <div key={index} className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg">
-                <AlertTriangle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                <p className="text-sm text-blue-800">{recommendation}</p>
-              </div>
-            ))
-          ) : (
-            <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
-              <Target className="h-5 w-5 text-green-600" />
-              <p className="text-sm text-green-800">{t('analytics.portfolioPerformingWell')}</p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
 
   // 计算域名后缀分布
   const domainSuffixAnalysis = useMemo(() => {
@@ -985,11 +879,10 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
           <div className="flex items-center space-x-4">
             <select
               value={selectedMetric}
-              onChange={(e) => setSelectedMetric(e.target.value as 'portfolio' | 'risk' | 'trends')}
+              onChange={(e) => setSelectedMetric(e.target.value as 'portfolio' | 'trends')}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="portfolio">{t('analytics.tab.portfolio')}</option>
-              <option value="risk">{t('analytics.tab.risk')}</option>
               <option value="trends">{t('analytics.tab.trends')}</option>
             </select>
             <select
@@ -1083,9 +976,6 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
           </div>
         </div>
       )}
-
-      {/* 风险评估 */}
-      {selectedMetric === 'risk' && renderRiskAnalysis()}
 
       {/* 趋势分析 */}
       {selectedMetric === 'trends' && (
