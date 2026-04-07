@@ -27,7 +27,8 @@ function toDomainForExpiry(d: DomainWithTags): Domain {
 }
 
 /**
- * 对「本次保存中新建的 renew 交易」依次应用到期延长与 renewal_count+1（与 DomainExpiryManager 一致）。
+ * 对「本次保存中应生效的 renew 交易」依次应用到期延长与 renewal_count+1（与 DomainExpiryManager 一致）。
+ * 跳过：已存在且类型仍为 renew 的同 id 交易（编辑续费金额/日期时不重复延长）；从其他类型改为 renew 的会应用一次。
  */
 export function mergeRenewTransactionDomainUpdates(
   domains: DomainWithTags[],
@@ -38,9 +39,13 @@ export function mergeRenewTransactionDomainUpdates(
   const mgr = new DomainExpiryManager();
 
   for (const tx of newTransactions) {
-    if (existingTransactions.some((t) => t.id === tx.id)) continue;
     if (tx.type !== 'renew') continue;
     if (tx.extend_domain_expiry_on_renew === false) continue;
+
+    const existingSameId = existingTransactions.find((t) => t.id === tx.id);
+    // 新建 renew：无同 id。编辑 renew：同 id 且原为 renew → 不再延长到期（避免重复 +N 年）。
+    // 编辑时从非 renew 改为 renew：同 id 但旧类型非 renew → 仍需应用一次延长。
+    if (existingSameId && existingSameId.type === 'renew') continue;
 
     const cur = byId.get(tx.domain_id);
     if (!cur) continue;

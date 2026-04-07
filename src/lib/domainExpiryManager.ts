@@ -1,6 +1,7 @@
 'use client';
 
 import { Domain } from '../types/domain';
+import { localCalendarDateISO } from './localCalendarDate';
 
 export interface ExpiryCalculationOptions {
   defaultRenewalCycle: number; // 默认续费周期（年）
@@ -41,7 +42,7 @@ export class DomainExpiryManager {
         expiryDate.setFullYear(expiryDate.getFullYear() + (domain.renewal_count * renewalCycle));
       }
       
-      return expiryDate.toISOString().split('T')[0];
+      return localCalendarDateISO(expiryDate);
     }
 
     return null;
@@ -66,29 +67,33 @@ export class DomainExpiryManager {
   // 处理域名续费后的到期日期更新
   handleDomainRenewal(domain: Domain, renewalYears?: number): Domain {
     const renewalCycle = renewalYears || domain.renewal_cycle || this.options.defaultRenewalCycle;
-    
-    // 计算新的到期日期
+
     let newExpiryDate: Date;
-    
+
     if (domain.expiry_date) {
-      // 基于当前到期日期延长
       newExpiryDate = new Date(domain.expiry_date);
+      if (Number.isNaN(newExpiryDate.getTime())) {
+        newExpiryDate = domain.purchase_date ? new Date(domain.purchase_date) : new Date();
+      }
       newExpiryDate.setFullYear(newExpiryDate.getFullYear() + renewalCycle);
     } else {
-      // 基于购买日期计算
-      const purchaseDate = new Date(domain.purchase_date);
-      newExpiryDate = new Date(purchaseDate);
+      const purchaseDate = domain.purchase_date ? new Date(domain.purchase_date) : new Date();
+      newExpiryDate = Number.isNaN(purchaseDate.getTime()) ? new Date() : new Date(purchaseDate);
       newExpiryDate.setFullYear(newExpiryDate.getFullYear() + renewalCycle);
-      
-      // 考虑已续费次数
       if (domain.renewal_count > 0) {
         newExpiryDate.setFullYear(newExpiryDate.getFullYear() + (domain.renewal_count * renewalCycle));
       }
     }
 
+    if (Number.isNaN(newExpiryDate.getTime())) {
+      const repair = new Date();
+      repair.setFullYear(repair.getFullYear() + renewalCycle);
+      newExpiryDate = repair;
+    }
+
     return {
       ...domain,
-      expiry_date: newExpiryDate.toISOString().split('T')[0],
+      expiry_date: localCalendarDateISO(newExpiryDate),
       renewal_count: (domain.renewal_count || 0) + 1,
       updated_at: new Date().toISOString()
     };

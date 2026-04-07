@@ -1,7 +1,5 @@
 import { useState, useCallback } from 'react';
 import { DomainWithTags, TransactionWithRequiredFields } from '../types/dashboard';
-import { DomainExpiryManager } from '../lib/domainExpiryManager';
-import { Domain } from '../types/domain';
 import type { RenewalSubmission } from '../components/domain/RenewalModal';
 
 interface UseDomainOperationsReturn {
@@ -61,42 +59,11 @@ export function useDomainOperations(
     input: RenewalSubmission
   ): Promise<{ updatedDomain: DomainWithTags; newTransaction: TransactionWithRequiredFields }> => {
     const renewalYears = input.renewalYears;
-    // 将DomainWithTags转换为Domain类型（来自types/domain.ts）以使用DomainExpiryManager
-    const domainForRenewal: Domain = {
-      id: domain.id,
-      domain_name: domain.domain_name,
-      registrar: domain.registrar ?? '',
-      purchase_date: domain.purchase_date ?? '',
-      purchase_cost: domain.purchase_cost ?? 0,
-      renewal_cost: domain.renewal_cost ?? 0,
-      renewal_cycle: domain.renewal_cycle ?? 1,
-      renewal_count: domain.renewal_count ?? 0,
-      expiry_date: domain.expiry_date ?? undefined,
-      status: domain.status as 'active' | 'for_sale' | 'sold' | 'expired',
-      estimated_value: domain.estimated_value ?? 0,
-      sale_date: domain.sale_date ?? undefined,
-      sale_price: domain.sale_price ?? undefined,
-      platform_fee: domain.platform_fee ?? undefined,
-      tags: Array.isArray(domain.tags) ? domain.tags : (domain.tags ? [domain.tags] : []),
-      created_at: domain.created_at ?? undefined,
-      updated_at: domain.updated_at ?? undefined
-    };
-
-    // 使用DomainExpiryManager处理续费
-    const expiryManager = new DomainExpiryManager();
-    const renewedDomainResult = expiryManager.handleDomainRenewal(
-      domainForRenewal,
-      renewalYears
-    );
-
-    // 更新域名数据
+    // 到期日 / renewal_count 由 saveData 内 mergeRenewTransactionDomainUpdates 与续费交易统一处理，避免此处与 merge 各算一次导致双延长。
     const renewedDomain: DomainWithTags = {
       ...domain,
       registrar: input.registrar || domain.registrar,
       renewal_cost: input.updateRenewalCost ? (input.amount / renewalYears) : domain.renewal_cost,
-      renewal_count: renewedDomainResult.renewal_count,
-      expiry_date: renewedDomainResult.expiry_date ?? null,
-      next_renewal_date: renewedDomainResult.next_renewal_date ?? null,
       updated_at: new Date().toISOString()
     };
 
@@ -106,6 +73,7 @@ export function useDomainOperations(
       id: crypto.randomUUID(),
       domain_id: domain.id,
       type: 'renew' as const,
+      extend_domain_expiry_on_renew: true,
       renewal_period_years: renewalYears,
       amount: renewalCost,
       currency: 'USD',

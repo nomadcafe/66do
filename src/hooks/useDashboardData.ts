@@ -192,6 +192,11 @@ export function useDashboardData(
         const isExisting = domains.find(d => d.id === domain.id);
         const domainPayload = {
           ...domain,
+          id: domain.id,
+          domain_name: domain.domain_name,
+          status: domain.status,
+          renewal_cycle: domain.renewal_cycle ?? 1,
+          renewal_count: domain.renewal_count ?? 0,
           registrar: domain.registrar || null,
           purchase_date: domain.purchase_date || null,
           purchase_cost: domain.purchase_cost || null,
