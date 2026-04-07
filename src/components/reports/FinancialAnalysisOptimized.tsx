@@ -48,7 +48,7 @@ interface AnalysisResult {
     soldDomains: number;
     activeDomains: number;
   };
-  recommendations: string[];
+  recommendationKeys: Array<'negativeRoi' | 'lowWinRate' | 'longHolding' | 'performingWell'>;
 }
 
 export default function FinancialAnalysis({ domains, transactions }: FinancialAnalysisProps) {
@@ -58,17 +58,17 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
   // 使用共享的计算逻辑
   const financialAnalysis = useComprehensiveFinancialAnalysis(domains, transactions);
   
-  // 生成建议
-  const recommendations: string[] = [];
-  if (financialAnalysis.basic.roi < 0) {
-    recommendations.push('投资回报率为负，建议重新评估投资策略');
-  }
-  if (financialAnalysis.advanced.winRate < 50) {
-    recommendations.push('胜率较低，建议提高域名选择标准');
-  }
-  if (financialAnalysis.advanced.avgHoldingPeriod > 365) {
-    recommendations.push('平均持有期较长，建议考虑更积极的交易策略');
-  }
+  const recommendationKeys: Array<'negativeRoi' | 'lowWinRate' | 'longHolding' | 'performingWell'> = [];
+  if (financialAnalysis.basic.roi < 0) recommendationKeys.push('negativeRoi');
+  if (financialAnalysis.advanced.winRate < 50) recommendationKeys.push('lowWinRate');
+  if (financialAnalysis.advanced.avgHoldingPeriod > 365) recommendationKeys.push('longHolding');
+  if (recommendationKeys.length === 0) recommendationKeys.push('performingWell');
+
+  const domainPerf = financialAnalysis.domainPerformance;
+  const avgRoi =
+    domainPerf.length > 0
+      ? domainPerf.reduce((sum, p) => sum + p.roi, 0) / domainPerf.length
+      : 0;
 
   const analysisResult: AnalysisResult = {
     overall: {
@@ -90,12 +90,12 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
       domainPerformance: financialAnalysis.domainPerformance,
       bestDomain: financialAnalysis.advanced.bestPerformingDomain,
       worstDomain: financialAnalysis.advanced.worstPerformingDomain,
-      avgRoi: financialAnalysis.domainPerformance.reduce((sum, p) => sum + p.roi, 0) / financialAnalysis.domainPerformance.length,
+      avgRoi,
       totalDomains: domains.length,
       soldDomains: domains.filter(d => d.status === 'sold').length,
       activeDomains: domains.filter(d => d.status === 'active').length
     },
-    recommendations
+    recommendationKeys
   };
 
   const getPerformanceIcon = (roi: number) => {
@@ -227,19 +227,49 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
         </div>
       )}
 
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">建议</h3>
-        <div className="space-y-2">
-          {analysisResult.recommendations.length > 0 ? (
-            analysisResult.recommendations.map((recommendation, index) => (
-              <div key={index} className="flex items-start space-x-2">
-                <CheckCircle className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
-                <p className="text-sm text-gray-700">{recommendation}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('reports.portfolioSnapshot')}</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">{t('reports.averageHoldingPeriod')}</span>
+              <span className="font-semibold">
+                {Math.round(analysisResult.overall.avgHoldingPeriod)}
+                {t('analytics.daysUnit')}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">{t('analytics.winRate')}</span>
+              <span className="font-semibold">{analysisResult.overall.winRate.toFixed(1)}%</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">{t('reports.roi')}</span>
+              <span className={`font-semibold ${analysisResult.overall.roi >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {analysisResult.overall.roi.toFixed(1)}%
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">{t('reports.activeDomains')}</span>
+              <span className="font-semibold">{analysisResult.performance.activeDomains}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">{t('reports.soldDomains')}</span>
+              <span className="font-semibold">{analysisResult.performance.soldDomains}</span>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('reports.recommendations')}</h3>
+          <div className="space-y-3">
+            {analysisResult.recommendationKeys.map((key, index) => (
+              <div key={index} className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg">
+                <div className="flex-shrink-0">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>
+                </div>
+                <p className="text-sm text-gray-700">{t(`reports.rec.${key}`)}</p>
               </div>
-            ))
-          ) : (
-            <p className="text-sm text-gray-500">当前暂无额外建议。</p>
-          )}
+            ))}
+          </div>
         </div>
       </div>
     </div>

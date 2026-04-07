@@ -106,6 +106,16 @@ const translations: Record<Locale, Translations> = {
     totalRevenue: '总收入',
     totalProfit: '总利润',
     roi: 'ROI',
+    recommendations: '建议',
+    portfolioSnapshot: '组合概况',
+    successRate: '售出占比',
+    rec: {
+      negativeRoi: '投资回报率为负，建议重新评估投资策略。',
+      lowSuccessRate: '已售占比较低，建议优化域名筛选与出售节奏。',
+      lowWinRate: '胜率较低，建议提高域名选择与定价策略。',
+      longHolding: '平均持有期较长，建议考虑更积极的交易策略。',
+      performingWell: '组合表现良好，可维持当前策略。',
+    },
   },
   settings: {
     language: '语言',
@@ -1177,6 +1187,16 @@ const translations: Record<Locale, Translations> = {
     totalRevenue: 'Total Revenue',
     totalProfit: 'Total Profit',
     roi: 'ROI',
+    recommendations: 'Recommendations',
+    portfolioSnapshot: 'Portfolio snapshot',
+    successRate: 'Success rate',
+    rec: {
+      negativeRoi: 'ROI is negative — consider revisiting your investment strategy.',
+      lowSuccessRate: 'Low sale-through rate — consider improving selection and exit timing.',
+      lowWinRate: 'Win rate is low — consider improving domain selection and pricing.',
+      longHolding: 'Average holding period is long — consider a more active trading approach.',
+      performingWell: 'Portfolio is performing well — you may continue your current strategy.',
+    },
   },
   settings: {
     language: 'Language',
