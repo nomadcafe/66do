@@ -1,7 +1,7 @@
 /**
  * 续费持有成本口径：
  * - 未设置 baseline_renewal_as_of：仅 renewal_count × renewal_cost（与历史行为一致，不叠加 renew 交易以免双算）。
- * - 已设置 baseline_renewal_as_of：档案估算 + 基线日之后的 renew 交易金额（按自然日 date > 基线日）。
+ * - 已设置 baseline_renewal_as_of：档案估算 + 基线日及之后的 renew 交易金额（按自然日 date >= 基线日）。
  */
 
 export type RenewalCostTx = {
@@ -37,7 +37,7 @@ export function incrementalRenewalFromTransactions(
     if (t.domain_id !== domainId || t.type !== 'renew') continue;
     const d = String(t.date).slice(0, 10);
     if (d.length < 10 || b.length < 10) continue;
-    if (d > b) sum += Number(t.amount) || 0;
+    if (d >= b) sum += Number(t.amount) || 0;
   }
   return sum;
 }
