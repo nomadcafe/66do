@@ -10,7 +10,11 @@ import {
   ensureTransactionWithRequiredFields
 } from '../types/dashboard';
 import { auditLogger } from '../lib/security';
-import { validateDomain, validateTransaction } from '../lib/validation';
+import {
+  translateValidationMessages,
+  validateDomain,
+  validateTransaction
+} from '../lib/validation';
 import { logger } from '../lib/logger';
 
 interface LoadOptions {
@@ -157,7 +161,8 @@ export function useDashboardData(
       for (const domain of newDomains) {
         const validation = validateDomain(domain);
         if (!validation.valid) {
-          throw new Error(`Domain validation failed: ${validation.errors.join(', ')}`);
+          const msgs = translateValidationMessages(validation.errors, t);
+          throw new Error(`Domain validation failed: ${msgs.join(', ')}`);
         }
       }
 
@@ -165,7 +170,8 @@ export function useDashboardData(
         for (const transaction of newTransactions) {
           const validation = validateTransaction(transaction);
           if (!validation.valid) {
-            throw new Error(`Transaction validation failed: ${validation.errors.join(', ')}`);
+            const msgs = translateValidationMessages(validation.errors, t);
+            throw new Error(`Transaction validation failed: ${msgs.join(', ')}`);
           }
         }
       }
@@ -214,7 +220,9 @@ export function useDashboardData(
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           const details = errorData.details
-            ? (Array.isArray(errorData.details) ? errorData.details.join('; ') : String(errorData.details))
+            ? (Array.isArray(errorData.details)
+                ? translateValidationMessages(errorData.details, t).join('; ')
+                : String(errorData.details))
             : (errorData.error || response.statusText);
           throw new Error(`Failed to ${isExisting ? 'update' : 'add'} domain: ${details}`);
         }
@@ -253,7 +261,9 @@ export function useDashboardData(
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             const details = errorData.details
-              ? (Array.isArray(errorData.details) ? errorData.details.join('; ') : String(errorData.details))
+              ? (Array.isArray(errorData.details)
+                  ? translateValidationMessages(errorData.details, t).join('; ')
+                  : String(errorData.details))
               : (errorData.error || response.statusText);
             throw new Error(`Failed to update transaction: ${details}`);
           }

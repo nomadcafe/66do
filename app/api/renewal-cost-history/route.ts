@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCorsHeaders, getCorsHeadersForError } from '../../../src/lib/cors';
-import { getUserIdFromRequest } from '../../../src/lib/auth-helper';
-import { supabase } from '../../../src/lib/supabase';
+import { getAuthInfoFromRequest } from '../../../src/lib/auth-helper';
+import { createAuthenticatedSupabaseClient } from '../../../src/lib/supabaseAuthClient';
 
 export async function GET(request: NextRequest) {
   const corsHeaders = getCorsHeaders(request);
@@ -17,17 +17,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 验证用户身份
-    const userId = await getUserIdFromRequest(request);
-    if (!userId) {
+    const authInfo = await getAuthInfoFromRequest(request);
+    if (!authInfo?.userId || !authInfo.accessToken) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401, headers: corsHeaders }
       );
     }
 
-    // 验证域名是否属于当前用户
-    const { data: domain, error: domainError } = await supabase
+    const userId = authInfo.userId;
+    const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined;
+    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken);
+
+    // 验证域名是否属于当前用户（使用带 JWT 的客户端，与 RLS 一致）
+    const { data: domain, error: domainError } = await client
       .from('domains')
       .select('id, user_id')
       .eq('id', domainId)
@@ -41,8 +44,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 获取续费成本历史（通过RLS策略自动过滤）
-    const { data: renewalHistory, error } = await supabase
+    const { data: renewalHistory, error } = await client
       .from('renewal_cost_history')
       .select('*')
       .eq('domain_id', domainId)
@@ -87,17 +89,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 验证用户身份
-    const userId = await getUserIdFromRequest(request);
-    if (!userId) {
+    const authInfo = await getAuthInfoFromRequest(request);
+    if (!authInfo?.userId || !authInfo.accessToken) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401, headers: corsHeaders }
       );
     }
 
-    // 验证域名是否属于当前用户
-    const { data: domain, error: domainError } = await supabase
+    const userId = authInfo.userId;
+    const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined;
+    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken);
+
+    const { data: domain, error: domainError } = await client
       .from('domains')
       .select('id, user_id')
       .eq('id', domain_id)
@@ -111,8 +115,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 创建续费成本历史记录
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from('renewal_cost_history')
       .insert({
         domain_id,
@@ -124,7 +127,7 @@ export async function POST(request: NextRequest) {
         renewal_cycle: renewal_cycle || 1,
         registrar: registrar || null,
         notes: notes || null
-      })
+      } as never)
       .select()
       .single();
 
