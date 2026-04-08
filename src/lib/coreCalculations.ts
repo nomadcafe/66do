@@ -1,6 +1,10 @@
 // import { Domain, DomainTransaction as Transaction } from '../types/domain';
 import { DomainWithTags, TransactionWithRequiredFields } from '../types/dashboard';
+import { sellGrossUSD, sellNetUSD } from './sellProceeds';
 import { totalHoldingCostForDomain } from './renewalCostBasis';
+
+export type { SellProceedsFields } from './sellProceeds';
+export { sellGrossUSD, sellNetUSD } from './sellProceeds';
 
 /** 统一以 USD 计价的交易金额（优先 base_amount，用于汇总） */
 function amountUSD(t: TransactionWithRequiredFields): number {
@@ -11,7 +15,10 @@ function amountUSD(t: TransactionWithRequiredFields): number {
 // 基础财务计算接口
 export interface BasicFinancialMetrics {
   totalInvestment: number;
+  /** 累计出售净收入（扣平台费后） */
   totalRevenue: number;
+  /** 累计出售毛额（未扣平台费，与 Total Sales 卡片一致） */
+  totalGrossSales: number;
   totalProfit: number;
   roi: number;
   profitMargin: number;
@@ -60,9 +67,9 @@ export function calculateBasicFinancialMetrics(
     0
   );
 
-  const totalRevenue = transactions
-    .filter(t => t.type === 'sell')
-    .reduce((sum, t) => sum + amountUSD(t), 0);
+  const sellTransactions = transactions.filter(t => t.type === 'sell');
+  const totalGrossSales = sellTransactions.reduce((sum, t) => sum + sellGrossUSD(t), 0);
+  const totalRevenue = sellTransactions.reduce((sum, t) => sum + sellNetUSD(t), 0);
 
   const totalProfit = totalRevenue - totalInvestment;
   const roi = totalInvestment > 0 ? (totalProfit / totalInvestment) * 100 : 0;
@@ -71,6 +78,7 @@ export function calculateBasicFinancialMetrics(
   return {
     totalInvestment,
     totalRevenue,
+    totalGrossSales,
     totalProfit,
     roi,
     profitMargin
@@ -89,7 +97,7 @@ export function calculateDomainPerformance(
     
     const totalEarned = domainTransactions
       .filter(t => t.type === 'sell')
-      .reduce((sum, t) => sum + amountUSD(t), 0);
+      .reduce((sum, t) => sum + sellNetUSD(t), 0);
     
     const revenue = domain.sale_price || domain.estimated_value || totalEarned;
     const profit = revenue - totalCost;
@@ -156,7 +164,7 @@ export function calculateMonthlyReturns(
       return transactionDate.getMonth() === date.getMonth() &&
              transactionDate.getFullYear() === date.getFullYear() && t.type === 'sell';
     });
-    const revenue = monthTransactions.reduce((sum, t) => sum + amountUSD(t), 0);
+    const revenue = monthTransactions.reduce((sum, t) => sum + sellNetUSD(t), 0);
 
     if (investment <= 0) return 0;
     return (revenue / investment) * 100;

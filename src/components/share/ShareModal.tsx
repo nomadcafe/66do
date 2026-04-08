@@ -5,7 +5,7 @@ import { X, Download, Linkedin, Facebook } from 'lucide-react';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags } from '../../types/dashboard';
 import type { TransactionWithRequiredFields } from '../../types/transaction';
-import { calculateBasicFinancialMetrics } from '../../lib/coreCalculations';
+import { calculateBasicFinancialMetrics, sellNetUSD } from '../../lib/coreCalculations';
 import { totalHoldingCostForDomain } from '../../lib/renewalCostBasis';
 
 export interface ShareData {
@@ -92,8 +92,7 @@ function computeShareDataFromData(
 
   const sellTxByDomainId = transactions.filter((t) => t.type === 'sell').reduce((acc, t) => {
     const id = t.domain_id;
-    const usd = t.base_amount != null ? t.base_amount : (t.net_amount != null ? t.net_amount : t.amount);
-    acc[id] = (acc[id] || 0) + usd;
+    acc[id] = (acc[id] || 0) + sellNetUSD(t);
     return acc;
   }, {} as Record<string, number>);
 

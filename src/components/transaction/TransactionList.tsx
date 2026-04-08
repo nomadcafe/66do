@@ -2,6 +2,7 @@
 
 import { useState, useMemo, memo, useCallback } from 'react';
 import { Search, Filter, Plus, Edit, Trash2, DollarSign, Calendar, FileText, TrendingUp, TrendingDown, LayoutList, GitBranch } from 'lucide-react';
+import { sellGrossUSD, sellNetUSD } from '../../lib/coreCalculations';
 import { calculateDomainROI, getROIColor, getROIBgColor, formatPercentage } from '../../lib/enhancedFinancialMetrics';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
@@ -316,7 +317,7 @@ const TransactionList = memo(function TransactionList({
                         <div className="flex items-center">
                           <DollarSign className="h-4 w-4 text-gray-400 mr-1" />
                           <span className="text-sm font-medium text-gray-900">
-                            {formatCurrency(transaction.amount, transaction.currency)}
+                            {formatCurrency(sellGrossUSD(transaction), transaction.currency)}
                           </span>
                         </div>
                         {transaction.type === 'sell' && transaction.payment_plan === 'installment' && (
@@ -329,7 +330,7 @@ const TransactionList = memo(function TransactionList({
                         {transaction.type === 'sell' && transaction.platform_fee && transaction.platform_fee > 0 && (
                           <div className="mt-1">
                             <span className="text-xs text-green-600 font-medium">
-                              {t('transaction.netIncome')}: {formatCurrency(transaction.net_amount || (transaction.amount - transaction.platform_fee), transaction.currency)}
+                              {t('transaction.netIncome')}: {formatCurrency(sellNetUSD(transaction), transaction.currency)}
                             </span>
                             <span className="text-xs text-gray-500 ml-2">
                               ({t('transaction.platformFeeDesc')}: {formatCurrency(transaction.platform_fee, transaction.currency)})

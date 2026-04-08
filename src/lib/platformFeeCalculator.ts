@@ -218,25 +218,31 @@ function calculateAtomInstallmentFee(sellerAmount: number, installmentPeriod: nu
   };
 }
 
+/** Standard 分期与 Spaceship 同款算法时的默认平台费率（对分期总额） */
+export const STANDARD_INSTALLMENT_TOTAL_SALE_FEE_RATE = 0.1;
+
 /**
- * Spaceship 分期：平台费 = 出售总金额 × 5%（不是对「每期×期数」反推 customer/seller）
- * 出售总金额 = 客户分期付款总额（与 Installment Summary 的 Total Installment 一致）
+ * 分期总额口径的平台费：客户总付 = 分期总额；平台费 = 总额 × 费率；卖家净得 = 总额 − 平台费
+ * Spaceship 用 5%；Standard 分期用本算法，默认 10%（可通过 customFeeRate 覆盖）
  */
-function calculateSpaceshipInstallmentFeeFromTotalSale(totalSaleAmount: number): PlatformFeeResult {
+function calculateInstallmentFeeFromTotalSale(
+  totalSaleAmount: number,
+  feeRateDecimal: number
+): PlatformFeeResult {
   if (totalSaleAmount <= 0) {
     return {
       customerTotalAmount: 0,
       platformFee: 0,
-      platformFeeRate: 0.05,
+      platformFeeRate: feeRateDecimal,
       sellerNetAmount: 0,
       breakdown: { baseAmount: 0, feeAmount: 0 }
     };
   }
-  const platformFee = totalSaleAmount * 0.05;
-  const sellerNetAmount = totalSaleAmount - platformFee; // 95% 归卖家
+  const platformFee = totalSaleAmount * feeRateDecimal;
+  const sellerNetAmount = totalSaleAmount - platformFee;
   const platformFeeRate = platformFee / totalSaleAmount;
   return {
-    customerTotalAmount: totalSaleAmount, // 客户支付的分期总额即「出售金额」
+    customerTotalAmount: totalSaleAmount,
     platformFee,
     platformFeeRate,
     sellerNetAmount,
@@ -245,6 +251,27 @@ function calculateSpaceshipInstallmentFeeFromTotalSale(totalSaleAmount: number):
       feeAmount: platformFee
     }
   };
+}
+
+function feeRateForTotalSaleInstallmentPath(
+  platformFeeType: string,
+  customFeeRate?: number
+): number {
+  if (platformFeeType === 'spaceship_installment') return 0.05;
+  if (platformFeeType === 'standard') {
+    if (customFeeRate != null && customFeeRate > 0 && customFeeRate <= 1) {
+      return customFeeRate;
+    }
+    return STANDARD_INSTALLMENT_TOTAL_SALE_FEE_RATE;
+  }
+  return 0.05;
+}
+
+/**
+ * Spaceship 分期：平台费 = 分期总额 × 5%
+ */
+function calculateSpaceshipInstallmentFeeFromTotalSale(totalSaleAmount: number): PlatformFeeResult {
+  return calculateInstallmentFeeFromTotalSale(totalSaleAmount, 0.05);
 }
 
 /** @deprecated 旧逻辑用 sellerAmount 反推会错；Spaceship 应使用 calculateSpaceshipInstallmentFeeFromTotalSale */
@@ -292,7 +319,7 @@ export function calculateTotalInstallmentAmount(
 
 /**
  * 根据分期金额和期数计算客户总付款 / 平台费
- * Spaceship：平台费 = 分期总额 × 5%，与 Installment Summary 的 Total Installment 一致
+ * Spaceship：分期总额 × 5%。Standard 分期：同算法，默认分期总额 × 10%（customFeeRate 可覆盖，0–1）
  */
 export function calculateCustomerTotalFromInstallment(
   installmentAmount: number,
@@ -308,7 +335,11 @@ export function calculateCustomerTotalFromInstallment(
   const downpayment = options?.downpaymentAmount ?? 0;
   const finalPayment = options?.finalPaymentAmount ?? 0;
 
-  if (platformFeeType === 'spaceship_installment' && (downpayment > 0 || installmentAmount > 0)) {
+  const useTotalSalePath =
+    (platformFeeType === 'spaceship_installment' || platformFeeType === 'standard') &&
+    (downpayment > 0 || installmentAmount > 0);
+
+  if (useTotalSalePath) {
     const totalSaleAmount = calculateTotalInstallmentAmount(
       downpayment,
       installmentAmount,
@@ -316,7 +347,8 @@ export function calculateCustomerTotalFromInstallment(
       finalPayment
     );
     if (totalSaleAmount > 0) {
-      return calculateSpaceshipInstallmentFeeFromTotalSale(totalSaleAmount);
+      const rate = feeRateForTotalSaleInstallmentPath(platformFeeType, customFeeRate);
+      return calculateInstallmentFeeFromTotalSale(totalSaleAmount, rate);
     }
   }
 
@@ -335,7 +367,7 @@ export function calculateCustomerTotalFromInstallment(
 
 /**
  * 根据已付期数计算实际收到的金额和平台费用
- * Spaceship：客户已付总额 = 首付 + 已付期数×每期金额（与业务一致）；平台费按已收款比例占 5%
+ * Spaceship / Standard 分期：与分期总额算法一致；已付部分按「已收/分期总额」比例分摊平台费
  */
 export function calculatePaidAmountFromInstallment(
   installmentAmount: number,
@@ -352,23 +384,24 @@ export function calculatePaidAmountFromInstallment(
   const downpayment = options?.downpaymentAmount ?? 0;
   const finalPayment = options?.finalPaymentAmount ?? 0;
 
-  if (platformFeeType === 'spaceship_installment') {
+  if (platformFeeType === 'spaceship_installment' || platformFeeType === 'standard') {
     const totalSaleAmount = calculateTotalInstallmentAmount(
       downpayment,
       installmentAmount,
       totalPeriods,
       finalPayment
     );
+    const nominalRate = feeRateForTotalSaleInstallmentPath(platformFeeType, customFeeRate);
     if (totalSaleAmount <= 0) {
       return {
         customerTotalAmount: 0,
         platformFee: 0,
-        platformFeeRate: 0.05,
+        platformFeeRate: nominalRate,
         sellerNetAmount: 0,
         breakdown: { baseAmount: 0, feeAmount: 0 }
       };
     }
-    const totalResult = calculateSpaceshipInstallmentFeeFromTotalSale(totalSaleAmount);
+    const totalResult = calculateInstallmentFeeFromTotalSale(totalSaleAmount, nominalRate);
     // 已付给卖家的分期部分（不含首付时仅期数×每期；若首付算已付，则 seller 已收 = 首付 + 期数×每期）
     const sellerReceivedSoFar = downpayment + installmentAmount * paidPeriods;
     const paidRatio = Math.min(1, sellerReceivedSoFar / totalSaleAmount);

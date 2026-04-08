@@ -18,6 +18,7 @@ import {
   formatPercentage
 } from '../../lib/financialCalculations';
 import { totalHoldingCostForDomain } from '../../lib/renewalCostBasis';
+import { sellNetUSD } from '../../lib/coreCalculations';
 import { useI18nContext } from '../../contexts/I18nProvider';
 
 // interface Domain {
@@ -153,7 +154,7 @@ export default function FinancialReport({ domains, transactions }: FinancialRepo
 
     const totalRevenue = filteredTransactions
       .filter(t => t.type === 'sell')
-      .reduce((sum, t) => sum + (t.net_amount || t.amount), 0);
+      .reduce((sum, t) => sum + sellNetUSD(t), 0);
 
     const totalProfit = totalRevenue - totalInvestment;
     const roi = calculateROI(totalInvestment, totalRevenue);
@@ -182,7 +183,7 @@ export default function FinancialReport({ domains, transactions }: FinancialRepo
         .reduce((sum, t) => sum + t.amount, 0);
       const totalEarned = domainTransactions
         .filter(t => t.type === 'sell')
-        .reduce((sum, t) => sum + t.amount, 0);
+        .reduce((sum, t) => sum + sellNetUSD(t), 0);
       const profit = totalEarned - totalSpent;
       return { domain, profit };
     });
@@ -206,7 +207,7 @@ export default function FinancialReport({ domains, transactions }: FinancialRepo
 
       const profit = monthTransactions
         .filter(t => t.type === 'sell')
-        .reduce((sum, t) => sum + t.amount, 0);
+        .reduce((sum, t) => sum + sellNetUSD(t), 0);
       const revenue = profit;
       const cost = monthTransactions
         .filter(t => t.type === 'buy' || t.type === 'renew' || t.type === 'fee')

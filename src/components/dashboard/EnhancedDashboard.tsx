@@ -14,7 +14,7 @@ import {
   Eye,
   EyeOff
 } from 'lucide-react';
-import { totalHoldingCostForDomain } from '../../lib/renewalCostBasis';
+import { calculateBasicFinancialMetrics } from '../../lib/coreCalculations';
 
 interface EnhancedDashboardProps {
   domains: DomainWithTags[];
@@ -39,17 +39,7 @@ export default function EnhancedDashboard({
     const expiredDomains = domains.filter(d => d.status === 'expired');
     const forSaleDomains = domains.filter(d => d.status === 'for_sale');
 
-    const totalInvestment = domains.reduce(
-      (sum, domain) => sum + totalHoldingCostForDomain(domain, transactions),
-      0
-    );
-
-    const totalRevenue = transactions
-      .filter(t => t.type === 'sell')
-      .reduce((sum, t) => sum + (t.net_amount || t.amount), 0);
-
-    const totalProfit = totalRevenue - totalInvestment;
-    const roi = totalInvestment > 0 ? (totalProfit / totalInvestment) * 100 : 0;
+    const m = calculateBasicFinancialMetrics(domains, transactions);
 
     return {
       totalDomains: domains.length,
@@ -57,10 +47,11 @@ export default function EnhancedDashboard({
       soldDomains: soldDomains.length,
       expiredDomains: expiredDomains.length,
       forSaleDomains: forSaleDomains.length,
-      totalInvestment,
-      totalRevenue,
-      totalProfit,
-      roi,
+      totalInvestment: m.totalInvestment,
+      totalRevenue: m.totalRevenue,
+      totalGrossSales: m.totalGrossSales,
+      totalProfit: m.totalProfit,
+      roi: m.roi,
     };
   }, [domains, transactions]);
 
