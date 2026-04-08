@@ -145,12 +145,10 @@ export function useDashboardData(
       ? newDomains
       : mergeRenewTransactionDomainUpdates(newDomains, newTransactions, transactions);
 
-    // 先乐观更新，再校验与持久化：添加交易后立即更新列表和 Total Revenue / Total Sales 等
-    if (!domainsOnly) {
-      domainCache.invalidateUserCache(userId);
-      setDomains(domainsForSave);
-      setTransactions(newTransactions);
-    }
+    // 先乐观更新，再校验与持久化：新增/编辑后立即反映到 UI
+    domainCache.invalidateUserCache(userId);
+    setDomains(domainsForSave);
+    if (!domainsOnly) setTransactions(newTransactions);
 
     try {
       // 优先用浏览器内 getSession()（可自动刷新过期的 access_token）；页面 props 里的 token 可能已过期
@@ -164,9 +162,81 @@ export function useDashboardData(
         throw new Error('No access token for save');
       }
 
-      logger.log(domainsOnly ? 'Saving domains to Supabase...' : 'Saving data to Supabase database...');
+      const toDomainSignature = (domain: DomainWithTags) => JSON.stringify({
+        id: domain.id,
+        domain_name: domain.domain_name,
+        status: domain.status,
+        renewal_cycle: domain.renewal_cycle ?? 1,
+        renewal_count: domain.renewal_count ?? 0,
+        registrar: domain.registrar || null,
+        purchase_date: domain.purchase_date || null,
+        purchase_cost: domain.purchase_cost || null,
+        renewal_cost: domain.renewal_cost || null,
+        baseline_renewal_as_of: domain.baseline_renewal_as_of || null,
+        next_renewal_date: domain.next_renewal_date || null,
+        expiry_date: domain.expiry_date || null,
+        estimated_value: domain.estimated_value || null,
+        sale_date: domain.sale_date || null,
+        sale_price: domain.sale_price || null,
+        platform_fee: domain.platform_fee || null,
+        tags: JSON.stringify(domain.tags || []),
+      });
+      const toTransactionSignature = (transaction: TransactionWithRequiredFields) => JSON.stringify({
+        id: transaction.id,
+        domain_id: transaction.domain_id,
+        type: transaction.type,
+        amount: transaction.amount,
+        currency: transaction.currency,
+        exchange_rate: transaction.exchange_rate || null,
+        base_amount: transaction.base_amount || null,
+        platform_fee: transaction.platform_fee || null,
+        platform_fee_percentage: transaction.platform_fee_percentage || null,
+        net_amount: transaction.net_amount || null,
+        date: transaction.date,
+        notes: transaction.notes || null,
+        platform: transaction.platform || null,
+        category: transaction.category || null,
+        tax_deductible: transaction.tax_deductible ?? false,
+        receipt_url: transaction.receipt_url || null,
+        payment_plan: transaction.payment_plan || null,
+        installment_period: transaction.installment_period || null,
+        downpayment_amount: transaction.downpayment_amount || null,
+        installment_amount: transaction.installment_amount || null,
+        final_payment_amount: transaction.final_payment_amount || null,
+        total_installment_amount: transaction.total_installment_amount || null,
+        paid_periods: transaction.paid_periods || null,
+        installment_status: transaction.installment_status || null,
+        platform_fee_type: transaction.platform_fee_type || null,
+        user_input_fee_rate: transaction.user_input_fee_rate || null,
+        user_input_surcharge_rate: transaction.user_input_surcharge_rate || null,
+        renewal_period_years: transaction.renewal_period_years ?? null,
+        extend_domain_expiry_on_renew: transaction.extend_domain_expiry_on_renew ?? null,
+        renewal_years_use_custom: transaction.renewal_years_use_custom ?? null,
+      });
 
-      for (const domain of domainsForSave) {
+      const existingDomainMap = new Map(domains.map((d) => [d.id, d]));
+      const changedDomains = domainsForSave.filter((domain) => {
+        const existing = existingDomainMap.get(domain.id);
+        if (!existing) return true;
+        return toDomainSignature(existing) !== toDomainSignature(domain);
+      });
+
+      const existingTransactionMap = new Map(transactions.map((tx) => [tx.id, tx]));
+      const changedTransactions = domainsOnly
+        ? []
+        : newTransactions.filter((transaction) => {
+            const existing = existingTransactionMap.get(transaction.id);
+            if (!existing) return true;
+            return toTransactionSignature(existing) !== toTransactionSignature(transaction);
+          });
+
+      logger.log(
+        domainsOnly
+          ? `Saving changed domains to Supabase... (${changedDomains.length})`
+          : `Saving changed data to Supabase... (${changedDomains.length} domains, ${changedTransactions.length} transactions)`
+      );
+
+      for (const domain of changedDomains) {
         const validation = validateDomain(domain);
         if (!validation.valid) {
           const msgs = translateValidationMessages(validation.errors, t);
@@ -175,7 +245,7 @@ export function useDashboardData(
       }
 
       if (!domainsOnly) {
-        for (const transaction of newTransactions) {
+        for (const transaction of changedTransactions) {
           const validation = validateTransaction(transaction);
           if (!validation.valid) {
             const msgs = translateValidationMessages(validation.errors, t);
@@ -190,8 +260,8 @@ export function useDashboardData(
       };
       if (refreshTok) (headers as Record<string, string>)['X-Refresh-Token'] = refreshTok;
 
-      // Save domains to Supabase
-      for (const domain of domainsForSave) {
+      // 增量保存 domains（仅新增/变更）
+      for (const domain of changedDomains) {
         const isExisting = domains.find(d => d.id === domain.id);
         const domainPayload = {
           ...domain,
@@ -243,16 +313,13 @@ export function useDashboardData(
       }
 
       if (domainsOnly) {
-        domainCache.invalidateUserCache(userId);
-        setDomains(domainsForSave);
-        await loadDashboardData({ showLoading: false });
         logger.log('Domains saved successfully');
         return;
       }
 
-      // Save transactions: 更新走 API；新建用浏览器端 Supabase 插入（带 session，RLS 通过），避免 API 插入失败导致刷新后记录消失
-      const savedTransactions: TransactionWithRequiredFields[] = [];
-      for (const transaction of newTransactions) {
+      // 增量保存 transactions（仅新增/变更）
+      const serverTransactionsById = new Map<string, TransactionWithRequiredFields>();
+      for (const transaction of changedTransactions) {
         const isExisting = transactions.find(t => t.id === transaction.id);
         const transactionPayload = {
           ...transaction,
@@ -282,7 +349,8 @@ export function useDashboardData(
               const { data: created, error: insertError } =
                 await TransactionService.createTransactionWithClient(supabase, payload);
               if (!insertError && created) {
-                savedTransactions.push(ensureTransactionWithRequiredFields(created));
+                const ensured = ensureTransactionWithRequiredFields(created);
+                serverTransactionsById.set(ensured.id, ensured);
                 continue;
               }
               const msg = insertError || '';
@@ -301,7 +369,8 @@ export function useDashboardData(
                 if (!updated) {
                   throw new Error(insertError || 'Failed to update existing transaction after duplicate key');
                 }
-                savedTransactions.push(ensureTransactionWithRequiredFields(updated));
+                const ensured = ensureTransactionWithRequiredFields(updated);
+                serverTransactionsById.set(ensured.id, ensured);
                 continue;
               }
               throw new Error(insertError || 'Failed to add transaction');
@@ -314,7 +383,6 @@ export function useDashboardData(
               : (errorData.error || response.statusText);
             throw new Error(`Failed to update transaction: ${details}`);
           }
-          savedTransactions.push(transaction);
         } else {
           const payload = buildTransactionInsertPayload(
             transactionPayload as Record<string, unknown>,
@@ -324,14 +392,17 @@ export function useDashboardData(
           if (insertError || !created) {
             throw new Error(insertError || 'Failed to add transaction');
           }
-          savedTransactions.push(ensureTransactionWithRequiredFields(created));
+          const ensured = ensureTransactionWithRequiredFields(created);
+          serverTransactionsById.set(ensured.id, ensured);
         }
       }
 
-      setTransactions(savedTransactions.length > 0 ? savedTransactions : newTransactions);
+      if (serverTransactionsById.size > 0) {
+        setTransactions(
+          newTransactions.map((t) => serverTransactionsById.get(t.id) ?? t)
+        );
+      }
 
-      // session 就绪后再拉取，避免 RLS 空列表覆盖刚保存的数据
-      await loadDashboardData({ showLoading: false });
       logger.log('Data saved to Supabase database successfully');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -373,7 +444,7 @@ export function useDashboardData(
 
       throw error;
     }
-  }, [userId, sessionToken, refreshToken, domains, transactions, loadDashboardData, t]);
+  }, [userId, sessionToken, refreshToken, domains, transactions, t]);
 
   const refreshData = useCallback(async () => {
     await loadDashboardData({ showLoading: true });
