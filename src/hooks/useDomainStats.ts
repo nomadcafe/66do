@@ -9,6 +9,8 @@ export interface DomainStats {
   totalDomains: number;
   totalInvestment: number;
   totalRevenue: number;
+  /** 出售毛额（未扣平台费），与 Overview「Total Sales」一致 */
+  totalGrossSales: number;
   totalProfit: number;
   roi: number;
   activeDomains: number;
@@ -133,6 +135,7 @@ export function useDomainStats(
 
     const totalInvestment = enhancedFinancialMetrics.totalInvestment;
     const totalRevenue = basicFinancialMetrics.totalRevenue;
+    const totalGrossSales = basicFinancialMetrics.totalGrossSales;
     const totalHoldingCost = basicFinancialMetrics.totalInvestment;
     const totalRenewalCost =
       totalHoldingCost -
@@ -175,6 +178,7 @@ export function useDomainStats(
       totalDomains,
       totalInvestment,
       totalRevenue,
+      totalGrossSales,
       totalProfit,
       roi,
       activeDomains,

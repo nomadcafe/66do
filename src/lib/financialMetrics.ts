@@ -1,4 +1,5 @@
 // 财务指标计算工具
+import { sellGrossUSD, sellNetUSD } from './coreCalculations';
 import { totalRenewalCostForHolding } from './renewalCostBasis';
 export interface FinancialMetrics {
   // 销售额相关
@@ -64,6 +65,7 @@ export function analyzeTransactions(transactions: Array<{
   domain_id: string;
   type: string;
   amount: number;
+  base_amount?: number | null;
   platform_fee?: number;
   net_amount?: number;
   date: string;
@@ -73,9 +75,9 @@ export function analyzeTransactions(transactions: Array<{
   const salesTransactions = transactions
     .filter(t => t.type === 'sell')
     .map(t => {
-      const grossAmount = t.amount;
+      const grossAmount = sellGrossUSD(t);
       const platformFee = t.platform_fee || 0;
-      const netAmount = t.net_amount || (grossAmount - platformFee);
+      const netAmount = sellNetUSD(t);
       
       return {
         id: t.id,
@@ -117,6 +119,7 @@ export function calculateAnnualMetrics(
     id: string;
     type: string;
     amount: number;
+    base_amount?: number | null;
     platform_fee?: number;
     net_amount?: number;
     date: string;
@@ -141,9 +144,9 @@ export function calculateAnnualMetrics(
     t.type === 'buy' || t.type === 'renew' || t.type === 'fee'
   );
   
-  const annualSales = salesTransactions.reduce((sum, t) => sum + t.amount, 0);
+  const annualSales = salesTransactions.reduce((sum, t) => sum + sellGrossUSD(t), 0);
   const annualPlatformFees = salesTransactions.reduce((sum, t) => sum + (t.platform_fee || 0), 0);
-  const annualRevenue = salesTransactions.reduce((sum, t) => sum + (t.net_amount || t.amount), 0);
+  const annualRevenue = salesTransactions.reduce((sum, t) => sum + sellNetUSD(t), 0);
   const annualCosts = costTransactions.reduce((sum, t) => sum + t.amount, 0);
   const annualProfit = annualRevenue - annualCosts;
   
@@ -171,6 +174,7 @@ export function calculateFinancialMetrics(
     domain_id: string;
     type: string;
     amount: number;
+    base_amount?: number | null;
     platform_fee?: number;
     net_amount?: number;
     date: string;
@@ -312,6 +316,7 @@ export function calculateDomainPerformance(
     domain_id: string;
     type: string;
     amount: number;
+    base_amount?: number | null;
     platform_fee?: number;
     net_amount?: number;
     date: string;
@@ -344,8 +349,8 @@ export function calculateDomainPerformance(
   
   // 销售收入
   const salesTransactions = domainTransactions.filter(t => t.type === 'sell');
-  const totalSales = salesTransactions.reduce((sum, t) => sum + t.amount, 0);
-  const totalRevenue = salesTransactions.reduce((sum, t) => sum + (t.net_amount || t.amount), 0);
+  const totalSales = salesTransactions.reduce((sum, t) => sum + sellGrossUSD(t), 0);
+  const totalRevenue = salesTransactions.reduce((sum, t) => sum + sellNetUSD(t), 0);
   
   // 利润和ROI
   const totalProfit = totalRevenue - totalInvestment;

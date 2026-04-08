@@ -35,6 +35,7 @@ import {
   Info
 } from 'lucide-react';
 import { totalHoldingCostForDomain } from '../../lib/renewalCostBasis';
+import { sellNetUSD } from '../../lib/coreCalculations';
 
 // interface Domain {
 //   id: string;
@@ -237,7 +238,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
 
       const revenue = monthTransactions
         .filter(t => t.type === 'sell')
-        .reduce((sum, t) => sum + (t.base_amount ?? t.net_amount ?? t.amount), 0);
+        .reduce((sum, t) => sum + sellNetUSD(t), 0);
 
       cumulativeRevenue += revenue;
       const profit = cumulativeRevenue - investment;

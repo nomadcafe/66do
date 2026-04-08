@@ -1,4 +1,5 @@
 // 增强的财务指标计算工具
+import { sellGrossUSD, sellNetUSD } from './coreCalculations';
 import { totalRenewalCostForHolding } from './renewalCostBasis';
 export interface EnhancedFinancialMetrics {
   // 收入相关（更清晰的命名）
@@ -63,6 +64,7 @@ export function calculateDomainROI(
     domain_id: string;
     type: string;
     amount: number;
+    base_amount?: number | null;
     platform_fee?: number | null;
     net_amount?: number | null;
     date: string;
@@ -86,8 +88,8 @@ export function calculateDomainROI(
   
   // 销售收入
   const salesTransactions = domainTransactions.filter(t => t.type === 'sell');
-  const totalSales = salesTransactions.reduce((sum, t) => sum + t.amount, 0);
-  const netRevenue = salesTransactions.reduce((sum, t) => sum + (t.net_amount || t.amount), 0);
+  const totalSales = salesTransactions.reduce((sum, t) => sum + sellGrossUSD(t), 0);
+  const netRevenue = salesTransactions.reduce((sum, t) => sum + sellNetUSD(t), 0);
   
   // 检查域名是否过期
   let isExpired = false;
@@ -152,6 +154,7 @@ export function calculateAllDomainROIs(
     domain_id: string;
     type: string;
     amount: number;
+    base_amount?: number | null;
     platform_fee?: number | null;
     net_amount?: number | null;
     date: string;
@@ -176,6 +179,7 @@ export function calculateEnhancedFinancialMetrics(
     domain_id: string;
     type: string;
     amount: number;
+    base_amount?: number | null;
     platform_fee?: number | null;
     net_amount?: number | null;
     date: string;
@@ -183,13 +187,9 @@ export function calculateEnhancedFinancialMetrics(
   }>
 ): EnhancedFinancialMetrics {
   
-  // 分析交易记录 - 使用与calculateFinancialMetrics相同的逻辑
+  // 分析交易记录 - 与 coreCalculations sellGrossUSD / sellNetUSD 口径一致
   const salesTransactions = transactions.filter(t => t.type === 'sell');
-  const totalSales = salesTransactions.reduce((sum, t) => {
-    const amount = Number(t.amount) || 0;
-    if (!isFinite(amount) || amount < 0) return sum;
-    return sum + amount;
-  }, 0);
+  const totalSales = salesTransactions.reduce((sum, t) => sum + sellGrossUSD(t), 0);
   
   const totalPlatformFees = salesTransactions.reduce((sum, t) => {
     const fee = Number(t.platform_fee) || 0;
@@ -197,14 +197,7 @@ export function calculateEnhancedFinancialMetrics(
     return sum + fee;
   }, 0);
   
-  const totalNetRevenue = salesTransactions.reduce((sum, t) => {
-    // 优先使用net_amount，如果没有则使用amount减去platform_fee
-    const netAmount = t.net_amount !== null && t.net_amount !== undefined 
-      ? Number(t.net_amount) 
-      : (Number(t.amount) || 0) - (Number(t.platform_fee) || 0);
-    if (!isFinite(netAmount) || netAmount < 0) return sum;
-    return sum + netAmount;
-  }, 0);
+  const totalNetRevenue = salesTransactions.reduce((sum, t) => sum + sellNetUSD(t), 0);
   
   // 计算投资成本 - 使用与calculateFinancialMetrics相同的逻辑
   const totalInvestment = domains.reduce((sum, domain) => {
@@ -246,19 +239,9 @@ export function calculateEnhancedFinancialMetrics(
   });
   
   const yearSalesTransactions = yearTransactions.filter(t => t.type === 'sell');
-  const annualSales = yearSalesTransactions.reduce((sum, t) => {
-    const amount = Number(t.amount) || 0;
-    if (!isFinite(amount) || amount < 0) return sum;
-    return sum + amount;
-  }, 0);
+  const annualSales = yearSalesTransactions.reduce((sum, t) => sum + sellGrossUSD(t), 0);
   
-  const annualNetRevenue = yearSalesTransactions.reduce((sum, t) => {
-    const netAmount = t.net_amount !== null && t.net_amount !== undefined 
-      ? Number(t.net_amount) 
-      : (Number(t.amount) || 0) - (Number(t.platform_fee) || 0);
-    if (!isFinite(netAmount) || netAmount < 0) return sum;
-    return sum + netAmount;
-  }, 0);
+  const annualNetRevenue = yearSalesTransactions.reduce((sum, t) => sum + sellNetUSD(t), 0);
   
   // 年度利润计算：只考虑年度内的成本和收入
   // 这里简化处理，使用年度净收入减去年度内相关的持有成本比例

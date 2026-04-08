@@ -48,7 +48,7 @@ import { useDashboardData } from '../../src/hooks/useDashboardData';
 import { useDomainOperations } from '../../src/hooks/useDomainOperations';
 import { useTransactionOperations } from '../../src/hooks/useTransactionOperations';
 import { useDomainStats } from '../../src/hooks/useDomainStats';
-import { calculateBasicFinancialMetrics } from '../../src/lib/coreCalculations';
+import { calculateBasicFinancialMetrics, sellNetUSD } from '../../src/lib/coreCalculations';
 import { totalHoldingCostForDomain } from '../../src/lib/renewalCostBasis';
 import {
   Globe,
@@ -358,8 +358,7 @@ export default function DashboardPage() {
     // 最佳表现域名：按出售交易净收入 - 持有成本 计算单域名利润，与 Analytics 口径一致
     const sellTxByDomainId = transactionsForMetrics.filter((t) => t.type === 'sell').reduce((acc, t) => {
       const id = t.domain_id;
-      const usd = t.base_amount != null ? t.base_amount : (t.net_amount != null ? t.net_amount : t.amount);
-      acc[id] = (acc[id] || 0) + usd;
+      acc[id] = (acc[id] || 0) + sellNetUSD(t);
       return acc;
     }, {} as Record<string, number>);
 
@@ -692,7 +691,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
               <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-sm">
                 <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{t('financial.totalSales')}</p>
-                <p className="text-xl font-bold text-stone-900 mt-1">{formatCurrencyEnhanced(enhancedFinancialMetrics.totalSales)}</p>
+                <p className="text-xl font-bold text-stone-900 mt-1">{formatCurrencyEnhanced(stats.totalGrossSales)}</p>
                 <p className="text-xs text-stone-500 mt-1">{t('financial.totalSalesDesc')}</p>
               </div>
               <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-sm">

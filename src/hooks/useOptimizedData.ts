@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { DomainWithTags, TransactionWithRequiredFields } from '../types/dashboard';
 import { totalHoldingCostForDomain } from '../lib/renewalCostBasis';
+import { calculateBasicFinancialMetrics } from '../lib/coreCalculations';
 
 // 数据缓存接口
 interface DataCache<T> {
@@ -64,6 +65,7 @@ export function useOptimizedData() {
       return {
         totalInvestment: 0,
         totalRevenue: 0,
+        totalGrossSales: 0,
         totalProfit: 0,
         roi: 0,
         activeDomains: 0,
@@ -75,24 +77,15 @@ export function useOptimizedData() {
     const activeDomains = domains.filter(d => d.status === 'active').length;
     const soldDomains = domains.filter(d => d.status === 'sold').length;
     const expiredDomains = domains.filter(d => d.status === 'expired').length;
-    
-    const totalInvestment = domains.reduce(
-      (sum, domain) => sum + totalHoldingCostForDomain(domain, transactions),
-      0
-    );
 
-    const totalRevenue = transactions
-      .filter(t => t.type === 'sell')
-      .reduce((sum, t) => sum + (t.net_amount || t.amount), 0);
-
-    const totalProfit = totalRevenue - totalInvestment;
-    const roi = totalInvestment > 0 ? (totalProfit / totalInvestment) * 100 : 0;
+    const m = calculateBasicFinancialMetrics(domains, transactions);
 
     return {
-      totalInvestment,
-      totalRevenue,
-      totalProfit,
-      roi,
+      totalInvestment: m.totalInvestment,
+      totalRevenue: m.totalRevenue,
+      totalGrossSales: m.totalGrossSales,
+      totalProfit: m.totalProfit,
+      roi: m.roi,
       activeDomains,
       soldDomains,
       expiredDomains

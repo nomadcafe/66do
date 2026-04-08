@@ -24,6 +24,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { totalHoldingCostForDomain } from '../../lib/renewalCostBasis';
+import { sellNetUSD } from '../../lib/coreCalculations';
 
 interface EnhancedFinancialReportProps {
   domains: DomainWithTags[];
@@ -50,7 +51,7 @@ export default function EnhancedFinancialReport({ domains, transactions }: Enhan
 
     const totalRevenue = transactions
       .filter(t => t.type === 'sell')
-      .reduce((sum, t) => sum + (t.net_amount || t.amount), 0);
+      .reduce((sum, t) => sum + sellNetUSD(t), 0);
 
     const totalProfit = totalRevenue - totalInvestment;
     const roi = totalInvestment > 0 ? (totalProfit / totalInvestment) * 100 : 0;
@@ -106,12 +107,12 @@ export default function EnhancedFinancialReport({ domains, transactions }: Enhan
         const date = new Date(transaction.date).toISOString().split('T')[0];
         const existing = investmentTrendData.find(item => item.date === date);
         if (existing) {
-          existing.revenue += transaction.net_amount || transaction.amount;
+          existing.revenue += sellNetUSD(transaction);
         } else {
           investmentTrendData.push({
             date,
             investment: 0,
-            revenue: transaction.net_amount || transaction.amount,
+            revenue: sellNetUSD(transaction),
             profit: 0,
           });
         }
@@ -154,11 +155,11 @@ export default function EnhancedFinancialReport({ domains, transactions }: Enhan
         const month = new Date(transaction.date).toISOString().slice(0, 7);
         const existing = acc.find(item => item.month === month);
         if (existing) {
-          existing.revenue += transaction.net_amount || transaction.amount;
+          existing.revenue += sellNetUSD(transaction);
         } else {
           acc.push({
             month,
-            revenue: transaction.net_amount || transaction.amount,
+            revenue: sellNetUSD(transaction),
             investment: 0,
             profit: 0,
           });

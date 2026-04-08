@@ -1,3 +1,5 @@
+import { sellNetUSD } from '../lib/sellProceeds';
+
 // 统一的Transaction接口定义
 export interface Transaction {
   id: string;
@@ -245,10 +247,7 @@ export class TransactionValidator {
 // 交易工具函数
 export class TransactionUtils {
   static calculateNetAmount(transaction: Transaction): number {
-    if (transaction.net_amount !== undefined) {
-      return transaction.net_amount;
-    }
-    return transaction.amount - (transaction.platform_fee || 0);
+    return sellNetUSD(transaction);
   }
 
   static isInstallmentTransaction(transaction: Transaction): boolean {

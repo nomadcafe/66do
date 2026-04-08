@@ -856,11 +856,15 @@ export default function TransactionForm({
                         <h5 className="text-sm font-medium text-yellow-900 mb-2">{t('transaction.platformFeeCalculation')}</h5>
                         {(() => {
                           try {
+                            const installmentFeeRateOverride =
+                              formData.platform_fee_percentage > 0
+                                ? formData.platform_fee_percentage / 100
+                                : undefined;
                             const result = calculateCustomerTotalFromInstallment(
                               formData.installment_amount,
                               formData.installment_period,
                               formData.platform_fee_type || 'standard',
-                              undefined,
+                              installmentFeeRateOverride,
                               undefined,
                               undefined,
                               formData.user_input_fee_rate,
@@ -924,12 +928,16 @@ export default function TransactionForm({
                           <h5 className="text-sm font-medium text-green-900 mb-2">{t('transaction.paidAmountCalculation')}</h5>
                           {(() => {
                             try {
+                              const installmentFeeRateOverride =
+                                formData.platform_fee_percentage > 0
+                                  ? formData.platform_fee_percentage / 100
+                                  : undefined;
                               const result = calculatePaidAmountFromInstallment(
                                 formData.installment_amount,
                                 formData.paid_periods,
                                 formData.installment_period,
                                 formData.platform_fee_type || 'standard',
-                                undefined,
+                                installmentFeeRateOverride,
                                 undefined,
                                 undefined,
                                 formData.user_input_fee_rate,
