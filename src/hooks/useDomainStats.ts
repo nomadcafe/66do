@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { DomainWithTags, TransactionWithRequiredFields } from '../types/dashboard';
+import { calculateBasicFinancialMetrics } from '../lib/coreCalculations';
 import { calculateEnhancedFinancialMetrics } from '../lib/enhancedFinancialMetrics';
 import { calculateAnnualRenewalCost } from '../lib/renewalCalculations';
 import { totalHoldingCostForDomain } from '../lib/renewalCostBasis';
@@ -116,6 +117,12 @@ export function useDomainStats(
     return calculateEnhancedFinancialMetrics(validDomains, validTransactions);
   }, [domains, transactions]);
 
+  /** 与 Analytics（InvestmentAnalytics / calculateBasicFinancialMetrics）同一口径：全域名持有成本 + 出售收入 */
+  const basicFinancialMetrics = useMemo(
+    () => calculateBasicFinancialMetrics(domains, transactions),
+    [domains, transactions]
+  );
+
   // 计算统计数据
   const stats = useMemo((): DomainStats => {
     const totalDomains = domains.length;
@@ -125,11 +132,13 @@ export function useDomainStats(
     const expiredDomains = domains.filter(d => d.status === 'expired').length;
 
     const totalInvestment = enhancedFinancialMetrics.totalInvestment;
-    const totalRevenue = enhancedFinancialMetrics.totalNetRevenue;
-    const totalRenewalCost = enhancedFinancialMetrics.totalRenewalCost;
-    const totalHoldingCost = enhancedFinancialMetrics.totalHoldingCost;
-    const totalProfit = enhancedFinancialMetrics.netProfit;
-    const roi = enhancedFinancialMetrics.roi;
+    const totalRevenue = basicFinancialMetrics.totalRevenue;
+    const totalHoldingCost = basicFinancialMetrics.totalInvestment;
+    const totalRenewalCost =
+      totalHoldingCost -
+      domains.reduce((s, d) => s + (Number(d.purchase_cost) || 0), 0);
+    const totalProfit = basicFinancialMetrics.totalProfit;
+    const roi = basicFinancialMetrics.roi;
 
     const avgPurchasePrice = totalDomains > 0 ? totalInvestment / totalDomains : 0;
     const avgSalePrice = soldDomains > 0 ? enhancedFinancialMetrics.avgSalePrice : 0;
@@ -182,7 +191,7 @@ export function useDomainStats(
       avgRenewalCost,
       renewalCycles
     };
-  }, [domains, enhancedFinancialMetrics, renewalAnalysis]);
+  }, [domains, enhancedFinancialMetrics, basicFinancialMetrics, renewalAnalysis]);
 
   return stats;
 }

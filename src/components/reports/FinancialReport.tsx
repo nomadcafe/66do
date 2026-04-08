@@ -119,8 +119,12 @@ export default function FinancialReport({ domains, transactions }: FinancialRepo
     ];
   }, [t]);
 
-  // 过滤数据
+  // 过滤数据（「全部时间」须与 Analytics 的 ALL 一致：不过滤，避免 2020 起算日期漏掉更早购入的域名）
   const filteredData = useMemo(() => {
+    if (selectedPeriod === 'all') {
+      return { domains, transactions };
+    }
+
     const period = reportPeriods.find(p => p.value === selectedPeriod);
     if (!period) return { domains, transactions };
 
