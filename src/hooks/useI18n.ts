@@ -1,8 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { LOCALE_COOKIE } from '../i18n/homeDictionary';
 
 type Locale = 'zh' | 'en';
+
+function setLocaleCookieClient(locale: Locale) {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${LOCALE_COOKIE}=${locale}; Path=/; Max-Age=31536000; SameSite=Lax`;
+}
 
 interface Translations {
   [key: string]: string | Translations;
@@ -2379,11 +2385,13 @@ export function useI18n() {
     const savedLocale = localStorage.getItem('domain_financial_locale') as Locale;
     if (savedLocale && (savedLocale === 'zh' || savedLocale === 'en')) {
       setLocale(savedLocale);
+      setLocaleCookieClient(savedLocale);
     } else {
       // 检测浏览器语言
       const browserLang = navigator.language || navigator.languages?.[0] || 'en';
       const detectedLocale = browserLang.startsWith('zh') ? 'zh' : 'en';
       setLocale(detectedLocale);
+      setLocaleCookieClient(detectedLocale);
     }
     setIsLoading(false);
   }, []);
@@ -2391,6 +2399,7 @@ export function useI18n() {
   const changeLocale = (newLocale: Locale) => {
     setLocale(newLocale);
     localStorage.setItem('domain_financial_locale', newLocale);
+    setLocaleCookieClient(newLocale);
   };
 
   const t = (key: string): string => {
