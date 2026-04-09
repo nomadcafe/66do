@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { cookies, headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SupabaseAuthProvider } from "../src/contexts/SupabaseAuthContext";
 import { I18nProvider } from "../src/contexts/I18nProvider";
 import { Analytics } from "@vercel/analytics/next";
+import { getHomeDictionary, resolveHomeLocale } from "../src/i18n/homeDictionary";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,13 +27,18 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const acceptLanguage = (await headers()).get("accept-language");
+  const locale = resolveHomeLocale(cookieStore, acceptLanguage);
+  const { htmlLang } = getHomeDictionary(locale);
+
   return (
-    <html lang="en">
+    <html lang={htmlLang}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
