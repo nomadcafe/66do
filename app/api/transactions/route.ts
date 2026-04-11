@@ -6,6 +6,7 @@ import { getAuthInfoFromRequest } from '../../../src/lib/auth-helper'
 import { createAuthenticatedSupabaseClient, createServiceRoleSupabaseClient } from '../../../src/lib/supabaseAuthClient'
 import { getCorsHeaders, getCorsHeadersForError, noCacheHeaders } from '../../../src/lib/cors'
 import { MAX_BULK_OPERATION_SIZE } from '../../../src/lib/constants'
+import { isDomainOwnedByUser } from '../../../src/lib/domainOwnership'
 
 // GET /api/transactions - 获取所有交易
 export async function GET(request: NextRequest) {
@@ -84,6 +85,12 @@ export async function POST(request: NextRequest) {
 
         const sanitizedTransaction = sanitizeTransactionData(transactionData)
         const payload = buildTransactionInsertPayload(sanitizedTransaction, userId)
+        if (!(await isDomainOwnedByUser(client, payload.domain_id, userId))) {
+          return NextResponse.json(
+            { error: 'Domain not found or does not belong to you' },
+            { status: 403, headers: corsHeaders }
+          )
+        }
         const { data: newTransaction } = await TransactionService.createTransactionWithClient(client, payload)
 
         if (newTransaction) {
@@ -115,6 +122,12 @@ export async function POST(request: NextRequest) {
 
     const sanitizedTransaction = sanitizeTransactionData(transaction)
     const payload = buildTransactionInsertPayload(sanitizedTransaction, userId)
+    if (!(await isDomainOwnedByUser(client, payload.domain_id, userId))) {
+      return NextResponse.json(
+        { error: 'Domain not found or does not belong to you' },
+        { status: 403, headers: corsHeaders }
+      )
+    }
     const result = await TransactionService.createTransactionWithClient(client, payload)
     const newTransaction = result.data
     const insertError = result.error
@@ -197,6 +210,32 @@ export async function PATCH(request: NextRequest) {
         status: 403,
         headers: corsHeaders
       })
+    }
+
+    const txById = new Map(allUserTransactions.map((row) => [row.id, row]))
+    for (const t of transactions) {
+      const sanitized = sanitizeTransactionData(t)
+      const explicit = sanitized.domain_id
+      const domainId =
+        typeof explicit === 'string' && explicit.trim()
+          ? explicit.trim()
+          : typeof t.id === 'string' && txById.has(t.id)
+            ? txById.get(t.id)!.domain_id
+            : undefined
+      if (!domainId) {
+        return NextResponse.json(
+          {
+            error: 'Each transaction must reference a domain you own (domain_id or existing transaction id)',
+          },
+          { status: 400, headers: corsHeaders }
+        )
+      }
+      if (!(await isDomainOwnedByUser(client, domainId, userId))) {
+        return NextResponse.json(
+          { error: 'Domain not found or does not belong to you' },
+          { status: 403, headers: corsHeaders }
+        )
+      }
     }
 
     const validatedTransactions = transactions.map(t => ({
