@@ -369,6 +369,11 @@ export default async function HomePage() {
                   </a>
                 </li>
                 <li>
+                  <Link href="/changelog" prefetch className="transition hover:text-white">
+                    {d.footer.changelog}
+                  </Link>
+                </li>
+                <li>
                   <Link href="/privacy" className="transition hover:text-white">
                     {d.footer.privacyPolicy}
                   </Link>

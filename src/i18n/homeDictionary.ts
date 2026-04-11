@@ -61,6 +61,7 @@ export interface HomeDictionary {
     performanceTracking: string;
     support: string;
     contactUs: string;
+    changelog: string;
     privacyPolicy: string;
     contact: string;
     privacyShort: string;
@@ -137,6 +138,7 @@ const zh: HomeDictionary = {
     performanceTracking: '表现追踪',
     support: '支持',
     contactUs: '联系我们',
+    changelog: '更新日志',
     privacyPolicy: '隐私政策',
     contact: '联系方式',
     privacyShort: '隐私',
@@ -213,6 +215,7 @@ const en: HomeDictionary = {
     performanceTracking: 'Performance Tracking',
     support: 'Support',
     contactUs: 'Contact Us',
+    changelog: 'Changelog',
     privacyPolicy: 'Privacy Policy',
     contact: 'Contact',
     privacyShort: 'Privacy',
