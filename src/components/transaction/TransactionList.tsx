@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useMemo, memo, useCallback } from 'react';
+import { useState, useMemo, memo, useCallback, useEffect } from 'react';
 import { Search, Filter, Plus, Edit, Trash2, DollarSign, Calendar, FileText, TrendingUp, TrendingDown, LayoutList, GitBranch } from 'lucide-react';
 import { sellGrossUSD, sellNetUSD } from '../../lib/coreCalculations';
 import { calculateDomainROI, getROIColor, getROIBgColor, formatPercentage } from '../../lib/enhancedFinancialMetrics';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import DomainTimelineView from './DomainTimelineView';
+import { ListPagination } from '../ui/ListPagination';
 // import { Domain, Transaction } from '../../lib/supabaseService';
 
 // 计算持有时间
@@ -68,6 +69,8 @@ interface TransactionListProps {
   onAdd: () => void;
 }
 
+const TRANSACTIONS_PAGE_SIZE = 30;
+
 const TransactionList = memo(function TransactionList({ 
   transactions, 
   domains, 
@@ -79,6 +82,7 @@ const TransactionList = memo(function TransactionList({
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list');
+  const [page, setPage] = useState(1);
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -145,6 +149,32 @@ const TransactionList = memo(function TransactionList({
     
     return matchesSearch && matchesType;
   }), [transactions, getDomainName, searchTerm, typeFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / TRANSACTIONS_PAGE_SIZE));
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, typeFilter]);
+
+  useEffect(() => {
+    setPage((p) => (p > totalPages ? totalPages : p));
+  }, [totalPages]);
+
+  const paginatedTransactions = useMemo(() => {
+    const start = (page - 1) * TRANSACTIONS_PAGE_SIZE;
+    return filteredTransactions.slice(start, start + TRANSACTIONS_PAGE_SIZE);
+  }, [filteredTransactions, page]);
+
+  const paginationRangeSummary =
+    filteredTransactions.length > TRANSACTIONS_PAGE_SIZE
+      ? t('common.paginationRange')
+          .replace('{start}', String((page - 1) * TRANSACTIONS_PAGE_SIZE + 1))
+          .replace(
+            '{end}',
+            String(Math.min(page * TRANSACTIONS_PAGE_SIZE, filteredTransactions.length))
+          )
+          .replace('{total}', String(filteredTransactions.length))
+      : undefined;
 
   const typeOptions = [
     { value: 'all', labelKey: 'transactionList.allTypes' as const },
@@ -271,36 +301,37 @@ const TransactionList = memo(function TransactionList({
           )}
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-stone-200/80 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-stone-200">
-              <thead className="bg-stone-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    {t('transactionList.domain')}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    {t('transactionList.type')}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    {t('transactionList.amount')}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    {t('transactionList.date')}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    {t('transactionList.platform')}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    {t('transactionList.notes')}
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-stone-500 uppercase tracking-wider">
-                    {t('transactionList.actions')}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-stone-200">
-                {filteredTransactions.map((transaction) => (
+        <div className="space-y-2">
+          <div className="bg-white rounded-2xl border border-stone-200/80 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-stone-200">
+                <thead className="bg-stone-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
+                      {t('transactionList.domain')}
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
+                      {t('transactionList.type')}
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
+                      {t('transactionList.amount')}
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
+                      {t('transactionList.date')}
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
+                      {t('transactionList.platform')}
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
+                      {t('transactionList.notes')}
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-stone-500 uppercase tracking-wider">
+                      {t('transactionList.actions')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-stone-200">
+                  {paginatedTransactions.map((transaction) => (
                   <tr key={transaction.id} className="hover:bg-stone-50/80">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
@@ -407,10 +438,17 @@ const TransactionList = memo(function TransactionList({
                       </div>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
+          <ListPagination
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            rangeSummary={paginationRangeSummary}
+          />
         </div>
       )}
     </div>

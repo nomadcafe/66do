@@ -411,7 +411,11 @@ const translations: Record<Locale, Translations> = {
       notFoundMessage: '您访问的页面不存在或已被移除。',
       errorMessage: '发生了一些问题，请重试或返回首页。',
       formErrorsHeading: '请修正以下错误：',
-      unknownDomain: '未知域名'
+      unknownDomain: '未知域名',
+      paginationNav: '分页',
+      paginationPrev: '上一页',
+      paginationNext: '下一页',
+      paginationRange: '本页第 {start}–{end} 条，筛选结果共 {total} 条'
     },
     share: {
       canvasTitle: '我的域名投资成果',
@@ -1553,7 +1557,11 @@ const translations: Record<Locale, Translations> = {
       notFoundMessage: 'The page you are looking for does not exist or has been moved.',
       errorMessage: 'Something went wrong. Please try again or go back home.',
       formErrorsHeading: 'Please fix the following errors:',
-      unknownDomain: 'Unknown Domain'
+      unknownDomain: 'Unknown Domain',
+      paginationNav: 'Pagination',
+      paginationPrev: 'Previous page',
+      paginationNext: 'Next page',
+      paginationRange: 'Rows {start}–{end} of {total} (filtered)'
     },
     share: {
       canvasTitle: 'My Domain Investment Results',

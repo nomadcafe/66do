@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useMemo, memo } from 'react';
+import { useState, useMemo, memo, useEffect } from 'react';
 import { Edit, Trash2, Eye, Share2, Calendar, Tag, Globe } from 'lucide-react';
 import DomainShareModal from '../share/DomainShareModal';
 import { DomainWithTags } from '../../types/dashboard';
 import type { TransactionWithRequiredFields } from '../../types/transaction';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { calculateDomainROI } from '../../lib/financialCalculations';
+import { ListPagination } from '../ui/ListPagination';
 
 interface Domain {
   id: string;
@@ -35,11 +36,14 @@ interface DomainTableProps {
   onView: (domain: DomainWithTags) => void;
 }
 
+const TABLE_PAGE_SIZE = 24;
+
 const DomainTable = memo(function DomainTable({ domains, transactions = [], onEdit, onDelete, onView }: DomainTableProps) {
   const [sortField, setSortField] = useState('domain_name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [showShareModal, setShowShareModal] = useState(false);
   const [selectedDomain, setSelectedDomain] = useState<DomainWithTags | null>(null);
+  const [page, setPage] = useState(1);
   const { t } = useI18nContext();
 
   const sortedDomains = useMemo(() => [...domains].sort((a, b) => {
@@ -58,7 +62,34 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
     }
   }), [domains, sortField, sortDirection]);
 
+  const totalPages = Math.max(1, Math.ceil(sortedDomains.length / TABLE_PAGE_SIZE));
+
+  useEffect(() => {
+    setPage(1);
+  }, [domains]);
+
+  useEffect(() => {
+    setPage((p) => (p > totalPages ? totalPages : p));
+  }, [totalPages]);
+
+  const displayedDomains = useMemo(() => {
+    const start = (page - 1) * TABLE_PAGE_SIZE;
+    return sortedDomains.slice(start, start + TABLE_PAGE_SIZE);
+  }, [sortedDomains, page]);
+
+  const paginationRangeSummary =
+    sortedDomains.length > TABLE_PAGE_SIZE
+      ? t('common.paginationRange')
+          .replace('{start}', String((page - 1) * TABLE_PAGE_SIZE + 1))
+          .replace(
+            '{end}',
+            String(Math.min(page * TABLE_PAGE_SIZE, sortedDomains.length))
+          )
+          .replace('{total}', String(sortedDomains.length))
+      : undefined;
+
   const handleSort = (field: string) => {
+    setPage(1);
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -120,11 +151,6 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
 
   return (
     <div className="space-y-4">
-      {/* Results Count */}
-      <div className="text-sm text-gray-600">
-        Showing {sortedDomains.length} of {domains.length} domains
-      </div>
-
       {/* Table */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
@@ -198,7 +224,7 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {sortedDomains.map((domain) => {
+              {displayedDomains.map((domain) => {
                 const roi = calculateDomainROI(domain, transactions);
                 
                 const expiryStatus = getExpiryStatus(domain);
@@ -311,6 +337,13 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
           </table>
         </div>
       </div>
+
+      <ListPagination
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        rangeSummary={paginationRangeSummary}
+      />
 
       {/* Empty State */}
       {sortedDomains.length === 0 && (
