@@ -251,7 +251,9 @@ const translations: Record<Locale, Translations> = {
       registrarPlaceholder: 'GoDaddy、Namecheap 等',
       purchaseDateLabel: '购买日期',
       nextRenewalDateLabel: '下次续费日期',
-      expiryDateLabel: '到期日期',
+      expiryDateLabel: '到期日期（选填）',
+      expiryDateOptionalHint:
+        '可不填。填写后「即将到期」等提醒与到期相关分析会更准确；之后随时可在编辑中补全。',
       purchaseCostLabel: '购买成本',
       renewalCostLabel: '续费成本',
       statusLabel: '状态',
@@ -601,7 +603,9 @@ const translations: Record<Locale, Translations> = {
       registrarLabel: '注册商',
       purchaseDateLabel: '购买日期',
       nextRenewalDateLabel: '下次续费日期',
-      expiryDateLabel: '到期日期',
+      expiryDateLabel: '到期日期（选填）',
+      expiryDateOptionalHint:
+        '可不填。填写后「即将到期」等提醒与到期相关分析会更准确；之后随时可在编辑中补全。',
       purchaseCostLabel: '购买成本',
       renewalCostLabel: '续费成本',
       statusLabel: '状态',
@@ -1397,7 +1401,9 @@ const translations: Record<Locale, Translations> = {
       registrarPlaceholder: 'GoDaddy, Namecheap, etc.',
       purchaseDateLabel: 'Purchase Date',
       nextRenewalDateLabel: 'Next Renewal Date',
-      expiryDateLabel: 'Expiry Date',
+      expiryDateLabel: 'Expiry date (optional)',
+      expiryDateOptionalHint:
+        'You can skip this. If set, expiring-soon alerts and expiry-related insights work better; you can add it later when editing.',
       purchaseCostLabel: 'Purchase Cost',
       renewalCostLabel: 'Renewal Cost',
       statusLabel: 'Status',
@@ -1731,7 +1737,9 @@ const translations: Record<Locale, Translations> = {
       registrarLabel: 'Registrar',
       purchaseDateLabel: 'Purchase Date',
       nextRenewalDateLabel: 'Next Renewal Date',
-      expiryDateLabel: 'Expiry Date',
+      expiryDateLabel: 'Expiry date (optional)',
+      expiryDateOptionalHint:
+        'You can skip this. If set, expiring-soon alerts and expiry-related insights work better; you can add it later when editing.',
       purchaseCostLabel: 'Purchase Cost',
       renewalCostLabel: 'Renewal Cost',
       statusLabel: 'Status',

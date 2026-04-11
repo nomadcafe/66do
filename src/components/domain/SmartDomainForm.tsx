@@ -246,21 +246,21 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
               <div className="mb-4">
                 <h3 className="text-lg font-semibold text-gray-900 flex items-center mb-2">
                   <Calendar className="h-5 w-5 mr-2" />
-                  到期日期
+                  到期日期（选填）
                 </h3>
                 <p className="text-sm text-gray-600 mb-4">
-                  请手动输入域名的实际到期日期，或查询WHOIS获取准确信息
+                  可不填；填写后即将到期提醒与分析更准确，之后也可在编辑中补全。若填写，建议以注册商或 WHOIS 为准。
                 </p>
               </div>
 
               <DateInput
-                label="到期日期"
+                label="到期日期（选填）"
                 value={formData.expiry_date || ''}
                 onChange={(value) => handleInputChange('expiry_date', value)}
                 className="w-full"
               />
               <p className="text-xs text-gray-500 mt-1">
-                建议查询域名注册商的WHOIS信息获取准确的到期日期
+                选填。可查注册商后台或 WHOIS 获取准确到期日。
               </p>
 
               {/* 验证结果 */}

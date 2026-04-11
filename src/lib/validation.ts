@@ -494,11 +494,23 @@ export function sanitizeDomainData(domain: unknown): Record<string, unknown> {
     baselineRenewalAsOf = domainObj.baseline_renewal_as_of.trim().slice(0, 10);
   }
 
+  let expiryDate: string | null = null;
+  if (typeof domainObj.expiry_date === 'string' && domainObj.expiry_date.trim()) {
+    expiryDate = domainObj.expiry_date.trim().slice(0, 10);
+  }
+
+  let nextRenewalDate: string | null = null;
+  if (typeof domainObj.next_renewal_date === 'string' && domainObj.next_renewal_date.trim()) {
+    nextRenewalDate = domainObj.next_renewal_date.trim().slice(0, 10);
+  }
+
   return {
     ...domainObj,
     domain_name: domainName,
     registrar,
     purchase_date: domainObj.purchase_date || null,
+    expiry_date: expiryDate,
+    next_renewal_date: nextRenewalDate,
     purchase_cost: purchaseCost,
     renewal_cost: renewalCost,
     renewal_cycle: renewalCycle,

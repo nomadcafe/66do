@@ -264,13 +264,16 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
               className="w-full"
             />
 
-            <DateInput
-              label={t('dashboard.expiryDateLabel')}
-              icon={<Calendar className="h-4 w-4" />}
-              value={formData.expiry_date}
-              onChange={(value) => setFormData((prev) => ({ ...prev, expiry_date: value }))}
-              className="w-full"
-            />
+            <div className="md:col-span-2 space-y-1">
+              <DateInput
+                label={t('dashboard.expiryDateLabel')}
+                icon={<Calendar className="h-4 w-4" />}
+                value={formData.expiry_date}
+                onChange={(value) => setFormData((prev) => ({ ...prev, expiry_date: value }))}
+                className="w-full max-w-md"
+              />
+              <p className="text-xs text-gray-500">{t('dashboard.expiryDateOptionalHint')}</p>
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
