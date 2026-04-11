@@ -1,4 +1,6 @@
+import type { Metadata } from 'next';
 import type { HomeLocale } from '../i18n/homeDictionary';
+import { getSiteUrl } from '../lib/siteUrl';
 
 export interface ChangelogRelease {
   version: string;
@@ -34,6 +36,32 @@ export const changelogPageCopy: Record<
   },
 };
 
+export function changelogPageMetadata(locale: HomeLocale): Metadata {
+  const c = changelogPageCopy[locale];
+  const base = getSiteUrl();
+  const canonical = new URL(`/${locale}/changelog`, base).href;
+  const zh = new URL('/zh/changelog', base).href;
+  const en = new URL('/en/changelog', base).href;
+  return {
+    title: `${c.metaTitle} · Domain.Financial`,
+    description: c.metaDescription,
+    alternates: {
+      canonical,
+      languages: {
+        'zh-CN': zh,
+        en,
+        'x-default': en,
+      },
+    },
+    openGraph: {
+      url: canonical,
+      title: `${c.metaTitle} · Domain.Financial`,
+      description: c.metaDescription,
+      type: 'website',
+    },
+  };
+}
+
 export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
   zh: [
     {
@@ -43,7 +71,8 @@ export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
         '财务口径：统一「出售毛额 / 出售净额」（sellGrossUSD、sellNetUSD），抽出 sellProceeds 模块；报表、分享、概览与交易列表、财务工具函数等与全站 Total Sales / Total Revenue 语义对齐。',
         '保存性能：域名与交易改为增量写入（仅提交变更项），去掉保存成功后的全量重拉；新建交易仍合并服务端返回行，避免乐观数据与库不一致。',
         '首页与 SEO：落地页改为服务端渲染以降低首屏脚本；generateMetadata、<html lang> 与界面语言一致（Cookie domain_financial_locale 优先，其次 Accept-Language）；仪表板内切换语言时同步写入 Cookie。',
-        '新增「更新日志」页面（/changelog）与首页页脚入口；联系邮箱展示维持防爬占位（hello###domain.financial）。',
+        '营销站采用 /zh、/en 路径（如 /zh/privacy）；访问 /、/changelog、/privacy 会按 Cookie 或浏览器语言重定向到对应前缀；sitemap 收录各语言 URL。',
+        '新增「更新日志」页面（/zh/changelog、/en/changelog）与首页页脚入口；「联系我们」置于「联系方式」栏，通过邮件链接沟通。',
         '四月上旬已上线：续费与到期、续费次数与基线、分期出售在指标中按实收折算；交易保存、PostgREST 分页与 401 后刷新 session 等稳定性改进。',
       ],
     },
@@ -56,7 +85,8 @@ export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
         'Finance semantics: unified sell gross vs net (sellGrossUSD, sellNetUSD) via a shared sellProceeds module; reports, share payloads, overview, transaction list, and helpers now match site-wide Total Sales / Total Revenue meaning.',
         'Save performance: incremental persistence for domains and transactions (only changed rows), no post-save full refetch; new inserts still merge server rows to avoid long-lived client/DB drift.',
         'Homepage & SEO: marketing page is server-rendered for a lighter first load; generateMetadata and <html lang> follow the UI locale (cookie domain_financial_locale first, then Accept-Language); dashboard language changes sync the same cookie.',
-        'Added a changelog at /changelog with a footer link on the homepage; footer email remains an obfuscated placeholder (hello###domain.financial).',
+        'Marketing routes use /zh and /en (e.g. /en/privacy); /, /changelog, and /privacy redirect to the right prefix from cookie or Accept-Language; sitemap lists localized URLs.',
+        'Added a changelog at /zh/changelog and /en/changelog with a footer link; Contact Us lives under the Contact column with a mailto link.',
         'Earlier in April: renewal/expiry/baseline renewal counts, installment sales reflected in metrics by cash collected; fixes around transaction saves, PostgREST pagination, and session refresh after 401.',
       ],
     },

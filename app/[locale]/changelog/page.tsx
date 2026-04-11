@@ -1,36 +1,26 @@
-import { cookies, headers } from 'next/headers';
+import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import {
-  resolveHomeLocale,
-  type HomeLocale,
-} from '../../src/i18n/homeDictionary';
+import { type HomeLocale } from '../../../src/i18n/homeDictionary';
+import { isHomeLocale } from '../../../src/i18n/localePath';
 import {
   changelogPageCopy,
+  changelogPageMetadata,
   changelogReleases,
-} from '../../src/content/changelog';
+} from '../../../src/content/changelog';
 
-export async function generateMetadata(): Promise<Metadata> {
-  const cookieStore = await cookies();
-  const acceptLanguage = (await headers()).get('accept-language');
-  const locale = resolveHomeLocale(cookieStore, acceptLanguage) as HomeLocale;
-  const c = changelogPageCopy[locale];
-  return {
-    title: `${c.metaTitle} · Domain.Financial`,
-    description: c.metaDescription,
-    alternates: { canonical: '/changelog' },
-    openGraph: {
-      title: `${c.metaTitle} · Domain.Financial`,
-      description: c.metaDescription,
-      type: 'website',
-    },
-  };
+type PageProps = { params: Promise<{ locale: string }> };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale: l } = await params;
+  if (!isHomeLocale(l)) notFound();
+  return changelogPageMetadata(l);
 }
 
-export default async function ChangelogPage() {
-  const cookieStore = await cookies();
-  const acceptLanguage = (await headers()).get('accept-language');
-  const locale = resolveHomeLocale(cookieStore, acceptLanguage) as HomeLocale;
+export default async function ChangelogPage({ params }: PageProps) {
+  const { locale: l } = await params;
+  if (!isHomeLocale(l)) notFound();
+  const locale = l as HomeLocale;
   const copy = changelogPageCopy[locale];
   const releases = changelogReleases[locale];
 
@@ -51,7 +41,7 @@ export default async function ChangelogPage() {
       >
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-6">
           <Link
-            href="/"
+            href={`/${locale}`}
             className="text-sm font-medium text-teal-700 transition hover:text-teal-800"
           >
             ← {copy.backHome}

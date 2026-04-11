@@ -1,6 +1,6 @@
 'use client';
 
-import { useI18nContext } from '../../src/contexts/I18nProvider';
+import { useI18nContext } from '../../../src/contexts/I18nProvider';
 import { useEffect, useState } from 'react';
 
 export default function PrivacyPage() {

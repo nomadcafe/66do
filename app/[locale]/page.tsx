@@ -1,4 +1,4 @@
-import { cookies, headers } from 'next/headers';
+import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import {
   Globe,
@@ -13,24 +13,25 @@ import {
 import {
   getHomeDictionary,
   homePageMetadata,
-  resolveHomeLocale,
   type HomeLocale,
-} from '../src/i18n/homeDictionary';
-import HomeHeaderClient from '../src/components/home/HomeHeaderClient';
-import HomeCtaButtons from '../src/components/home/HomeCtaButtons';
-import HomeFooterProductLinks from '../src/components/home/HomeFooterProductLinks';
+} from '../../src/i18n/homeDictionary';
+import { isHomeLocale } from '../../src/i18n/localePath';
+import HomeHeaderClient from '../../src/components/home/HomeHeaderClient';
+import HomeCtaButtons from '../../src/components/home/HomeCtaButtons';
+import HomeFooterProductLinks from '../../src/components/home/HomeFooterProductLinks';
 
-export async function generateMetadata() {
-  const cookieStore = await cookies();
-  const acceptLanguage = (await headers()).get('accept-language');
-  const locale = resolveHomeLocale(cookieStore, acceptLanguage);
-  return homePageMetadata(locale);
+type PageProps = { params: Promise<{ locale: string }> };
+
+export async function generateMetadata({ params }: PageProps) {
+  const { locale: l } = await params;
+  if (!isHomeLocale(l)) notFound();
+  return homePageMetadata(l);
 }
 
-export default async function HomePage() {
-  const cookieStore = await cookies();
-  const acceptLanguage = (await headers()).get('accept-language');
-  const locale = resolveHomeLocale(cookieStore, acceptLanguage) as HomeLocale;
+export default async function HomePage({ params }: PageProps) {
+  const { locale: l } = await params;
+  if (!isHomeLocale(l)) notFound();
+  const locale = l as HomeLocale;
   const d = getHomeDictionary(locale);
   const year = new Date().getFullYear();
 
@@ -92,6 +93,7 @@ export default async function HomePage() {
     >
       <HomeHeaderClient
         initialLocale={locale}
+        localePrefix={`/${locale}`}
         platformName={d.platform.name}
         selectLanguageLabel={d.settings.selectLanguage}
         signInLabel={d.nav.signIn}
@@ -361,26 +363,18 @@ export default async function HomePage() {
               </h4>
               <ul className="mt-4 space-y-2 text-sm">
                 <li>
-                  <a
-                    href="mailto:hello@domain.financial"
-                    className="transition hover:text-white"
-                  >
-                    {d.footer.contactUs}
-                  </a>
-                </li>
-                <li>
-                  <Link href="/changelog" prefetch className="transition hover:text-white">
+                  <Link href={`/${locale}/changelog`} prefetch className="transition hover:text-white">
                     {d.footer.changelog}
                   </Link>
                 </li>
                 <li>
-                  <Link href="/privacy" className="transition hover:text-white">
+                  <Link href={`/${locale}/privacy`} className="transition hover:text-white">
                     {d.footer.privacyPolicy}
                   </Link>
                 </li>
                 <li>
                   <Link
-                    href="/privacy"
+                    href={`/${locale}/privacy`}
                     className="transition hover:text-white"
                     title={d.footer.termsOfService}
                   >
@@ -393,10 +387,16 @@ export default async function HomePage() {
               <h4 className="text-sm font-semibold uppercase tracking-wider text-white">
                 {d.footer.contact}
               </h4>
-              <p className="mt-4 flex items-center gap-2 text-sm">
-                <span className="h-2 w-2 rounded-full bg-teal-500" />
-                hello###domain.financial
-              </p>
+              <ul className="mt-4 space-y-2 text-sm">
+                <li>
+                  <a
+                    href="mailto:hello@domain.financial"
+                    className="transition hover:text-white"
+                  >
+                    {d.footer.contactUs}
+                  </a>
+                </li>
+              </ul>
             </div>
           </div>
           <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-stone-800 pt-8 sm:flex-row">
@@ -404,18 +404,18 @@ export default async function HomePage() {
               &copy; {year} Domain.Financial. {d.footer.copyrightSuffix}
             </p>
             <div className="flex gap-6 text-xs">
-              <Link href="/privacy" className="transition hover:text-white">
+              <Link href={`/${locale}/privacy`} className="transition hover:text-white">
                 {d.footer.privacyShort}
               </Link>
               <Link
-                href="/privacy"
+                href={`/${locale}/privacy`}
                 className="transition hover:text-white"
                 title={d.footer.termsOfService}
               >
                 {d.footer.termsShort}
               </Link>
               <Link
-                href="/privacy"
+                href={`/${locale}/privacy`}
                 className="transition hover:text-white"
                 title={d.footer.cookiesShort}
               >
