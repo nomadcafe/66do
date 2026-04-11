@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useMemo, memo } from 'react';
+import { useState, useMemo, memo, useEffect } from 'react';
 import { Search, Filter, Grid, List, Plus, Table } from 'lucide-react';
 import DomainCard from './DomainCard';
 import DomainTable from './DomainTable';
+import { ListPagination } from '../ui/ListPagination';
 import { DomainWithTags } from '../../types/dashboard';
 import type { TransactionWithRequiredFields } from '../../types/transaction';
 import { useI18nContext } from '../../contexts/I18nProvider';
@@ -17,11 +18,14 @@ interface DomainListProps {
   onAdd: () => void;
 }
 
+const DOMAINS_PAGE_SIZE = 24;
+
 const DomainList = memo(function DomainList({ domains, transactions = [], onEdit, onDelete, onView, onAdd }: DomainListProps) {
   const { t } = useI18nContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'table'>('table');
+  const [page, setPage] = useState(1);
 
   const filteredDomains = useMemo(() => domains.filter(domain => {
     const tagsArray = domain.tags;
@@ -31,6 +35,32 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
     const matchesStatus = statusFilter === 'all' || domain.status === statusFilter;
     return matchesSearch && matchesStatus;
   }), [domains, searchTerm, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredDomains.length / DOMAINS_PAGE_SIZE));
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, statusFilter]);
+
+  useEffect(() => {
+    setPage((p) => (p > totalPages ? totalPages : p));
+  }, [totalPages]);
+
+  const paginatedDomains = useMemo(() => {
+    const start = (page - 1) * DOMAINS_PAGE_SIZE;
+    return filteredDomains.slice(start, start + DOMAINS_PAGE_SIZE);
+  }, [filteredDomains, page]);
+
+  const paginationRangeSummary =
+    filteredDomains.length > DOMAINS_PAGE_SIZE
+      ? t('common.paginationRange')
+          .replace('{start}', String((page - 1) * DOMAINS_PAGE_SIZE + 1))
+          .replace(
+            '{end}',
+            String(Math.min(page * DOMAINS_PAGE_SIZE, filteredDomains.length))
+          )
+          .replace('{total}', String(filteredDomains.length))
+      : undefined;
 
   const statusOptions = [
     { value: 'all', labelKey: 'domainList.allStatus' as const },
@@ -139,22 +169,32 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
           )}
         </div>
       ) : (
-        <div className={
-          viewMode === 'grid' 
-            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
-            : 'space-y-4'
-        }>
-          {filteredDomains.map((domain) => (
-            <DomainCard
-              key={domain.id}
-              domain={domain}
-              transactions={transactions}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              onView={onView}
-            />
-          ))}
-        </div>
+        <>
+          <div
+            className={
+              viewMode === 'grid'
+                ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
+                : 'space-y-4'
+            }
+          >
+            {paginatedDomains.map((domain) => (
+              <DomainCard
+                key={domain.id}
+                domain={domain}
+                transactions={transactions}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onView={onView}
+              />
+            ))}
+          </div>
+          <ListPagination
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            rangeSummary={paginationRangeSummary}
+          />
+        </>
       )}
     </div>
   );
