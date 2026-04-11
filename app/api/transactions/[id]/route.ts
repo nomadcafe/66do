@@ -4,6 +4,7 @@ import { validateTransaction, sanitizeTransactionData } from '../../../../src/li
 import { getAuthInfoFromRequest } from '../../../../src/lib/auth-helper'
 import { createAuthenticatedSupabaseClient, createServiceRoleSupabaseClient } from '../../../../src/lib/supabaseAuthClient'
 import { getCorsHeaders, getCorsHeadersForError } from '../../../../src/lib/cors'
+import { isDomainOwnedByUser } from '../../../../src/lib/domainOwnership'
 
 // GET /api/transactions/[id] - 获取单个交易
 export async function GET(
@@ -115,6 +116,17 @@ export async function PUT(
     }
 
     const sanitizedUpdateTransaction = sanitizeTransactionData(transaction)
+    const nextDomainId =
+      typeof sanitizedUpdateTransaction.domain_id === 'string' &&
+      sanitizedUpdateTransaction.domain_id.trim()
+        ? sanitizedUpdateTransaction.domain_id.trim()
+        : existingRow.domain_id
+    if (!(await isDomainOwnedByUser(client, nextDomainId, userId))) {
+      return NextResponse.json(
+        { error: 'Domain not found or does not belong to you' },
+        { status: 403, headers: corsHeaders }
+      )
+    }
     const updatedTransaction = await TransactionService.updateTransactionWithClient(
       client,
       transactionId,
