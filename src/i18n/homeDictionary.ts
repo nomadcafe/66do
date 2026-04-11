@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { getSiteUrl } from '../lib/siteUrl';
 
 export type HomeLocale = 'zh' | 'en';
 
@@ -234,17 +235,23 @@ export function getHomeDictionary(locale: HomeLocale): HomeDictionary {
 export function homePageMetadata(locale: HomeLocale): Metadata {
   const d = getHomeDictionary(locale);
   const isZh = locale === 'zh';
+  const base = getSiteUrl();
+  const canonical = new URL(`/${locale}`, base).href;
+  const zhUrl = new URL('/zh', base).href;
+  const enUrl = new URL('/en', base).href;
   return {
     title: d.home.title,
     description: d.home.subtitle,
     alternates: {
-      canonical: '/',
+      canonical,
       languages: {
-        'zh-CN': '/',
-        en: '/',
+        'zh-CN': zhUrl,
+        en: enUrl,
+        'x-default': enUrl,
       },
     },
     openGraph: {
+      url: canonical,
       title: d.home.title,
       description: d.home.subtitle,
       locale: isZh ? 'zh_CN' : 'en_US',

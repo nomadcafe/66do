@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Globe } from 'lucide-react';
 import { useSupabaseAuth } from '../../contexts/SupabaseAuthContext';
 import {
@@ -11,6 +11,8 @@ import {
 
 interface HomeHeaderClientProps {
   initialLocale: HomeLocale;
+  /** 营销站路径前缀，如 `/zh`、`/en` */
+  localePrefix: string;
   platformName: string;
   selectLanguageLabel: string;
   signInLabel: string;
@@ -29,6 +31,7 @@ function setLocaleCookie(locale: HomeLocale) {
 
 export default function HomeHeaderClient({
   initialLocale,
+  localePrefix,
   platformName,
   selectLanguageLabel,
   signInLabel,
@@ -36,10 +39,15 @@ export default function HomeHeaderClient({
 }: HomeHeaderClientProps) {
   const { user } = useSupabaseAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
-  const onLocaleChange = (locale: HomeLocale) => {
-    setLocaleCookie(locale);
-    router.refresh();
+  const onLocaleChange = (newLocale: HomeLocale) => {
+    setLocaleCookie(newLocale);
+    const nextPath =
+      (pathname && /^\/(zh|en)(\/|$)/.test(pathname)
+        ? pathname.replace(/^\/(zh|en)(?=\/|$)/, `/${newLocale}`)
+        : `/${newLocale}`) || `/${newLocale}`;
+    router.push(nextPath);
   };
 
   return (
@@ -51,7 +59,7 @@ export default function HomeHeaderClient({
       }}
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-2.5">
+        <Link href={localePrefix || `/${initialLocale}`} className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#2d2a26] text-white shadow-sm">
             <Globe className="h-5 w-5" />
           </div>

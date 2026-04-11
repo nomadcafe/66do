@@ -6,6 +6,7 @@ import { SupabaseAuthProvider } from "../src/contexts/SupabaseAuthContext";
 import { I18nProvider } from "../src/contexts/I18nProvider";
 import { Analytics } from "@vercel/analytics/next";
 import { getHomeDictionary, resolveHomeLocale } from "../src/i18n/homeDictionary";
+import { getSiteUrl } from "../src/lib/siteUrl";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,6 +19,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: getSiteUrl(),
   title: "Domain.Financial – Track & Grow Your Domains",
   description: "Professional domain investment management tools to help you track domain portfolios, monitor renewals, and maximize returns",
   icons: {
@@ -33,8 +35,13 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const cookieStore = await cookies();
-  const acceptLanguage = (await headers()).get("accept-language");
-  const locale = resolveHomeLocale(cookieStore, acceptLanguage);
+  const headersList = await headers();
+  const acceptLanguage = headersList.get("accept-language");
+  const pathLocale = headersList.get("x-path-locale");
+  const locale =
+    pathLocale === "zh" || pathLocale === "en"
+      ? pathLocale
+      : resolveHomeLocale(cookieStore, acceptLanguage);
   const { htmlLang } = getHomeDictionary(locale);
 
   return (
