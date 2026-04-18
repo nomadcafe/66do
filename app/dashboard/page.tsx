@@ -523,6 +523,14 @@ export default function DashboardPage() {
                 <span>{t('dashboard.addInvestment')}</span>
               </button>
               <button
+                onClick={() => setShowShareModal(true)}
+                aria-label={t('dashboard.shareResults')}
+                title={t('dashboard.shareResults')}
+                className="text-stone-500 hover:text-stone-800 p-2.5 rounded-xl hover:bg-stone-100 transition"
+              >
+                <Share2 size={18} />
+              </button>
+              <button
                 onClick={async () => { await signOut(); router.push('/'); }}
                 className="text-stone-500 hover:text-stone-800 flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-stone-100 text-sm font-medium transition"
               >
@@ -554,10 +562,13 @@ export default function DashboardPage() {
               <div className="w-8 h-8 bg-stone-700 rounded-full flex items-center justify-center text-white text-xs font-medium">
                 {user?.email ? user.email.charAt(0).toUpperCase() : <User className="h-4 w-4" />}
               </div>
-              <button onClick={domainOps.handleAddDomain} className="bg-teal-600 text-white p-2.5 rounded-xl hover:bg-teal-700 shadow-sm">
+              <button onClick={domainOps.handleAddDomain} aria-label={t('dashboard.addInvestment')} className="bg-teal-600 text-white p-2.5 rounded-xl hover:bg-teal-700 shadow-sm">
                 <Plus size={18} />
               </button>
-              <button onClick={async () => { await signOut(); router.push('/'); }} className="text-stone-600 p-2.5 rounded-xl hover:bg-stone-100 border border-stone-200">
+              <button onClick={() => setShowShareModal(true)} aria-label={t('dashboard.shareResults')} className="text-stone-600 p-2.5 rounded-xl hover:bg-stone-100 border border-stone-200">
+                <Share2 size={18} />
+              </button>
+              <button onClick={async () => { await signOut(); router.push('/'); }} aria-label={t('dashboard.signOut')} className="text-stone-600 p-2.5 rounded-xl hover:bg-stone-100 border border-stone-200">
                 <LogOut size={18} />
               </button>
             </div>
@@ -601,8 +612,8 @@ export default function DashboardPage() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{t('dashboard.purchaseCost')}</p>
-                <p className="text-2xl font-bold text-stone-900 mt-1">${stats.totalInvestment.toFixed(2)}</p>
-                <p className="text-xs text-stone-500 mt-1">{t('dashboard.average')} ${stats.avgPurchasePrice.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-stone-900 mt-1">{formatCurrencyEnhanced(stats.totalInvestment)}</p>
+                <p className="text-xs text-stone-500 mt-1">{t('dashboard.average')} {formatCurrencyEnhanced(stats.avgPurchasePrice)}</p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600"><DollarSign className="h-5 w-5" /></div>
             </div>
@@ -628,7 +639,7 @@ export default function DashboardPage() {
                     </span>
                   </span>
                 </p>
-                <p className="text-2xl font-bold text-stone-900 mt-1">${stats.totalRevenue.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-stone-900 mt-1">{formatCurrencyEnhanced(stats.totalRevenue)}</p>
                 <p className="text-xs text-stone-500 mt-1">{t('dashboard.afterFees')}</p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600"><TrendingUp className="h-5 w-5" /></div>
@@ -639,7 +650,7 @@ export default function DashboardPage() {
               <div>
                 <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{t('dashboard.roi')}</p>
                 <p className="text-2xl font-bold text-stone-900 mt-1">{stats.roi.toFixed(1)}%</p>
-                <p className="text-xs text-stone-500 mt-1">{t('dashboard.totalProfit')} ${stats.totalProfit.toFixed(2)}</p>
+                <p className="text-xs text-stone-500 mt-1">{t('dashboard.totalProfit')} {formatCurrencyEnhanced(stats.totalProfit)}</p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600"><BarChart3 className="h-5 w-5" /></div>
             </div>
@@ -721,16 +732,6 @@ export default function DashboardPage() {
         {/* Tab Content */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            <div className="flex justify-end mb-6">
-              <button
-                onClick={() => setShowShareModal(true)}
-                className="rounded-xl bg-stone-800 text-white px-5 py-2.5 text-sm font-medium flex items-center gap-2 hover:bg-stone-700 transition"
-              >
-                <Share2 className="h-4 w-4" />
-                {t('dashboard.shareResults')}
-              </button>
-            </div>
-
             {/* 次级财务指标：紧凑单容器，视觉层级让位于顶部 KPI */}
             <div className="bg-white rounded-2xl border border-stone-200/80 shadow-sm grid grid-cols-2 sm:grid-cols-4 divide-stone-100 sm:divide-x divide-y sm:divide-y-0 mb-8">
               <div className="p-4">
@@ -768,22 +769,44 @@ export default function DashboardPage() {
 
             {/* Highlights - Add 操作已移至 header，这里仅保留状态摘要 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-              <div className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm">
-                <h3 className="text-sm font-semibold text-stone-900 mb-2 flex items-center gap-2">
-                  <Award className="h-4 w-4 text-emerald-500" />
-                  {t('dashboard.bestPerformance')}
-                </h3>
-                <p className="text-lg font-bold text-stone-900">{stats.bestPerformingDomain || '—'}</p>
-                <p className="text-xs text-stone-500 mt-1">{t('dashboard.bestInvestment')}</p>
-              </div>
-              <div className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm">
+              {(() => {
+                const bestDomainObj = stats.bestPerformingDomain
+                  ? domains.find((d) => d.domain_name === stats.bestPerformingDomain)
+                  : undefined;
+                const canOpenBest = Boolean(bestDomainObj);
+                return (
+                  <button
+                    type="button"
+                    onClick={() => bestDomainObj && handleViewDomain(bestDomainObj)}
+                    disabled={!canOpenBest}
+                    className={`text-left bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm transition ${
+                      canOpenBest ? 'hover:border-stone-300 hover:shadow cursor-pointer' : 'cursor-default'
+                    } focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500`}
+                  >
+                    <h3 className="text-sm font-semibold text-stone-900 mb-2 flex items-center gap-2">
+                      <Award className="h-4 w-4 text-emerald-500" />
+                      {t('dashboard.bestPerformance')}
+                    </h3>
+                    <p className="text-lg font-bold text-stone-900">{stats.bestPerformingDomain || '—'}</p>
+                    <p className="text-xs text-stone-500 mt-1">{t('dashboard.bestInvestment')}</p>
+                  </button>
+                );
+              })()}
+              <button
+                type="button"
+                onClick={() => expiringDomains.length > 0 && setActiveTab('alerts')}
+                disabled={expiringDomains.length === 0}
+                className={`text-left bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm transition ${
+                  expiringDomains.length > 0 ? 'hover:border-stone-300 hover:shadow cursor-pointer' : 'cursor-default'
+                } focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500`}
+              >
                 <h3 className="text-sm font-semibold text-stone-900 mb-2 flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 text-red-500" />
                   {t('dashboard.needAttention')}
                 </h3>
                 <p className="text-lg font-bold text-stone-900">{expiringDomains.length}</p>
                 <p className="text-xs text-stone-500 mt-1">{t('dashboard.expiringSoon')}</p>
-              </div>
+              </button>
             </div>
 
             {/* 续费分析 */}
@@ -989,46 +1012,66 @@ export default function DashboardPage() {
               </div>
               {expiringDomains.length > 0 ? (
                 <div className="space-y-3">
-                  {expiringDomains.map((domain) => (
-                    <div
-                      key={domain.id}
-                      className={`p-4 rounded-xl border ${
-                        domain.urgency === 'expired' ? 'border-red-300 bg-red-50/40' :
-                        domain.urgency === 'critical' ? 'border-red-200 bg-red-50/50' :
-                        domain.urgency === 'urgent' ? 'border-amber-200 bg-amber-50/50' : 'border-stone-200 bg-stone-50/50'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between flex-wrap gap-3">
+                  {expiringDomains.map((domain) => {
+                    const accent =
+                      domain.urgency === 'expired' || domain.urgency === 'critical'
+                        ? 'border-l-red-500'
+                        : domain.urgency === 'urgent'
+                          ? 'border-l-amber-500'
+                          : 'border-l-stone-300';
+                    const countdownColor =
+                      domain.daysUntilExpiry < 0
+                        ? 'text-red-700'
+                        : domain.daysUntilExpiry <= 7
+                          ? 'text-red-600'
+                          : domain.daysUntilExpiry <= 14
+                            ? 'text-amber-600'
+                            : 'text-stone-600';
+                    const countdownText =
+                      domain.daysUntilExpiry === 0
+                        ? t('common.todayExpiry')
+                        : domain.daysUntilExpiry < 0
+                          ? `${t('common.expiredDaysAgo')} ${Math.abs(domain.daysUntilExpiry)} ${t('common.daysAgo')}`
+                          : `${t('common.daysLeftExpiry')} ${domain.daysUntilExpiry} ${t('common.daysLeftExpiryEnd')}`;
+                    return (
+                      <div
+                        key={domain.id}
+                        className={`flex items-center justify-between gap-3 flex-wrap p-3 rounded-xl border border-stone-200 border-l-4 ${accent} bg-white`}
+                      >
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="font-medium text-stone-900">{domain.domain_name}</h4>
-                            <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                              domain.urgency === 'expired' ? 'bg-red-200 text-red-900' :
-                              domain.urgency === 'critical' ? 'bg-red-100 text-red-800' :
-                              domain.urgency === 'urgent' ? 'bg-amber-100 text-amber-800' : 'bg-stone-200 text-stone-700'
-                            }`}>
+                            <h4 className="font-medium text-stone-900 truncate">{domain.domain_name}</h4>
+                            <span
+                              className={`px-1.5 py-0.5 text-[10px] font-semibold rounded uppercase tracking-wide ${
+                                domain.urgency === 'expired'
+                                  ? 'bg-red-100 text-red-900'
+                                  : domain.urgency === 'critical'
+                                    ? 'bg-red-100 text-red-800'
+                                    : domain.urgency === 'urgent'
+                                      ? 'bg-amber-100 text-amber-800'
+                                      : 'bg-stone-100 text-stone-700'
+                              }`}
+                            >
                               {domain.urgency === 'expired' ? t('common.expired') : domain.urgency === 'critical' ? t('common.critical') : domain.urgency === 'urgent' ? t('common.urgent') : t('common.normal')}
                             </span>
                           </div>
-                          <p className="text-sm text-stone-600 mt-1">
-                            {domain.registrar && <span>{t('domain.registrar')}: {domain.registrar} · </span>}
-                            {t('common.daysUntilExpiry')}: {new Date(domain.expiry_date!).toLocaleDateString()} ·
-                            {domain.daysUntilExpiry === 0 ? ` ${t('common.todayExpiry')}` :
-                             domain.daysUntilExpiry < 0 ? ` ${t('common.expiredDaysAgo')} ${Math.abs(domain.daysUntilExpiry)} ${t('common.daysAgo')}` :
-                             ` ${t('common.daysLeftExpiry')} ${domain.daysUntilExpiry} ${t('common.daysLeftExpiryEnd')}`}
+                          <p className="text-xs text-stone-500 mt-0.5 truncate">
+                            {domain.registrar && <>{domain.registrar} · </>}
+                            {new Date(domain.expiry_date!).toLocaleDateString()}
                           </p>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => domainOps.handleEditDomain(domain)} className="rounded-lg px-3 py-1.5 text-sm font-medium bg-stone-100 text-stone-700 hover:bg-stone-200">
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={`text-xs font-semibold tabular-nums ${countdownColor}`}>{countdownText}</span>
+                          <button onClick={() => domainOps.handleEditDomain(domain)} className="rounded-lg px-2.5 py-1 text-xs font-medium bg-stone-100 text-stone-700 hover:bg-stone-200">
                             {t('common.edit')}
                           </button>
-                          <button onClick={() => domainOps.handleRenewDomain(domain)} className="rounded-lg px-3 py-1.5 text-sm font-medium bg-teal-100 text-teal-700 hover:bg-teal-200">
+                          <button onClick={() => domainOps.handleRenewDomain(domain)} className="rounded-lg px-2.5 py-1 text-xs font-medium bg-teal-600 text-white hover:bg-teal-700">
                             {t('common.renew')}
                           </button>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-10 text-stone-500">

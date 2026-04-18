@@ -40,7 +40,7 @@ export default function MobileNavigation({ activeTab, onTabChange, expiringCount
       <div className="lg:hidden fixed bottom-4 right-4 z-50">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition-colors"
+          className="bg-teal-600 text-white p-4 rounded-full shadow-lg hover:bg-teal-700 transition-colors"
         >
           {isOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
@@ -99,8 +99,8 @@ export default function MobileNavigation({ activeTab, onTabChange, expiringCount
                       setIsOpen(false);
                     }}
                     className={`flex flex-col items-center p-4 rounded-xl transition-colors ${
-                      isActive 
-                        ? 'bg-blue-100 text-blue-600' 
+                      isActive
+                        ? 'bg-teal-100 text-teal-700'
                         : 'text-gray-600 hover:bg-gray-100'
                     }`}
                   >
