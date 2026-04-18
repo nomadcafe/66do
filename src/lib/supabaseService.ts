@@ -221,16 +221,21 @@ export class DomainService {
     return true
   }
 
-  static async bulkUpdateDomains(domains: DomainUpdate[]): Promise<boolean> {
-    const { error } = await supabase
+  static async bulkUpdateDomainsWithClient(
+    client: SupabaseClient<Database>,
+    domains: DomainUpdate[],
+    userId: string
+  ): Promise<boolean> {
+    const ownedDomains = domains.map(d => ({ ...d, user_id: userId }))
+    const { error } = await client
       .from('domains')
-      .upsert(domains)
-    
+      .upsert(ownedDomains as never)
+
     if (error) {
       logger.error('Error bulk updating domains:', error)
       return false
     }
-    
+
     return true
   }
 }

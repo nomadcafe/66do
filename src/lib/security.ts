@@ -76,49 +76,6 @@ export function escapeHTML(input: string): string {
   return div.innerHTML;
 }
 
-// 访问控制
-export class AccessControl {
-  private permissions: Map<string, string[]> = new Map();
-
-  // 设置用户权限
-  setUserPermissions(userId: string, permissions: string[]): void {
-    this.permissions.set(userId, permissions);
-  }
-
-  // 检查权限
-  hasPermission(userId: string, permission: string): boolean {
-    const userPermissions = this.permissions.get(userId) || [];
-    return userPermissions.includes(permission) || userPermissions.includes('admin');
-  }
-
-  // 检查资源访问权限
-  canAccessResource(userId: string, resourceId: string, action: string): boolean {
-    // 检查是否是资源所有者
-    if (this.isResourceOwner(userId, resourceId)) {
-      return true;
-    }
-
-    // 检查管理员权限
-    if (this.hasPermission(userId, 'admin')) {
-      return true;
-    }
-
-    // 检查特定权限
-    return this.hasPermission(userId, `${action}_${resourceId}`);
-  }
-
-  // 检查资源所有权
-  private isResourceOwner(userId: string, resourceId: string): boolean {
-    // 这里应该查询数据库检查资源所有权
-    // 暂时返回true，实际应用中需要数据库查询
-    if (!userId || !resourceId) {
-      return false;
-    }
-    // TODO: 实现实际的数据库查询逻辑
-    return true;
-  }
-}
-
 // 审计日志
 export class AuditLogger {
   private logs: Array<{
@@ -206,7 +163,6 @@ export class AuditLogger {
 }
 
 // 导出单例实例
-export const accessControl = new AccessControl();
 export const auditLogger = new AuditLogger();
 
 // 安全中间件

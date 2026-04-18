@@ -26,7 +26,6 @@ function MagicLinkContent() {
         }
         
         if (session) {
-          console.log('User already authenticated:', session.user);
           setSuccess(t('auth.magicLink.loginSuccess'));
           setTimeout(() => {
             router.push('/dashboard');
@@ -41,61 +40,55 @@ function MagicLinkContent() {
         const token = searchParams.get('token');
         const type = searchParams.get('type');
         
-        console.log('Magic link params:', { accessToken, refreshToken, tokenType, token, type });
-        console.log('Current URL:', window.location.href);
-        console.log('All search params:', Object.fromEntries(searchParams.entries()));
-        
         if (accessToken && refreshToken) {
-          // 使用Supabase的session设置
           const { data, error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken
           });
 
-          console.log('Session set result:', { data, error });
-
           if (error) {
-            console.error('Session setting error:', error);
+            console.error('Session setting error:', error.message);
             setError(t('auth.magicLink.loginFailed') + ': ' + error.message);
             setLoading(false);
             return;
           }
 
           if (data.user && data.session) {
-            console.log('Magic link authentication successful:', data);
             setSuccess(t('auth.magicLink.loginSuccess'));
             setTimeout(() => {
               router.push('/dashboard');
             }, 2000);
           } else {
-            console.log('No user or session after setting session');
             setError(t('auth.magicLink.loginFailed'));
             setLoading(false);
           }
         } else if (token && type) {
-          // 尝试使用OTP验证
+          const validTypes = ['email', 'signup', 'recovery', 'invite', 'email_change'] as const;
+          type ValidOtpType = typeof validTypes[number];
+          if (!validTypes.includes(type as ValidOtpType)) {
+            setError(t('auth.magicLink.invalidLink'));
+            setLoading(false);
+            return;
+          }
+
           const { data, error } = await supabase.auth.verifyOtp({
             token_hash: token,
-            type: type as 'email'
+            type: type as ValidOtpType
           });
 
-          console.log('OTP verification result:', { data, error });
-
           if (error) {
-            console.error('OTP verification error:', error);
+            console.error('OTP verification error:', error.message);
             setError(t('auth.magicLink.loginFailed') + ': ' + error.message);
             setLoading(false);
             return;
           }
 
           if (data.user && data.session) {
-            console.log('OTP authentication successful:', data);
             setSuccess(t('auth.magicLink.loginSuccess'));
             setTimeout(() => {
               router.push('/dashboard');
             }, 2000);
           } else {
-            console.log('No user or session after OTP verification');
             setError(t('auth.magicLink.loginFailed'));
             setLoading(false);
           }

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { AlertTriangle, Calendar, Clock, CheckCircle, RefreshCw, Globe, Database } from 'lucide-react';
+import { AlertTriangle, Calendar, Clock, CheckCircle, RefreshCw } from 'lucide-react';
 import { Domain } from '../../types/domain';
 import { domainExpiryService, DomainExpiryInfo } from '../../lib/domainExpiryService';
 import { useI18nContext } from '../../contexts/I18nProvider';
@@ -25,14 +25,12 @@ export default function DomainExpiryManager({
   const [expiryInfos, setExpiryInfos] = useState<DomainExpiryInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
-  const [whoisSyncing, setWhoisSyncing] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
     critical: 0,
     high: 0,
     medium: 0,
     low: 0,
-    whoisVerified: 0
   });
 
   // 分析域名到期情况
@@ -49,28 +47,6 @@ export default function DomainExpiryManager({
       setLoading(false);
     }
   }, [domains, t]);
-
-  // 同步WHOIS数据
-  const syncWhoisData = useCallback(async () => {
-    setWhoisSyncing(true);
-    try {
-      const result = await domainExpiryService.syncWhoisData(domains);
-      console.log(t('monitoring.whoisSyncComplete').replace('{updated}', result.updated.toString()).replace('{errors}', result.errors.toString()));
-      
-      // 重新分析到期情况
-      await analyzeExpiry();
-      
-      // 通知父组件更新域名数据
-      if (onUpdateDomain && result.updated > 0) {
-        // 这里可以触发父组件重新加载域名数据
-        console.log(t('monitoring.suggestRefreshData'));
-      }
-    } catch (error) {
-      console.error(t('monitoring.whoisSyncFailed'), error);
-    } finally {
-      setWhoisSyncing(false);
-    }
-  }, [domains, analyzeExpiry, onUpdateDomain, t]);
 
   // 初始加载
   useEffect(() => {
@@ -118,24 +94,14 @@ export default function DomainExpiryManager({
           <h3 className="text-lg font-semibold text-gray-900">
             {t('domain.expiryMonitoring')}
           </h3>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={analyzeExpiry}
-              disabled={loading}
-              className="flex items-center px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 disabled:opacity-50"
-            >
-              <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
-              {t('common.refresh')}
-            </button>
-            <button
-              onClick={syncWhoisData}
-              disabled={whoisSyncing}
-              className="flex items-center px-3 py-1 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 disabled:opacity-50"
-            >
-              <Globe className={`h-4 w-4 mr-1 ${whoisSyncing ? 'animate-spin' : ''}`} />
-              {t('domain.syncWhois')}
-            </button>
-          </div>
+          <button
+            onClick={analyzeExpiry}
+            disabled={loading}
+            className="flex items-center px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            {t('common.refresh')}
+          </button>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -164,11 +130,6 @@ export default function DomainExpiryManager({
         {lastUpdate && (
           <div className="mt-4 text-sm text-gray-500">
             {t('domain.lastUpdate')}: {lastUpdate.toLocaleString()}
-            {stats.whoisVerified > 0 && (
-              <span className="ml-2 text-green-600">
-                ({stats.whoisVerified} {t('domain.whoisVerified')})
-              </span>
-            )}
           </div>
         )}
       </div>
@@ -200,23 +161,12 @@ export default function DomainExpiryManager({
                       <h4 className="text-lg font-medium text-gray-900">
                         {info.domain.domain_name}
                       </h4>
-                      {info.isWhoisVerified && (
-                        <div className="flex items-center text-green-600">
-                          <Database className="h-4 w-4 mr-1" />
-                          <span className="text-xs">WHOIS</span>
-                        </div>
-                      )}
                     </div>
                     
                     <p className="mt-2 text-sm text-gray-600">
                       {info.message}
                     </p>
                     
-                    {info.whoisData && (
-                      <div className="mt-2 text-xs text-gray-500">
-                        {t('domain.registrar')}: {info.whoisData.registrar}
-                      </div>
-                    )}
                   </div>
 
                   <div className="flex items-center space-x-2">
