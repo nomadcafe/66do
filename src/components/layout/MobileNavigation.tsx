@@ -22,7 +22,7 @@ interface MobileNavigationProps {
 
 export default function MobileNavigation({ activeTab, onTabChange, expiringCount }: MobileNavigationProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const { t } = useI18nContext();
+  const { t, locale, setLocale } = useI18nContext();
 
   const navigationItems = [
     { id: 'overview', label: t('navigation.overview'), icon: Home },
@@ -59,6 +59,29 @@ export default function MobileNavigation({ activeTab, onTabChange, expiringCount
           {/* Handle */}
           <div className="flex justify-center py-2">
             <div className="w-12 h-1 bg-gray-300 rounded-full" />
+          </div>
+
+          {/* Language switcher */}
+          <div className="px-4 pt-1 pb-3 flex items-center justify-between">
+            <span className="text-xs font-medium text-gray-500">{t('settings.selectLanguage')}</span>
+            <div className="flex gap-1 p-1 rounded-lg bg-gray-100">
+              <button
+                onClick={() => setLocale('zh')}
+                className={`px-3 py-1 rounded-md text-xs font-medium transition ${
+                  locale === 'zh' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
+                }`}
+              >
+                中文
+              </button>
+              <button
+                onClick={() => setLocale('en')}
+                className={`px-3 py-1 rounded-md text-xs font-medium transition ${
+                  locale === 'en' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
+                }`}
+              >
+                English
+              </button>
+            </div>
           </div>
 
           {/* Navigation Items */}

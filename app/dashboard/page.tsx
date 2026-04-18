@@ -12,10 +12,6 @@ import SmartDomainForm from '../../src/components/domain/SmartDomainForm';
 import TransactionList from '../../src/components/transaction/TransactionList';
 import TransactionForm from '../../src/components/transaction/TransactionForm';
 import MobileNavigation from '../../src/components/layout/MobileNavigation';
-// Mobile components for enhanced mobile experience
-import TouchGestures from '../../src/components/mobile/TouchGestures';
-import PullToRefresh from '../../src/components/mobile/PullToRefresh';
-import { isMobile } from '../../src/lib/utils';
 import ShareModal from '../../src/components/share/ShareModal';
 import SaleSuccessModal from '../../src/components/share/SaleSuccessModal';
 import RenewalModal from '../../src/components/domain/RenewalModal';
@@ -36,7 +32,6 @@ import {
   useSmartPreload
 } from '../../src/components/LazyComponents';
 import { auditLogger } from '../../src/lib/security';
-import LoadingSpinner from '../../src/components/ui/LoadingSpinner';
 import ErrorMessage from '../../src/components/ui/ErrorMessage';
 import { Domain } from '../../src/types/domain';
 import { 
@@ -69,7 +64,6 @@ import {
   Bell,
   Settings,
   RefreshCw,
-  Zap,
   Database,
   X,
   Info,
@@ -412,7 +406,53 @@ export default function DashboardPage() {
   // Filter domains based on search and status
 
   if (loading) {
-    return <LoadingSpinner />;
+    return (
+      <div className="min-h-screen bg-stone-50 text-stone-900">
+        <div className="border-b border-stone-200/60 bg-white/90 backdrop-blur-md sticky top-0 z-50">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-stone-200 rounded-xl animate-pulse" />
+              <div className="space-y-1.5">
+                <div className="h-4 w-32 bg-stone-200 rounded animate-pulse" />
+                <div className="h-3 w-20 bg-stone-200 rounded animate-pulse" />
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-24 h-9 bg-stone-200 rounded-xl animate-pulse hidden sm:block" />
+              <div className="w-32 h-10 bg-stone-200 rounded-xl animate-pulse" />
+            </div>
+          </div>
+        </div>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 w-24 bg-stone-200 rounded animate-pulse" />
+                    <div className="h-7 w-20 bg-stone-200 rounded animate-pulse" />
+                    <div className="h-3 w-28 bg-stone-100 rounded animate-pulse" />
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-stone-100 animate-pulse shrink-0" />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="bg-white rounded-2xl border border-stone-200/80 mb-6 p-1.5 shadow-sm">
+            <div className="h-9 bg-stone-100 rounded-lg animate-pulse" />
+          </div>
+          <div className="bg-white rounded-2xl border border-stone-200/80 shadow-sm grid grid-cols-2 sm:grid-cols-4 divide-stone-100 sm:divide-x divide-y sm:divide-y-0 mb-8">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="p-4 space-y-2">
+                <div className="h-3 w-20 bg-stone-200 rounded animate-pulse" />
+                <div className="h-5 w-16 bg-stone-200 rounded animate-pulse" />
+                <div className="h-3 w-28 bg-stone-100 rounded animate-pulse" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
@@ -468,6 +508,13 @@ export default function DashboardPage() {
                   <span className="text-xs text-stone-500 block leading-tight truncate max-w-[140px]">{user?.email || ''}</span>
                 </div>
               </div>
+              <button
+                onClick={transactionOps.handleAddTransaction}
+                className="border border-stone-300 text-stone-700 px-4 py-2.5 rounded-xl hover:bg-stone-100 flex items-center gap-2 text-sm font-medium transition"
+              >
+                <FileText size={18} />
+                <span>{t('transaction.add')}</span>
+              </button>
               <button
                 onClick={domainOps.handleAddDomain}
                 className="bg-teal-600 text-white px-5 py-2.5 rounded-xl hover:bg-teal-700 flex items-center gap-2 text-sm font-medium shadow-sm shadow-teal-600/20 transition"
@@ -565,8 +612,20 @@ export default function DashboardPage() {
               <div>
                 <p className="text-xs font-medium uppercase tracking-wider text-stone-500 flex items-center gap-1">
                   {t('dashboard.totalRevenue')}
-                  <span className="inline-flex text-stone-400 hover:text-stone-600" title={t('dashboard.totalRevenueDesc')} aria-label={t('dashboard.totalRevenueDesc')}>
-                    <Info className="h-3.5 w-3.5" />
+                  <span className="relative inline-block group">
+                    <button
+                      type="button"
+                      aria-label={t('dashboard.totalRevenueDesc')}
+                      className="inline-flex text-stone-400 hover:text-stone-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded"
+                    >
+                      <Info className="h-3.5 w-3.5" />
+                    </button>
+                    <span
+                      role="tooltip"
+                      className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-full mt-1.5 w-max max-w-[220px] whitespace-normal rounded-md bg-stone-900 px-2 py-1 text-[11px] font-normal normal-case tracking-normal text-white opacity-0 shadow-md transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 z-20"
+                    >
+                      {t('dashboard.totalRevenueDesc')}
+                    </span>
                   </span>
                 </p>
                 <p className="text-2xl font-bold text-stone-900 mt-1">${stats.totalRevenue.toFixed(2)}</p>
@@ -592,7 +651,7 @@ export default function DashboardPage() {
           <nav className="flex gap-1 p-1.5 overflow-x-auto bg-stone-50/50 border-b border-stone-100" aria-label="Tabs">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap flex items-center gap-2 transition ${
+              className={`rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap flex items-center gap-1.5 transition ${
                 activeTab === 'overview' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
               }`}
             >
@@ -601,7 +660,7 @@ export default function DashboardPage() {
             </button>
             <button
               onClick={() => setActiveTab('domains')}
-              className={`rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap flex items-center gap-2 transition ${
+              className={`rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap flex items-center gap-1.5 transition ${
                 activeTab === 'domains' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
               }`}
             >
@@ -610,7 +669,7 @@ export default function DashboardPage() {
             </button>
             <button
               onClick={() => setActiveTab('transactions')}
-              className={`rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap flex items-center gap-2 transition ${
+              className={`rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap flex items-center gap-1.5 transition ${
                 activeTab === 'transactions' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
               }`}
             >
@@ -619,7 +678,7 @@ export default function DashboardPage() {
             </button>
             <button
               onClick={() => setActiveTab('analytics')}
-              className={`rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap flex items-center gap-2 transition ${
+              className={`rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap flex items-center gap-1.5 transition ${
                 activeTab === 'analytics' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
               }`}
             >
@@ -628,7 +687,7 @@ export default function DashboardPage() {
             </button>
             <button
               onClick={() => setActiveTab('alerts')}
-              className={`rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap flex items-center gap-2 transition ${
+              className={`rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap flex items-center gap-1.5 transition ${
                 activeTab === 'alerts' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
               }`}
             >
@@ -640,7 +699,7 @@ export default function DashboardPage() {
             </button>
             <button
               onClick={() => setActiveTab('settings')}
-              className={`rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap flex items-center gap-2 transition ${
+              className={`rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap flex items-center gap-1.5 transition ${
                 activeTab === 'settings' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
               }`}
             >
@@ -649,7 +708,7 @@ export default function DashboardPage() {
             </button>
             <button
               onClick={() => setActiveTab('reports')}
-              className={`rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap flex items-center gap-2 transition ${
+              className={`rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap flex items-center gap-1.5 transition ${
                 activeTab === 'reports' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
               }`}
             >
@@ -672,26 +731,26 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            {/* 财务指标 */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-sm">
+            {/* 次级财务指标：紧凑单容器，视觉层级让位于顶部 KPI */}
+            <div className="bg-white rounded-2xl border border-stone-200/80 shadow-sm grid grid-cols-2 sm:grid-cols-4 divide-stone-100 sm:divide-x divide-y sm:divide-y-0 mb-8">
+              <div className="p-4">
                 <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{t('financial.totalSales')}</p>
-                <p className="text-xl font-bold text-stone-900 mt-1">{formatCurrencyEnhanced(stats.totalGrossSales)}</p>
+                <p className="text-lg font-bold text-stone-900 mt-1">{formatCurrencyEnhanced(stats.totalGrossSales)}</p>
                 <p className="text-xs text-stone-500 mt-1">{t('financial.totalSalesDesc')}</p>
               </div>
-              <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-sm">
+              <div className="p-4">
                 <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{t('financial.platformFees')}</p>
-                <p className="text-xl font-bold text-stone-900 mt-1">{formatCurrencyEnhanced(enhancedFinancialMetrics.totalPlatformFees)}</p>
+                <p className="text-lg font-bold text-stone-900 mt-1">{formatCurrencyEnhanced(enhancedFinancialMetrics.totalPlatformFees)}</p>
                 <p className="text-xs text-stone-500 mt-1">{t('financial.platformFeesDesc')}</p>
               </div>
-              <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-sm">
+              <div className="p-4">
                 <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{t('financial.annualSales')}</p>
-                <p className="text-xl font-bold text-stone-900 mt-1">{formatCurrencyEnhanced(enhancedFinancialMetrics.annualSales)}</p>
+                <p className="text-lg font-bold text-stone-900 mt-1">{formatCurrencyEnhanced(enhancedFinancialMetrics.annualSales)}</p>
                 <p className="text-xs text-stone-500 mt-1">{t('financial.annualSalesDesc')}</p>
               </div>
-              <div className={`bg-white rounded-2xl border p-4 shadow-sm ${enhancedFinancialMetrics.annualProfit >= 0 ? 'border-emerald-200/80' : 'border-red-200/80'}`}>
+              <div className="p-4">
                 <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{t('financial.annualProfit')}</p>
-                <p className={`text-xl font-bold mt-1 ${enhancedFinancialMetrics.annualProfit >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>{formatCurrencyEnhanced(enhancedFinancialMetrics.annualProfit)}</p>
+                <p className={`text-lg font-bold mt-1 ${enhancedFinancialMetrics.annualProfit >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>{formatCurrencyEnhanced(enhancedFinancialMetrics.annualProfit)}</p>
                 <p className="text-xs text-stone-500 mt-1">{t('financial.annualProfitDesc')}</p>
               </div>
             </div>
@@ -707,24 +766,8 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* Quick Actions & Highlights - 紧跟 KPI 便于首屏操作 */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-              <div className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm">
-                <h3 className="text-sm font-semibold text-stone-900 mb-3 flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-amber-500" />
-                  {t('dashboard.quickActions')}
-                </h3>
-                <div className="flex gap-2">
-                  <button onClick={domainOps.handleAddDomain} className="flex-1 rounded-xl bg-teal-600 text-white px-4 py-2.5 text-sm font-medium flex items-center justify-center gap-2 hover:bg-teal-700">
-                    <Plus className="h-4 w-4" />
-                    {t('domain.add')}
-                  </button>
-                  <button onClick={transactionOps.handleAddTransaction} className="flex-1 rounded-xl bg-stone-800 text-white px-4 py-2.5 text-sm font-medium flex items-center justify-center gap-2 hover:bg-stone-700">
-                    <FileText className="h-4 w-4" />
-                    {t('transaction.add')}
-                  </button>
-                </div>
-              </div>
+            {/* Highlights - Add 操作已移至 header，这里仅保留状态摘要 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
               <div className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm">
                 <h3 className="text-sm font-semibold text-stone-900 mb-2 flex items-center gap-2">
                   <Award className="h-4 w-4 text-emerald-500" />
@@ -751,16 +794,16 @@ export default function DashboardPage() {
                   <p className="text-xs font-medium text-stone-500">{t('renewal.thisYearCost')}</p>
                   <p className="text-xl font-bold text-stone-900 mt-1">{formatCurrencyEnhanced(renewalAnalysis.totalAnnualCost, 'USD')}</p>
                 </div>
-                <div className="rounded-xl bg-teal-50/50 p-4 border border-teal-100">
-                  <p className="text-xs font-medium text-teal-700">{t('renewal.needRenewal')}</p>
-                  <p className="text-xl font-bold text-stone-900 mt-1">{renewalAnalysis.domainsNeedingRenewal.length}</p>
+                <div className="rounded-xl bg-stone-50 p-4 border border-stone-100">
+                  <p className="text-xs font-medium text-stone-500">{t('renewal.needRenewal')}</p>
+                  <p className="text-xl font-bold text-teal-700 mt-1">{renewalAnalysis.domainsNeedingRenewal.length}</p>
                 </div>
                 <div className="rounded-xl bg-stone-50 p-4 border border-stone-100">
                   <p className="text-xs font-medium text-stone-500">{t('renewal.noRenewal')}</p>
                   <p className="text-xl font-bold text-stone-900 mt-1">{renewalAnalysis.domainsNotNeedingRenewal.length}</p>
                 </div>
-                <div className="rounded-xl bg-amber-50/50 p-4 border border-amber-100">
-                  <p className="text-xs font-medium text-amber-800">{t('renewal.averageCostPerDomain')}</p>
+                <div className="rounded-xl bg-stone-50 p-4 border border-stone-100">
+                  <p className="text-xs font-medium text-stone-500">{t('renewal.averageCostPerDomain')}</p>
                   <p className="text-xl font-bold text-stone-900 mt-1">
                     {renewalAnalysis.domainsNeedingRenewal.length > 0
                       ? formatCurrencyEnhanced(renewalAnalysis.totalAnnualCost / renewalAnalysis.domainsNeedingRenewal.length, 'USD')
@@ -881,29 +924,59 @@ export default function DashboardPage() {
           <div className="space-y-6">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
               <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-sm">
-                <p className="text-xs font-medium text-stone-500">{t('common.totalExpiring')}</p>
-                <p className="text-2xl font-bold text-stone-900 mt-1">{expiringDomains.length}</p>
-                <Calendar className="h-8 w-8 text-stone-300 mt-2" />
-              </div>
-              <div className="bg-white rounded-2xl border border-red-200/80 p-4 shadow-sm">
-                <p className="text-xs font-medium text-red-600">{t('common.critical')}</p>
-                <p className="text-2xl font-bold text-stone-900 mt-1">{expiringDomains.filter(d => d.urgency === 'critical').length}</p>
-                <AlertTriangle className="h-8 w-8 text-red-400 mt-2" />
-              </div>
-              <div className="bg-white rounded-2xl border border-amber-200/80 p-4 shadow-sm">
-                <p className="text-xs font-medium text-amber-700">{t('common.urgent')}</p>
-                <p className="text-2xl font-bold text-stone-900 mt-1">{expiringDomains.filter(d => d.urgency === 'urgent').length}</p>
-                <AlertTriangle className="h-8 w-8 text-amber-400 mt-2" />
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{t('common.totalExpiring')}</p>
+                    <p className="text-2xl font-bold text-stone-900 mt-1">{expiringDomains.length}</p>
+                  </div>
+                  <div className="w-9 h-9 rounded-xl bg-stone-100 flex items-center justify-center text-stone-500 shrink-0">
+                    <Calendar className="h-4 w-4" />
+                  </div>
+                </div>
               </div>
               <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-sm">
-                <p className="text-xs font-medium text-stone-500">{t('common.normal')}</p>
-                <p className="text-2xl font-bold text-stone-900 mt-1">{expiringDomains.filter(d => d.urgency === 'normal').length}</p>
-                <Calendar className="h-8 w-8 text-stone-300 mt-2" />
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{t('common.critical')}</p>
+                    <p className="text-2xl font-bold text-stone-900 mt-1">{expiringDomains.filter(d => d.urgency === 'critical').length}</p>
+                  </div>
+                  <div className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center text-red-600 shrink-0">
+                    <AlertTriangle className="h-4 w-4" />
+                  </div>
+                </div>
               </div>
-              <div className="bg-white rounded-2xl border border-red-300/80 p-4 shadow-sm">
-                <p className="text-xs font-medium text-red-700">{t('common.recentlyExpired')}</p>
-                <p className="text-2xl font-bold text-stone-900 mt-1">{expiringDomains.filter(d => d.urgency === 'expired').length}</p>
-                <AlertTriangle className="h-8 w-8 text-red-500/70 mt-2" />
+              <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{t('common.urgent')}</p>
+                    <p className="text-2xl font-bold text-stone-900 mt-1">{expiringDomains.filter(d => d.urgency === 'urgent').length}</p>
+                  </div>
+                  <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
+                    <AlertTriangle className="h-4 w-4" />
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{t('common.normal')}</p>
+                    <p className="text-2xl font-bold text-stone-900 mt-1">{expiringDomains.filter(d => d.urgency === 'normal').length}</p>
+                  </div>
+                  <div className="w-9 h-9 rounded-xl bg-stone-100 flex items-center justify-center text-stone-500 shrink-0">
+                    <Calendar className="h-4 w-4" />
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{t('common.recentlyExpired')}</p>
+                    <p className="text-2xl font-bold text-stone-900 mt-1">{expiringDomains.filter(d => d.urgency === 'expired').length}</p>
+                  </div>
+                  <div className="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center text-red-700 shrink-0">
+                    <AlertTriangle className="h-4 w-4" />
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1236,18 +1309,6 @@ export default function DashboardPage() {
             await domainOps.processRenewal(domain, input);
           }}
         />
-      )}
-
-      {/* Mobile Components */}
-      {isMobile() && (
-        <>
-          <TouchGestures onSwipeLeft={() => setActiveTab('domains')} onSwipeRight={() => setActiveTab('overview')}>
-            <div></div>
-          </TouchGestures>
-          <PullToRefresh onRefresh={async () => window.location.reload()}>
-            <div></div>
-          </PullToRefresh>
-        </>
       )}
 
       {/* Mobile Navigation */}
