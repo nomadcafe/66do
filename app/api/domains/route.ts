@@ -225,16 +225,16 @@ export async function PATCH(request: NextRequest) {
       })
     }
 
-    const bulkResult = await DomainService.bulkUpdateDomains(domains.map(d => {
-      const tagsForDb = Array.isArray(d.tags)
-        ? JSON.stringify(d.tags)
-        : (typeof d.tags === 'string' ? d.tags : '[]')
-      return {
-        ...d,
-        tags: tagsForDb,
-        user_id: userId
-      }
-    }))
+    const bulkResult = await DomainService.bulkUpdateDomainsWithClient(
+      authenticatedClient,
+      domains.map(d => {
+        const tagsForDb = Array.isArray(d.tags)
+          ? JSON.stringify(d.tags)
+          : (typeof d.tags === 'string' ? d.tags : '[]')
+        return { ...d, tags: tagsForDb }
+      }),
+      userId
+    )
     
     return NextResponse.json({ success: bulkResult }, { headers: corsHeaders })
   } catch (error) {

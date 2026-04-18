@@ -28,22 +28,13 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     // 获取当前会话
     const getInitialSession = async () => {
       try {
-        console.log('Getting initial session...');
         const { data: { session }, error } = await supabase.auth.getSession();
-        
+
         if (error) {
-          console.error('Error getting session:', error);
-        } else {
-          console.log('Initial session:', { 
-            hasSession: !!session, 
-            userEmail: session?.user?.email,
-            expiresAt: session?.expires_at 
-          });
-          
-          if (mounted) {
-            setSession(session);
-            setUser(session?.user ?? null);
-          }
+          console.error('Error getting session:', error.message);
+        } else if (mounted) {
+          setSession(session);
+          setUser(session?.user ?? null);
         }
       } catch (error) {
         console.error('Error in getInitialSession:', error);
@@ -59,8 +50,6 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     // 监听认证状态变化
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
-        
         if (mounted) {
           setSession(session);
           setUser(session?.user ?? null);
@@ -132,20 +121,14 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
 
   const refreshSession = async () => {
     try {
-      console.log('Refreshing session...');
       const { data: { session }, error } = await supabase.auth.refreshSession();
-      
+
       if (error) {
-        console.error('Refresh session error:', error);
-        // 如果刷新失败，尝试获取当前会话
+        console.error('Refresh session error:', error.message);
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
       } else {
-        console.log('Session refreshed successfully:', { 
-          userEmail: session?.user?.email,
-          expiresAt: session?.expires_at 
-        });
         setSession(session);
         setUser(session?.user ?? null);
       }

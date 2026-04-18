@@ -11,10 +11,9 @@ export interface DomainExpiryInfo {
 }
 
 export interface MonitoringSettings {
-  criticalDays: number; // 紧急提醒天数
-  urgentDays: number;   // 重要提醒天数
-  warningDays: number;  // 警告提醒天数
-  enableEmailAlerts: boolean;
+  criticalDays: number;
+  urgentDays: number;
+  warningDays: number;
   enablePushAlerts: boolean;
   alertFrequency: 'daily' | 'weekly' | 'monthly';
 }
@@ -29,7 +28,6 @@ export class DomainMonitor {
       criticalDays: 7,
       urgentDays: 14,
       warningDays: 30,
-      enableEmailAlerts: true,
       enablePushAlerts: true,
       alertFrequency: 'daily',
       ...settings
