@@ -47,6 +47,12 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
   const { t } = useI18nContext();
 
   const sortedDomains = useMemo(() => [...domains].sort((a, b) => {
+    if (sortField === 'expiry_date') {
+      const aDate = a.expiry_date ? new Date(a.expiry_date).getTime() : Infinity;
+      const bDate = b.expiry_date ? new Date(b.expiry_date).getTime() : Infinity;
+      return sortDirection === 'asc' ? aDate - bDate : bDate - aDate;
+    }
+
     let aValue: string | number = a[sortField as keyof Domain] as string | number;
     let bValue: string | number = b[sortField as keyof Domain] as string | number;
 
@@ -209,8 +215,18 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                     )}
                   </div>
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Expiry
+                <th
+                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('expiry_date')}
+                >
+                  <div className="flex items-center gap-1">
+                    Expiry
+                    {sortField === 'expiry_date' && (
+                      <span className="text-blue-600">
+                        {sortDirection === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </div>
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   ROI

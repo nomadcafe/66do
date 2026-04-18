@@ -23,14 +23,15 @@ import { calculateAnnualRenewalCost, formatRenewalCycleDistributionLabel } from 
 // import { domainExpiryManager } from '../../src/lib/domainExpiryManager';
 import { calculateEnhancedFinancialMetrics, formatCurrency as formatCurrencyEnhanced } from '../../src/lib/enhancedFinancialMetrics';
 // 懒加载组件
-import { 
-  LazyFinancialReport, 
-  LazyFinancialAnalysis, 
-  LazyInvestmentAnalytics, 
-  LazyAdvancedRenewalAnalysis, 
+import {
+  LazyFinancialReport,
+  LazyFinancialAnalysis,
+  LazyInvestmentAnalytics,
+  LazyAdvancedRenewalAnalysis,
   LazyExpiredDomainLossAnalysis,
   LazyDataImportExport,
   LazyUserPreferencesPanel,
+  LazyAutoDomainMonitor,
   LazyWrapper,
   useSmartPreload
 } from '../../src/components/LazyComponents';
@@ -88,8 +89,8 @@ export default function DashboardPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'settings' | 'reports'>('overview');
   const [settingsSection, setSettingsSection] = useState<'preferences' | 'data'>('preferences');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showShareModal, setShowShareModal] = useState(false);
+  const [pendingDeleteDomainId, setPendingDeleteDomainId] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
   
   // 使用自定义Hooks管理数据和操作
@@ -427,22 +428,6 @@ export default function DashboardPage() {
           <p className="mt-4 text-sm text-stone-600">{t('common.verifyingIdentity')}</p>
         </div>
       </div>
-    );
-  }
-
-  if (domainOps.showDomainForm) {
-    return (
-      <DomainForm
-        key={domainOps.editingDomain?.id || 'new'}
-        domain={domainOps.editingDomain}
-        isOpen={true}
-        onClose={() => {
-          domainOps.setShowDomainForm(false);
-          domainOps.setEditingDomain(undefined);
-        }}
-        onSave={handleSaveDomain}
-        closeRef={domainFormCloseRef}
-      />
     );
   }
 
@@ -866,7 +851,7 @@ export default function DashboardPage() {
               domains={domains}
               transactions={transactions}
               onEdit={domainOps.handleEditDomain}
-              onDelete={domainOps.handleDeleteDomain}
+              onDelete={setPendingDeleteDomainId}
               onView={handleViewDomain}
               onAdd={domainOps.handleAddDomain}
                 />
@@ -980,6 +965,10 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
+
+            <LazyWrapper>
+              <LazyAutoDomainMonitor domains={domains} showNotifications={true} />
+            </LazyWrapper>
           </div>
         )}
 
@@ -1121,23 +1110,6 @@ export default function DashboardPage() {
 
         {activeTab === 'reports' && (
           <div className="space-y-6">
-            {/* 报告类型选择器 */}
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-stone-200/80">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-stone-900">{t('common.financialReports')}</h3>
-                <div className="flex items-center space-x-4">
-                  <select
-                    value={viewMode}
-                    onChange={(e) => setViewMode(e.target.value as 'grid' | 'list')}
-                    className="px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  >
-                    <option value="grid">{t('common.gridView')}</option>
-                    <option value="list">{t('common.listView')}</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
             {/* 综合财务报告 */}
             <LazyWrapper>
               <LazyFinancialReport
@@ -1156,6 +1128,51 @@ export default function DashboardPage() {
           </div>
         )}
         </div>
+
+      {/* Delete Domain Confirmation Dialog */}
+      {pendingDeleteDomainId && (() => {
+        const domainName = domains.find(d => d.id === pendingDeleteDomainId)?.domain_name ?? '';
+        return (
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full">
+              <h3 className="text-base font-semibold text-stone-900">{t('common.confirmDelete')}</h3>
+              <p className="mt-2 text-sm text-stone-600">
+                {t('common.confirmDeleteDomain')} <span className="font-medium text-stone-900">{domainName}</span>？
+              </p>
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setPendingDeleteDomainId(null)}
+                  className="flex-1 rounded-xl px-4 py-2 text-sm font-medium bg-stone-100 text-stone-700 hover:bg-stone-200 transition"
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  onClick={async () => {
+                    await domainOps.handleDeleteDomain(pendingDeleteDomainId);
+                    setPendingDeleteDomainId(null);
+                  }}
+                  className="flex-1 rounded-xl px-4 py-2 text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition"
+                >
+                  {t('common.delete')}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Domain Edit Drawer */}
+      <DomainForm
+        key={domainOps.editingDomain?.id || 'edit-new'}
+        domain={domainOps.editingDomain}
+        isOpen={domainOps.showDomainForm}
+        onClose={() => {
+          domainOps.setShowDomainForm(false);
+          domainOps.setEditingDomain(undefined);
+        }}
+        onSave={handleSaveDomain}
+        closeRef={domainFormCloseRef}
+      />
 
       {/* Smart Domain Form Modal */}
       <SmartDomainForm
