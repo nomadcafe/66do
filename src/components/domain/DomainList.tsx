@@ -24,8 +24,13 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
   const { t } = useI18nContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [tagFilter, setTagFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'table'>('table');
   const [page, setPage] = useState(1);
+
+  const allTags = useMemo(() =>
+    [...new Set(domains.flatMap(d => d.tags))].sort(),
+  [domains]);
 
   const filteredDomains = useMemo(() => domains.filter(domain => {
     const tagsArray = domain.tags;
@@ -33,14 +38,15 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
                          (domain.registrar || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          tagsArray.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = statusFilter === 'all' || domain.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  }), [domains, searchTerm, statusFilter]);
+    const matchesTag = tagFilter === 'all' || tagsArray.includes(tagFilter);
+    return matchesSearch && matchesStatus && matchesTag;
+  }), [domains, searchTerm, statusFilter, tagFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredDomains.length / DOMAINS_PAGE_SIZE));
 
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, statusFilter]);
+  }, [searchTerm, statusFilter, tagFilter]);
 
   useEffect(() => {
     setPage((p) => (p > totalPages ? totalPages : p));
@@ -114,6 +120,19 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
               </option>
             ))}
           </select>
+          {allTags.length > 0 && (
+            <select
+              value={tagFilter}
+              onChange={(e) => setTagFilter(e.target.value)}
+              aria-label={t('domainList.allTags')}
+              className="px-3 py-2.5 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+            >
+              <option value="all">{t('domainList.allTags')}</option>
+              {allTags.map(tag => (
+                <option key={tag} value={tag}>{tag}</option>
+              ))}
+            </select>
+          )}
           <div className="flex items-center border border-stone-200 rounded-xl overflow-hidden">
             <button
               onClick={() => setViewMode('table')}

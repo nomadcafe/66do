@@ -170,7 +170,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
 
   const modalContent = (
     <div
-      className="fixed inset-0 flex items-center justify-center p-4"
+      className="fixed inset-0 flex justify-end"
       style={{ zIndex: 99999 }}
       role="dialog"
       aria-modal="true"
@@ -178,11 +178,11 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
     >
       <div
         data-close-domain-form
-        className="absolute inset-0 bg-black/50"
+        className="absolute inset-0 bg-black/40"
         aria-hidden
       />
       <div
-        className="relative bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl"
+        className="relative bg-white w-full max-w-xl h-full overflow-y-auto shadow-xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between z-10 shrink-0">
