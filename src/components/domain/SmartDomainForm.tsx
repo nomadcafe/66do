@@ -102,7 +102,9 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
     onClose();
   };
 
+  console.log('[SmartDomainForm] render call, isOpen=', isOpen);
   if (!isOpen) return null;
+  console.log('[SmartDomainForm] returning JSX — visible');
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
