@@ -56,21 +56,22 @@ const DomainCard = memo(function DomainCard({ domain, transactions = [], onEdit,
 
   return (
     <div
-      className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm hover:shadow-md transition-all duration-200 relative group h-full flex flex-col"
+      className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm hover:shadow-md transition-all duration-200 relative h-full flex flex-col"
     >
-      <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-        <button onClick={() => onView(domain)} className="p-1.5 text-stone-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors" title="View Details">
+      {/* Actions always visible — touch-friendly. On a translucent backdrop so they remain legible over content. */}
+      <div className="absolute top-3 right-3 flex items-center gap-0.5 z-10 bg-white/80 backdrop-blur-sm rounded-lg p-0.5 border border-stone-200/60">
+        <button onClick={() => onView(domain)} className="p-1.5 text-stone-500 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label="View Details" title="View Details">
           <Eye className="h-4 w-4" />
         </button>
-        <button onClick={() => onEdit(domain)} className="p-1.5 text-stone-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" title="Edit Domain">
+        <button onClick={() => onEdit(domain)} className="p-1.5 text-stone-500 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label="Edit Domain" title="Edit Domain">
           <Edit className="h-4 w-4" />
         </button>
         {domain.status === 'sold' && (
-          <button onClick={() => setShowShareModal(true)} className="p-1.5 text-stone-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors" title="Share Success">
+          <button onClick={() => setShowShareModal(true)} className="p-1.5 text-stone-500 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label="Share Success" title="Share Success">
             <Share2 className="h-4 w-4" />
           </button>
         )}
-        <button onClick={() => onDelete(domain.id)} className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete Domain">
+        <button onClick={() => onDelete(domain.id)} className="p-1.5 text-stone-500 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label="Delete Domain" title="Delete Domain">
           <Trash2 className="h-4 w-4" />
         </button>
       </div>

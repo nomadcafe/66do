@@ -287,7 +287,7 @@ const TransactionList = memo(function TransactionList({
           </div>
         </div>
         {viewMode === 'list' && (
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <Filter className="h-4 w-4 text-stone-400" />
             <select
               value={typeFilter}
@@ -300,6 +300,27 @@ const TransactionList = memo(function TransactionList({
                   {t(option.labelKey)}
                 </option>
               ))}
+            </select>
+            {/* Sort dropdown — mobile only (desktop uses clickable column headers) */}
+            <select
+              value={`${sortField}-${sortDir}`}
+              onChange={(e) => {
+                const [field, dir] = e.target.value.split('-') as [SortField, SortDir];
+                updateParams({
+                  txsort: field === 'date' ? null : field,
+                  txdir: (field === 'date' && dir === 'desc') ? null : dir,
+                  txpage: null,
+                });
+              }}
+              aria-label={t('transactionList.sortBy')}
+              className="lg:hidden px-3 py-2.5 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+            >
+              <option value="date-desc">{t('transactionList.sortByDate')} · {t('transactionList.sortDesc')}</option>
+              <option value="date-asc">{t('transactionList.sortByDate')} · {t('transactionList.sortAsc')}</option>
+              <option value="amount-desc">{t('transactionList.sortByAmount')} · {t('transactionList.sortDesc')}</option>
+              <option value="amount-asc">{t('transactionList.sortByAmount')} · {t('transactionList.sortAsc')}</option>
+              <option value="type-asc">{t('transactionList.sortByType')} · {t('transactionList.sortAsc')}</option>
+              <option value="type-desc">{t('transactionList.sortByType')} · {t('transactionList.sortDesc')}</option>
             </select>
           </div>
         )}
@@ -373,7 +394,82 @@ const TransactionList = memo(function TransactionList({
         </div>
       ) : (
         <div className="space-y-2">
-          <div className="bg-white rounded-2xl border border-stone-200/80 shadow-sm overflow-hidden">
+          {/* Mobile: stacked cards (table is unreadable below lg) */}
+          <div className="lg:hidden space-y-2">
+            {paginatedTransactions.map((transaction) => {
+              const isSell = transaction.type === 'sell';
+              const amountColor = isSell ? 'text-emerald-700' : 'text-stone-900';
+              const sign = isSell ? '+' : '-';
+              const grossAmt = sellGrossUSD(transaction);
+              const hasPlatformFee = isSell && transaction.platform_fee != null && transaction.platform_fee > 0;
+              const isInstallment = isSell && transaction.payment_plan === 'installment';
+              const domain = isSell ? domains.find((d) => d.id === transaction.domain_id) : null;
+              const sellRoi = isSell && domain ? calculateDomainROI(domain, [transaction]) : null;
+              return (
+                <article key={transaction.id} className="bg-white rounded-2xl border border-stone-200/80 shadow-sm p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-semibold text-stone-900 break-words">
+                        {getDomainName(transaction.domain_id)}
+                      </div>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-stone-500">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full font-medium ${getTypeColor(transaction.type)}`}>
+                          {getTypeLabel(transaction.type)}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {formatDate(transaction.date)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-0.5 flex-shrink-0">
+                      <button
+                        onClick={() => onEdit(transaction)}
+                        aria-label={`${t('common.edit')} ${getDomainName(transaction.domain_id)}`}
+                        className="p-2 text-stone-500 hover:text-teal-600 hover:bg-teal-50 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => onDelete(transaction.id)}
+                        aria-label={`${t('common.delete')} ${getDomainName(transaction.domain_id)}`}
+                        className="p-2 text-stone-500 hover:text-rose-600 hover:bg-rose-50 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-baseline flex-wrap gap-x-2 gap-y-1">
+                    <span className={`text-base font-bold tabular-nums ${amountColor}`}>
+                      {sign}{formatCurrency(grossAmt, transaction.currency)}
+                    </span>
+                    {sellRoi !== null && (
+                      <span className={`text-xs font-medium tabular-nums ${sellRoi.roi >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        ROI {sellRoi.roi >= 0 ? '+' : ''}{formatPercentage(sellRoi.roi)}
+                      </span>
+                    )}
+                  </div>
+                  {hasPlatformFee && (
+                    <div className="mt-0.5 text-xs text-stone-500 tabular-nums">
+                      {t('transaction.netIncome')}: {formatCurrency(sellNetUSD(transaction), transaction.currency)}
+                    </div>
+                  )}
+                  {isInstallment && (
+                    <div className="mt-0.5 text-xs text-stone-500">
+                      {transaction.installment_status === 'cancelled'
+                        ? `${t('transaction.installment')} · ${t('transaction.cancelled')}`
+                        : `${t('transaction.installment')} ${transaction.paid_periods ?? 0}/${transaction.installment_period ?? 0}`}
+                    </div>
+                  )}
+                  {transaction.notes && (
+                    <div className="mt-2 text-xs text-stone-600 break-words">{transaction.notes}</div>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+          {/* Desktop: full table */}
+          <div className="hidden lg:block bg-white rounded-2xl border border-stone-200/80 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-stone-200">
                 <thead className="bg-stone-50">

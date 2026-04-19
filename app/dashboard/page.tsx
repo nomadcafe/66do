@@ -64,6 +64,7 @@ import {
   Settings,
   RefreshCw,
   X,
+  MoreVertical,
 } from 'lucide-react';
 
 // Domain and Transaction types are now imported from supabaseService
@@ -101,6 +102,26 @@ export default function DashboardPage() {
   const [settingsSection, setSettingsSection] = useState<'preferences' | 'data'>(
     searchParams.get('settings') === 'data' ? 'data' : 'preferences'
   );
+  // Mobile header overflow menu (Share/Settings/Sign Out collapse behind a "more" button)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mobileMenuRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target as Node)) {
+        setMobileMenuOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [mobileMenuOpen]);
 
   const setActiveTab = useCallback((next: TabType) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -812,15 +833,46 @@ export default function DashboardPage() {
               <button onClick={domainOps.handleAddDomain} aria-label={t('dashboard.addInvestment')} className="bg-teal-600 text-white p-2.5 rounded-xl hover:bg-teal-700 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2">
                 <Plus size={18} />
               </button>
-              <button onClick={() => setShowShareModal(true)} aria-label={t('dashboard.shareResults')} className="text-stone-600 p-2.5 rounded-xl hover:bg-stone-100 border border-stone-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2">
-                <Share2 size={18} />
-              </button>
-              <button onClick={() => { setSettingsSection('preferences'); setSettingsDrawerOpen(true); }} aria-label={t('dashboard.settings')} className="text-stone-600 p-2.5 rounded-xl hover:bg-stone-100 border border-stone-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2">
-                <Settings size={18} />
-              </button>
-              <button onClick={async () => { await signOut(); router.push('/'); }} aria-label={t('dashboard.signOut')} className="text-stone-600 p-2.5 rounded-xl hover:bg-stone-100 border border-stone-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2">
-                <LogOut size={18} />
-              </button>
+              <div ref={mobileMenuRef} className="relative">
+                <button
+                  onClick={() => setMobileMenuOpen(v => !v)}
+                  aria-label={t('common.more')}
+                  aria-haspopup="menu"
+                  aria-expanded={mobileMenuOpen}
+                  className="text-stone-600 p-2.5 rounded-xl hover:bg-stone-100 border border-stone-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+                >
+                  <MoreVertical size={18} />
+                </button>
+                {mobileMenuOpen && (
+                  <div role="menu" className="absolute right-0 mt-2 w-52 rounded-xl border border-stone-200 bg-white shadow-lg overflow-hidden z-50">
+                    <button
+                      role="menuitem"
+                      onClick={() => { setMobileMenuOpen(false); setShowShareModal(true); }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-stone-700 hover:bg-stone-50 focus:outline-none focus-visible:bg-stone-100"
+                    >
+                      <Share2 size={16} className="text-stone-500" />
+                      {t('dashboard.shareResults')}
+                    </button>
+                    <button
+                      role="menuitem"
+                      onClick={() => { setMobileMenuOpen(false); setSettingsSection('preferences'); setSettingsDrawerOpen(true); }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-stone-700 hover:bg-stone-50 focus:outline-none focus-visible:bg-stone-100"
+                    >
+                      <Settings size={16} className="text-stone-500" />
+                      {t('dashboard.settings')}
+                    </button>
+                    <div className="h-px bg-stone-100" />
+                    <button
+                      role="menuitem"
+                      onClick={async () => { setMobileMenuOpen(false); await signOut(); router.push('/'); }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-stone-700 hover:bg-stone-50 focus:outline-none focus-visible:bg-stone-100"
+                    >
+                      <LogOut size={16} className="text-stone-500" />
+                      {t('dashboard.signOut')}
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
