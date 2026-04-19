@@ -1,37 +1,33 @@
 'use client';
 
 import { useState } from 'react';
-import { 
-  Menu, 
-  X, 
-  Home, 
-  Globe, 
-  DollarSign, 
-  BarChart3, 
-  Bell, 
-  Settings, 
-  FileText,
+import {
+  Menu,
+  X,
+  Globe,
+  DollarSign,
+  PieChart,
+  Settings,
 } from 'lucide-react';
 import { useI18nContext } from '../../contexts/I18nProvider';
 
+type TabId = 'portfolio' | 'activity' | 'insights';
+
 interface MobileNavigationProps {
-  activeTab: 'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'settings' | 'reports';
-  onTabChange: (tab: 'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'settings' | 'reports') => void;
+  activeTab: TabId;
+  onTabChange: (tab: TabId) => void;
+  onOpenSettings: () => void;
   expiringCount: number;
 }
 
-export default function MobileNavigation({ activeTab, onTabChange, expiringCount }: MobileNavigationProps) {
+export default function MobileNavigation({ activeTab, onTabChange, onOpenSettings, expiringCount }: MobileNavigationProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { t, locale, setLocale } = useI18nContext();
 
-  const navigationItems = [
-    { id: 'overview', label: t('navigation.overview'), icon: Home },
-    { id: 'domains', label: t('navigation.domains'), icon: Globe },
-    { id: 'transactions', label: t('navigation.transactions'), icon: DollarSign },
-    { id: 'analytics', label: t('navigation.analytics'), icon: BarChart3 },
-    { id: 'alerts', label: t('navigation.alerts'), icon: Bell, badge: expiringCount },
-    { id: 'settings', label: t('navigation.settings'), icon: Settings },
-    { id: 'reports', label: t('navigation.reports'), icon: FileText }
+  const navigationItems: Array<{ id: TabId; label: string; icon: typeof Globe; badge?: number }> = [
+    { id: 'portfolio', label: t('dashboard.portfolio'), icon: Globe, badge: expiringCount },
+    { id: 'activity', label: t('dashboard.activity'), icon: DollarSign },
+    { id: 'insights', label: t('dashboard.insights'), icon: PieChart },
   ];
 
   return (
@@ -85,17 +81,17 @@ export default function MobileNavigation({ activeTab, onTabChange, expiringCount
           </div>
 
           {/* Navigation Items */}
-          <div className="px-4 pb-6">
-            <div className="grid grid-cols-2 gap-2">
+          <div className="px-4 pb-4">
+            <div className="grid grid-cols-3 gap-2">
               {navigationItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
-                
+
                 return (
                   <button
                     key={item.id}
                     onClick={() => {
-                      onTabChange(item.id as 'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'settings' | 'reports');
+                      onTabChange(item.id);
                       setIsOpen(false);
                     }}
                     className={`flex flex-col items-center p-4 rounded-xl transition-colors ${
@@ -117,6 +113,20 @@ export default function MobileNavigation({ activeTab, onTabChange, expiringCount
                 );
               })}
             </div>
+          </div>
+
+          {/* Settings entry — opens drawer */}
+          <div className="px-4 pb-6 border-t border-gray-100 pt-3">
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                onOpenSettings();
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors"
+            >
+              <Settings size={18} />
+              <span className="text-sm font-medium">{t('dashboard.settings')}</span>
+            </button>
           </div>
         </div>
       </div>
