@@ -16,11 +16,12 @@ interface DomainListProps {
   onDelete: (id: string) => void;
   onView: (domain: DomainWithTags) => void;
   onAdd: () => void;
+  onUpdateDomain?: (domain: DomainWithTags, patch: Partial<DomainWithTags>) => Promise<void> | void;
 }
 
 const DOMAINS_PAGE_SIZE = 24;
 
-const DomainList = memo(function DomainList({ domains, transactions = [], onEdit, onDelete, onView, onAdd }: DomainListProps) {
+const DomainList = memo(function DomainList({ domains, transactions = [], onEdit, onDelete, onView, onAdd, onUpdateDomain }: DomainListProps) {
   const { t } = useI18nContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -193,6 +194,7 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
           onEdit={onEdit}
           onDelete={onDelete}
           onView={onView}
+          onUpdateDomain={onUpdateDomain}
         />
       ) : (
         <>

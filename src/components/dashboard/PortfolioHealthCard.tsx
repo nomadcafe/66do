@@ -9,14 +9,19 @@ interface PortfolioHealthCardProps {
   totalRevenue: number;
   totalProfit: number;
   roi: number;
-  /** 12 monthly revenue points, oldest → newest */
+  /** Monthly revenue points, oldest → newest. Length is parent's choice and reflects the active window. */
   monthlyRevenueSeries: number[];
   /** Days until the next domain expiry; null if none upcoming */
   nextExpiryDays: number | null;
   formatCurrency: (n: number, c?: 'USD') => string;
+  /** Optional trend-window selector. Affects sparkline only; other stats stay all-time. */
+  windowOptions?: { key: string; label: string }[];
+  selectedWindow?: string;
+  onWindowChange?: (key: string) => void;
   labels: {
     portfolioRevenue: string;
-    last12Months: string;
+    /** Caption under the sparkline (e.g. "Last 12 months", "All time") */
+    windowCaption: string;
     totalProfit: string;
     domains: string;
     activeSold: (active: number, sold: number) => string;
@@ -25,6 +30,7 @@ interface PortfolioHealthCardProps {
     days: string;
     none: string;
     expired: string;
+    trendWindowAria: string;
   };
 }
 
@@ -42,11 +48,17 @@ export default function PortfolioHealthCard({
   monthlyRevenueSeries,
   nextExpiryDays,
   formatCurrency,
+  windowOptions,
+  selectedWindow,
+  onWindowChange,
   labels,
 }: PortfolioHealthCardProps) {
-  const series = monthlyRevenueSeries.length === 12
+  // Normalize: ensure at least 2 points so the sparkline path math is sane.
+  const series = monthlyRevenueSeries.length >= 2
     ? monthlyRevenueSeries
-    : Array.from({ length: 12 }, (_, i) => monthlyRevenueSeries[i] ?? 0);
+    : monthlyRevenueSeries.length === 1
+      ? [0, monthlyRevenueSeries[0]]
+      : [0, 0];
 
   // Month-over-month delta (last vs prev), guards divide-by-zero
   const lastMonth = series[series.length - 1] ?? 0;
@@ -102,18 +114,40 @@ export default function PortfolioHealthCard({
           </span>
         </p>
 
-        {/* Sparkline */}
-        <svg viewBox="0 0 200 60" className="mt-5 h-16 w-full" preserveAspectRatio="none" role="img" aria-label={labels.last12Months}>
-          <defs>
-            <linearGradient id="phc-spark-grad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#14b8a6" stopOpacity="0.25" />
-              <stop offset="100%" stopColor="#14b8a6" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <path d={sparkArea} fill="url(#phc-spark-grad)" />
-          <path d={sparkPath} fill="none" stroke="#0d9488" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-        <p className="mt-1 text-[11px] text-stone-400">{labels.last12Months}</p>
+        {/* Sparkline + optional window selector */}
+        <div className="mt-5 flex items-end justify-between gap-3">
+          <svg viewBox="0 0 200 60" className="h-16 flex-1" preserveAspectRatio="none" role="img" aria-label={labels.windowCaption}>
+            <defs>
+              <linearGradient id="phc-spark-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#14b8a6" stopOpacity="0.25" />
+                <stop offset="100%" stopColor="#14b8a6" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path d={sparkArea} fill="url(#phc-spark-grad)" />
+            <path d={sparkPath} fill="none" stroke="#0d9488" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          {windowOptions && windowOptions.length > 0 && onWindowChange && (
+            <div role="group" aria-label={labels.trendWindowAria} className="flex shrink-0 items-center gap-0.5 p-0.5 rounded-lg border border-stone-200 bg-stone-50">
+              {windowOptions.map((opt) => {
+                const active = opt.key === selectedWindow;
+                return (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => onWindowChange(opt.key)}
+                    aria-pressed={active}
+                    className={`px-2 py-1 rounded-md text-[11px] font-medium tabular-nums transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 ${
+                      active ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-900'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        <p className="mt-1 text-[11px] text-stone-400">{labels.windowCaption}</p>
 
         {/* Compact stats footer */}
         <div className="mt-5 grid grid-cols-3 gap-3 border-t border-stone-100 pt-4">

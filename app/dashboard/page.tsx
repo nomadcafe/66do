@@ -405,22 +405,59 @@ export default function DashboardPage() {
     return Number.isNaN(parsed.getTime()) ? d : dateFormatter.format(parsed);
   }, [dateFormatter]);
 
-  // 12-month sell revenue series for the portfolio sparkline (oldest → newest)
+  // Trend window for the portfolio sparkline (affects sparkline only — totals stay all-time)
+  const [trendWindow, setTrendWindow] = useState<'3M' | '6M' | '1Y' | 'All'>('1Y');
+
   const monthlyRevenueSeries = useMemo(() => {
-    const buckets = new Array(12).fill(0) as number[];
+    let monthCount: number;
+    if (trendWindow === '3M') monthCount = 3;
+    else if (trendWindow === '6M') monthCount = 6;
+    else if (trendWindow === '1Y') monthCount = 12;
+    else {
+      // All: span from earliest sell month to now (capped at 60 months for sparkline sanity)
+      let earliestMs: number | null = null;
+      for (const tx of transactionsForMetrics) {
+        if (tx.type !== 'sell' || !tx.date) continue;
+        const ms = new Date(tx.date).getTime();
+        if (!Number.isFinite(ms)) continue;
+        if (earliestMs === null || ms < earliestMs) earliestMs = ms;
+      }
+      if (earliestMs === null) {
+        monthCount = 12;
+      } else {
+        const now = new Date();
+        const earliest = new Date(earliestMs);
+        const diff = (now.getFullYear() - earliest.getFullYear()) * 12 + (now.getMonth() - earliest.getMonth()) + 1;
+        monthCount = Math.max(1, Math.min(60, diff));
+      }
+    }
+    const buckets = new Array(monthCount).fill(0) as number[];
     const now = new Date();
-    const startMonth = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+    const startMonth = new Date(now.getFullYear(), now.getMonth() - (monthCount - 1), 1);
     for (const tx of transactionsForMetrics) {
       if (tx.type !== 'sell' || !tx.date) continue;
       const txDate = new Date(tx.date);
       if (Number.isNaN(txDate.getTime())) continue;
       const monthsDiff = (txDate.getFullYear() - startMonth.getFullYear()) * 12 + (txDate.getMonth() - startMonth.getMonth());
-      if (monthsDiff >= 0 && monthsDiff < 12) {
+      if (monthsDiff >= 0 && monthsDiff < monthCount) {
         buckets[monthsDiff] += Number(tx.base_amount ?? tx.amount ?? 0);
       }
     }
     return buckets;
-  }, [transactionsForMetrics]);
+  }, [transactionsForMetrics, trendWindow]);
+
+  const trendWindowOptions: { key: '3M' | '6M' | '1Y' | 'All'; label: string }[] = [
+    { key: '3M', label: '3M' },
+    { key: '6M', label: '6M' },
+    { key: '1Y', label: '1Y' },
+    { key: 'All', label: t('dashboard.allTime') },
+  ];
+
+  const trendWindowCaption =
+    trendWindow === '3M' ? t('dashboard.last3Months')
+    : trendWindow === '6M' ? t('dashboard.last6Months')
+    : trendWindow === '1Y' ? t('dashboard.last12Months')
+    : t('dashboard.allTime');
 
   // Days until the next non-sold domain expires (negative = already expired but not yet marked)
   const nextExpiryDays = useMemo(() => {
@@ -492,6 +529,24 @@ export default function DashboardPage() {
       setTimeout(() => setMutationError(null), 5000);
     }
   }, [domainOps, domains, transactions, saveData, t]);
+
+  // Quick inline update for DomainTable (status / estimated_value cells).
+  // Spreads the patch onto the domain and persists via the same saveData path as the full editor.
+  const handleQuickUpdateDomain = useCallback(async (domain: DomainWithTags, patch: Partial<DomainWithTags>) => {
+    try {
+      const updatedDomain: DomainWithTags = {
+        ...domain,
+        ...patch,
+        updated_at: new Date().toISOString(),
+      };
+      const updatedDomains = domains.map((d) => (d.id === domain.id ? updatedDomain : d));
+      await saveData(updatedDomains, transactions, { domainsOnly: true });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      setMutationError(`${t('errors.saveDomainFailed')}: ${msg}`);
+      setTimeout(() => setMutationError(null), 5000);
+    }
+  }, [domains, transactions, saveData, t]);
 
   const handleViewDomain = useCallback((domain: DomainWithTags) => {
     domainOps.setEditingDomain(domain);
@@ -835,9 +890,12 @@ export default function DashboardPage() {
               monthlyRevenueSeries={monthlyRevenueSeries}
               nextExpiryDays={nextExpiryDays}
               formatCurrency={(n) => formatCurrencyEnhanced(n)}
+              windowOptions={trendWindowOptions}
+              selectedWindow={trendWindow}
+              onWindowChange={(k) => setTrendWindow(k as '3M' | '6M' | '1Y' | 'All')}
               labels={{
                 portfolioRevenue: t('dashboard.portfolioRevenue'),
-                last12Months: t('dashboard.last12Months'),
+                windowCaption: trendWindowCaption,
                 totalProfit: t('dashboard.totalProfit'),
                 domains: t('dashboard.totalDomains'),
                 activeSold: (a, s) => t('dashboard.portfolioCardActiveSold')
@@ -848,6 +906,7 @@ export default function DashboardPage() {
                 days: 'd',
                 none: t('dashboard.portfolioCardNoExpiry'),
                 expired: t('dashboard.portfolioCardExpired'),
+                trendWindowAria: t('dashboard.trendWindow'),
               }}
             />
 
@@ -955,6 +1014,7 @@ export default function DashboardPage() {
                 onDelete={setPendingDeleteDomainId}
                 onView={handleViewDomain}
                 onAdd={domainOps.handleAddDomain}
+                onUpdateDomain={handleQuickUpdateDomain}
               />
             )}
 

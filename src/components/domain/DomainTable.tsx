@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo, memo, useEffect } from 'react';
-import { Edit, Trash2, Eye, Share2, Calendar, Tag, Globe } from 'lucide-react';
+import { useState, useMemo, memo, useEffect, useRef, useCallback, Fragment } from 'react';
+import { Edit, Trash2, Eye, Share2, Calendar, Tag, Globe, ChevronRight, ChevronDown, Plus, RefreshCw, TrendingUp, FileText } from 'lucide-react';
 import DomainShareModal from '../share/DomainShareModal';
 import { DomainWithTags } from '../../types/dashboard';
 import type { TransactionWithRequiredFields } from '../../types/transaction';
@@ -34,17 +34,76 @@ interface DomainTableProps {
   onEdit: (domain: DomainWithTags) => void;
   onDelete: (id: string) => void;
   onView: (domain: DomainWithTags) => void;
+  /** Quick inline update — parent spreads patch onto domain and persists */
+  onUpdateDomain?: (domain: DomainWithTags, patch: Partial<DomainWithTags>) => Promise<void> | void;
 }
 
 const TABLE_PAGE_SIZE = 24;
 
-const DomainTable = memo(function DomainTable({ domains, transactions = [], onEdit, onDelete, onView }: DomainTableProps) {
+type EditTarget = { id: string; field: 'status' | 'estimated_value' } | null;
+
+const DomainTable = memo(function DomainTable({ domains, transactions = [], onEdit, onDelete, onView, onUpdateDomain }: DomainTableProps) {
   const [sortField, setSortField] = useState('domain_name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [showShareModal, setShowShareModal] = useState(false);
   const [selectedDomain, setSelectedDomain] = useState<DomainWithTags | null>(null);
   const [page, setPage] = useState(1);
+  const [editing, setEditing] = useState<EditTarget>(null);
+  const [draftValue, setDraftValue] = useState<string>('');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const valueInputRef = useRef<HTMLInputElement>(null);
   const { t } = useI18nContext();
+
+  const beginEditStatus = useCallback((domain: DomainWithTags) => {
+    if (!onUpdateDomain) return;
+    setEditing({ id: domain.id, field: 'status' });
+    setDraftValue(domain.status);
+  }, [onUpdateDomain]);
+
+  const beginEditValue = useCallback((domain: DomainWithTags) => {
+    if (!onUpdateDomain) return;
+    setEditing({ id: domain.id, field: 'estimated_value' });
+    setDraftValue(String(domain.estimated_value ?? 0));
+    setTimeout(() => valueInputRef.current?.select(), 0);
+  }, [onUpdateDomain]);
+
+  const cancelEdit = useCallback(() => {
+    setEditing(null);
+    setDraftValue('');
+  }, []);
+
+  const commitStatus = useCallback(async (domain: DomainWithTags, next: string) => {
+    if (!onUpdateDomain) return;
+    if (!['active', 'for_sale', 'sold', 'expired'].includes(next)) return;
+    if (next === domain.status) { cancelEdit(); return; }
+    await onUpdateDomain(domain, { status: next as 'active' | 'for_sale' | 'sold' | 'expired' });
+    cancelEdit();
+  }, [onUpdateDomain, cancelEdit]);
+
+  const commitValue = useCallback(async (domain: DomainWithTags) => {
+    if (!onUpdateDomain) return;
+    const parsed = Number(draftValue);
+    if (!Number.isFinite(parsed) || parsed < 0) { cancelEdit(); return; }
+    if (parsed === (domain.estimated_value ?? 0)) { cancelEdit(); return; }
+    await onUpdateDomain(domain, { estimated_value: parsed });
+    cancelEdit();
+  }, [onUpdateDomain, draftValue, cancelEdit]);
+
+  const transactionsByDomainId = useMemo(() => {
+    const map = new Map<string, TransactionWithRequiredFields[]>();
+    for (const tx of transactions) {
+      if (!tx.domain_id) continue;
+      const arr = map.get(tx.domain_id) ?? [];
+      arr.push(tx);
+      map.set(tx.domain_id, arr);
+    }
+    for (const arr of map.values()) {
+      arr.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    }
+    return map;
+  }, [transactions]);
+
+  const toggleExpand = (id: string) => setExpandedId((curr) => (curr === id ? null : id));
 
   const sortedDomains = useMemo(() => [...domains].sort((a, b) => {
     if (sortField === 'expiry_date') {
@@ -163,7 +222,8 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th 
+                <th aria-label="expand" className="w-8 px-2 py-3" />
+                <th
                   className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   onClick={() => handleSort('domain_name')}
                 >
@@ -242,11 +302,26 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
             <tbody className="bg-white divide-y divide-gray-200">
               {displayedDomains.map((domain) => {
                 const roi = calculateDomainROI(domain, transactions);
-                
                 const expiryStatus = getExpiryStatus(domain);
+                const isExpanded = expandedId === domain.id;
+                const isEditingStatus = editing?.id === domain.id && editing.field === 'status';
+                const isEditingValue = editing?.id === domain.id && editing.field === 'estimated_value';
+                const domainEvents = transactionsByDomainId.get(domain.id) ?? [];
 
                 return (
-                  <tr key={domain.id} className="hover:bg-gray-50">
+                  <Fragment key={domain.id}>
+                  <tr className="hover:bg-gray-50">
+                    <td className="w-8 px-2 py-3 align-top">
+                      <button
+                        type="button"
+                        onClick={() => toggleExpand(domain.id)}
+                        aria-expanded={isExpanded}
+                        aria-label={isExpanded ? 'Collapse history' : 'Expand history'}
+                        className="text-stone-400 hover:text-stone-700 p-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1"
+                      >
+                        {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                      </button>
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <Globe className="w-4 h-4 text-gray-400" />
@@ -257,9 +332,31 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(domain.status)}`}>
-                        {domain.status.replace('_', ' ')}
-                      </span>
+                      {isEditingStatus ? (
+                        <select
+                          autoFocus
+                          value={draftValue}
+                          onChange={(e) => { setDraftValue(e.target.value); commitStatus(domain, e.target.value); }}
+                          onBlur={cancelEdit}
+                          onKeyDown={(e) => { if (e.key === 'Escape') cancelEdit(); }}
+                          className="text-xs font-medium rounded-full border border-stone-300 bg-white px-2 py-1 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        >
+                          <option value="active">active</option>
+                          <option value="for_sale">for sale</option>
+                          <option value="sold">sold</option>
+                          <option value="expired">expired</option>
+                        </select>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => beginEditStatus(domain)}
+                          disabled={!onUpdateDomain}
+                          title={onUpdateDomain ? 'Click to change status' : undefined}
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(domain.status)} ${onUpdateDomain ? 'cursor-pointer hover:ring-2 hover:ring-stone-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500' : 'cursor-default'}`}
+                        >
+                          {domain.status.replace('_', ' ')}
+                        </button>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <div className="text-sm text-gray-900">{formatCurrency(domain.purchase_cost || 0)}</div>
@@ -275,8 +372,31 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                           <div className="text-sm font-medium text-green-600">{formatCurrency(domain.sale_price)}</div>
                           <div className="text-xs text-gray-500">Sold</div>
                         </div>
+                      ) : isEditingValue ? (
+                        <input
+                          ref={valueInputRef}
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={draftValue}
+                          onChange={(e) => setDraftValue(e.target.value)}
+                          onBlur={() => commitValue(domain)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') { e.preventDefault(); commitValue(domain); }
+                            if (e.key === 'Escape') cancelEdit();
+                          }}
+                          className="w-24 text-sm rounded border border-stone-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        />
                       ) : (
-                        <div className="text-sm text-gray-900">{formatCurrency(domain.estimated_value || 0)}</div>
+                        <button
+                          type="button"
+                          onClick={() => beginEditValue(domain)}
+                          disabled={!onUpdateDomain}
+                          title={onUpdateDomain ? 'Click to update value' : undefined}
+                          className={`text-sm text-gray-900 ${onUpdateDomain ? 'cursor-pointer hover:bg-stone-100 rounded px-1 -mx-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500' : 'cursor-default'}`}
+                        >
+                          {formatCurrency(domain.estimated_value || 0)}
+                        </button>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -347,6 +467,46 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                       </div>
                     </td>
                   </tr>
+                  {isExpanded && (
+                    <tr className="bg-stone-50/50">
+                      <td colSpan={9} className="px-4 py-4">
+                        {domainEvents.length === 0 ? (
+                          <p className="text-sm text-stone-500 italic">{t('timeline.noEvents')}</p>
+                        ) : (
+                          <ol className="space-y-2">
+                            {domainEvents.map((tx) => {
+                              const tone = tx.type;
+                              const Icon = tone === 'sell' ? TrendingUp : tone === 'renew' ? RefreshCw : tone === 'buy' ? Plus : FileText;
+                              const iconBg =
+                                tone === 'sell' ? 'bg-emerald-100 text-emerald-700' :
+                                tone === 'renew' ? 'bg-amber-100 text-amber-700' :
+                                tone === 'buy' ? 'bg-teal-100 text-teal-700' :
+                                'bg-stone-100 text-stone-600';
+                              const sign = tone === 'sell' ? '+' : '-';
+                              const amount = tx.base_amount ?? tx.amount ?? 0;
+                              const dateStr = tx.date ? new Date(tx.date).toLocaleDateString() : '';
+                              return (
+                                <li key={tx.id} className="flex items-center gap-3 text-sm">
+                                  <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${iconBg}`}>
+                                    <Icon className="h-3.5 w-3.5" />
+                                  </span>
+                                  <span className="font-medium text-stone-900 capitalize">{t(`transaction.${tx.type}`)}</span>
+                                  <span className="text-stone-500">{dateStr}</span>
+                                  <span className={`ml-auto font-semibold tabular-nums ${tone === 'sell' ? 'text-emerald-600' : tone === 'buy' ? 'text-teal-700' : tone === 'renew' ? 'text-amber-700' : 'text-stone-700'}`}>
+                                    {sign}{formatCurrency(amount)}
+                                  </span>
+                                  {tx.notes && (
+                                    <span className="text-xs text-stone-500 truncate max-w-[40%]">· {tx.notes}</span>
+                                  )}
+                                </li>
+                              );
+                            })}
+                          </ol>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 );
               })}
             </tbody>
