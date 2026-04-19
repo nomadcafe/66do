@@ -163,7 +163,30 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
         {t('domainList.showingCount').replace('{filtered}', String(filteredDomains.length)).replace('{total}', String(domains.length))}
       </p>
 
-      {viewMode === 'table' ? (
+      {filteredDomains.length === 0 ? (
+        <div className="text-center py-14 bg-white rounded-2xl border border-stone-200/80 shadow-sm">
+          <Search className="h-10 w-10 mx-auto text-stone-300 mb-4" />
+          <h3 className="text-base font-semibold text-stone-900 mb-2">
+            {searchTerm || statusFilter !== 'all' || tagFilter !== 'all' ? t('domainList.noDomainsFound') : t('domainList.noDomainsYet')}
+          </h3>
+          <p className="text-sm text-stone-500 mb-5 max-w-sm mx-auto">
+            {searchTerm || statusFilter !== 'all' || tagFilter !== 'all' ? t('domainList.adjustSearch') : t('domainList.getStarted')}
+          </p>
+          {!searchTerm && statusFilter === 'all' && tagFilter === 'all' ? (
+            <button onClick={onAdd} className="inline-flex items-center px-4 py-2.5 bg-teal-600 text-white rounded-xl text-sm font-medium hover:bg-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2">
+              <Plus className="h-4 w-4 mr-2" />
+              {t('domainList.addFirstDomain')}
+            </button>
+          ) : (
+            <button
+              onClick={() => { setSearchTerm(''); setStatusFilter('all'); setTagFilter('all'); }}
+              className="inline-flex items-center px-4 py-2.5 border border-stone-300 bg-white text-stone-700 rounded-xl text-sm font-medium hover:bg-stone-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+            >
+              {t('domainList.clearFilters')}
+            </button>
+          )}
+        </div>
+      ) : viewMode === 'table' ? (
         <DomainTable
           domains={filteredDomains}
           transactions={transactions}
@@ -171,22 +194,6 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
           onDelete={onDelete}
           onView={onView}
         />
-      ) : filteredDomains.length === 0 ? (
-        <div className="text-center py-14 bg-white rounded-2xl border border-stone-200/80 shadow-sm">
-          <Search className="h-10 w-10 mx-auto text-stone-300 mb-4" />
-          <h3 className="text-base font-semibold text-stone-900 mb-2">
-            {searchTerm || statusFilter !== 'all' ? t('domainList.noDomainsFound') : t('domainList.noDomainsYet')}
-          </h3>
-          <p className="text-sm text-stone-500 mb-5 max-w-sm mx-auto">
-            {searchTerm || statusFilter !== 'all' ? t('domainList.adjustSearch') : t('domainList.getStarted')}
-          </p>
-          {!searchTerm && statusFilter === 'all' && (
-            <button onClick={onAdd} className="inline-flex items-center px-4 py-2.5 bg-teal-600 text-white rounded-xl text-sm font-medium hover:bg-teal-700">
-              <Plus className="h-4 w-4 mr-2" />
-              {t('domainList.addFirstDomain')}
-            </button>
-          )}
-        </div>
       ) : (
         <>
           <div
