@@ -228,14 +228,6 @@ export default function DashboardPage() {
     handleDeleteDomain
   );
 
-  const domainFormCloseRef = useRef<(() => void) | null>(null);
-  useEffect(() => {
-    domainFormCloseRef.current = () => {
-      domainOps.setShowDomainForm(false);
-      domainOps.setEditingDomain(undefined);
-    };
-  }, [domainOps]);
-
   // Delete-confirm dialog: focus mgmt, Esc to close, Enter to confirm (via natural focus on confirm), Tab trap, scroll lock
   useEffect(() => {
     if (!pendingDeleteDomainId) return;
@@ -309,18 +301,6 @@ export default function DashboardPage() {
     };
   }, [pendingDeleteTransactionId]);
 
-  useEffect(() => {
-    if (!domainOps.showDomainForm) return;
-    const handler = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest?.('[data-close-domain-form]')) return;
-      e.preventDefault();
-      e.stopPropagation();
-      domainFormCloseRef.current?.();
-    };
-    document.addEventListener('click', handler, true);
-    return () => document.removeEventListener('click', handler, true);
-  }, [domainOps.showDomainForm]);
   
   const transactionOps = useTransactionOperations(
     transactions,
@@ -1040,6 +1020,7 @@ export default function DashboardPage() {
         {activeTab === 'activity' && (
           <TransactionList
             transactions={transactions}
+            metricsTransactions={transactionsForMetrics}
             domains={domains}
             onEdit={transactionOps.handleEditTransaction}
             onDelete={setPendingDeleteTransactionId}
@@ -1300,7 +1281,6 @@ export default function DashboardPage() {
           domainOps.setEditingDomain(undefined);
         }}
         onSave={handleSaveDomain}
-        closeRef={domainFormCloseRef}
       />
 
       {/* Smart Domain Form Modal */}

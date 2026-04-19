@@ -30,11 +30,9 @@ interface DomainFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (domain: Omit<DomainWithTags, 'id'>) => void;
-  /** 父组件通过 ref 传入最新关闭函数，避免闭包导致关闭无反应 */
-  closeRef?: React.MutableRefObject<(() => void) | null>;
 }
 
-export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }: DomainFormProps) {
+export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFormProps) {
   const { t } = useI18nContext();
   const [formData, setFormData] = useState({
     domain_name: '',
@@ -162,7 +160,6 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
 
   const handleClose = () => {
     setLocalOpen(false);
-    closeRef?.current?.();
     onClose();
   };
 
@@ -176,14 +173,14 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
       aria-modal="true"
       aria-label={domain ? t('dashboard.domainFormTitleEdit') : t('dashboard.domainFormTitleAdd')}
     >
-      <div
-        data-close-domain-form
-        className="absolute inset-0 bg-black/40"
-        aria-hidden
+      <button
+        type="button"
+        aria-label={t('common.close')}
+        onClick={handleClose}
+        className="absolute inset-0 bg-black/40 cursor-default"
       />
       <div
         className="relative bg-white w-full max-w-xl h-full overflow-y-auto shadow-xl flex flex-col"
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between z-10 shrink-0">
           <h2 className="text-xl font-semibold text-gray-900">
@@ -191,7 +188,6 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
           </h2>
           <button
             type="button"
-            data-close-domain-form
             onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 cursor-pointer"
             aria-label={t('common.close')}
@@ -437,7 +433,6 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
           <div className="flex justify-end space-x-3 pt-6 border-t">
             <button
               type="button"
-              data-close-domain-form
               onClick={handleClose}
               className="px-4 py-2 text-gray-600 hover:text-gray-800 cursor-pointer"
             >

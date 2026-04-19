@@ -12,6 +12,13 @@ import { ListPagination } from '../ui/ListPagination';
 
 interface TransactionListProps {
   transactions: TransactionWithRequiredFields[];
+  /**
+   * Optional installment-adjusted view of transactions for KPI summing
+   * (sells with partial / cancelled installments are scaled to actual cash received,
+   * platform fees scaled proportionally). Same shape and ids as `transactions`;
+   * if omitted, the KPI strip falls back to raw values.
+   */
+  metricsTransactions?: TransactionWithRequiredFields[];
   domains: DomainWithTags[];
   onEdit: (transaction: TransactionWithRequiredFields) => void;
   onDelete: (id: string) => void;
@@ -20,11 +27,12 @@ interface TransactionListProps {
 
 const TRANSACTIONS_PAGE_SIZE = 30;
 
-const TransactionList = memo(function TransactionList({ 
-  transactions, 
-  domains, 
-  onEdit, 
-  onDelete, 
+const TransactionList = memo(function TransactionList({
+  transactions,
+  metricsTransactions,
+  domains,
+  onEdit,
+  onDelete,
   onAdd 
 }: TransactionListProps) {
   const { t } = useI18nContext();
@@ -157,18 +165,33 @@ const TransactionList = memo(function TransactionList({
     return sorted;
   }, [transactions, getDomainName, searchTerm, typeFilter, sortField, sortDir]);
 
-  // Period KPIs reflecting the *visible* (filtered + sorted) set so the strip tracks search/type
+  // Period KPIs reflecting the *visible* (filtered) set, computed from installment-adjusted
+  // amounts (when parent supplies metricsTransactions). Inflow uses sellNetUSD — actual cash
+  // collected after platform fees and after scaling for partial / cancelled installments —
+  // mirroring the Insights "Total Revenue" definition. "Net" here is window cash flow,
+  // not the all-time Net Profit (that would require holding-cost calculations across history).
+  const metricsById = useMemo(() => {
+    const map = new Map<string, TransactionWithRequiredFields>();
+    const source = metricsTransactions ?? transactions;
+    for (const tx of source) map.set(tx.id, tx);
+    return map;
+  }, [metricsTransactions, transactions]);
+
   const periodMetrics = useMemo(() => {
     let inflow = 0;
     let outflow = 0;
     for (const tx of filteredTransactions) {
-      const amt = tx.type === 'sell' ? sellGrossUSD(tx) : Number(tx.base_amount ?? tx.amount ?? 0);
-      if (!Number.isFinite(amt)) continue;
-      if (tx.type === 'sell') inflow += amt;
-      else outflow += amt;
+      const adj = metricsById.get(tx.id) ?? tx;
+      if (tx.type === 'sell') {
+        const v = sellNetUSD(adj);
+        if (Number.isFinite(v)) inflow += v;
+      } else {
+        const v = Number(adj.base_amount ?? adj.amount ?? 0);
+        if (Number.isFinite(v)) outflow += v;
+      }
     }
     return { inflow, outflow, net: inflow - outflow, count: filteredTransactions.length };
-  }, [filteredTransactions]);
+  }, [filteredTransactions, metricsById]);
 
   const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / TRANSACTIONS_PAGE_SIZE));
   const page = Math.min(pageRaw, totalPages);
