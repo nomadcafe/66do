@@ -53,12 +53,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
   const [tagInput, setTagInput] = useState('');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [localOpen, setLocalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    setLocalOpen(isOpen);
-  }, [isOpen]);
 
   // 仅在打开弹窗或切换编辑的域名时用 domain 初始化表单，避免父组件重渲染导致表单被覆盖
   const domainId = domain?.id ?? 'new';
@@ -111,13 +106,11 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('[DomainForm] handleSubmit fired');
 
     const sanitizedData = sanitizeDomainData(formData);
     const validation = validateDomain(sanitizedData);
 
     if (!validation.valid) {
-      console.log('[DomainForm] validation failed', validation.errors);
       setValidationErrors(validation.errors);
       return;
     }
@@ -126,13 +119,12 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
     setSubmitError(null);
     setIsSubmitting(true);
     try {
-      console.log('[DomainForm] calling onSave');
       await Promise.resolve(onSave(sanitizedData as Omit<DomainWithTags, 'id'>));
-      console.log('[DomainForm] onSave resolved, closing');
-      setLocalOpen(false);
+      // Closing is parent-owned: handleSaveDomain in dashboard already sets
+      // showDomainForm=false / editingDomain=undefined. We just call onClose
+      // to be defensive in case onSave skipped that path.
       onClose();
     } catch (err) {
-      console.log('[DomainForm] onSave threw', err);
       setSubmitError(err instanceof Error ? err.message : 'Save failed. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -164,12 +156,10 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
   };
 
   const handleClose = () => {
-    console.log('[DomainForm] handleClose fired');
-    setLocalOpen(false);
     onClose();
   };
 
-  if (!localOpen) return null;
+  if (!isOpen) return null;
 
   const modalContent = (
     <div
