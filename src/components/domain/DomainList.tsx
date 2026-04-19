@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, memo, useEffect, useCallback } from 'react';
+import { useMemo, memo, useEffect, useCallback, useState } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Search, Filter, Grid, Plus, Table } from 'lucide-react';
 import DomainCard from './DomainCard';
@@ -51,6 +51,19 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
   const setTagFilter = (s: string) => updateParams({ dmtag: s === 'all' ? null : s, dmpage: null });
   const setViewMode = (m: 'grid' | 'table') => updateParams({ dmview: m === 'table' ? null : m });
   const setPage = (n: number) => updateParams({ dmpage: n <= 1 ? null : String(n) });
+
+  // Force card (grid) view on mobile — wide table is unusable on phone.
+  // Track viewport so the effective render mode flips at lg breakpoint regardless of URL.
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(max-width: 1023px)');
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  const effectiveView: 'grid' | 'table' = isMobile ? 'grid' : viewMode;
 
   const allTags = useMemo(() =>
     [...new Set(domains.flatMap(d => d.tags))].sort(),
@@ -146,7 +159,8 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
               ))}
             </select>
           )}
-          <div className="flex items-center border border-stone-200 rounded-xl overflow-hidden">
+          {/* Toggle hidden on mobile — cards are always used there */}
+          <div className="hidden lg:flex items-center border border-stone-200 rounded-xl overflow-hidden">
             <button
               type="button"
               onClick={() => setViewMode('table')}
@@ -196,7 +210,7 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
             </button>
           )}
         </div>
-      ) : viewMode === 'table' ? (
+      ) : effectiveView === 'table' ? (
         <DomainTable
           domains={filteredDomains}
           transactions={transactions}
