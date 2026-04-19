@@ -271,6 +271,16 @@ export default function TransactionForm({
       return;
     }
 
+    // 跨字段日期校验：交易日期不应早于关联域名的购买日期
+    if (selectedDomain?.purchase_date && formData.date) {
+      const txDate = new Date(formData.date);
+      const purDate = new Date(selectedDomain.purchase_date);
+      if (!isNaN(txDate.getTime()) && !isNaN(purDate.getTime()) && txDate < purDate) {
+        setSubmitError(t('validation.transaction.dateBeforeDomainPurchase'));
+        return;
+      }
+    }
+
     // 仅 USD：base_amount 与 amount 一致
     const calculatedNetAmount = formData.amount - formData.platform_fee;
     const clampRenewalYears = Math.min(

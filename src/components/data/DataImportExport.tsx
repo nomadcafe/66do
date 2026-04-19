@@ -1,15 +1,14 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { 
-  Upload, 
-  Download, 
-  FileText, 
-  Database, 
-  CheckCircle, 
-  AlertTriangle, 
+import {
+  Upload,
+  Download,
+  FileText,
+  Database,
+  CheckCircle,
+  AlertTriangle,
   X,
-  File,
   ArrowUp,
   Settings,
   RefreshCw
@@ -21,7 +20,6 @@ import { MAX_FILE_SIZE, ALLOWED_FILE_TYPES, ALLOWED_EXTENSIONS } from '../../lib
 interface ImportExportProps {
   onImport: (data: unknown) => void;
   onExport: (format: string) => void;
-  onBackup: () => void;
   onRestore: (backup: unknown) => void;
 }
 
@@ -35,11 +33,10 @@ interface ImportResult {
 export default function DataImportExport({
   onImport,
   onExport,
-  onBackup,
   onRestore
 }: ImportExportProps) {
   const { t } = useI18nContext();
-  const [activeTab, setActiveTab] = useState<'import' | 'export' | 'backup' | 'restore'>('import');
+  const [activeTab, setActiveTab] = useState<'import' | 'export' | 'restore'>('import');
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -193,21 +190,10 @@ export default function DataImportExport({
     }
   };
 
-  const handleBackup = async () => {
-    setIsProcessing(true);
-    try {
-      await onBackup();
-    } catch (error) {
-      console.error('备份失败:', error);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   const tabs = [
     { id: 'import', label: t('data.import'), icon: Upload },
     { id: 'export', label: t('data.export'), icon: Download },
-    { id: 'backup', label: t('data.backup'), icon: Database }
+    { id: 'restore', label: t('data.restoreBackup'), icon: Database }
   ];
 
   const renderImportTab = () => (
@@ -302,50 +288,26 @@ export default function DataImportExport({
 
   const renderExportTab = () => (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="border border-gray-200 rounded-lg p-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <FileText className="h-6 w-6 text-blue-600" />
-            <h3 className="text-lg font-medium text-gray-900">{t('data.jsonFormat')}</h3>
-          </div>
-          <p className="text-sm text-gray-600 mb-4">
-            {t('data.jsonDescription')}
-          </p>
-          <button
-            onClick={() => handleExport('json')}
-            disabled={isProcessing}
-            className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center space-x-2"
-          >
-            {isProcessing ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4" />
-            )}
-            <span>{t('data.exportJson')}</span>
-          </button>
+      <div className="border border-gray-200 rounded-lg p-6">
+        <div className="flex items-center space-x-3 mb-4">
+          <FileText className="h-6 w-6 text-blue-600" />
+          <h3 className="text-lg font-medium text-gray-900">{t('data.jsonFormat')}</h3>
         </div>
-
-        <div className="border border-gray-200 rounded-lg p-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <File className="h-6 w-6 text-green-600" />
-            <h3 className="text-lg font-medium text-gray-900">{t('data.csvFormat')}</h3>
-          </div>
-          <p className="text-sm text-gray-600 mb-4">
-            {t('data.csvDescription')}
-          </p>
-          <button
-            onClick={() => handleExport('csv')}
-            disabled={isProcessing}
-            className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center space-x-2"
-          >
-            {isProcessing ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4" />
-            )}
-            <span>{t('data.exportCsv')}</span>
-          </button>
-        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          {t('data.jsonDescription')}
+        </p>
+        <button
+          onClick={() => handleExport('json')}
+          disabled={isProcessing}
+          className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center space-x-2"
+        >
+          {isProcessing ? (
+            <RefreshCw className="h-4 w-4 animate-spin" />
+          ) : (
+            <Download className="h-4 w-4" />
+          )}
+          <span>{t('data.exportJson')}</span>
+        </button>
       </div>
 
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -358,76 +320,6 @@ export default function DataImportExport({
               <li>{t('data.exportNote2')}</li>
               <li>{t('data.exportNote3')}</li>
             </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderBackupTab = () => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="border border-gray-200 rounded-lg p-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <Database className="h-6 w-6 text-purple-600" />
-            <h3 className="text-lg font-medium text-gray-900">{t('data.createBackup')}</h3>
-          </div>
-          <p className="text-sm text-gray-600 mb-4">
-            {t('data.createBackupDescription')}
-          </p>
-          <button
-            onClick={handleBackup}
-            disabled={isProcessing}
-            className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center justify-center space-x-2"
-          >
-            {isProcessing ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
-            ) : (
-              <ArrowUp className="h-4 w-4" />
-            )}
-            <span>{t('data.createBackup')}</span>
-          </button>
-        </div>
-
-        <div className="border border-gray-200 rounded-lg p-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <Settings className="h-6 w-6 text-orange-600" />
-            <h3 className="text-lg font-medium text-gray-900">{t('data.restoreBackup')}</h3>
-          </div>
-          <p className="text-sm text-gray-600 mb-4">
-            {t('data.restoreBackupDescription')}
-          </p>
-          <input
-            type="file"
-            accept=".json"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                  try {
-                    const backup = JSON.parse(event.target?.result as string) as unknown;
-                    onRestore(backup);
-                  } catch (error) {
-                    console.error('恢复备份失败:', error);
-                  }
-                };
-                reader.readAsText(file);
-              }
-            }}
-            className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
-          />
-        </div>
-      </div>
-
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <div className="flex items-start space-x-3">
-          <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
-          <div>
-            <h4 className="text-sm font-medium text-red-900">{t('data.importantWarning')}</h4>
-            <p className="text-sm text-red-700 mt-1">
-              {t('data.restoreWarning')}
-            </p>
           </div>
         </div>
       </div>
@@ -462,8 +354,20 @@ export default function DataImportExport({
               reader.readAsText(file);
             }
           }}
-          className="w-full p-2 border border-gray-300 rounded-lg"
+          className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
         />
+      </div>
+
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="flex items-start space-x-3">
+          <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
+          <div>
+            <h4 className="text-sm font-medium text-red-900">{t('data.importantWarning')}</h4>
+            <p className="text-sm text-red-700 mt-1">
+              {t('data.restoreWarning')}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -484,7 +388,7 @@ export default function DataImportExport({
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as 'import' | 'export' | 'backup' | 'restore')}
+                  onClick={() => setActiveTab(tab.id as 'import' | 'export' | 'restore')}
                   className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${
                     activeTab === tab.id
                       ? 'bg-blue-50 text-blue-700 border border-blue-200'
@@ -503,7 +407,6 @@ export default function DataImportExport({
         <div className="flex-1 p-6">
           {activeTab === 'import' && renderImportTab()}
           {activeTab === 'export' && renderExportTab()}
-          {activeTab === 'backup' && renderBackupTab()}
           {activeTab === 'restore' && renderRestoreTab()}
         </div>
       </div>

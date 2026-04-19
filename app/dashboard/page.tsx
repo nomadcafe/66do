@@ -1324,27 +1324,6 @@ export default function DashboardPage() {
                 auditLogger.log(user?.id || 'default', 'data_export_failed', 'dashboard', { error: (error as Error).message });
               }
             }}
-            onBackup={() => {
-              try {
-                const backup = {
-                  domains,
-                  transactions,
-                  backupDate: new Date().toISOString(),
-                  version: '1.0'
-                };
-                // Backup data to Supabase database (implement backup API if needed)
-                logger.log('Backup created:', backup);
-                auditLogger.log(user?.id || 'default', 'data_backed_up', 'dashboard', { 
-                  domainsCount: domains.length,
-                  transactionsCount: transactions.length
-                });
-                logger.log(t('common.dataBackedUpSuccessfully'));
-              } catch (error) {
-                logger.error('Backup failed:', error);
-                setError(t('common.dataBackupFailed'));
-                auditLogger.log(user?.id || 'default', 'data_backup_failed', 'dashboard', { error: (error as Error).message });
-              }
-            }}
             onRestore={async (backup: unknown) => {
               try {
                 const restoreData = backup as { domains?: Domain[]; transactions?: TransactionWithRequiredFields[] };
