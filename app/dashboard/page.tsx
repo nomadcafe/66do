@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { flushSync } from 'react-dom';
 import Link from 'next/link';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useSupabaseAuth } from '../../src/contexts/SupabaseAuthContext';
@@ -233,10 +232,30 @@ export default function DashboardPage() {
     }
   );
 
-  // Diagnostic: log when showDomainForm or editingDomain change
+  // Restored from the pre-breakage working version: a ref holds the latest close
+  // function, and a document-level capture listener routes clicks on any
+  // [data-close-domain-form] element to that close. This was proven to work
+  // and was inadvertently removed during debugging.
+  const domainFormCloseRef = useRef<(() => void) | null>(null);
   useEffect(() => {
-    console.log('[dashboard] state change: showDomainForm=', domainOps.showDomainForm, 'editingDomain.id=', domainOps.editingDomain?.id);
-  }, [domainOps.showDomainForm, domainOps.editingDomain]);
+    domainFormCloseRef.current = () => {
+      domainOps.setShowDomainForm(false);
+      domainOps.setEditingDomain(undefined);
+    };
+  }, [domainOps]);
+
+  useEffect(() => {
+    if (!domainOps.showDomainForm) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest?.('[data-close-domain-form]')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      domainFormCloseRef.current?.();
+    };
+    document.addEventListener('click', handler, true);
+    return () => document.removeEventListener('click', handler, true);
+  }, [domainOps.showDomainForm]);
 
   // Delete-confirm dialog: focus mgmt, Esc to close, Enter to confirm (via natural focus on confirm), Tab trap, scroll lock
   useEffect(() => {
@@ -1247,19 +1266,17 @@ export default function DashboardPage() {
         }
       />
 
-      {/* Domain Edit Drawer — match TransactionForm: always mounted, relies on isOpen internally */}
+      {/* Domain Edit Drawer */}
       <DomainForm
         key={domainOps.editingDomain?.id || 'edit-new'}
         domain={domainOps.editingDomain}
         isOpen={domainOps.showDomainForm}
         onClose={() => {
-          console.log('[dashboard] DomainForm.onClose: setting showDomainForm=false');
-          flushSync(() => {
-            domainOps.setShowDomainForm(false);
-            domainOps.setEditingDomain(undefined);
-          });
+          domainOps.setShowDomainForm(false);
+          domainOps.setEditingDomain(undefined);
         }}
         onSave={domainOps.handleSaveDomain}
+        closeRef={domainFormCloseRef}
       />
 
       {/* Smart Domain Form Modal */}
