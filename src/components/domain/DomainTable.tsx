@@ -166,15 +166,15 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
-        return 'bg-green-100 text-green-800';
+        return 'bg-emerald-50 text-emerald-700';
       case 'for_sale':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-amber-50 text-amber-700';
       case 'sold':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-stone-100 text-stone-700';
       case 'expired':
-        return 'bg-red-100 text-red-800';
+        return 'bg-rose-50 text-rose-700';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-stone-100 text-stone-700';
     }
   };
 
@@ -208,98 +208,98 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
     const days = getDaysUntilExpiry(domain.expiry_date);
     if (days === null) return null;
     
-    if (days < 0) return { text: 'Expired', color: 'text-red-600' };
-    if (days <= 30) return { text: `${days}d`, color: 'text-red-500' };
-    if (days <= 90) return { text: `${days}d`, color: 'text-yellow-500' };
-    return { text: `${days}d`, color: 'text-green-500' };
+    if (days < 0) return { text: 'Expired', color: 'text-rose-700' };
+    if (days <= 30) return { text: `${days}d`, color: 'text-rose-600' };
+    if (days <= 90) return { text: `${days}d`, color: 'text-amber-600' };
+    return { text: `${days}d`, color: 'text-emerald-600' };
   };
 
   return (
     <div className="space-y-4">
       {/* Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-stone-200/80 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-stone-50 border-b border-stone-200">
               <tr>
                 <th aria-label="expand" className="w-8 px-2 py-3" />
                 <th
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider cursor-pointer hover:bg-stone-100"
                   onClick={() => handleSort('domain_name')}
                 >
                   <div className="flex items-center gap-1">
                     Domain Name
                     {sortField === 'domain_name' && (
-                      <span className="text-blue-600">
+                      <span className="text-teal-600">
                         {sortDirection === 'asc' ? '↑' : '↓'}
                       </span>
                     )}
                   </div>
                 </th>
                 <th 
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider cursor-pointer hover:bg-stone-100"
                   onClick={() => handleSort('status')}
                 >
                   <div className="flex items-center gap-1">
                     Status
                     {sortField === 'status' && (
-                      <span className="text-blue-600">
+                      <span className="text-teal-600">
                         {sortDirection === 'asc' ? '↑' : '↓'}
                       </span>
                     )}
                   </div>
                 </th>
                 <th 
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider cursor-pointer hover:bg-stone-100"
                   onClick={() => handleSort('purchase_cost')}
                 >
                   <div className="flex items-center gap-1">
                     Cost
                     {sortField === 'purchase_cost' && (
-                      <span className="text-blue-600">
+                      <span className="text-teal-600">
                         {sortDirection === 'asc' ? '↑' : '↓'}
                       </span>
                     )}
                   </div>
                 </th>
                 <th 
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider cursor-pointer hover:bg-stone-100"
                   onClick={() => handleSort('estimated_value')}
                 >
                   <div className="flex items-center gap-1">
                     Value
                     {sortField === 'estimated_value' && (
-                      <span className="text-blue-600">
+                      <span className="text-teal-600">
                         {sortDirection === 'asc' ? '↑' : '↓'}
                       </span>
                     )}
                   </div>
                 </th>
                 <th
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider cursor-pointer hover:bg-stone-100"
                   onClick={() => handleSort('expiry_date')}
                 >
                   <div className="flex items-center gap-1">
                     Expiry
                     {sortField === 'expiry_date' && (
-                      <span className="text-blue-600">
+                      <span className="text-teal-600">
                         {sortDirection === 'asc' ? '↑' : '↓'}
                       </span>
                     )}
                   </div>
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
                   ROI
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
                   Tags
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-right text-xs font-medium text-stone-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white divide-y divide-stone-200">
               {displayedDomains.map((domain) => {
                 const roi = calculateDomainROI(domain, transactions);
                 const expiryStatus = getExpiryStatus(domain);
@@ -310,7 +310,7 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
 
                 return (
                   <Fragment key={domain.id}>
-                  <tr className="hover:bg-gray-50">
+                  <tr className="hover:bg-stone-50/80">
                     <td className="w-8 px-2 py-3 align-top">
                       <button
                         type="button"
@@ -324,10 +324,10 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <Globe className="w-4 h-4 text-gray-400" />
+                        <Globe className="w-4 h-4 text-stone-400" />
                         <div>
-                          <div className="font-medium text-gray-900">{domain.domain_name}</div>
-                          <div className="text-sm text-gray-500">{domain.registrar}</div>
+                          <div className="font-medium text-stone-900">{domain.domain_name}</div>
+                          <div className="text-sm text-stone-500">{domain.registrar}</div>
                         </div>
                       </div>
                     </td>
@@ -359,9 +359,9 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="text-sm text-gray-900">{formatCurrency(domain.purchase_cost || 0)}</div>
+                      <div className="text-sm text-stone-900">{formatCurrency(domain.purchase_cost || 0)}</div>
                       {domain.renewal_count > 0 && (
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-stone-500">
                           +{domain.renewal_count} {t('domain.renewals')}
                         </div>
                       )}
@@ -369,8 +369,8 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                     <td className="px-4 py-3">
                       {domain.status === 'sold' && domain.sale_price ? (
                         <div>
-                          <div className="text-sm font-medium text-green-600">{formatCurrency(domain.sale_price)}</div>
-                          <div className="text-xs text-gray-500">Sold</div>
+                          <div className="text-sm font-medium text-emerald-600">{formatCurrency(domain.sale_price)}</div>
+                          <div className="text-xs text-stone-500">Sold</div>
                         </div>
                       ) : isEditingValue ? (
                         <input
@@ -393,54 +393,56 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                           onClick={() => beginEditValue(domain)}
                           disabled={!onUpdateDomain}
                           title={onUpdateDomain ? 'Click to update value' : undefined}
-                          className={`text-sm text-gray-900 ${onUpdateDomain ? 'cursor-pointer hover:bg-stone-100 rounded px-1 -mx-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500' : 'cursor-default'}`}
+                          className={`text-sm text-stone-900 ${onUpdateDomain ? 'cursor-pointer hover:bg-stone-100 rounded px-1 -mx-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500' : 'cursor-default'}`}
                         >
                           {formatCurrency(domain.estimated_value || 0)}
                         </button>
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      {expiryStatus ? (
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3 text-gray-400" />
-                          <span className={`text-sm ${expiryStatus.color}`}>
-                            {expiryStatus.text}
-                          </span>
+                      {expiryStatus && domain.expiry_date ? (
+                        <div>
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3 text-stone-400" />
+                            <span className={`text-sm font-medium ${expiryStatus.color}`}>
+                              {expiryStatus.text}
+                            </span>
+                          </div>
+                          <p className="text-xs text-stone-500 mt-0.5 tabular-nums">
+                            {new Date(domain.expiry_date).toLocaleDateString()}
+                          </p>
                         </div>
                       ) : (
-                        <span className="text-sm text-gray-400">-</span>
+                        <span className="text-sm text-stone-400">-</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <div className={`text-sm font-medium ${roi >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      <div className={`text-sm font-medium ${roi >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                         {roi >= 0 ? '+' : ''}{roi.toFixed(1)}%
                       </div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 max-w-xs">
                       <div className="flex flex-wrap gap-1">
-                        {domain.tags.slice(0, 2).map((tag, index) => (
-                          <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800">
+                        {domain.tags.map((tag, index) => (
+                          <span key={index} className="inline-flex items-center px-2 py-0.5 rounded-md text-xs bg-stone-100 text-stone-700">
                             <Tag className="w-3 h-3 mr-1" />
                             {tag}
                           </span>
                         ))}
-                        {domain.tags.length > 2 && (
-                          <span className="text-xs text-gray-500">+{domain.tags.length - 2}</span>
-                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => onView(domain)}
-                          className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                          className="p-1 text-stone-400 hover:text-teal-600 transition-colors"
                           title="View Details"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => onEdit(domain)}
-                          className="p-1 text-gray-400 hover:text-green-600 transition-colors"
+                          className="p-1 text-stone-400 hover:text-emerald-600 transition-colors"
                           title="Edit Domain"
                         >
                           <Edit className="w-4 h-4" />
@@ -451,7 +453,7 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                               setSelectedDomain(domain);
                               setShowShareModal(true);
                             }}
-                            className="p-1 text-gray-400 hover:text-purple-600 transition-colors"
+                            className="p-1 text-stone-400 hover:text-purple-600 transition-colors"
                             title="Share Sale"
                           >
                             <Share2 className="w-4 h-4" />
@@ -459,7 +461,7 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                         )}
                         <button
                           onClick={() => onDelete(domain.id)}
-                          className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                          className="p-1 text-stone-400 hover:text-rose-600 transition-colors"
                           title="Delete Domain"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -524,9 +526,9 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
       {/* Empty State */}
       {sortedDomains.length === 0 && (
         <div className="text-center py-12">
-          <Globe className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No domains found</h3>
-          <p className="mt-1 text-sm text-gray-500">
+          <Globe className="mx-auto h-12 w-12 text-stone-400" />
+          <h3 className="mt-2 text-sm font-medium text-stone-900">No domains found</h3>
+          <p className="mt-1 text-sm text-stone-500">
             Get started by adding your first domain.
           </p>
         </div>

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useMemo, memo, useEffect } from 'react';
-import { Search, Filter, Grid, List, Plus, Table } from 'lucide-react';
+import { useMemo, memo, useEffect, useCallback } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { Search, Filter, Grid, Plus, Table } from 'lucide-react';
 import DomainCard from './DomainCard';
 import DomainTable from './DomainTable';
 import { ListPagination } from '../ui/ListPagination';
@@ -23,11 +24,33 @@ const DOMAINS_PAGE_SIZE = 24;
 
 const DomainList = memo(function DomainList({ domains, transactions = [], onEdit, onDelete, onView, onAdd, onUpdateDomain }: DomainListProps) {
   const { t } = useI18nContext();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [tagFilter, setTagFilter] = useState('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'table'>('table');
-  const [page, setPage] = useState(1);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // search / status / tag / view / page persisted in URL via dm* prefixed params (domain).
+  // Defaults are omitted to keep URLs clean.
+  const searchTerm = searchParams.get('dmq') ?? '';
+  const statusFilter = searchParams.get('dmstatus') ?? 'all';
+  const tagFilter = searchParams.get('dmtag') ?? 'all';
+  const viewMode: 'grid' | 'table' = searchParams.get('dmview') === 'grid' ? 'grid' : 'table';
+  const pageRaw = Math.max(1, Number(searchParams.get('dmpage')) || 1);
+
+  const updateParams = useCallback((updates: Record<string, string | null>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    for (const [k, v] of Object.entries(updates)) {
+      if (v === null || v === '' || v === undefined) params.delete(k);
+      else params.set(k, v);
+    }
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }, [searchParams, pathname, router]);
+
+  const setSearchTerm = (s: string) => updateParams({ dmq: s || null, dmpage: null });
+  const setStatusFilter = (s: string) => updateParams({ dmstatus: s === 'all' ? null : s, dmpage: null });
+  const setTagFilter = (s: string) => updateParams({ dmtag: s === 'all' ? null : s, dmpage: null });
+  const setViewMode = (m: 'grid' | 'table') => updateParams({ dmview: m === 'table' ? null : m });
+  const setPage = (n: number) => updateParams({ dmpage: n <= 1 ? null : String(n) });
 
   const allTags = useMemo(() =>
     [...new Set(domains.flatMap(d => d.tags))].sort(),
@@ -44,14 +67,12 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
   }), [domains, searchTerm, statusFilter, tagFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredDomains.length / DOMAINS_PAGE_SIZE));
+  const page = Math.min(pageRaw, totalPages);
 
+  // Normalize stale page values from shared links (URL > available pages).
   useEffect(() => {
-    setPage(1);
-  }, [searchTerm, statusFilter, tagFilter]);
-
-  useEffect(() => {
-    setPage((p) => (p > totalPages ? totalPages : p));
-  }, [totalPages]);
+    if (pageRaw > totalPages) updateParams({ dmpage: null });
+  }, [pageRaw, totalPages, updateParams]);
 
   const paginatedDomains = useMemo(() => {
     const start = (page - 1) * DOMAINS_PAGE_SIZE;
@@ -79,18 +100,9 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold text-stone-900">{t('domainList.title')}</h2>
-          <p className="text-sm text-stone-500 mt-0.5">{t('domainList.subtitle')}</p>
-        </div>
-        <button
-          onClick={onAdd}
-          className="inline-flex items-center px-4 py-2.5 bg-teal-600 text-white rounded-xl text-sm font-medium hover:bg-teal-700 transition"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          {t('domainList.addDomain')}
-        </button>
+      <div>
+        <h2 className="text-xl font-semibold text-stone-900">{t('domainList.title')}</h2>
+        <p className="text-sm text-stone-500 mt-0.5">{t('domainList.subtitle')}</p>
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -136,25 +148,22 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
           )}
           <div className="flex items-center border border-stone-200 rounded-xl overflow-hidden">
             <button
+              type="button"
               onClick={() => setViewMode('table')}
-              className={`p-2.5 ${viewMode === 'table' ? 'bg-stone-900 text-white' : 'text-stone-500 hover:bg-stone-100'}`}
+              aria-pressed={viewMode === 'table'}
+              className={`p-2.5 ${viewMode === 'table' ? 'bg-stone-900 text-white' : 'text-stone-500 hover:bg-stone-100'} focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-inset`}
               title={t('domainList.tableView')}
             >
               <Table className="h-4 w-4" />
             </button>
             <button
+              type="button"
               onClick={() => setViewMode('grid')}
-              className={`p-2.5 ${viewMode === 'grid' ? 'bg-stone-900 text-white' : 'text-stone-500 hover:bg-stone-100'}`}
+              aria-pressed={viewMode === 'grid'}
+              className={`p-2.5 ${viewMode === 'grid' ? 'bg-stone-900 text-white' : 'text-stone-500 hover:bg-stone-100'} focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-inset`}
               title={t('domainList.gridView')}
             >
               <Grid className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-2.5 ${viewMode === 'list' ? 'bg-stone-900 text-white' : 'text-stone-500 hover:bg-stone-100'}`}
-              title={t('domainList.listView')}
-            >
-              <List className="h-4 w-4" />
             </button>
           </div>
         </div>
@@ -198,13 +207,7 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
         />
       ) : (
         <>
-          <div
-            className={
-              viewMode === 'grid'
-                ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
-                : 'space-y-4'
-            }
-          >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {paginatedDomains.map((domain) => (
               <DomainCard
                 key={domain.id}
