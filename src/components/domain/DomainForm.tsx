@@ -162,7 +162,12 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
     onClose();
   };
 
-  if (!isOpen) return null;
+  console.log('[DomainForm] render call, isOpen=', isOpen);
+  if (!isOpen) {
+    console.log('[DomainForm] returning null');
+    return null;
+  }
+  console.log('[DomainForm] returning JSX');
 
   return (
     <div

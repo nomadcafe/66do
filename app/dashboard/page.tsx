@@ -232,6 +232,11 @@ export default function DashboardPage() {
     }
   );
 
+  // Diagnostic: log when showDomainForm or editingDomain change
+  useEffect(() => {
+    console.log('[dashboard] state change: showDomainForm=', domainOps.showDomainForm, 'editingDomain.id=', domainOps.editingDomain?.id);
+  }, [domainOps.showDomainForm, domainOps.editingDomain]);
+
   // Delete-confirm dialog: focus mgmt, Esc to close, Enter to confirm (via natural focus on confirm), Tab trap, scroll lock
   useEffect(() => {
     if (!pendingDeleteDomainId) return;
@@ -1242,10 +1247,6 @@ export default function DashboardPage() {
       />
 
       {/* Domain Edit Drawer — match TransactionForm: always mounted, relies on isOpen internally */}
-      {(() => {
-        console.log('[dashboard] render: showDomainForm=', domainOps.showDomainForm, 'editingDomain.id=', domainOps.editingDomain?.id);
-        return null;
-      })()}
       <DomainForm
         key={domainOps.editingDomain?.id || 'edit-new'}
         domain={domainOps.editingDomain}
