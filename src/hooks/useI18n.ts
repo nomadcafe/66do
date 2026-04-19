@@ -713,6 +713,10 @@ const translations: Record<Locale, Translations> = {
       sortByType: '按类型',
       sortAsc: '升序',
       sortDesc: '降序',
+      kpiInflow: '流入',
+      kpiOutflow: '流出',
+      kpiNet: '净额',
+      kpiCount: '笔数',
       getStarted: '添加第一笔交易以开始追踪',
       domain: '域名',
       type: '类型',
@@ -981,8 +985,9 @@ const translations: Record<Locale, Translations> = {
       suggestRefreshData: '建议刷新域名数据以获取最新的WHOIS信息'
     },
     alerts: {
+      domainExpiryExpired: '域名 {domain} 已过期！请立即续费以避免丢失。',
       domainExpiryCritical: '域名 {domain} 将在 {days} 天后到期！请立即续费。',
-      domainExpiryUrgent: '域名 {domain} 将在 {days} 天后到期，建议尽快续费。',
+      domainExpiryUrgent: '域名 {domain} 将在 {days} 天后到期,建议尽快续费。',
       domainExpiryWarning: '域名 {domain} 将在 {days} 天后到期。',
       allDomainsNormal: '所有域名状态正常',
       renewalCost: '续费费用',
@@ -1895,6 +1900,10 @@ const translations: Record<Locale, Translations> = {
       sortByType: 'By Type',
       sortAsc: 'Ascending',
       sortDesc: 'Descending',
+      kpiInflow: 'Inflow',
+      kpiOutflow: 'Outflow',
+      kpiNet: 'Net',
+      kpiCount: 'Count',
       getStarted: 'Start by adding your first transaction',
       domain: 'Domain',
       type: 'Type',
@@ -2163,6 +2172,7 @@ const translations: Record<Locale, Translations> = {
       suggestRefreshData: 'Suggest refreshing domain data to get latest WHOIS information'
     },
     alerts: {
+      domainExpiryExpired: 'Domain {domain} has expired! Please renew immediately to avoid losing it.',
       domainExpiryCritical: 'Domain {domain} will expire in {days} days! Please renew immediately.',
       domainExpiryUrgent: 'Domain {domain} will expire in {days} days, please renew soon.',
       domainExpiryWarning: 'Domain {domain} will expire in {days} days.',
