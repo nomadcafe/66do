@@ -6,23 +6,26 @@ interface PortfolioHealthCardProps {
   totalDomains: number;
   activeDomains: number;
   soldDomains: number;
-  totalRevenue: number;
-  totalProfit: number;
+  /** The headline number — sum for the active window (or all-time if window = All). */
+  displayRevenue: number;
+  /** All-time total, shown as secondary when different from displayRevenue. */
+  allTimeRevenue: number;
   roi: number;
   /** Monthly revenue points, oldest → newest. Length is parent's choice and reflects the active window. */
   monthlyRevenueSeries: number[];
   /** Days until the next domain expiry; null if none upcoming */
   nextExpiryDays: number | null;
   formatCurrency: (n: number, c?: 'USD') => string;
-  /** Optional trend-window selector. Affects sparkline only; other stats stay all-time. */
+  /** Optional trend-window selector. Affects sparkline + headline only; footer stats stay all-time. */
   windowOptions?: { key: string; label: string }[];
   selectedWindow?: string;
   onWindowChange?: (key: string) => void;
   labels: {
     portfolioRevenue: string;
-    /** Caption under the sparkline (e.g. "Last 12 months", "All time") */
+    /** Short label of the active window (e.g. "Last 3 months", "All time") */
     windowCaption: string;
-    totalProfit: string;
+    /** Prefix for the all-time anchor (e.g. "all-time"); only shown when window != All */
+    allTimeAnchor: string;
     domains: string;
     activeSold: (active: number, sold: number) => string;
     roi: string;
@@ -42,8 +45,8 @@ export default function PortfolioHealthCard({
   totalDomains,
   activeDomains,
   soldDomains,
-  totalRevenue,
-  totalProfit,
+  displayRevenue,
+  allTimeRevenue,
   roi,
   monthlyRevenueSeries,
   nextExpiryDays,
@@ -80,8 +83,8 @@ export default function PortfolioHealthCard({
     .join(' ');
   const sparkArea = `${sparkPath} L196,56 L4,56 Z`;
 
-  const isProfitPositive = totalProfit >= 0;
   const trendUp = monthlyDeltaPct !== null && monthlyDeltaPct >= 0;
+  const showAllTimeAnchor = displayRevenue !== allTimeRevenue;
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-stone-200/80 bg-white p-6 shadow-sm">
@@ -103,15 +106,18 @@ export default function PortfolioHealthCard({
           )}
         </div>
 
-        {/* Big number */}
+        {/* Big number — reflects the active window */}
         <p className="mt-2 text-4xl font-bold tracking-tight text-stone-900 sm:text-5xl">
-          {formatCurrency(totalRevenue)}
+          {formatCurrency(displayRevenue)}
         </p>
         <p className="mt-1 text-sm text-stone-500">
-          {labels.totalProfit}{' '}
-          <span className={isProfitPositive ? 'text-emerald-600 font-semibold' : 'text-rose-600 font-semibold'}>
-            {isProfitPositive ? '+' : ''}{formatCurrency(totalProfit)}
-          </span>
+          <span className="font-medium text-stone-600">{labels.windowCaption}</span>
+          {showAllTimeAnchor && (
+            <>
+              {' · '}
+              <span>{labels.allTimeAnchor} {formatCurrency(allTimeRevenue)}</span>
+            </>
+          )}
         </p>
 
         {/* Sparkline + optional window selector */}
@@ -147,9 +153,8 @@ export default function PortfolioHealthCard({
             </div>
           )}
         </div>
-        <p className="mt-1 text-[11px] text-stone-400">{labels.windowCaption}</p>
 
-        {/* Compact stats footer */}
+        {/* Compact stats footer (all-time) */}
         <div className="mt-5 grid grid-cols-3 gap-3 border-t border-stone-100 pt-4">
           <div className="flex items-center gap-2">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-stone-100 text-stone-600">
