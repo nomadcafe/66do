@@ -481,6 +481,7 @@ export default function DashboardPage() {
 
   // 处理域名保存（保留此函数因为需要特殊处理）- 使用useCallback优化
   const handleSaveDomain = useCallback(async (domainData: Omit<DomainWithTags, 'id'>) => {
+    console.log('[dashboard] handleSaveDomain start, editing=', !!domainOps.editingDomain);
     try {
       if (domainOps.editingDomain) {
         const updatedDomain: DomainWithTags = {
@@ -488,15 +489,18 @@ export default function DashboardPage() {
         ...domainData,
           updated_at: new Date().toISOString()
         };
-        
+
         const updatedDomains = domains.map(domain =>
           domain.id === domainOps.editingDomain!.id ? updatedDomain : domain
         );
-        
+
+        console.log('[dashboard] handleSaveDomain awaiting saveData');
         await saveData(updatedDomains, transactions, { domainsOnly: true });
+        console.log('[dashboard] handleSaveDomain saveData resolved; clearing form state');
         domainOps.setEditingDomain(undefined);
         domainOps.setShowDomainForm(false);
         domainOps.setShowSmartDomainForm(false);
+        console.log('[dashboard] handleSaveDomain done');
     } else {
         const newDomain: DomainWithTags = {
           ...domainData,
@@ -504,13 +508,14 @@ export default function DashboardPage() {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
-        
+
         const updatedDomains = [...domains, newDomain];
         await saveData(updatedDomains, transactions, { domainsOnly: true });
         domainOps.setShowDomainForm(false);
         domainOps.setShowSmartDomainForm(false);
       }
     } catch (err) {
+      console.log('[dashboard] handleSaveDomain caught', err);
       const msg = err instanceof Error ? err.message : 'Unknown error';
       setMutationError(`${t('errors.saveDomainFailed')}: ${msg}`);
       setTimeout(() => setMutationError(null), 5000);
@@ -1278,8 +1283,10 @@ export default function DashboardPage() {
           domain={domainOps.editingDomain}
           isOpen={domainOps.showDomainForm}
           onClose={() => {
+            console.log('[dashboard] DomainForm.onClose lambda fired; calling setShowDomainForm(false) + setEditingDomain(undefined)');
             domainOps.setShowDomainForm(false);
             domainOps.setEditingDomain(undefined);
+            console.log('[dashboard] DomainForm.onClose lambda done');
           }}
           onSave={handleSaveDomain}
         />
