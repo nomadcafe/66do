@@ -55,6 +55,13 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    console.log('[DomainForm] MOUNTED');
+    return () => {
+      console.log('[DomainForm] UNMOUNTED (cleanup ran)');
+    };
+  }, []);
+
   // 仅在打开弹窗或切换编辑的域名时用 domain 初始化表单，避免父组件重渲染导致表单被覆盖
   const domainId = domain?.id ?? 'new';
   useEffect(() => {
