@@ -989,7 +989,10 @@ export default function DashboardPage() {
                       secondary: t('dashboard.briefingStuckSecondary'),
                       action: {
                         label: t('dashboard.briefingReview'),
-                        onClick: () => stuckDomains[0] && domainOps.handleEditDomain(stuckDomains[0]),
+                        onClick: () => {
+                          document.getElementById('dashboard-domain-list-anchor')
+                            ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        },
                       },
                     }
                   : {
@@ -1014,15 +1017,17 @@ export default function DashboardPage() {
                 </button>
               </div>
             ) : (
-              <DomainList
-                domains={domains}
-                transactions={transactions}
-                onEdit={domainOps.handleEditDomain}
-                onDelete={setPendingDeleteDomainId}
-                onView={handleViewDomain}
-                onAdd={domainOps.handleAddDomain}
-                onUpdateDomain={handleQuickUpdateDomain}
-              />
+              <div id="dashboard-domain-list-anchor" className="scroll-mt-24">
+                <DomainList
+                  domains={domains}
+                  transactions={transactions}
+                  onEdit={domainOps.handleEditDomain}
+                  onDelete={setPendingDeleteDomainId}
+                  onView={handleViewDomain}
+                  onAdd={domainOps.handleAddDomain}
+                  onUpdateDomain={handleQuickUpdateDomain}
+                />
+              </div>
             )}
 
             {/* Background expiry monitor (sends notifications) */}
