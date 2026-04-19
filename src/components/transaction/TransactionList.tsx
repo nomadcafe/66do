@@ -1,65 +1,14 @@
 'use client';
 
 import { useState, useMemo, memo, useCallback, useEffect } from 'react';
-import { Search, Filter, Plus, Edit, Trash2, DollarSign, Calendar, FileText, TrendingUp, TrendingDown, LayoutList, GitBranch, ArrowUp, ArrowDown } from 'lucide-react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { Search, Filter, Plus, Edit, Trash2, Calendar, FileText, LayoutList, GitBranch, ArrowUp, ArrowDown } from 'lucide-react';
 import { sellGrossUSD, sellNetUSD } from '../../lib/coreCalculations';
-import { calculateDomainROI, getROIColor, getROIBgColor, formatPercentage } from '../../lib/enhancedFinancialMetrics';
+import { calculateDomainROI, formatPercentage } from '../../lib/enhancedFinancialMetrics';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import DomainTimelineView from './DomainTimelineView';
 import { ListPagination } from '../ui/ListPagination';
-// import { Domain, Transaction } from '../../lib/supabaseService';
-
-// 计算持有时间
-function calculateHoldingTime(purchaseDate: string, saleDate: string, t: (key: string) => string): {
-  days: number;
-  months: number;
-  years: number;
-  displayText: string;
-} {
-  const purchase = new Date(purchaseDate);
-  const sale = new Date(saleDate);
-  const diffTime = sale.getTime() - purchase.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  
-  const years = Math.floor(diffDays / 365);
-  const months = Math.floor((diffDays % 365) / 30);
-  const days = diffDays % 30;
-  
-  let displayText = '';
-  if (years > 0) {
-    displayText = `${years}${t('transaction.year')}${months > 0 ? `${months}${t('transaction.month')}` : ''}`;
-  } else if (months > 0) {
-    displayText = `${months}${t('transaction.month')}${days > 0 ? `${days}${t('transaction.day')}` : ''}`;
-  } else {
-    displayText = `${days}${t('transaction.day')}`;
-  }
-  
-  return {
-    days: diffDays,
-    months,
-    years,
-    displayText
-  };
-}
-
-// 获取持有时间颜色
-function getHoldingTimeColor(days: number): string {
-  if (days < 30) return 'text-red-600';      // 短期持有（红色）
-  if (days < 180) return 'text-yellow-600';   // 中期持有（黄色）
-  if (days < 365) return 'text-blue-600';     // 长期持有（蓝色）
-  return 'text-green-600';                     // 超长期持有（绿色）
-}
-
-// 获取持有时间背景色
-function getHoldingTimeBgColor(days: number): string {
-  if (days < 30) return 'bg-red-100';
-  if (days < 180) return 'bg-yellow-100';
-  if (days < 365) return 'bg-blue-100';
-  return 'bg-green-100';
-}
-
-// 使用统一的类型定义，从 supabaseService 导入
 
 interface TransactionListProps {
   transactions: TransactionWithRequiredFields[];
@@ -79,22 +28,52 @@ const TransactionList = memo(function TransactionList({
   onAdd 
 }: TransactionListProps) {
   const { t } = useI18nContext();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // viewMode stays in component state (ephemeral pref, not worth persisting in URL)
   const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list');
-  const [page, setPage] = useState(1);
+
+  // search/type/sort/page derived from URL (namespaced as tx* to avoid colliding with other components)
   type SortField = 'date' | 'amount' | 'type';
   type SortDir = 'asc' | 'desc';
-  const [sortField, setSortField] = useState<SortField>('date');
-  const [sortDir, setSortDir] = useState<SortDir>('desc');
+  const searchTerm = searchParams.get('txq') ?? '';
+  const typeFilter = searchParams.get('txtype') ?? 'all';
+  const sortField: SortField = ((): SortField => {
+    const raw = searchParams.get('txsort');
+    return raw === 'amount' || raw === 'type' ? raw : 'date';
+  })();
+  const sortDir: SortDir = searchParams.get('txdir') === 'asc' ? 'asc' : 'desc';
+  const pageRaw = Math.max(1, Number(searchParams.get('txpage')) || 1);
+
+  const updateParams = useCallback((updates: Record<string, string | null>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    for (const [k, v] of Object.entries(updates)) {
+      if (v === null || v === '' || v === undefined) params.delete(k);
+      else params.set(k, v);
+    }
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }, [searchParams, pathname, router]);
+
+  const setSearchTerm = (s: string) => updateParams({ txq: s || null, txpage: null });
+  const setTypeFilter = (s: string) => updateParams({ txtype: s === 'all' ? null : s, txpage: null });
+  const setPage = (n: number) => updateParams({ txpage: n <= 1 ? null : String(n) });
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
-      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+      const nextDir: SortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      // 'date desc' is the implicit default — omit when matching to keep URL clean
+      const dirParam = field === 'date' && nextDir === 'desc' ? null : nextDir;
+      updateParams({ txdir: dirParam, txpage: null });
     } else {
-      setSortField(field);
-      // Date defaults to newest first; other fields ascending
-      setSortDir(field === 'date' ? 'desc' : 'asc');
+      const defaultDir: SortDir = field === 'date' ? 'desc' : 'asc';
+      updateParams({
+        txsort: field === 'date' ? null : field,
+        txdir: field === 'date' && defaultDir === 'desc' ? null : defaultDir,
+        txpage: null,
+      });
     }
   };
 
@@ -178,15 +157,26 @@ const TransactionList = memo(function TransactionList({
     return sorted;
   }, [transactions, getDomainName, searchTerm, typeFilter, sortField, sortDir]);
 
+  // Period KPIs reflecting the *visible* (filtered + sorted) set so the strip tracks search/type
+  const periodMetrics = useMemo(() => {
+    let inflow = 0;
+    let outflow = 0;
+    for (const tx of filteredTransactions) {
+      const amt = tx.type === 'sell' ? sellGrossUSD(tx) : Number(tx.base_amount ?? tx.amount ?? 0);
+      if (!Number.isFinite(amt)) continue;
+      if (tx.type === 'sell') inflow += amt;
+      else outflow += amt;
+    }
+    return { inflow, outflow, net: inflow - outflow, count: filteredTransactions.length };
+  }, [filteredTransactions]);
+
   const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / TRANSACTIONS_PAGE_SIZE));
+  const page = Math.min(pageRaw, totalPages);
 
+  // If the URL points beyond available pages (e.g. a stale shared link), normalize the URL once.
   useEffect(() => {
-    setPage(1);
-  }, [searchTerm, typeFilter, sortField, sortDir]);
-
-  useEffect(() => {
-    setPage((p) => (p > totalPages ? totalPages : p));
-  }, [totalPages]);
+    if (pageRaw > totalPages) updateParams({ txpage: null });
+  }, [pageRaw, totalPages, updateParams]);
 
   const paginatedTransactions = useMemo(() => {
     const start = (page - 1) * TRANSACTIONS_PAGE_SIZE;
@@ -296,6 +286,29 @@ const TransactionList = memo(function TransactionList({
         <p className="text-sm text-stone-500">{t('timeline.searchHint')}</p>
       )}
 
+      {viewMode === 'list' && filteredTransactions.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 rounded-2xl border border-stone-200/80 bg-white shadow-sm divide-y sm:divide-y-0 sm:divide-x divide-stone-100">
+          <div className="p-4">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">{t('transactionList.kpiInflow')}</p>
+            <p className="mt-0.5 text-lg font-bold text-emerald-700 tabular-nums">+{formatCurrency(periodMetrics.inflow, 'USD')}</p>
+          </div>
+          <div className="p-4">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">{t('transactionList.kpiOutflow')}</p>
+            <p className="mt-0.5 text-lg font-bold text-rose-700 tabular-nums">-{formatCurrency(periodMetrics.outflow, 'USD')}</p>
+          </div>
+          <div className="p-4">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">{t('transactionList.kpiNet')}</p>
+            <p className={`mt-0.5 text-lg font-bold tabular-nums ${periodMetrics.net >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+              {periodMetrics.net >= 0 ? '+' : '-'}{formatCurrency(Math.abs(periodMetrics.net), 'USD')}
+            </p>
+          </div>
+          <div className="p-4">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">{t('transactionList.kpiCount')}</p>
+            <p className="mt-0.5 text-lg font-bold text-stone-900 tabular-nums">{periodMetrics.count}</p>
+          </div>
+        </div>
+      )}
+
       {viewMode === 'list' && (
         <p className="text-sm text-stone-500">
           {t('transactionList.showingCount').replace('{filtered}', String(filteredTransactions.length)).replace('{total}', String(transactions.length))}
@@ -388,9 +401,6 @@ const TransactionList = memo(function TransactionList({
                       </button>
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                      {t('transactionList.platform')}
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
                       {t('transactionList.notes')}
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-stone-500 uppercase tracking-wider">
@@ -413,65 +423,42 @@ const TransactionList = memo(function TransactionList({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex flex-col">
-                        <div className="flex items-center">
-                          <DollarSign className="h-4 w-4 text-gray-400 mr-1" />
-                          <span className="text-sm font-medium text-gray-900">
-                            {formatCurrency(sellGrossUSD(transaction), transaction.currency)}
-                          </span>
+                          {(() => {
+                            const isSell = transaction.type === 'sell';
+                            const isInflow = isSell;
+                            const amountColor = isInflow ? 'text-emerald-700' : 'text-stone-900';
+                            const sign = isInflow ? '+' : '-';
+                            const grossAmt = sellGrossUSD(transaction);
+                            const hasPlatformFee = isSell && transaction.platform_fee != null && transaction.platform_fee > 0;
+                            const isInstallment = isSell && transaction.payment_plan === 'installment';
+                            const domain = isSell ? domains.find((d) => d.id === transaction.domain_id) : null;
+                            const sellRoi = isSell && domain ? calculateDomainROI(domain, [transaction]) : null;
+                            return (
+                              <>
+                                <span className={`text-sm font-semibold tabular-nums ${amountColor}`}>
+                                  {sign}{formatCurrency(grossAmt, transaction.currency)}
+                                </span>
+                                {hasPlatformFee && (
+                                  <span className="mt-0.5 text-xs text-stone-500 tabular-nums">
+                                    {t('transaction.netIncome')}: {formatCurrency(sellNetUSD(transaction), transaction.currency)}
+                                  </span>
+                                )}
+                                {isInstallment && (
+                                  <span className="mt-0.5 text-xs text-stone-500">
+                                    {transaction.installment_status === 'cancelled'
+                                      ? `${t('transaction.installment')} · ${t('transaction.cancelled')}`
+                                      : `${t('transaction.installment')} ${transaction.paid_periods ?? 0}/${transaction.installment_period ?? 0}`}
+                                  </span>
+                                )}
+                                {sellRoi !== null && (
+                                  <span className={`mt-0.5 text-xs font-medium tabular-nums ${sellRoi.roi >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                    ROI {sellRoi.roi >= 0 ? '+' : ''}{formatPercentage(sellRoi.roi)}
+                                  </span>
+                                )}
+                              </>
+                            );
+                          })()}
                         </div>
-                        {transaction.type === 'sell' && transaction.payment_plan === 'installment' && (
-                          <div className="mt-1 text-xs text-stone-500">
-                            {transaction.installment_status === 'cancelled'
-                              ? t('transaction.installment') + ' · ' + t('transaction.cancelled')
-                              : `${t('transaction.installment')} ${transaction.paid_periods ?? 0}/${transaction.installment_period ?? 0}`}
-                          </div>
-                        )}
-                        {transaction.type === 'sell' && transaction.platform_fee && transaction.platform_fee > 0 && (
-                          <div className="mt-1">
-                            <span className="text-xs text-green-600 font-medium">
-                              {t('transaction.netIncome')}: {formatCurrency(sellNetUSD(transaction), transaction.currency)}
-                            </span>
-                            <span className="text-xs text-gray-500 ml-2">
-                              ({t('transaction.platformFeeDesc')}: {formatCurrency(transaction.platform_fee, transaction.currency)})
-                            </span>
-                          </div>
-                        )}
-                        {transaction.type === 'sell' && (
-                          <div className="mt-1 space-y-1">
-                            {(() => {
-                              const domain = domains.find(d => d.id === transaction.domain_id);
-                              if (!domain) return null;
-                              
-                              const domainROI = calculateDomainROI(domain, [transaction]);
-                              const holdingTime = calculateHoldingTime(domain.purchase_date || '', transaction.date, t);
-                              
-                              return (
-                                <div className="flex flex-col space-y-1">
-                                  {/* ROI显示 */}
-                                  <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getROIBgColor(domainROI.roi)}`}>
-                                    {domainROI.roi >= 0 ? (
-                                      <TrendingUp className="h-3 w-3 mr-1" />
-                                    ) : (
-                                      <TrendingDown className="h-3 w-3 mr-1" />
-                                    )}
-                                    <span className={getROIColor(domainROI.roi)}>
-                                      ROI: {formatPercentage(domainROI.roi)}
-                                    </span>
-                                  </div>
-                                  
-                                  {/* 持有时间显示 */}
-                                  <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getHoldingTimeBgColor(holdingTime.days)}`}>
-                                    <Calendar className="h-3 w-3 mr-1" />
-                                    <span className={getHoldingTimeColor(holdingTime.days)}>
-                                      {t('transaction.holding')}: {holdingTime.displayText}
-                                    </span>
-                                  </div>
-                                </div>
-                              );
-                            })()}
-                          </div>
-                        )}
-                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -480,9 +467,6 @@ const TransactionList = memo(function TransactionList({
                           {formatDate(transaction.date)}
                         </span>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      -
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-900 max-w-xs truncate">
