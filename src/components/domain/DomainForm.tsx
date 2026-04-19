@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Save, Globe, Calendar, DollarSign, Tag, Loader2 } from 'lucide-react';
 import { validateDomain, sanitizeDomainData } from '../../lib/validation';
 import { localCalendarDateISO } from '../../lib/localCalendarDate';
@@ -29,9 +30,11 @@ interface DomainFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (domain: Omit<DomainWithTags, 'id'>) => void;
+  /** 父组件通过 ref 传入最新关闭函数，避免闭包导致关闭无反应 */
+  closeRef?: React.MutableRefObject<(() => void) | null>;
 }
 
-export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFormProps) {
+export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }: DomainFormProps) {
   const { t } = useI18nContext();
   const [formData, setFormData] = useState({
     domain_name: '',
@@ -52,7 +55,12 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
   const [tagInput, setTagInput] = useState('');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [localOpen, setLocalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    setLocalOpen(isOpen);
+  }, [isOpen]);
 
   // 仅在打开弹窗或切换编辑的域名时用 domain 初始化表单，避免父组件重渲染导致表单被覆盖
   const domainId = domain?.id ?? 'new';
@@ -104,29 +112,24 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
   }, [isOpen, domainId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log('[DomainForm] submit');
     e.preventDefault();
-
+    
     const sanitizedData = sanitizeDomainData(formData);
     const validation = validateDomain(sanitizedData);
-
+    
     if (!validation.valid) {
-      console.log('[DomainForm] validation failed');
       setValidationErrors(validation.errors);
       return;
     }
-
+    
     setValidationErrors([]);
     setSubmitError(null);
     setIsSubmitting(true);
     try {
-      console.log('[DomainForm] awaiting onSave');
       await Promise.resolve(onSave(sanitizedData as Omit<DomainWithTags, 'id'>));
-      console.log('[DomainForm] onSave resolved, calling onClose');
+      setLocalOpen(false);
       onClose();
-      console.log('[DomainForm] onClose returned');
     } catch (err) {
-      console.log('[DomainForm] onSave threw', err);
       setSubmitError(err instanceof Error ? err.message : 'Save failed. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -158,18 +161,14 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
   };
 
   const handleClose = () => {
-    console.log('[DomainForm] handleClose, isOpen=', isOpen);
+    setLocalOpen(false);
+    closeRef?.current?.();
     onClose();
   };
 
-  console.log('[DomainForm] render call, isOpen=', isOpen);
-  if (!isOpen) {
-    console.log('[DomainForm] returning null');
-    return null;
-  }
-  console.log('[DomainForm] returning JSX');
+  if (!localOpen) return null;
 
-  return (
+  const modalContent = (
     <div
       className="fixed inset-0 flex justify-end"
       style={{ zIndex: 99999 }}
@@ -177,16 +176,14 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
       aria-modal="true"
       aria-label={domain ? t('dashboard.domainFormTitleEdit') : t('dashboard.domainFormTitleAdd')}
     >
-      {/* Backdrop — click to close. As a div sibling of the panel below; the panel's
-          explicit z-10 keeps it above the backdrop so clicks on form fields and buttons
-          hit them, not the backdrop. */}
       <div
-        className="fixed inset-0 bg-black/40"
-        onClick={handleClose}
+        data-close-domain-form
+        className="absolute inset-0 bg-black/40"
         aria-hidden
       />
       <div
-        className="relative z-10 bg-white w-full max-w-xl h-full overflow-y-auto shadow-xl flex flex-col"
+        className="relative bg-white w-full max-w-xl h-full overflow-y-auto shadow-xl flex flex-col"
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between z-10 shrink-0">
           <h2 className="text-xl font-semibold text-gray-900">
@@ -194,6 +191,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
           </h2>
           <button
             type="button"
+            data-close-domain-form
             onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 cursor-pointer"
             aria-label={t('common.close')}
@@ -439,6 +437,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
           <div className="flex justify-end space-x-3 pt-6 border-t">
             <button
               type="button"
+              data-close-domain-form
               onClick={handleClose}
               className="px-4 py-2 text-gray-600 hover:text-gray-800 cursor-pointer"
             >
@@ -461,4 +460,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(modalContent, document.body);
 }

@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { flushSync } from 'react-dom';
 import { DomainWithTags, TransactionWithRequiredFields } from '../types/dashboard';
 import type { RenewalSubmission } from '../components/domain/RenewalModal';
 
@@ -83,15 +82,9 @@ export function useDomainOperations(
         const updatedDomains = [...domains, newDomain];
         await onSave(updatedDomains, transactions, { domainsOnly: true });
       }
-      // flushSync forces synchronous DOM commit so the form actually disappears
-      // before anything else can intercept clicks on stale concurrent-rendered DOM.
-      // Needed under React 19 + Next.js 15 where we've observed stale form DOM
-      // outlasting the component's return-null render.
-      flushSync(() => {
-        setShowDomainForm(false);
-        setShowSmartDomainForm(false);
-        setEditingDomain(undefined);
-      });
+      setShowDomainForm(false);
+      setShowSmartDomainForm(false);
+      setEditingDomain(undefined);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
       onError?.(`Failed to save domain: ${msg}`);
