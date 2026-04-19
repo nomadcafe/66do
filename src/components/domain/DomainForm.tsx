@@ -59,6 +59,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    console.log('[TRACE DF-SYNC] useEffect syncing localOpen: isOpen=', isOpen, ' -> setLocalOpen');
     setLocalOpen(isOpen);
   }, [isOpen]);
 
@@ -166,7 +167,12 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
     onClose();
   };
 
-  if (!localOpen) return null;
+  console.log('[TRACE DF-R] render: isOpen=', isOpen, ' localOpen=', localOpen);
+  if (!localOpen) {
+    console.log('[TRACE DF-R] returning null, portal should unmount');
+    return null;
+  }
+  console.log('[TRACE DF-R] returning createPortal, portal rendered to document.body');
 
   const modalContent = (
     <div
