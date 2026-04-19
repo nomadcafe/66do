@@ -459,6 +459,13 @@ export default function DashboardPage() {
     : trendWindow === '1Y' ? t('dashboard.last12Months')
     : t('dashboard.allTime');
 
+  // Headline number for the health card: matches the active window so the big number aligns with the sparkline.
+  // For 'All' we use the canonical totalRevenue (not the 60-month-capped series sum).
+  const windowedRevenue = useMemo(() => {
+    if (trendWindow === 'All') return stats.totalRevenue;
+    return monthlyRevenueSeries.reduce((sum, v) => sum + v, 0);
+  }, [trendWindow, stats.totalRevenue, monthlyRevenueSeries]);
+
   // Days until the next non-sold domain expires (negative = already expired but not yet marked)
   const nextExpiryDays = useMemo(() => {
     const candidates = domains
@@ -884,8 +891,8 @@ export default function DashboardPage() {
               totalDomains={stats.totalDomains}
               activeDomains={stats.activeDomains}
               soldDomains={stats.soldDomains}
-              totalRevenue={stats.totalRevenue}
-              totalProfit={stats.totalProfit}
+              displayRevenue={windowedRevenue}
+              allTimeRevenue={stats.totalRevenue}
               roi={stats.roi}
               monthlyRevenueSeries={monthlyRevenueSeries}
               nextExpiryDays={nextExpiryDays}
@@ -896,7 +903,7 @@ export default function DashboardPage() {
               labels={{
                 portfolioRevenue: t('dashboard.portfolioRevenue'),
                 windowCaption: trendWindowCaption,
-                totalProfit: t('dashboard.totalProfit'),
+                allTimeAnchor: t('dashboard.allTimeAnchor'),
                 domains: t('dashboard.totalDomains'),
                 activeSold: (a, s) => t('dashboard.portfolioCardActiveSold')
                   .replace('{active}', String(a))
