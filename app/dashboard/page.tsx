@@ -1312,13 +1312,9 @@ export default function DashboardPage() {
         }
       />
 
-      {/* Domain Edit Drawer */}
-      {(() => {
-        console.log('[TRACE KEY] DomainForm key will be:', domainOps.editingDomain?.id || 'edit-new', 'showDomainForm=', domainOps.showDomainForm);
-        return null;
-      })()}
+      {/* Domain Edit Drawer — no key prop (avoids spurious remounts); DomainForm's useEffect
+          already resets formData when domainId changes */}
       <DomainForm
-        key={domainOps.editingDomain?.id || 'edit-new'}
         domain={domainOps.editingDomain}
         isOpen={domainOps.showDomainForm}
         onClose={() => {
@@ -1331,7 +1327,6 @@ export default function DashboardPage() {
 
       {/* Smart Domain Form Modal */}
       <SmartDomainForm
-        key={domainOps.editingDomain?.id || 'new'}
         domain={domainOps.editingDomain}
         isOpen={domainOps.showSmartDomainForm}
         onClose={() => {
