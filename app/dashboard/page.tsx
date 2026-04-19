@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useSupabaseAuth } from '../../src/contexts/SupabaseAuthContext';
 import { useI18nContext } from '../../src/contexts/I18nProvider';
 import { logger } from '../../src/lib/logger';
@@ -81,13 +81,40 @@ export default function DashboardPage() {
   const { user, session, loading: authLoading, signOut } = useSupabaseAuth();
   const { t, locale, setLocale } = useI18nContext();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'overview' | 'domains' | 'transactions' | 'analytics' | 'alerts' | 'settings' | 'reports'>('overview');
-  const [settingsSection, setSettingsSection] = useState<'preferences' | 'data'>('preferences');
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // activeTab + settings sub-section are persisted in the URL so refresh and shared links preserve view
+  const VALID_TABS = ['overview', 'domains', 'transactions', 'analytics', 'alerts', 'settings', 'reports'] as const;
+  type TabType = typeof VALID_TABS[number];
+  const tabParam = searchParams.get('tab');
+  const activeTab: TabType = (VALID_TABS as readonly string[]).includes(tabParam ?? '')
+    ? (tabParam as TabType)
+    : 'overview';
+  const settingsSection: 'preferences' | 'data' =
+    searchParams.get('settings') === 'data' ? 'data' : 'preferences';
+
+  const setActiveTab = useCallback((next: TabType) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (next === 'overview') params.delete('tab'); else params.set('tab', next);
+    if (next !== 'settings') params.delete('settings');
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }, [searchParams, pathname, router]);
+
+  const setSettingsSection = useCallback((next: 'preferences' | 'data') => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (next === 'preferences') params.delete('settings'); else params.set('settings', next);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [searchParams, pathname, router]);
   const [showShareModal, setShowShareModal] = useState(false);
   const [pendingDeleteDomainId, setPendingDeleteDomainId] = useState<string | null>(null);
+  const [pendingDeleteTransactionId, setPendingDeleteTransactionId] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const deleteCancelRef = useRef<HTMLButtonElement>(null);
   const deleteConfirmRef = useRef<HTMLButtonElement>(null);
+  const txDeleteCancelRef = useRef<HTMLButtonElement>(null);
+  const txDeleteConfirmRef = useRef<HTMLButtonElement>(null);
   
   // 使用自定义Hooks管理数据和操作
   const {
@@ -223,6 +250,42 @@ export default function DashboardPage() {
       previouslyFocused?.focus?.();
     };
   }, [pendingDeleteDomainId]);
+
+  // Same a11y treatment for the transaction-delete dialog
+  useEffect(() => {
+    if (!pendingDeleteTransactionId) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const focusTimer = window.setTimeout(() => txDeleteConfirmRef.current?.focus(), 0);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setPendingDeleteTransactionId(null);
+        return;
+      }
+      if (e.key === 'Tab') {
+        const cancel = txDeleteCancelRef.current;
+        const confirm = txDeleteConfirmRef.current;
+        if (!cancel || !confirm) return;
+        const active = document.activeElement;
+        if (e.shiftKey && active === cancel) {
+          e.preventDefault();
+          confirm.focus();
+        } else if (!e.shiftKey && active === confirm) {
+          e.preventDefault();
+          cancel.focus();
+        }
+      }
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener('keydown', handleKey);
+      document.body.style.overflow = prevOverflow;
+      previouslyFocused?.focus?.();
+    };
+  }, [pendingDeleteTransactionId]);
 
   useEffect(() => {
     if (!domainOps.showDomainForm) return;
@@ -1018,7 +1081,7 @@ export default function DashboardPage() {
             transactions={transactions}
             domains={domains}
             onEdit={transactionOps.handleEditTransaction}
-            onDelete={transactionOps.handleDeleteTransaction}
+            onDelete={setPendingDeleteTransactionId}
             onAdd={transactionOps.handleAddTransaction}
           />
         )}
@@ -1367,6 +1430,46 @@ export default function DashboardPage() {
                   if (!id) return;
                   await domainOps.handleDeleteDomain(id);
                   setPendingDeleteDomainId(null);
+                }}
+                className="flex-1 rounded-xl px-4 py-2 text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+              >
+                {t('common.delete')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Transaction Confirmation Dialog */}
+      {pendingDeleteTransactionId && (
+        <div
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="confirm-delete-tx-title"
+          aria-describedby="confirm-delete-tx-desc"
+          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setPendingDeleteTransactionId(null); }}
+        >
+          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full">
+            <h3 id="confirm-delete-tx-title" className="text-base font-semibold text-stone-900">{t('common.confirmDelete')}</h3>
+            <p id="confirm-delete-tx-desc" className="mt-2 text-sm text-stone-600">
+              {t('common.confirmDeleteTransaction')}
+            </p>
+            <div className="flex gap-3 mt-6">
+              <button
+                ref={txDeleteCancelRef}
+                onClick={() => setPendingDeleteTransactionId(null)}
+                className="flex-1 rounded-xl px-4 py-2 text-sm font-medium bg-stone-100 text-stone-700 hover:bg-stone-200 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                ref={txDeleteConfirmRef}
+                onClick={async () => {
+                  const id = pendingDeleteTransactionId;
+                  if (!id) return;
+                  await transactionOps.handleDeleteTransaction(id);
+                  setPendingDeleteTransactionId(null);
                 }}
                 className="flex-1 rounded-xl px-4 py-2 text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
               >

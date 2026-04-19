@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, memo, useCallback, useEffect } from 'react';
-import { Search, Filter, Plus, Edit, Trash2, DollarSign, Calendar, FileText, TrendingUp, TrendingDown, LayoutList, GitBranch } from 'lucide-react';
+import { Search, Filter, Plus, Edit, Trash2, DollarSign, Calendar, FileText, TrendingUp, TrendingDown, LayoutList, GitBranch, ArrowUp, ArrowDown } from 'lucide-react';
 import { sellGrossUSD, sellNetUSD } from '../../lib/coreCalculations';
 import { calculateDomainROI, getROIColor, getROIBgColor, formatPercentage } from '../../lib/enhancedFinancialMetrics';
 import { useI18nContext } from '../../contexts/I18nProvider';
@@ -83,6 +83,20 @@ const TransactionList = memo(function TransactionList({
   const [typeFilter, setTypeFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list');
   const [page, setPage] = useState(1);
+  type SortField = 'date' | 'amount' | 'type';
+  type SortDir = 'asc' | 'desc';
+  const [sortField, setSortField] = useState<SortField>('date');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
+
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      // Date defaults to newest first; other fields ascending
+      setSortDir(field === 'date' ? 'desc' : 'asc');
+    }
+  };
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -140,21 +154,35 @@ const TransactionList = memo(function TransactionList({
     return domainMap.get(domainId) || t('transactionList.unknownDomain');
   }, [domainMap, t]);
 
-  const filteredTransactions = useMemo(() => transactions.filter(transaction => {
-    const matchesSearch = 
-      getDomainName(transaction.domain_id).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (transaction.notes || '').toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesType = typeFilter === 'all' || transaction.type === typeFilter;
-    
-    return matchesSearch && matchesType;
-  }), [transactions, getDomainName, searchTerm, typeFilter]);
+  const filteredTransactions = useMemo(() => {
+    const filtered = transactions.filter(transaction => {
+      const matchesSearch =
+        getDomainName(transaction.domain_id).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (transaction.notes || '').toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesType = typeFilter === 'all' || transaction.type === typeFilter;
+
+      return matchesSearch && matchesType;
+    });
+    const sorted = filtered.slice().sort((a, b) => {
+      let cmp = 0;
+      if (sortField === 'date') {
+        cmp = (a.date || '').localeCompare(b.date || '');
+      } else if (sortField === 'amount') {
+        cmp = sellGrossUSD(a) - sellGrossUSD(b);
+      } else {
+        cmp = a.type.localeCompare(b.type);
+      }
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+    return sorted;
+  }, [transactions, getDomainName, searchTerm, typeFilter, sortField, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / TRANSACTIONS_PAGE_SIZE));
 
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, typeFilter]);
+  }, [searchTerm, typeFilter, sortField, sortDir]);
 
   useEffect(() => {
     setPage((p) => (p > totalPages ? totalPages : p));
@@ -290,13 +318,20 @@ const TransactionList = memo(function TransactionList({
           <p className="text-sm text-stone-500 mb-5 max-w-sm mx-auto">
             {searchTerm || typeFilter !== 'all' ? t('transactionList.adjustSearch') : t('transactionList.getStarted')}
           </p>
-          {!searchTerm && typeFilter === 'all' && (
+          {!searchTerm && typeFilter === 'all' ? (
             <button
               onClick={onAdd}
-              className="inline-flex items-center px-4 py-2.5 bg-teal-600 text-white rounded-xl text-sm font-medium hover:bg-teal-700 transition"
+              className="inline-flex items-center px-4 py-2.5 bg-teal-600 text-white rounded-xl text-sm font-medium hover:bg-teal-700 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
             >
               <Plus className="h-4 w-4 mr-2" />
               {t('transactionList.addFirstTransaction')}
+            </button>
+          ) : (
+            <button
+              onClick={() => { setSearchTerm(''); setTypeFilter('all'); }}
+              className="inline-flex items-center px-4 py-2.5 border border-stone-300 bg-white text-stone-700 rounded-xl text-sm font-medium hover:bg-stone-100 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+            >
+              {t('transactionList.clearFilters')}
             </button>
           )}
         </div>
@@ -310,14 +345,47 @@ const TransactionList = memo(function TransactionList({
                     <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
                       {t('transactionList.domain')}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                      {t('transactionList.type')}
+                    <th
+                      className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider"
+                      aria-sort={sortField === 'type' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleSort('type')}
+                        aria-label={`${t('transactionList.sortBy')} ${t('transactionList.type')}`}
+                        className="inline-flex items-center gap-1 uppercase tracking-wider hover:text-stone-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 rounded"
+                      >
+                        {t('transactionList.type')}
+                        {sortField === 'type' && (sortDir === 'asc' ? <ArrowUp className="h-3 w-3 text-teal-600" /> : <ArrowDown className="h-3 w-3 text-teal-600" />)}
+                      </button>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                      {t('transactionList.amount')}
+                    <th
+                      className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider"
+                      aria-sort={sortField === 'amount' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleSort('amount')}
+                        aria-label={`${t('transactionList.sortBy')} ${t('transactionList.amount')}`}
+                        className="inline-flex items-center gap-1 uppercase tracking-wider hover:text-stone-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 rounded"
+                      >
+                        {t('transactionList.amount')}
+                        {sortField === 'amount' && (sortDir === 'asc' ? <ArrowUp className="h-3 w-3 text-teal-600" /> : <ArrowDown className="h-3 w-3 text-teal-600" />)}
+                      </button>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                      {t('transactionList.date')}
+                    <th
+                      className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider"
+                      aria-sort={sortField === 'date' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleSort('date')}
+                        aria-label={`${t('transactionList.sortBy')} ${t('transactionList.date')}`}
+                        className="inline-flex items-center gap-1 uppercase tracking-wider hover:text-stone-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 rounded"
+                      >
+                        {t('transactionList.date')}
+                        {sortField === 'date' && (sortDir === 'asc' ? <ArrowUp className="h-3 w-3 text-teal-600" /> : <ArrowDown className="h-3 w-3 text-teal-600" />)}
+                      </button>
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
                       {t('transactionList.platform')}
