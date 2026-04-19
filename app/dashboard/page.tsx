@@ -225,11 +225,7 @@ export default function DashboardPage() {
     domains,
     transactions,
     saveData,
-    handleDeleteDomain,
-    (msg) => {
-      setMutationError(msg);
-      setTimeout(() => setMutationError(null), 5000);
-    }
+    handleDeleteDomain
   );
 
   // Restored from the pre-breakage working version: a ref holds the latest close
@@ -509,8 +505,42 @@ export default function DashboardPage() {
 
 
   // 处理域名保存（保留此函数因为需要特殊处理）- 使用useCallback优化
-  // handleSaveDomain now lives inside useDomainOperations, mirroring the
-  // useTransactionOperations pattern that reliably closes the form on success.
+  const handleSaveDomain = useCallback(async (domainData: Omit<DomainWithTags, 'id'>) => {
+    try {
+      if (domainOps.editingDomain) {
+        const updatedDomain: DomainWithTags = {
+          ...domainOps.editingDomain,
+        ...domainData,
+          updated_at: new Date().toISOString()
+        };
+
+        const updatedDomains = domains.map(domain =>
+          domain.id === domainOps.editingDomain!.id ? updatedDomain : domain
+        );
+
+        await saveData(updatedDomains, transactions, { domainsOnly: true });
+        domainOps.setEditingDomain(undefined);
+        domainOps.setShowDomainForm(false);
+        domainOps.setShowSmartDomainForm(false);
+    } else {
+        const newDomain: DomainWithTags = {
+          ...domainData,
+          id: crypto.randomUUID(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+
+        const updatedDomains = [...domains, newDomain];
+        await saveData(updatedDomains, transactions, { domainsOnly: true });
+        domainOps.setShowDomainForm(false);
+        domainOps.setShowSmartDomainForm(false);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      setMutationError(`${t('errors.saveDomainFailed')}: ${msg}`);
+      setTimeout(() => setMutationError(null), 5000);
+    }
+  }, [domainOps, domains, transactions, saveData, t]);
 
   // Quick inline update for DomainTable (status / estimated_value cells).
   // Spreads the patch onto the domain and persists via the same saveData path as the full editor.
@@ -1275,7 +1305,7 @@ export default function DashboardPage() {
           domainOps.setShowDomainForm(false);
           domainOps.setEditingDomain(undefined);
         }}
-        onSave={domainOps.handleSaveDomain}
+        onSave={handleSaveDomain}
         closeRef={domainFormCloseRef}
       />
 
@@ -1288,7 +1318,7 @@ export default function DashboardPage() {
           domainOps.setShowSmartDomainForm(false);
           domainOps.setEditingDomain(undefined);
         }}
-        onSave={domainOps.handleSaveDomain}
+        onSave={handleSaveDomain}
       />
 
       {/* Transaction Form Modal */}
