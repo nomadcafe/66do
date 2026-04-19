@@ -1271,17 +1271,19 @@ export default function DashboardPage() {
         }
       />
 
-      {/* Domain Edit Drawer */}
-      <DomainForm
-        key={domainOps.editingDomain?.id || 'edit-new'}
-        domain={domainOps.editingDomain}
-        isOpen={domainOps.showDomainForm}
-        onClose={() => {
-          domainOps.setShowDomainForm(false);
-          domainOps.setEditingDomain(undefined);
-        }}
-        onSave={handleSaveDomain}
-      />
+      {/* Domain Edit Drawer — mount only when open so React fully unmounts the portal on close */}
+      {domainOps.showDomainForm && (
+        <DomainForm
+          key={domainOps.editingDomain?.id || 'edit-new'}
+          domain={domainOps.editingDomain}
+          isOpen={domainOps.showDomainForm}
+          onClose={() => {
+            domainOps.setShowDomainForm(false);
+            domainOps.setEditingDomain(undefined);
+          }}
+          onSave={handleSaveDomain}
+        />
+      )}
 
       {/* Smart Domain Form Modal */}
       <SmartDomainForm

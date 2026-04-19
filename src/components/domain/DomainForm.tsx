@@ -105,14 +105,12 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
   }, [isOpen, domainId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log('[DomainForm] handleSubmit fired, isOpen=', isOpen);
     e.preventDefault();
 
     const sanitizedData = sanitizeDomainData(formData);
     const validation = validateDomain(sanitizedData);
 
     if (!validation.valid) {
-      console.log('[DomainForm] validation failed', validation.errors);
       setValidationErrors(validation.errors);
       return;
     }
@@ -121,12 +119,9 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
     setSubmitError(null);
     setIsSubmitting(true);
     try {
-      console.log('[DomainForm] calling onSave');
       await Promise.resolve(onSave(sanitizedData as Omit<DomainWithTags, 'id'>));
-      console.log('[DomainForm] onSave resolved');
       onClose();
     } catch (err) {
-      console.log('[DomainForm] onSave threw', err);
       setSubmitError(err instanceof Error ? err.message : 'Save failed. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -158,15 +153,10 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
   };
 
   const handleClose = () => {
-    console.log('[DomainForm] handleClose fired, isOpen=', isOpen);
     onClose();
   };
 
-  if (!isOpen) {
-    console.log('[DomainForm] render skipped (isOpen=false)');
-    return null;
-  }
-  console.log('[DomainForm] rendering, isOpen=true, domain=', domain?.domain_name);
+  if (!isOpen) return null;
 
   const modalContent = (
     <div
