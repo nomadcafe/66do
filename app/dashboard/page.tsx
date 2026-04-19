@@ -86,6 +86,8 @@ export default function DashboardPage() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [pendingDeleteDomainId, setPendingDeleteDomainId] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
+  const deleteCancelRef = useRef<HTMLButtonElement>(null);
+  const deleteConfirmRef = useRef<HTMLButtonElement>(null);
   
   // 使用自定义Hooks管理数据和操作
   const {
@@ -185,6 +187,43 @@ export default function DashboardPage() {
     };
   }, [domainOps]);
 
+  // Delete-confirm dialog: focus mgmt, Esc to close, Enter to confirm (via natural focus on confirm), Tab trap, scroll lock
+  useEffect(() => {
+    if (!pendingDeleteDomainId) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    // Focus the destructive button so Enter naturally confirms; pair with focus-visible ring for clarity
+    const focusTimer = window.setTimeout(() => deleteConfirmRef.current?.focus(), 0);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setPendingDeleteDomainId(null);
+        return;
+      }
+      if (e.key === 'Tab') {
+        const cancel = deleteCancelRef.current;
+        const confirm = deleteConfirmRef.current;
+        if (!cancel || !confirm) return;
+        const active = document.activeElement;
+        if (e.shiftKey && active === cancel) {
+          e.preventDefault();
+          confirm.focus();
+        } else if (!e.shiftKey && active === confirm) {
+          e.preventDefault();
+          cancel.focus();
+        }
+      }
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener('keydown', handleKey);
+      document.body.style.overflow = prevOverflow;
+      previouslyFocused?.focus?.();
+    };
+  }, [pendingDeleteDomainId]);
+
   useEffect(() => {
     if (!domainOps.showDomainForm) return;
     const handler = (e: MouseEvent) => {
@@ -268,6 +307,18 @@ export default function DashboardPage() {
       .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
       .slice(0, 5);
   }, [transactionsForMetrics]);
+
+  const dateFormatter = useMemo(
+    () => new Intl.DateTimeFormat(locale === 'zh' ? 'zh-CN' : 'en-US', {
+      year: 'numeric', month: 'short', day: 'numeric'
+    }),
+    [locale]
+  );
+  const formatTransactionDate = useCallback((d: string | null | undefined) => {
+    if (!d) return '';
+    const parsed = new Date(d);
+    return Number.isNaN(parsed.getTime()) ? d : dateFormatter.format(parsed);
+  }, [dateFormatter]);
 
   // 计算增强的财务指标（使用按分期调整后的交易列表）
   const enhancedFinancialMetrics = useMemo(() => {
@@ -490,15 +541,32 @@ export default function DashboardPage() {
               </div>
             </Link>
             <div className="flex items-center gap-4">
-              <select
-                value={locale}
-                onChange={(e) => setLocale(e.target.value as 'en' | 'zh')}
+              <div
+                role="group"
                 aria-label={t('settings.selectLanguage')}
-                className="rounded-xl border border-stone-200 bg-stone-50/80 px-3 py-2 text-sm text-stone-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                className="flex items-center gap-0.5 p-1 rounded-xl border border-stone-200 bg-stone-50/80"
               >
-                <option value="zh">中文</option>
-                <option value="en">English</option>
-              </select>
+                <button
+                  type="button"
+                  onClick={() => setLocale('zh')}
+                  aria-pressed={locale === 'zh'}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 ${
+                    locale === 'zh' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-600 hover:text-stone-900'
+                  }`}
+                >
+                  {t('settings.chinese')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLocale('en')}
+                  aria-pressed={locale === 'en'}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 ${
+                    locale === 'en' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-600 hover:text-stone-900'
+                  }`}
+                >
+                  {t('settings.english')}
+                </button>
+              </div>
               <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-stone-200/80 bg-stone-50/80">
                 <div className="w-8 h-8 bg-stone-700 rounded-full flex items-center justify-center text-white text-sm font-medium">
                   {user?.email ? user.email.charAt(0).toUpperCase() : <User className="h-4 w-4" />}
@@ -510,14 +578,14 @@ export default function DashboardPage() {
               </div>
               <button
                 onClick={transactionOps.handleAddTransaction}
-                className="border border-stone-300 text-stone-700 px-4 py-2.5 rounded-xl hover:bg-stone-100 flex items-center gap-2 text-sm font-medium transition"
+                className="border border-stone-300 text-stone-700 px-4 py-2.5 rounded-xl hover:bg-stone-100 flex items-center gap-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
               >
                 <FileText size={18} />
                 <span>{t('transaction.add')}</span>
               </button>
               <button
                 onClick={domainOps.handleAddDomain}
-                className="bg-teal-600 text-white px-5 py-2.5 rounded-xl hover:bg-teal-700 flex items-center gap-2 text-sm font-medium shadow-sm shadow-teal-600/20 transition"
+                className="bg-teal-600 text-white px-5 py-2.5 rounded-xl hover:bg-teal-700 flex items-center gap-2 text-sm font-medium shadow-sm shadow-teal-600/20 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
               >
                 <Plus size={18} />
                 <span>{t('dashboard.addInvestment')}</span>
@@ -526,13 +594,13 @@ export default function DashboardPage() {
                 onClick={() => setShowShareModal(true)}
                 aria-label={t('dashboard.shareResults')}
                 title={t('dashboard.shareResults')}
-                className="text-stone-500 hover:text-stone-800 p-2.5 rounded-xl hover:bg-stone-100 transition"
+                className="text-stone-500 hover:text-stone-800 p-2.5 rounded-xl hover:bg-stone-100 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
               >
                 <Share2 size={18} />
               </button>
               <button
                 onClick={async () => { await signOut(); router.push('/'); }}
-                className="text-stone-500 hover:text-stone-800 flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-stone-100 text-sm font-medium transition"
+                className="text-stone-500 hover:text-stone-800 flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-stone-100 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
               >
                 <LogOut size={18} />
                 <span>{t('dashboard.signOut')}</span>
@@ -562,13 +630,13 @@ export default function DashboardPage() {
               <div className="w-8 h-8 bg-stone-700 rounded-full flex items-center justify-center text-white text-xs font-medium">
                 {user?.email ? user.email.charAt(0).toUpperCase() : <User className="h-4 w-4" />}
               </div>
-              <button onClick={domainOps.handleAddDomain} aria-label={t('dashboard.addInvestment')} className="bg-teal-600 text-white p-2.5 rounded-xl hover:bg-teal-700 shadow-sm">
+              <button onClick={domainOps.handleAddDomain} aria-label={t('dashboard.addInvestment')} className="bg-teal-600 text-white p-2.5 rounded-xl hover:bg-teal-700 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2">
                 <Plus size={18} />
               </button>
-              <button onClick={() => setShowShareModal(true)} aria-label={t('dashboard.shareResults')} className="text-stone-600 p-2.5 rounded-xl hover:bg-stone-100 border border-stone-200">
+              <button onClick={() => setShowShareModal(true)} aria-label={t('dashboard.shareResults')} className="text-stone-600 p-2.5 rounded-xl hover:bg-stone-100 border border-stone-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2">
                 <Share2 size={18} />
               </button>
-              <button onClick={async () => { await signOut(); router.push('/'); }} aria-label={t('dashboard.signOut')} className="text-stone-600 p-2.5 rounded-xl hover:bg-stone-100 border border-stone-200">
+              <button onClick={async () => { await signOut(); router.push('/'); }} aria-label={t('dashboard.signOut')} className="text-stone-600 p-2.5 rounded-xl hover:bg-stone-100 border border-stone-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2">
                 <LogOut size={18} />
               </button>
             </div>
@@ -658,11 +726,11 @@ export default function DashboardPage() {
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-2xl border border-stone-200/80 shadow-sm mb-6 overflow-hidden">
+        <div className="relative bg-white rounded-2xl border border-stone-200/80 shadow-sm mb-6 overflow-hidden">
           <nav className="flex gap-1 p-1.5 overflow-x-auto bg-stone-50/50 border-b border-stone-100" aria-label="Tabs">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap flex items-center gap-1.5 transition ${
+              className={`rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap flex items-center gap-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 ${
                 activeTab === 'overview' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
               }`}
             >
@@ -671,7 +739,7 @@ export default function DashboardPage() {
             </button>
             <button
               onClick={() => setActiveTab('domains')}
-              className={`rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap flex items-center gap-1.5 transition ${
+              className={`rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap flex items-center gap-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 ${
                 activeTab === 'domains' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
               }`}
             >
@@ -680,7 +748,7 @@ export default function DashboardPage() {
             </button>
             <button
               onClick={() => setActiveTab('transactions')}
-              className={`rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap flex items-center gap-1.5 transition ${
+              className={`rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap flex items-center gap-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 ${
                 activeTab === 'transactions' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
               }`}
             >
@@ -689,7 +757,7 @@ export default function DashboardPage() {
             </button>
             <button
               onClick={() => setActiveTab('analytics')}
-              className={`rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap flex items-center gap-1.5 transition ${
+              className={`rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap flex items-center gap-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 ${
                 activeTab === 'analytics' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
               }`}
             >
@@ -698,7 +766,7 @@ export default function DashboardPage() {
             </button>
             <button
               onClick={() => setActiveTab('alerts')}
-              className={`rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap flex items-center gap-1.5 transition ${
+              className={`rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap flex items-center gap-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 ${
                 activeTab === 'alerts' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
               }`}
             >
@@ -710,7 +778,7 @@ export default function DashboardPage() {
             </button>
             <button
               onClick={() => setActiveTab('settings')}
-              className={`rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap flex items-center gap-1.5 transition ${
+              className={`rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap flex items-center gap-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 ${
                 activeTab === 'settings' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
               }`}
             >
@@ -719,7 +787,7 @@ export default function DashboardPage() {
             </button>
             <button
               onClick={() => setActiveTab('reports')}
-              className={`rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap flex items-center gap-1.5 transition ${
+              className={`rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap flex items-center gap-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 ${
                 activeTab === 'reports' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
               }`}
             >
@@ -727,6 +795,11 @@ export default function DashboardPage() {
               {t('dashboard.reports')}
             </button>
           </nav>
+          {/* Right-edge fade to hint horizontal overflow on narrow screens */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute right-0 top-0 bottom-px w-10 bg-gradient-to-l from-stone-50 via-stone-50/70 to-transparent lg:hidden"
+          />
         </div>
 
         {/* Tab Content */}
@@ -869,31 +942,47 @@ export default function DashboardPage() {
               <div className="p-5">
                 {recentTransactions.length > 0 ? (
                   <div className="space-y-1">
-                    {recentTransactions.map((transaction) => (
-                      <div key={transaction.id} className="flex items-center justify-between py-3 px-3 rounded-lg hover:bg-stone-50/80 transition">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                            transaction.type === 'buy' ? 'bg-teal-50 text-teal-600' :
-                            transaction.type === 'sell' ? 'bg-emerald-50 text-emerald-600' :
-                            transaction.type === 'renew' ? 'bg-amber-50 text-amber-600' : 'bg-stone-100 text-stone-600'
-                          }`}>
-                            {transaction.type === 'buy' ? <Plus className="h-4 w-4" /> :
-                             transaction.type === 'sell' ? <TrendingUp className="h-4 w-4" /> :
-                             transaction.type === 'renew' ? <RefreshCw className="h-4 w-4" /> :
-                             <FileText className="h-4 w-4" />}
+                    {recentTransactions.map((transaction) => {
+                      const domain = domains.find(d => d.id === transaction.domain_id);
+                      const sign = transaction.type === 'sell' ? '+' : '-';
+                      const amountColor =
+                        transaction.type === 'sell' ? 'text-emerald-600' :
+                        transaction.type === 'buy' ? 'text-teal-700' :
+                        transaction.type === 'renew' ? 'text-amber-700' :
+                        'text-stone-700';
+                      return (
+                        <button
+                          key={transaction.id}
+                          type="button"
+                          onClick={() => domain && domainOps.handleEditDomain(domain)}
+                          disabled={!domain}
+                          aria-label={domain ? `${t(`transaction.${transaction.type}`)} · ${domain.domain_name}` : undefined}
+                          className="w-full text-left flex items-center justify-between py-3 px-3 rounded-lg hover:bg-stone-50/80 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 disabled:cursor-default disabled:hover:bg-transparent"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className={`shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${
+                              transaction.type === 'buy' ? 'bg-teal-50 text-teal-600' :
+                              transaction.type === 'sell' ? 'bg-emerald-50 text-emerald-600' :
+                              transaction.type === 'renew' ? 'bg-amber-50 text-amber-600' : 'bg-stone-100 text-stone-600'
+                            }`}>
+                              {transaction.type === 'buy' ? <Plus className="h-4 w-4" /> :
+                               transaction.type === 'sell' ? <TrendingUp className="h-4 w-4" /> :
+                               transaction.type === 'renew' ? <RefreshCw className="h-4 w-4" /> :
+                               <FileText className="h-4 w-4" />}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium text-stone-900 truncate">
+                                {domain?.domain_name || t('common.unknownDomain')}
+                              </p>
+                              <p className="text-xs text-stone-500">{t(`transaction.${transaction.type}`)} · {formatTransactionDate(transaction.date)}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-medium text-stone-900">
-                              {domains.find(d => d.id === transaction.domain_id)?.domain_name || t('common.unknownDomain')}
-                            </p>
-                            <p className="text-xs text-stone-500">{t(`transaction.${transaction.type}`)} · {transaction.date}</p>
-                          </div>
-                        </div>
-                        <p className={`font-semibold text-sm ${transaction.type === 'sell' ? 'text-emerald-600' : 'text-stone-700'}`}>
-                          {transaction.type === 'sell' ? '+' : '-'}{formatCurrencyEnhanced(transaction.base_amount ?? transaction.amount)}
-                        </p>
-                      </div>
-                    ))}
+                          <p className={`font-semibold text-sm shrink-0 ml-3 ${amountColor}`}>
+                            {sign}{formatCurrencyEnhanced(transaction.base_amount ?? transaction.amount)}
+                          </p>
+                        </button>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-10 text-stone-500">
@@ -1246,36 +1335,47 @@ export default function DashboardPage() {
         </div>
 
       {/* Delete Domain Confirmation Dialog */}
-      {pendingDeleteDomainId && (() => {
-        const domainName = domains.find(d => d.id === pendingDeleteDomainId)?.domain_name ?? '';
-        return (
-          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full">
-              <h3 className="text-base font-semibold text-stone-900">{t('common.confirmDelete')}</h3>
-              <p className="mt-2 text-sm text-stone-600">
-                {t('common.confirmDeleteDomain')} <span className="font-medium text-stone-900">{domainName}</span>？
-              </p>
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => setPendingDeleteDomainId(null)}
-                  className="flex-1 rounded-xl px-4 py-2 text-sm font-medium bg-stone-100 text-stone-700 hover:bg-stone-200 transition"
-                >
-                  {t('common.cancel')}
-                </button>
-                <button
-                  onClick={async () => {
-                    await domainOps.handleDeleteDomain(pendingDeleteDomainId);
-                    setPendingDeleteDomainId(null);
-                  }}
-                  className="flex-1 rounded-xl px-4 py-2 text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition"
-                >
-                  {t('common.delete')}
-                </button>
-              </div>
+      {pendingDeleteDomainId && (
+        <div
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="confirm-delete-title"
+          aria-describedby="confirm-delete-desc"
+          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setPendingDeleteDomainId(null); }}
+        >
+          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full">
+            <h3 id="confirm-delete-title" className="text-base font-semibold text-stone-900">{t('common.confirmDelete')}</h3>
+            <p id="confirm-delete-desc" className="mt-2 text-sm text-stone-600">
+              {t('common.confirmDeleteDomain')}{' '}
+              <span className="font-medium text-stone-900">
+                {domains.find(d => d.id === pendingDeleteDomainId)?.domain_name ?? ''}
+              </span>？
+            </p>
+            <div className="flex gap-3 mt-6">
+              <button
+                ref={deleteCancelRef}
+                onClick={() => setPendingDeleteDomainId(null)}
+                className="flex-1 rounded-xl px-4 py-2 text-sm font-medium bg-stone-100 text-stone-700 hover:bg-stone-200 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                ref={deleteConfirmRef}
+                onClick={async () => {
+                  const id = pendingDeleteDomainId;
+                  if (!id) return;
+                  await domainOps.handleDeleteDomain(id);
+                  setPendingDeleteDomainId(null);
+                }}
+                className="flex-1 rounded-xl px-4 py-2 text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+              >
+                {t('common.delete')}
+              </button>
             </div>
           </div>
-        );
-      })()}
+        </div>
+      )}
 
       {/* Domain Edit Drawer */}
       <DomainForm
