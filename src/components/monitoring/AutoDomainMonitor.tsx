@@ -29,6 +29,21 @@ export default function AutoDomainMonitor({
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
   const { t } = useI18nContext();
 
+  // Locale-aware alert message — replaces the hardcoded-Chinese strings the lib used to return.
+  const formatAlertMessage = useCallback((alert: DomainExpiryInfo): string => {
+    const { domain, daysUntilExpiry, urgency, isExpired } = alert;
+    const days = String(Math.abs(daysUntilExpiry));
+    const interpolate = (key: string) =>
+      t(key).replace('{domain}', domain.domain_name).replace('{days}', days);
+    if (isExpired) return `🚨 ${interpolate('alerts.domainExpiryExpired')}`;
+    switch (urgency) {
+      case 'critical': return `🔥 ${interpolate('alerts.domainExpiryCritical')}`;
+      case 'urgent':   return `⚠️ ${interpolate('alerts.domainExpiryUrgent')}`;
+      case 'warning':  return `📢 ${interpolate('alerts.domainExpiryWarning')}`;
+      default:         return `ℹ️ ${interpolate('alerts.domainExpiryWarning')}`;
+    }
+  }, [t]);
+
   // 请求通知权限
   useEffect(() => {
     if ('Notification' in window && Notification.permission === 'default') {
@@ -69,12 +84,12 @@ export default function AutoDomainMonitor({
 
       if (criticalAlerts.length > 0) {
         const message = criticalAlerts.length === 1 
-          ? monitor.generateAlertMessage(criticalAlerts[0])
+          ? formatAlertMessage(criticalAlerts[0])
           : t('monitoring.criticalDomainsAlert').replace('{count}', criticalAlerts.length.toString());
         showBrowserNotification(message);
       } else if (urgentAlerts.length > 0) {
         const message = urgentAlerts.length === 1
-          ? monitor.generateAlertMessage(urgentAlerts[0])
+          ? formatAlertMessage(urgentAlerts[0])
           : t('monitoring.urgentDomainsAlert').replace('{count}', urgentAlerts.length.toString());
         showBrowserNotification(message);
       }
@@ -86,7 +101,7 @@ export default function AutoDomainMonitor({
         }
       });
     }
-  }, [monitor, onDomainExpiry, onBulkExpiry, showBrowserNotification, t]);
+  }, [onDomainExpiry, onBulkExpiry, showBrowserNotification, formatAlertMessage, t]);
 
   // 启动监控
   const startMonitoring = useCallback(() => {
@@ -220,7 +235,7 @@ export default function AutoDomainMonitor({
                   'bg-blue-50 text-blue-800'
                 }`}
               >
-                {monitor.generateAlertMessage(alert)}
+                {formatAlertMessage(alert)}
               </div>
             ))}
           </div>

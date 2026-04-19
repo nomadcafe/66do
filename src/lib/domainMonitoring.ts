@@ -161,30 +161,8 @@ export class DomainMonitor {
     return this.lastCheckTime;
   }
 
-  // 生成提醒消息
-  generateAlertMessage(expiryInfo: DomainExpiryInfo): string {
-    const { domain, daysUntilExpiry, urgency, isExpired } = expiryInfo;
-    
-    if (isExpired) {
-      return `🚨 域名 ${domain.domain_name} 已过期！请立即续费以避免丢失。`;
-    }
-
-    switch (urgency) {
-      case 'critical':
-        return `🔥 紧急：域名 ${domain.domain_name} 将在 ${daysUntilExpiry} 天后到期！请立即续费。`;
-      case 'urgent':
-        return `⚠️ 重要：域名 ${domain.domain_name} 将在 ${daysUntilExpiry} 天后到期，建议尽快续费。`;
-      case 'warning':
-        return `📢 提醒：域名 ${domain.domain_name} 将在 ${daysUntilExpiry} 天后到期。`;
-      default:
-        return `ℹ️ 域名 ${domain.domain_name} 将在 ${daysUntilExpiry} 天后到期。`;
-    }
-  }
-
-  // 批量生成提醒消息
-  generateAlertMessages(expiryInfos: DomainExpiryInfo[]): string[] {
-    return expiryInfos.map(info => this.generateAlertMessage(info));
-  }
+  // Note: alert message formatting is locale-aware and lives in the React component
+  // (AutoDomainMonitor.tsx) — the lib only deals with data, not display strings.
 }
 
 // 导出单例实例
