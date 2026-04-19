@@ -164,6 +164,32 @@ export function validateDomain(domain: unknown): ValidationResult {
     }
   }
 
+  // 跨字段日期合理性：到期日不应早于购入日；售出日不应早于购入日
+  if (
+    typeof domainObj.purchase_date === 'string' &&
+    typeof domainObj.expiry_date === 'string' &&
+    domainObj.purchase_date &&
+    domainObj.expiry_date
+  ) {
+    const purchase = new Date(domainObj.purchase_date as string);
+    const expiry = new Date(domainObj.expiry_date as string);
+    if (!isNaN(purchase.getTime()) && !isNaN(expiry.getTime()) && expiry < purchase) {
+      errors.push('到期日期不能早于购买日期');
+    }
+  }
+  if (
+    typeof domainObj.purchase_date === 'string' &&
+    typeof domainObj.sale_date === 'string' &&
+    domainObj.purchase_date &&
+    domainObj.sale_date
+  ) {
+    const purchase = new Date(domainObj.purchase_date as string);
+    const sale = new Date(domainObj.sale_date as string);
+    if (!isNaN(purchase.getTime()) && !isNaN(sale.getTime()) && sale < purchase) {
+      errors.push('出售日期不能早于购买日期');
+    }
+  }
+
   // 标签验证
   if (domainObj.tags !== null && domainObj.tags !== undefined) {
     if (Array.isArray(domainObj.tags)) {

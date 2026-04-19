@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Save, RotateCcw, Sun, Moon, Monitor } from 'lucide-react';
+import { Save, RotateCcw, Sun, Moon, Monitor, Info } from 'lucide-react';
 import { useI18nContext } from '../../contexts/I18nProvider';
 
 interface UserPreferences {
@@ -96,6 +96,11 @@ export default function UserPreferencesPanel() {
       </div>
 
       <div className="p-6 space-y-6 max-w-md">
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
+          <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+          <span>{t('settings.localOnlyNotice')}</span>
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-2">{t('settings.language')}</label>
           <select

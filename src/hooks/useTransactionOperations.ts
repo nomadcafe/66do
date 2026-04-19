@@ -84,19 +84,34 @@ export function useTransactionOperations(
 
       const updatedTransactions = transactions.filter(transaction => transaction.id !== id);
 
-      // 如果删除的是出售交易，需要将域名状态改回 active
+      // Removing a sell tx may need to mutate the domain's sold-state.
+      // If other sells remain for the same domain (e.g. installment / multiple sales),
+      // resync to the latest remaining sell instead of wrongly reverting to active.
       if (transactionToDelete.type === 'sell' && transactionToDelete.domain_id) {
+        const targetDomainId = transactionToDelete.domain_id;
+        const remainingSells = updatedTransactions
+          .filter(t => t.type === 'sell' && t.domain_id === targetDomainId)
+          .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
         const updatedDomains = domains.map(domain => {
-          if (domain.id === transactionToDelete.domain_id) {
+          if (domain.id !== targetDomainId) return domain;
+          if (remainingSells.length === 0) {
             return {
               ...domain,
               status: 'active' as const,
               sale_date: null,
               sale_price: null,
-              platform_fee: null
+              platform_fee: null,
             };
           }
-          return domain;
+          const latest = remainingSells[0];
+          return {
+            ...domain,
+            status: 'sold' as const,
+            sale_date: latest.date ?? domain.sale_date,
+            sale_price: latest.base_amount ?? latest.amount ?? domain.sale_price,
+            platform_fee: latest.platform_fee ?? domain.platform_fee,
+          };
         });
 
         await onSave(updatedDomains, updatedTransactions);
