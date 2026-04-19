@@ -1313,6 +1313,10 @@ export default function DashboardPage() {
       />
 
       {/* Domain Edit Drawer */}
+      {(() => {
+        console.log('[TRACE KEY] DomainForm key will be:', domainOps.editingDomain?.id || 'edit-new', 'showDomainForm=', domainOps.showDomainForm);
+        return null;
+      })()}
       <DomainForm
         key={domainOps.editingDomain?.id || 'edit-new'}
         domain={domainOps.editingDomain}
