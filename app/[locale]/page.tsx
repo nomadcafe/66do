@@ -6,9 +6,10 @@ import {
   BarChart3,
   Star,
   Shield,
-  Zap,
-  Target,
-  Users,
+  Plus,
+  RefreshCw,
+  PieChart,
+  DollarSign,
 } from 'lucide-react';
 import {
   getHomeDictionary,
@@ -35,62 +36,38 @@ export default async function HomePage({ params }: PageProps) {
   const d = getHomeDictionary(locale);
   const year = new Date().getFullYear();
 
-  const homeFeatures = [
-    d.home.feature1,
-    d.home.feature2,
-    d.home.feature3,
-    d.home.feature4,
+  const featureStrip = [
+    { icon: <Globe className="h-5 w-5" />, title: d.features.portfolio.title },
+    { icon: <TrendingUp className="h-5 w-5" />, title: d.features.analytics.title },
+    { icon: <BarChart3 className="h-5 w-5" />, title: d.features.data.title },
+    { icon: <Shield className="h-5 w-5" />, title: d.features.security.title },
   ];
 
-  const features = [
-    {
-      icon: <Globe className="h-7 w-7" />,
-      title: d.features.portfolio.title,
-      description: d.features.portfolio.desc,
-    },
-    {
-      icon: <TrendingUp className="h-7 w-7" />,
-      title: d.features.analytics.title,
-      description: d.features.analytics.desc,
-    },
-    {
-      icon: <BarChart3 className="h-7 w-7" />,
-      title: d.features.data.title,
-      description: d.features.data.desc,
-    },
-    {
-      icon: <Shield className="h-7 w-7" />,
-      title: d.features.security.title,
-      description: d.features.security.desc,
-    },
+  const sampleTransactions = [
+    { domain: 'crypto.xyz', type: 'sell' as const, date: locale === 'zh' ? '2026年4月12日' : 'Apr 12, 2026', amount: '+$8,400' },
+    { domain: 'meta.io', type: 'buy' as const, date: locale === 'zh' ? '2026年4月9日' : 'Apr 9, 2026', amount: '-$220' },
+    { domain: 'ai-tools.com', type: 'renew' as const, date: locale === 'zh' ? '2026年4月3日' : 'Apr 3, 2026', amount: '-$32' },
+    { domain: 'portfolio.dev', type: 'sell' as const, date: locale === 'zh' ? '2026年3月28日' : 'Mar 28, 2026', amount: '+$3,200' },
   ];
 
-  const benefits = [
-    {
-      icon: <Zap className="h-6 w-6" />,
-      title: d.benefits.portfolio.title,
-      description: d.benefits.portfolio.desc,
-    },
-    {
-      icon: <Target className="h-6 w-6" />,
-      title: d.benefits.analytics.title,
-      description: d.benefits.analytics.desc,
-    },
-    {
-      icon: <Users className="h-6 w-6" />,
-      title: d.benefits.market.title,
-      description: d.benefits.market.desc,
-    },
-  ];
+  const txTypeLabel = (type: 'buy' | 'sell' | 'renew') =>
+    type === 'sell' ? d.preview.typeSell : type === 'buy' ? d.preview.typeBuy : d.preview.typeRenew;
+
+  // Sparkline points: monotonic upward sample, 12 monthly steps. width 200, height 56, padded 4.
+  const sparkPoints = [12, 14, 13, 18, 22, 24, 28, 30, 36, 40, 44, 48];
+  const minV = Math.min(...sparkPoints);
+  const maxV = Math.max(...sparkPoints);
+  const sparkPath = sparkPoints
+    .map((v, i) => {
+      const x = 4 + (i / (sparkPoints.length - 1)) * 192;
+      const y = 52 - ((v - minV) / (maxV - minV)) * 48;
+      return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(' ');
+  const sparkArea = `${sparkPath} L196,56 L4,56 Z`;
 
   return (
-    <div
-      className="min-h-screen antialiased"
-      style={{
-        backgroundColor: 'var(--home-bg)',
-        color: 'var(--home-text)',
-      }}
-    >
+    <div className="min-h-screen antialiased bg-stone-50 text-stone-900">
       <HomeHeaderClient
         initialLocale={locale}
         localePrefix={`/${locale}`}
@@ -101,200 +78,236 @@ export default async function HomePage({ params }: PageProps) {
       />
 
       <main>
-        <section
-          className="relative overflow-hidden border-b"
-          style={{
-            borderColor: 'var(--home-border)',
-            backgroundColor: 'var(--home-bg-card)',
-          }}
-        >
+        {/* HERO — two columns on lg+: copy left, KPI preview right */}
+        <section className="relative overflow-hidden border-b border-stone-200 bg-white">
           <div
-            className="absolute inset-0 opacity-[0.04]"
+            className="absolute inset-0 opacity-[0.04] pointer-events-none"
             style={{
-              backgroundImage:
-                'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)',
+              backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)',
               backgroundSize: '32px 32px',
             }}
           />
-          <div className="relative mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8 lg:py-32">
-            <div className="mx-auto max-w-3xl text-center">
-              <p
-                className="mb-6 inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium"
-                style={{
-                  borderColor: 'rgba(20, 184, 166, 0.35)',
-                  backgroundColor: 'rgba(20, 184, 166, 0.08)',
-                  color: '#0d9488',
-                }}
-              >
-                <Star className="h-3.5 w-3.5" />
-                {d.home.trustedBy}
-              </p>
-              <h1
-                className="mb-6 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl"
-                style={{ color: 'var(--home-text)' }}
-              >
-                {d.home.title}
-              </h1>
-              <p
-                className="mb-10 text-lg leading-relaxed sm:text-xl"
-                style={{ color: 'var(--home-text-muted)' }}
-              >
-                {d.home.subtitle}
-              </p>
-              <HomeCtaButtons
-                getStartedLabel={d.home.getStarted}
-                getStartedAria={d.home.getStarted}
-                startFreeLabel={d.home.startFree}
-                startFreeAria={d.home.startFree}
-                variant="hero"
-                className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-teal-600/20 transition hover:bg-teal-700 hover:shadow-teal-600/25"
-              />
+          <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
+            <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
+              {/* Left: headline + CTAs */}
+              <div className="text-center lg:text-left">
+                <p className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-teal-300/60 bg-teal-50 px-3.5 py-1.5 text-sm font-medium text-teal-700">
+                  <Star className="h-3.5 w-3.5" />
+                  {d.home.trustedBy}
+                </p>
+                <h1 className="mb-6 text-4xl font-bold tracking-tight text-stone-900 sm:text-5xl lg:text-6xl">
+                  {d.home.title}
+                </h1>
+                <p className="mb-10 text-lg leading-relaxed text-stone-600 sm:text-xl">
+                  {d.home.subtitle}
+                </p>
+                <HomeCtaButtons
+                  getStartedLabel={d.home.getStarted}
+                  getStartedAria={d.home.getStarted}
+                  startFreeLabel={d.home.startFree}
+                  startFreeAria={d.home.startFree}
+                  variant="hero"
+                  className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-teal-600/20 transition hover:bg-teal-700 hover:shadow-teal-600/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+                />
+              </div>
+
+              {/* Right: portfolio-value KPI card with sparkline */}
+              <div aria-hidden="true" className="relative mx-auto w-full max-w-md lg:max-w-none">
+                <div className="absolute -inset-6 -z-10 rounded-[2rem] bg-gradient-to-br from-teal-100/60 via-emerald-100/40 to-transparent blur-2xl" />
+                <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-xl shadow-stone-900/5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-medium uppercase tracking-wider text-stone-500">
+                      {d.preview.totalRevenue}
+                    </p>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                      <TrendingUp className="h-3 w-3" /> +18%
+                    </span>
+                  </div>
+                  <p className="mt-2 text-4xl font-bold tracking-tight text-stone-900">$48,200</p>
+                  <p className="mt-1 text-xs text-stone-500">{d.preview.activeSold}</p>
+
+                  <svg viewBox="0 0 200 60" className="mt-5 h-16 w-full" preserveAspectRatio="none" role="img">
+                    <defs>
+                      <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#14b8a6" stopOpacity="0.25" />
+                        <stop offset="100%" stopColor="#14b8a6" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                    <path d={sparkArea} fill="url(#sparkGrad)" />
+                    <path d={sparkPath} fill="none" stroke="#0d9488" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+
+                  <div className="mt-5 grid grid-cols-3 gap-3 border-t border-stone-100 pt-4">
+                    <div>
+                      <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">{d.preview.totalDomains}</p>
+                      <p className="mt-0.5 text-base font-semibold text-stone-900">28</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">{d.preview.totalCost}</p>
+                      <p className="mt-0.5 text-base font-semibold text-stone-900">$14,520</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">{d.preview.roi}</p>
+                      <p className="mt-0.5 text-base font-semibold text-emerald-600">232%</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
-        <section
-          className="border-b py-14 sm:py-16"
-          style={{
-            backgroundColor: 'var(--home-bg)',
-            borderColor: 'var(--home-border)',
-          }}
-        >
-          <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-            <ul className="grid gap-3 sm:grid-cols-2 sm:gap-4">
-              {homeFeatures.map((text, i) => (
-                <li
-                  key={i}
-                  className="flex items-start gap-3 rounded-2xl border p-5 shadow-sm transition hover:shadow-md"
-                  style={{
-                    borderColor: 'var(--home-border)',
-                    backgroundColor: 'var(--home-bg-card)',
-                  }}
-                >
-                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-teal-500" />
-                  <span
-                    className="sm:text-lg"
-                    style={{ color: 'var(--home-text-muted)' }}
-                  >
-                    {text}
-                  </span>
+        {/* PRODUCT PREVIEW — full inline mock matching the real dashboard */}
+        <section className="border-b border-stone-200 bg-stone-50 py-16 sm:py-20">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+            <div className="mb-10 text-center">
+              <p className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-stone-200 bg-white px-3 py-1 text-xs font-medium text-stone-600">
+                {d.preview.badge}
+              </p>
+              <h2 className="text-3xl font-bold tracking-tight text-stone-900 sm:text-4xl">
+                {d.preview.sectionTitle}
+              </h2>
+              <p className="mx-auto mt-3 max-w-2xl text-lg text-stone-600">
+                {d.preview.sectionSubtitle}
+              </p>
+            </div>
+
+            {/* Mock dashboard frame */}
+            <div aria-hidden="true" className="rounded-2xl border border-stone-200 bg-white shadow-xl shadow-stone-900/5 overflow-hidden">
+              {/* Window chrome */}
+              <div className="flex items-center gap-1.5 border-b border-stone-100 bg-stone-50/80 px-4 py-2.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-stone-300" />
+                <span className="h-2.5 w-2.5 rounded-full bg-stone-300" />
+                <span className="h-2.5 w-2.5 rounded-full bg-stone-300" />
+                <span className="ml-3 text-xs text-stone-400">domain.financial / dashboard</span>
+              </div>
+
+              <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
+                {/* KPI row — mirrors dashboard layout */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                  <div className="rounded-2xl border border-stone-200/80 bg-white p-4 sm:p-5 shadow-sm">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{d.preview.totalDomains}</p>
+                        <p className="text-2xl font-bold text-stone-900 mt-1">28</p>
+                        <p className="text-xs text-stone-500 mt-1">{d.preview.activeSold}</p>
+                      </div>
+                      <div className="w-10 h-10 rounded-xl bg-stone-100 flex items-center justify-center text-stone-600"><Globe className="h-5 w-5" /></div>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-stone-200/80 bg-white p-4 sm:p-5 shadow-sm">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{d.preview.totalCost}</p>
+                        <p className="text-2xl font-bold text-stone-900 mt-1">$14,520</p>
+                        <p className="text-xs text-stone-500 mt-1">avg $518</p>
+                      </div>
+                      <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600"><DollarSign className="h-5 w-5" /></div>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-stone-200/80 bg-white p-4 sm:p-5 shadow-sm">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{d.preview.totalRevenue}</p>
+                        <p className="text-2xl font-bold text-stone-900 mt-1">$48,200</p>
+                        <p className="text-xs text-emerald-600 mt-1">+18% YoY</p>
+                      </div>
+                      <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600"><TrendingUp className="h-5 w-5" /></div>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-stone-200/80 bg-white p-4 sm:p-5 shadow-sm">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{d.preview.roi}</p>
+                        <p className="text-2xl font-bold text-stone-900 mt-1">232.0%</p>
+                        <p className="text-xs text-stone-500 mt-1">+$33,680</p>
+                      </div>
+                      <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600"><BarChart3 className="h-5 w-5" /></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tab bar */}
+                <div className="rounded-xl border border-stone-200 overflow-hidden">
+                  <div className="flex gap-1 p-1.5 bg-stone-50/50 border-b border-stone-100">
+                    <span className="rounded-lg px-3 py-1.5 text-sm font-medium bg-stone-900 text-white shadow-sm">{d.preview.tabOverview}</span>
+                    <span className="rounded-lg px-3 py-1.5 text-sm font-medium text-stone-600">{d.preview.tabDomains}</span>
+                    <span className="rounded-lg px-3 py-1.5 text-sm font-medium text-stone-600">{d.preview.tabTransactions}</span>
+                    <span className="hidden sm:inline-flex rounded-lg px-3 py-1.5 text-sm font-medium text-stone-600">{d.preview.tabAnalytics}</span>
+                  </div>
+                </div>
+
+                {/* Recent Transactions card */}
+                <div className="rounded-xl border border-stone-200 overflow-hidden">
+                  <div className="px-4 sm:px-5 py-3 sm:py-3.5 border-b border-stone-100">
+                    <h3 className="text-sm font-semibold text-stone-900">{d.preview.recentTransactions}</h3>
+                  </div>
+                  <div className="divide-y divide-stone-100">
+                    {sampleTransactions.map((tx, i) => {
+                      const tone = tx.type;
+                      const iconBg =
+                        tone === 'sell' ? 'bg-emerald-50 text-emerald-600' :
+                        tone === 'buy' ? 'bg-teal-50 text-teal-600' :
+                        'bg-amber-50 text-amber-600';
+                      const Icon = tone === 'sell' ? TrendingUp : tone === 'buy' ? Plus : RefreshCw;
+                      const amountColor =
+                        tone === 'sell' ? 'text-emerald-600' :
+                        tone === 'buy' ? 'text-teal-700' :
+                        'text-amber-700';
+                      return (
+                        <div key={i} className="flex items-center justify-between px-4 sm:px-5 py-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className={`shrink-0 flex h-9 w-9 items-center justify-center rounded-xl ${iconBg}`}>
+                              <Icon className="h-4 w-4" />
+                            </span>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-stone-900 truncate">{tx.domain}</p>
+                              <p className="text-xs text-stone-500">{txTypeLabel(tx.type)} · {tx.date}</p>
+                            </div>
+                          </div>
+                          <p className={`shrink-0 ml-3 text-sm font-semibold ${amountColor}`}>{tx.amount}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 3 captions tying preview to value props */}
+            <div className="mt-10 grid gap-4 sm:grid-cols-3">
+              {[
+                { icon: <RefreshCw className="h-4 w-4" />, text: d.preview.captionRenewal },
+                { icon: <PieChart className="h-4 w-4" />, text: d.preview.captionDecisions },
+                { icon: <Globe className="h-4 w-4" />, text: d.preview.captionBilingual },
+              ].map((c, i) => (
+                <div key={i} className="flex items-start gap-3 rounded-xl border border-stone-200 bg-white px-4 py-3.5">
+                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-600">{c.icon}</span>
+                  <p className="text-sm text-stone-700">{c.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* FEATURES — compressed icon strip */}
+        <section className="border-b border-stone-200 bg-white py-12 sm:py-14">
+          <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+            <ul className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {featureStrip.map((f, i) => (
+                <li key={i} className="flex items-center gap-3 rounded-xl border border-stone-200 bg-stone-50/60 px-4 py-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-600">{f.icon}</span>
+                  <span className="text-sm font-medium text-stone-700">{f.title}</span>
                 </li>
               ))}
             </ul>
           </div>
         </section>
 
-        <section
-          className="border-b py-16 sm:py-24"
-          style={{
-            backgroundColor: 'var(--home-bg-card)',
-            borderColor: 'var(--home-border)',
-          }}
-        >
-          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-14 text-center">
-              <h2
-                className="text-3xl font-bold tracking-tight sm:text-4xl"
-                style={{ color: 'var(--home-text)' }}
-              >
-                {d.features.title}
-              </h2>
-              <p
-                className="mx-auto mt-3 max-w-2xl text-lg"
-                style={{ color: 'var(--home-text-muted)' }}
-              >
-                {d.features.subtitle}
-              </p>
-            </div>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {features.map((feature, i) => (
-                <div
-                  key={i}
-                  className="group rounded-2xl border p-6 transition hover:shadow-lg"
-                  style={{
-                    borderColor: 'var(--home-border)',
-                    backgroundColor: 'var(--home-bg)',
-                  }}
-                >
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#2d2a26] text-white transition group-hover:bg-teal-600">
-                    {feature.icon}
-                  </div>
-                  <h3
-                    className="mb-2 text-lg font-semibold"
-                    style={{ color: 'var(--home-text)' }}
-                  >
-                    {feature.title}
-                  </h3>
-                  <p
-                    className="text-sm leading-relaxed"
-                    style={{ color: 'var(--home-text-muted)' }}
-                  >
-                    {feature.description}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section
-          className="border-b py-16 sm:py-24"
-          style={{
-            backgroundColor: 'var(--home-bg-soft)',
-            borderColor: 'var(--home-border)',
-          }}
-        >
-          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-14 text-center">
-              <h2
-                className="text-3xl font-bold tracking-tight sm:text-4xl"
-                style={{ color: 'var(--home-text)' }}
-              >
-                {d.benefits.title}
-              </h2>
-              <p
-                className="mx-auto mt-3 max-w-2xl text-lg"
-                style={{ color: 'var(--home-text-muted)' }}
-              >
-                {d.benefits.subtitle}
-              </p>
-            </div>
-            <div className="grid gap-8 sm:grid-cols-3">
-              {benefits.map((benefit, i) => (
-                <div
-                  key={i}
-                  className="rounded-2xl border p-6 text-center shadow-sm transition hover:shadow-md"
-                  style={{
-                    borderColor: 'var(--home-border)',
-                    backgroundColor: 'var(--home-bg-card)',
-                  }}
-                >
-                  <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-teal-100 text-teal-700">
-                    {benefit.icon}
-                  </div>
-                  <h3
-                    className="mb-2 text-lg font-semibold"
-                    style={{ color: 'var(--home-text)' }}
-                  >
-                    {benefit.title}
-                  </h3>
-                  <p
-                    className="text-sm"
-                    style={{ color: 'var(--home-text-muted)' }}
-                  >
-                    {benefit.description}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="py-16 sm:py-24" style={{ backgroundColor: '#2d2a26' }}>
+        {/* CTA strip */}
+        <section className="bg-stone-900 py-16 sm:py-20">
           <div className="mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
-            <h2 className="text-2xl font-bold text-white sm:text-3xl">
-              {d.home.startJourney}
-            </h2>
+            <h2 className="text-2xl font-bold text-white sm:text-3xl">{d.home.startJourney}</h2>
             <p className="mt-3 text-lg text-stone-300">{d.home.joinThousands}</p>
             <div className="mt-8 flex justify-center">
               <HomeCtaButtons
@@ -303,14 +316,14 @@ export default async function HomePage({ params }: PageProps) {
                 startFreeLabel={d.home.startFree}
                 startFreeAria={d.home.startFree}
                 variant="cta"
-                className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-8 py-3.5 text-base font-semibold text-white transition hover:bg-teal-400"
+                className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-8 py-3.5 text-base font-semibold text-white transition hover:bg-teal-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-900"
               />
             </div>
           </div>
         </section>
       </main>
 
-      <footer className="text-stone-300" style={{ backgroundColor: '#1c1917' }}>
+      <footer className="text-stone-300 bg-stone-950">
         <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
             <div className="lg:col-span-1">

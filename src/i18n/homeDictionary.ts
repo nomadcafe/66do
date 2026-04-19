@@ -54,6 +54,27 @@ export interface HomeDictionary {
     analytics: { title: string; desc: string };
     market: { title: string; desc: string };
   };
+  preview: {
+    sectionTitle: string;
+    sectionSubtitle: string;
+    badge: string;
+    totalDomains: string;
+    totalCost: string;
+    totalRevenue: string;
+    roi: string;
+    activeSold: string;
+    recentTransactions: string;
+    tabOverview: string;
+    tabDomains: string;
+    tabTransactions: string;
+    tabAnalytics: string;
+    typeBuy: string;
+    typeSell: string;
+    typeRenew: string;
+    captionRenewal: string;
+    captionDecisions: string;
+    captionBilingual: string;
+  };
   footer: {
     description: string;
     product: string;
@@ -129,6 +150,27 @@ const zh: HomeDictionary = {
       title: '发现趋势与机会',
       desc: '优化成本，抓住买卖时机',
     },
+  },
+  preview: {
+    sectionTitle: '你的仪表板将是这个样子',
+    sectionSubtitle: '组合一览、近期交易、续费提醒——所有关键信息一屏看完',
+    badge: '实时预览',
+    totalDomains: '总持仓',
+    totalCost: '购入成本',
+    totalRevenue: '总收入',
+    roi: '投资回报',
+    activeSold: '在持 24 · 已售 4',
+    recentTransactions: '最近交易',
+    tabOverview: '概览',
+    tabDomains: '域名',
+    tabTransactions: '交易',
+    tabAnalytics: '分析',
+    typeBuy: '买入',
+    typeSell: '出售',
+    typeRenew: '续费',
+    captionRenewal: '一年续费成本一目了然',
+    captionDecisions: '续费 / 出售决策不靠脑记',
+    captionBilingual: '中英双语，桌面与移动皆适配',
   },
   footer: {
     description:
@@ -206,6 +248,27 @@ const en: HomeDictionary = {
       title: 'Spot trends and opportunities',
       desc: 'Optimize costs and seize buying or selling opportunities',
     },
+  },
+  preview: {
+    sectionTitle: 'This is what your dashboard will look like',
+    sectionSubtitle: 'Portfolio overview, recent transactions, renewal alerts — every key signal on one screen',
+    badge: 'Live preview',
+    totalDomains: 'Total Domains',
+    totalCost: 'Purchase Cost',
+    totalRevenue: 'Total Revenue',
+    roi: 'ROI',
+    activeSold: '24 active · 4 sold',
+    recentTransactions: 'Recent Transactions',
+    tabOverview: 'Overview',
+    tabDomains: 'Domains',
+    tabTransactions: 'Transactions',
+    tabAnalytics: 'Analytics',
+    typeBuy: 'Buy',
+    typeSell: 'Sell',
+    typeRenew: 'Renew',
+    captionRenewal: 'A year of renewal cost at a glance',
+    captionDecisions: 'Renew or sell — backed by data, not memory',
+    captionBilingual: 'Bilingual EN/ZH, desktop and mobile both polished',
   },
   footer: {
     description:
