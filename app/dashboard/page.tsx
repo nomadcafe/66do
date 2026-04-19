@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import Link from 'next/link';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useSupabaseAuth } from '../../src/contexts/SupabaseAuthContext';
@@ -1253,8 +1254,10 @@ export default function DashboardPage() {
         isOpen={domainOps.showDomainForm}
         onClose={() => {
           console.log('[dashboard] DomainForm.onClose: setting showDomainForm=false');
-          domainOps.setShowDomainForm(false);
-          domainOps.setEditingDomain(undefined);
+          flushSync(() => {
+            domainOps.setShowDomainForm(false);
+            domainOps.setEditingDomain(undefined);
+          });
         }}
         onSave={domainOps.handleSaveDomain}
       />
