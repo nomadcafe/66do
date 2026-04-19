@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { X, Save, Globe, Calendar, DollarSign, Tag, Loader2 } from 'lucide-react';
 import { validateDomain, sanitizeDomainData } from '../../lib/validation';
 import { localCalendarDateISO } from '../../lib/localCalendarDate';
@@ -55,13 +54,6 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    console.log('[DomainForm] MOUNTED');
-    return () => {
-      console.log('[DomainForm] UNMOUNTED (cleanup ran)');
-    };
-  }, []);
-
   // 仅在打开弹窗或切换编辑的域名时用 domain 初始化表单，避免父组件重渲染导致表单被覆盖
   const domainId = domain?.id ?? 'new';
   useEffect(() => {
@@ -112,14 +104,12 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
   }, [isOpen, domainId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log('[DomainForm] submit fired');
     e.preventDefault();
 
     const sanitizedData = sanitizeDomainData(formData);
     const validation = validateDomain(sanitizedData);
 
     if (!validation.valid) {
-      console.log('[DomainForm] validation failed', validation.errors);
       setValidationErrors(validation.errors);
       return;
     }
@@ -128,13 +118,9 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
     setSubmitError(null);
     setIsSubmitting(true);
     try {
-      console.log('[DomainForm] calling onSave');
       await Promise.resolve(onSave(sanitizedData as Omit<DomainWithTags, 'id'>));
-      console.log('[DomainForm] onSave resolved, calling onClose');
       onClose();
-      console.log('[DomainForm] onClose returned');
     } catch (err) {
-      console.log('[DomainForm] onSave threw', err);
       setSubmitError(err instanceof Error ? err.message : 'Save failed. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -166,17 +152,12 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
   };
 
   const handleClose = () => {
-    console.log('[DomainForm] handleClose fired, isOpen=', isOpen);
     onClose();
   };
 
-  if (!isOpen) {
-    console.log('[DomainForm] render returning null (isOpen=false)');
-    return null;
-  }
-  console.log('[DomainForm] rendering, domain=', domain?.domain_name);
+  if (!isOpen) return null;
 
-  const modalContent = (
+  return (
     <div
       className="fixed inset-0 flex justify-end"
       style={{ zIndex: 99999 }}
@@ -468,7 +449,4 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
       </div>
     </div>
   );
-
-  if (typeof document === 'undefined') return null;
-  return createPortal(modalContent, document.body);
 }

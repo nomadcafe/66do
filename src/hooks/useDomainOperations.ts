@@ -17,6 +17,7 @@ interface UseDomainOperationsReturn {
   handleEditDomain: (domain: DomainWithTags) => void;
   handleRenewDomain: (domain: DomainWithTags) => void;
   handleDeleteDomain: (id: string) => Promise<void>;
+  handleSaveDomain: (domainData: Omit<DomainWithTags, 'id'>) => Promise<void>;
   processRenewal: (domain: DomainWithTags, input: RenewalSubmission) => Promise<{
     updatedDomain: DomainWithTags;
     newTransaction: TransactionWithRequiredFields;
@@ -26,8 +27,13 @@ interface UseDomainOperationsReturn {
 export function useDomainOperations(
   domains: DomainWithTags[],
   transactions: TransactionWithRequiredFields[],
-  onSave: (domains: DomainWithTags[], transactions: TransactionWithRequiredFields[]) => Promise<void>,
-  onDelete: (id: string) => Promise<void>
+  onSave: (
+    domains: DomainWithTags[],
+    transactions: TransactionWithRequiredFields[],
+    options?: { domainsOnly?: boolean }
+  ) => Promise<void>,
+  onDelete: (id: string) => Promise<void>,
+  onError?: (msg: string) => void
 ): UseDomainOperationsReturn {
   const [editingDomain, setEditingDomain] = useState<DomainWithTags | undefined>();
   const [showDomainForm, setShowDomainForm] = useState(false);
@@ -53,6 +59,38 @@ export function useDomainOperations(
   const handleDeleteDomain = useCallback(async (id: string) => {
     await onDelete(id);
   }, [onDelete]);
+
+  // Mirrors the handleSaveTransaction pattern: lives inside the hook so it closes
+  // over editingDomain state directly, and calls the stable React setters after save.
+  const handleSaveDomain = useCallback(async (domainData: Omit<DomainWithTags, 'id'>) => {
+    try {
+      if (editingDomain) {
+        const updatedDomain: DomainWithTags = {
+          ...editingDomain,
+          ...domainData,
+          updated_at: new Date().toISOString(),
+        };
+        const updatedDomains = domains.map((d) => (d.id === editingDomain.id ? updatedDomain : d));
+        await onSave(updatedDomains, transactions, { domainsOnly: true });
+      } else {
+        const newDomain: DomainWithTags = {
+          ...domainData,
+          id: crypto.randomUUID(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        const updatedDomains = [...domains, newDomain];
+        await onSave(updatedDomains, transactions, { domainsOnly: true });
+      }
+      setShowDomainForm(false);
+      setShowSmartDomainForm(false);
+      setEditingDomain(undefined);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      onError?.(`Failed to save domain: ${msg}`);
+      throw err;
+    }
+  }, [editingDomain, domains, transactions, onSave, onError]);
 
   const processRenewal = useCallback(async (
     domain: DomainWithTags,
@@ -147,6 +185,7 @@ export function useDomainOperations(
     handleAddDomain,
     handleEditDomain,
     handleRenewDomain,
+    handleSaveDomain,
     handleDeleteDomain,
     processRenewal
   };
