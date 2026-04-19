@@ -242,23 +242,15 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!domainOps.showDomainForm) return;
-    console.log('[TRACE C1] capture-phase listener ATTACHED');
     const handler = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      const matched = target.closest?.('[data-close-domain-form]');
-      console.log('[TRACE C2] capture-phase click, target=', target.tagName, 'matched=', !!matched);
-      if (!matched) return;
-      console.log('[TRACE C3] matched — calling closeRef');
+      if (!target.closest?.('[data-close-domain-form]')) return;
       e.preventDefault();
       e.stopPropagation();
       domainFormCloseRef.current?.();
-      console.log('[TRACE C4] closeRef called');
     };
     document.addEventListener('click', handler, true);
-    return () => {
-      console.log('[TRACE C5] capture-phase listener DETACHED');
-      document.removeEventListener('click', handler, true);
-    };
+    return () => document.removeEventListener('click', handler, true);
   }, [domainOps.showDomainForm]);
 
   // Delete-confirm dialog: focus mgmt, Esc to close, Enter to confirm (via natural focus on confirm), Tab trap, scroll lock
@@ -514,7 +506,6 @@ export default function DashboardPage() {
 
   // 处理域名保存（保留此函数因为需要特殊处理）- 使用useCallback优化
   const handleSaveDomain = useCallback(async (domainData: Omit<DomainWithTags, 'id'>) => {
-    console.log('[TRACE 1] handleSaveDomain entered, editing=', !!domainOps.editingDomain);
     try {
       if (domainOps.editingDomain) {
         const updatedDomain: DomainWithTags = {
@@ -527,15 +518,10 @@ export default function DashboardPage() {
           domain.id === domainOps.editingDomain!.id ? updatedDomain : domain
         );
 
-        console.log('[TRACE 2] handleSaveDomain awaiting saveData');
         await saveData(updatedDomains, transactions, { domainsOnly: true });
-        console.log('[TRACE 3] handleSaveDomain saveData resolved, closing form');
         domainOps.setEditingDomain(undefined);
-        console.log('[TRACE 4] setEditingDomain(undefined) called');
         domainOps.setShowDomainForm(false);
-        console.log('[TRACE 5] setShowDomainForm(false) called');
         domainOps.setShowSmartDomainForm(false);
-        console.log('[TRACE 6] setShowSmartDomainForm(false) called');
     } else {
         const newDomain: DomainWithTags = {
           ...domainData,
@@ -550,12 +536,10 @@ export default function DashboardPage() {
         domainOps.setShowSmartDomainForm(false);
       }
     } catch (err) {
-      console.log('[TRACE X] handleSaveDomain caught error', err);
       const msg = err instanceof Error ? err.message : 'Unknown error';
       setMutationError(`${t('errors.saveDomainFailed')}: ${msg}`);
       setTimeout(() => setMutationError(null), 5000);
     }
-    console.log('[TRACE 7] handleSaveDomain end');
   }, [domainOps, domains, transactions, saveData, t]);
 
   // Quick inline update for DomainTable (status / estimated_value cells).
