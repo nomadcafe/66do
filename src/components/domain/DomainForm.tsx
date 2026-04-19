@@ -173,14 +173,16 @@ export default function DomainForm({ domain, isOpen, onClose, onSave }: DomainFo
       aria-modal="true"
       aria-label={domain ? t('dashboard.domainFormTitleEdit') : t('dashboard.domainFormTitleAdd')}
     >
-      <button
-        type="button"
-        aria-label={t('common.close')}
+      {/* Backdrop — click to close. As a div sibling of the panel below; the panel's
+          explicit z-10 keeps it above the backdrop so clicks on form fields and buttons
+          hit them, not the backdrop. */}
+      <div
+        className="fixed inset-0 bg-black/40"
         onClick={handleClose}
-        className="absolute inset-0 bg-black/40 cursor-default"
+        aria-hidden
       />
       <div
-        className="relative bg-white w-full max-w-xl h-full overflow-y-auto shadow-xl flex flex-col"
+        className="relative z-10 bg-white w-full max-w-xl h-full overflow-y-auto shadow-xl flex flex-col"
       >
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between z-10 shrink-0">
           <h2 className="text-xl font-semibold text-gray-900">
