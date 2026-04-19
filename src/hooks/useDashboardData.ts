@@ -313,7 +313,6 @@ export function useDashboardData(
       }
 
       if (domainsOnly) {
-        console.log('[TRACE SAVE] saveData (domainsOnly) returning normally');
         logger.log('Domains saved successfully');
         return;
       }

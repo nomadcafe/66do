@@ -58,17 +58,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
   const [localOpen, setLocalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Track unique instance identity — if this log appears twice without
-  // an unmount cleanup log in between, the component remounted and key changed.
   useEffect(() => {
-    const instanceId = Math.random().toString(36).slice(2, 8);
-    console.log('[TRACE DF-MOUNT]', instanceId, 'DomainForm instance MOUNTED, domain=', domain?.domain_name, 'id=', domain?.id);
-    return () => console.log('[TRACE DF-UNMOUNT]', instanceId, 'DomainForm instance UNMOUNTED');
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    console.log('[TRACE DF-SYNC] useEffect syncing localOpen: isOpen=', isOpen, ' -> setLocalOpen');
     setLocalOpen(isOpen);
   }, [isOpen]);
 
@@ -176,12 +166,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
     onClose();
   };
 
-  console.log('[TRACE DF-R] render: isOpen=', isOpen, ' localOpen=', localOpen);
-  if (!localOpen) {
-    console.log('[TRACE DF-R] returning null, portal should unmount');
-    return null;
-  }
-  console.log('[TRACE DF-R] returning createPortal, portal rendered to document.body');
+  if (!localOpen) return null;
 
   const modalContent = (
     <div
