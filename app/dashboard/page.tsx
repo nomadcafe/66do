@@ -34,7 +34,6 @@ import {
   LazyWrapper,
   useSmartPreload
 } from '../../src/components/LazyComponents';
-import { auditLogger } from '../../src/lib/security';
 import ErrorMessage from '../../src/components/ui/ErrorMessage';
 import { Domain } from '../../src/types/domain';
 import { 
@@ -1294,15 +1293,10 @@ export default function DashboardPage() {
                   if (importData.domains) typedDomains = importData.domains.map(ensureDomainWithTags);
                   if (importData.transactions) typedTransactions = importData.transactions.map(ensureTransactionWithRequiredFields);
                   await saveData(typedDomains, typedTransactions);
-                  auditLogger.log(user?.id || 'default', 'data_imported', 'dashboard', {
-                    domainsCount: importData.domains?.length || 0,
-                    transactionsCount: importData.transactions?.length || 0,
-                  });
                   logger.log(t('common.dataImportedSuccessfully'));
                 } catch (error) {
                   logger.error('Import failed:', error);
                   setError(t('common.dataImportFailed'));
-                  auditLogger.log(user?.id || 'default', 'data_import_failed', 'dashboard', { error: (error as Error).message });
                 }
               }}
               onExport={(format) => {
@@ -1316,12 +1310,10 @@ export default function DashboardPage() {
                     a.download = `domain-financial-backup-${new Date().toISOString().split('T')[0]}.json`;
                     a.click();
                   }
-                  auditLogger.log(user?.id || 'default', 'data_exported', 'dashboard', { format, dataSize: JSON.stringify(data).length });
                   logger.log(t('common.dataExportedSuccessfully'));
                 } catch (error) {
                   logger.error('Export failed:', error);
                   setError(t('common.dataExportFailed'));
-                  auditLogger.log(user?.id || 'default', 'data_export_failed', 'dashboard', { error: (error as Error).message });
                 }
               }}
               onRestore={async (backup: unknown) => {
@@ -1332,15 +1324,10 @@ export default function DashboardPage() {
                   if (restoreData.domains) typedDomains = restoreData.domains.map(ensureDomainWithTags);
                   if (restoreData.transactions) typedTransactions = restoreData.transactions.map(ensureTransactionWithRequiredFields);
                   await saveData(typedDomains, typedTransactions);
-                  auditLogger.log(user?.id || 'default', 'data_restored', 'dashboard', {
-                    domainsCount: restoreData.domains?.length || 0,
-                    transactionsCount: restoreData.transactions?.length || 0,
-                  });
                   logger.log(t('common.dataRestoredSuccessfully'));
                 } catch (error) {
                   logger.error('Restore failed:', error);
                   setError(t('common.dataRestoreFailed'));
-                  auditLogger.log(user?.id || 'default', 'data_restore_failed', 'dashboard', { error: (error as Error).message });
                 }
               }}
             />
