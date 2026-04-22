@@ -148,23 +148,6 @@ export class DomainService {
     return true
   }
 
-  static async bulkUpdateDomainsWithClient(
-    client: SupabaseClient<Database>,
-    domains: DomainUpdate[],
-    userId: string
-  ): Promise<boolean> {
-    const ownedDomains = domains.map(d => ({ ...d, user_id: userId }))
-    const { error } = await client
-      .from('domains')
-      .upsert(ownedDomains as never)
-
-    if (error) {
-      logger.error('Error bulk updating domains:', error)
-      return false
-    }
-
-    return true
-  }
 }
 
 // 交易相关操作
@@ -303,30 +286,6 @@ export class TransactionService {
     return true
   }
 
-  static async bulkUpdateTransactions(transactions: TransactionUpdate[], userId?: string): Promise<boolean> {
-    return this.bulkUpdateTransactionsWithClient(supabase, transactions, userId)
-  }
-
-  static async bulkUpdateTransactionsWithClient(
-    client: SupabaseClient<Database>,
-    transactions: TransactionUpdate[],
-    userId?: string
-  ): Promise<boolean> {
-    const validatedTransactions = userId
-      ? transactions.map(t => ({ ...t, user_id: userId }))
-      : transactions
-
-    const { error } = await client
-      .from('domain_transactions')
-      .upsert(validatedTransactions as never)
-
-    if (error) {
-      logger.error('Error bulk updating transactions:', error)
-      return false
-    }
-
-    return true
-  }
 }
 
 // 数据加载函数
