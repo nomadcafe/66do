@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { TransactionService } from '../../../../src/lib/supabaseService'
 import { validateTransaction, sanitizeTransactionData } from '../../../../src/lib/validation'
 import { getAuthInfoFromRequest } from '../../../../src/lib/auth-helper'
-import { createAuthenticatedSupabaseClient, createServiceRoleSupabaseClient } from '../../../../src/lib/supabaseAuthClient'
+import { createAuthenticatedSupabaseClient } from '../../../../src/lib/supabaseAuthClient'
 import { getCorsHeaders, getCorsHeadersForError } from '../../../../src/lib/cors'
 import { isDomainOwnedByUser } from '../../../../src/lib/domainOwnership'
 
@@ -23,8 +23,7 @@ export async function GET(
     const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined
     const corsHeaders = getCorsHeaders(request)
     const { id: transactionId } = await params
-    const serviceClient = createServiceRoleSupabaseClient()
-    const client = serviceClient ?? await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
+    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
     const transaction = await TransactionService.getTransactionByIdWithClient(
       client,
       transactionId,
@@ -76,8 +75,7 @@ export async function PUT(
     const corsHeaders = getCorsHeaders(request)
     const { id: transactionId } = await params
     const userId = authInfo.userId
-    const serviceClient = createServiceRoleSupabaseClient()
-    const client = serviceClient ?? await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
+    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
 
     if (!transaction) {
       return NextResponse.json({ error: 'Transaction data is required' }, {
@@ -176,8 +174,7 @@ export async function DELETE(
     const corsHeaders = getCorsHeaders(request)
     const { id: transactionId } = await params
     const userId = authInfo.userId
-    const serviceClient = createServiceRoleSupabaseClient()
-    const client = serviceClient ?? await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
+    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
 
     const rowToDelete = await TransactionService.getTransactionByIdWithClient(client, transactionId, userId)
     if (!rowToDelete) {
