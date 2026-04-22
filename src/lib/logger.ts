@@ -34,18 +34,14 @@ export const logger = {
   }
 };
 
-// 生产环境错误日志（仅记录到服务器）
+// 生产环境错误日志。输出到 console.error 即进入 Vercel 的服务端日志
+// （不会发到客户端，也不会暴露到第三方），方便排查 auth / API 层故障。
+// 接入 Sentry / LogRocket 等服务前，请确认已有敏感字段脱敏管线。
 export const serverLogger = {
   error: (...args: unknown[]) => {
-    // 在生产环境中，这些应该发送到日志服务
-    if (isProduction) {
-      // TODO: 集成日志服务如 Sentry, LogRocket 等
-      // 目前暂时不记录，避免敏感信息泄露
-    } else {
-      console.error(...args);
-    }
+    console.error(...args);
   },
-  
+
   log: (...args: unknown[]) => {
     if (!isProduction || enableDebugLogs) {
       console.log(...args);
