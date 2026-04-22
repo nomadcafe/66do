@@ -1,13 +1,19 @@
 import { NextRequest } from 'next/server';
 
-// 允许的域名列表
-const allowedOrigins = [
+const productionOrigins = [
   'https://www.domain.financial',
   'https://domain.financial',
+];
+
+const developmentOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
-  'http://localhost:3078'
+  'http://localhost:3078',
 ];
+
+const allowedOrigins = process.env.NODE_ENV === 'production'
+  ? productionOrigins
+  : [...productionOrigins, ...developmentOrigins];
 
 export function getCorsHeaders(request: NextRequest) {
   const origin = request.headers.get('origin');
