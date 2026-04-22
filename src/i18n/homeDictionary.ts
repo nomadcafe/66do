@@ -174,7 +174,7 @@ const zh: HomeDictionary = {
   },
   footer: {
     description:
-      '专业的域名投资管理平台，帮助投资者追踪投资组合、分析数据、优化收益。',
+      '追踪每个域名的成本、续费日、真实收益——续费还是出售，靠数据而非记忆。',
     product: '产品',
     investmentManagement: '投资管理',
     dataAnalytics: '数据分析',
@@ -272,7 +272,7 @@ const en: HomeDictionary = {
   },
   footer: {
     description:
-      'Professional domain investment management platform, helping investors track portfolios, analyze data, and optimize returns.',
+      "Track every domain's cost, renewal date, and real return — decide when to renew or sell with data, not memory.",
     product: 'Product',
     investmentManagement: 'Investment Management',
     dataAnalytics: 'Data Analytics',
