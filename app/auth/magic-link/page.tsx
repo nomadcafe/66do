@@ -9,7 +9,6 @@ import { supabase } from '../../../src/lib/supabase';
 function MagicLinkContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const { } = useSupabaseAuth();
   const { t } = useI18nContext();
   const router = useRouter();
@@ -17,34 +16,42 @@ function MagicLinkContent() {
 
   useEffect(() => {
     const handleMagicLink = async () => {
+      // Strip tokens from the address bar before anything awaits, so the URL
+      // is clean even if Supabase/async hooks race. Does not affect history.
+      const scrubUrl = () => {
+        if (typeof window !== 'undefined') {
+          window.history.replaceState(null, '', window.location.pathname);
+        }
+      };
+
       try {
-        // 检查当前会话状态
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
+
         if (sessionError) {
           console.error('Session error:', sessionError);
         }
-        
+
         if (session) {
-          setSuccess(t('auth.magicLink.loginSuccess'));
-          setTimeout(() => {
-            router.push('/dashboard');
-          }, 2000);
+          scrubUrl();
+          router.replace('/dashboard');
           return;
         }
 
-        // 检查URL参数（Supabase Magic Link可能包含不同的参数）
-        const accessToken = searchParams.get('access_token');
-        const refreshToken = searchParams.get('refresh_token');
-        const tokenType = searchParams.get('token_type');
-        const token = searchParams.get('token');
-        const type = searchParams.get('type');
-        
+        // Supabase delivers magic-link tokens in the URL fragment by default;
+        // fall back to query params for older templates / compatibility.
+        const hash = typeof window !== 'undefined' ? window.location.hash : '';
+        const hashParams = new URLSearchParams(hash.replace(/^#/, ''));
+        const accessToken = hashParams.get('access_token') ?? searchParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token') ?? searchParams.get('refresh_token');
+        const token = hashParams.get('token') ?? searchParams.get('token');
+        const type = hashParams.get('type') ?? searchParams.get('type');
+
         if (accessToken && refreshToken) {
           const { data, error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken
           });
+          scrubUrl();
 
           if (error) {
             console.error('Session setting error:', error.message);
@@ -54,10 +61,7 @@ function MagicLinkContent() {
           }
 
           if (data.user && data.session) {
-            setSuccess(t('auth.magicLink.loginSuccess'));
-            setTimeout(() => {
-              router.push('/dashboard');
-            }, 2000);
+            router.replace('/dashboard');
           } else {
             setError(t('auth.magicLink.loginFailed'));
             setLoading(false);
@@ -66,6 +70,7 @@ function MagicLinkContent() {
           const validTypes = ['email', 'signup', 'recovery', 'invite', 'email_change'] as const;
           type ValidOtpType = typeof validTypes[number];
           if (!validTypes.includes(type as ValidOtpType)) {
+            scrubUrl();
             setError(t('auth.magicLink.invalidLink'));
             setLoading(false);
             return;
@@ -75,6 +80,7 @@ function MagicLinkContent() {
             token_hash: token,
             type: type as ValidOtpType
           });
+          scrubUrl();
 
           if (error) {
             console.error('OTP verification error:', error.message);
@@ -84,10 +90,7 @@ function MagicLinkContent() {
           }
 
           if (data.user && data.session) {
-            setSuccess(t('auth.magicLink.loginSuccess'));
-            setTimeout(() => {
-              router.push('/dashboard');
-            }, 2000);
+            router.replace('/dashboard');
           } else {
             setError(t('auth.magicLink.loginFailed'));
             setLoading(false);
@@ -140,13 +143,6 @@ function MagicLinkContent() {
             </div>
           )}
 
-          {success && (
-            <div className="text-center">
-              <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-md mb-4">
-                {success}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
