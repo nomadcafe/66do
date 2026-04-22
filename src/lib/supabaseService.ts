@@ -6,17 +6,12 @@ import { logger } from './logger'
 type Tables = Database['public']['Tables']
 
 // 类型定义
-export type User = Tables['users']['Row']
 export type Domain = Tables['domains']['Row']
 export type Transaction = Tables['domain_transactions']['Row']
-export type VerificationToken = Tables['verification_tokens']['Row']
 
-export type UserInsert = Tables['users']['Insert']
 export type DomainInsert = Tables['domains']['Insert']
 export type TransactionInsert = Tables['domain_transactions']['Insert']
-export type VerificationTokenInsert = Tables['verification_tokens']['Insert']
 
-export type UserUpdate = Tables['users']['Update']
 export type DomainUpdate = Tables['domains']['Update']
 export type TransactionUpdate = Tables['domain_transactions']['Update']
 
@@ -26,74 +21,6 @@ export interface DataServiceResult<T> {
   data?: T;
   error?: string;
   source: 'supabase' | 'cache';
-}
-
-// 用户相关操作
-export class UserService {
-  static async getUser(email: string): Promise<User | null> {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .maybeSingle()
-    
-    if (error) {
-      // Error fetching user - logged via logger if needed
-      return null
-    }
-    
-    return data
-  }
-
-  static async createUser(user: UserInsert): Promise<User | null> {
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .insert(user)
-        .select()
-        .single()
-      
-      if (error) {
-        logger.error('Error creating user:', error)
-        return null
-      }
-      
-      return data
-    } catch (error) {
-      logger.error('Error creating user:', error)
-      return null
-    }
-  }
-
-  static async updateUser(id: string, updates: UserUpdate): Promise<User | null> {
-    const { data, error } = await supabase
-      .from('users')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single()
-    
-    if (error) {
-      logger.error('Error updating user:', error)
-      return null
-    }
-    
-    return data
-  }
-
-  static async updateEmailVerification(email: string, verified: boolean): Promise<boolean> {
-    const { error } = await supabase
-      .from('users')
-      .update({ email_verified: verified })
-      .eq('email', email)
-    
-    if (error) {
-      logger.error('Error updating email verification:', error)
-      return false
-    }
-    
-    return true
-  }
 }
 
 // 域名相关操作
@@ -398,68 +325,6 @@ export class TransactionService {
       return false
     }
 
-    return true
-  }
-}
-
-// 验证令牌相关操作
-export class VerificationTokenService {
-  static async createToken(token: VerificationTokenInsert): Promise<VerificationToken | null> {
-    const { data, error } = await supabase
-      .from('verification_tokens')
-      .insert(token)
-      .select()
-      .single()
-    
-    if (error) {
-      logger.error('Error creating verification token:', error)
-      return null
-    }
-    
-    return data
-  }
-
-  static async getToken(token: string): Promise<VerificationToken | null> {
-    const { data, error } = await supabase
-      .from('verification_tokens')
-      .select('*')
-      .eq('token', token)
-      .gt('expires_at', new Date().toISOString())
-      .single()
-    
-    if (error) {
-      logger.error('Error fetching verification token:', error)
-      return null
-    }
-    
-    return data
-  }
-
-  static async deleteToken(token: string): Promise<boolean> {
-    const { error } = await supabase
-      .from('verification_tokens')
-      .delete()
-      .eq('token', token)
-    
-    if (error) {
-      logger.error('Error deleting verification token:', error)
-      return false
-    }
-    
-    return true
-  }
-
-  static async cleanupExpiredTokens(): Promise<boolean> {
-    const { error } = await supabase
-      .from('verification_tokens')
-      .delete()
-      .lt('expires_at', new Date().toISOString())
-    
-    if (error) {
-      logger.error('Error cleaning up expired tokens:', error)
-      return false
-    }
-    
     return true
   }
 }
