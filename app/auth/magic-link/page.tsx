@@ -55,7 +55,7 @@ function MagicLinkContent() {
 
           if (error) {
             console.error('Session setting error:', error.message);
-            setError(t('auth.magicLink.loginFailed') + ': ' + error.message);
+            setError(t('auth.magicLink.loginFailed'));
             setLoading(false);
             return;
           }
@@ -84,7 +84,7 @@ function MagicLinkContent() {
 
           if (error) {
             console.error('OTP verification error:', error.message);
-            setError(t('auth.magicLink.loginFailed') + ': ' + error.message);
+            setError(t('auth.magicLink.loginFailed'));
             setLoading(false);
             return;
           }

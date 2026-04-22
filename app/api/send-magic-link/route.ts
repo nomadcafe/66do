@@ -66,10 +66,9 @@ export async function POST(request: NextRequest) {
     // 检查环境变量
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
       serverLogger.error('Missing Supabase environment variables')
-      return NextResponse.json({ 
-        error: 'Server configuration error',
-        details: 'Missing Supabase environment variables'
-      }, { 
+      return NextResponse.json({
+        error: 'Server configuration error'
+      }, {
         status: 500,
         headers: corsHeaders
       })
