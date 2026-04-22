@@ -130,10 +130,12 @@ export async function POST(request: NextRequest) {
     const newTransaction = result.data
     const insertError = result.error
     if (insertError || !newTransaction) {
+      const isProduction = process.env.NODE_ENV === 'production'
+      console.error('Transaction insert failed:', insertError)
       return NextResponse.json(
         {
-          error: 'Failed to create transaction in database',
-          details: insertError || 'Unknown error'
+          error: 'Failed to create transaction',
+          ...(isProduction ? {} : { details: insertError || 'Unknown error' })
         },
         { status: 500, headers: getCorsHeadersForError() }
       )

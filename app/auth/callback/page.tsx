@@ -32,7 +32,8 @@ function AuthCallbackContent() {
           refresh_token: refreshToken,
         });
         if (error) {
-          setErrorMessage(error.message);
+          console.error('Auth callback setSession error:', error.message);
+          setErrorMessage(t('auth.magicLink.loginFailed'));
           setStatus('error');
           return;
         }
@@ -46,7 +47,7 @@ function AuthCallbackContent() {
     };
 
     handleCallback();
-  }, [router, searchParams]);
+  }, [router, searchParams, t]);
 
   if (status === 'error') {
     return (

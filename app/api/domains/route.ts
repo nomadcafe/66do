@@ -162,10 +162,10 @@ export async function POST(request: NextRequest) {
     })
     
     if (!newDomain) {
-      console.error('Failed to create domain via Supabase - see server logs for details')
-      return NextResponse.json({ 
-        error: 'Failed to create domain in Supabase. Please check RLS policies or field values.' 
-      }, { 
+      console.error('Failed to create domain - see server logs for details')
+      return NextResponse.json({
+        error: 'Failed to create domain'
+      }, {
         status: 500,
         headers: corsHeaders
       })
