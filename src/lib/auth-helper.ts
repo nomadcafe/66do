@@ -8,103 +8,37 @@ export async function getUserIdFromRequest(request: NextRequest): Promise<string
 
 export async function getAuthInfoFromRequest(request: NextRequest): Promise<{ userId: string; accessToken?: string } | null> {
   try {
-    // 方法1: 从Authorization header获取token
+    // Bearer-only: the client stores the session in localStorage and attaches
+    // `Authorization: Bearer <token>` on every request. Cookie-based auth is
+    // intentionally not accepted here -- adding it later requires CSRF
+    // protection, which does not exist yet.
     const authHeader = request.headers.get('authorization');
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7);
-      const { data: { user }, error } = await supabase.auth.getUser(token);
-      if (error || !user) {
-        const refreshToken =
-          request.headers.get('x-refresh-token') || request.headers.get('X-Refresh-Token');
-        if (refreshToken) {
-          const { data: refreshData, error: refError } = await supabase.auth.refreshSession({
-            refresh_token: refreshToken,
-          });
-          if (!refError && refreshData.session?.user && refreshData.session.access_token) {
-            return {
-              userId: refreshData.session.user.id,
-              accessToken: refreshData.session.access_token,
-            };
-          }
-        }
-        logger.error('Error getting user from token:', error);
-        return null;
-      }
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      logger.debug('No valid authentication found in request');
+      return null;
+    }
+
+    const token = authHeader.substring(7);
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (!error && user) {
       return { userId: user.id, accessToken: token };
     }
 
-    // 方法2: 从cookies获取session
-    const cookieHeader = request.headers.get('cookie');
-    if (cookieHeader) {
-      const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
-        const [key, ...rest] = cookie.trim().split('=');
-        acc[key] = rest.join('=');
-        return acc;
-      }, {} as Record<string, string>);
-
-      const possibleKeys = Object.keys(cookies)
-        .filter(key =>
-          key.includes('auth-token') ||
-          key.includes('supabase-auth') ||
-          (key.startsWith('sb-') && key.includes('auth'))
-        )
-        // Cap iteration so an attacker setting many auth-like cookies
-        // can't amplify each request into unbounded Supabase calls.
-        .slice(0, 3);
-
-      logger.debug('Auth: checking cookies (count:', possibleKeys.length, ')');
-
-      for (const key of possibleKeys) {
-        const rawValue = cookies[key];
-        if (!rawValue) continue;
-
-        try {
-          const decoded = decodeURIComponent(rawValue);
-          let sessionData;
-
-          try {
-            sessionData = JSON.parse(decoded);
-          } catch {
-            // Only treat as a raw JWT if it looks like one. Real JWTs
-            // start with the base64-encoded {"alg":... header (eyJ...)
-            // and are ~900 chars; the old `> 50` heuristic let arbitrary
-            // garbage trigger a Supabase round-trip.
-            if (decoded.startsWith('eyJ') && decoded.length > 100) {
-              const { data: { user }, error } = await supabase.auth.getUser(decoded);
-              if (user && !error) {
-                logger.debug('Auth: valid session from cookie');
-                return { userId: user.id, accessToken: decoded };
-              }
-            }
-            continue;
-          }
-
-          if (Array.isArray(sessionData)) {
-            const [accessToken] = sessionData;
-            if (typeof accessToken === 'string' && accessToken.length > 0) {
-              const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-              if (user && !error) {
-                logger.debug('Auth: valid session from cookie array');
-                return { userId: user.id, accessToken };
-              }
-            }
-          } else if (sessionData?.user?.id) {
-            const accessToken = sessionData.access_token || sessionData.accessToken;
-            if (accessToken) {
-              const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-              if (user && !error) {
-                logger.debug('Auth: valid session from cookie object');
-                return { userId: user.id, accessToken };
-              }
-            }
-          }
-        } catch (e) {
-          logger.error('Error parsing session cookie', e);
-        }
+    const refreshToken =
+      request.headers.get('x-refresh-token') || request.headers.get('X-Refresh-Token');
+    if (refreshToken) {
+      const { data: refreshData, error: refError } = await supabase.auth.refreshSession({
+        refresh_token: refreshToken,
+      });
+      if (!refError && refreshData.session?.user && refreshData.session.access_token) {
+        return {
+          userId: refreshData.session.user.id,
+          accessToken: refreshData.session.access_token,
+        };
       }
     }
 
-    logger.debug('No valid authentication found in request');
+    logger.error('Error getting user from token:', error);
     return null;
   } catch (error) {
     logger.error('Error in getAuthInfoFromRequest:', error);
