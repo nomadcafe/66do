@@ -73,21 +73,6 @@ export class DomainService {
     return data as Domain
   }
 
-  static async getDomainById(id: string): Promise<Domain | null> {
-    const { data, error } = await supabase
-      .from('domains')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle()
-    
-    if (error) {
-      logger.error('Error fetching domain:', error)
-      return null
-    }
-    
-    return data
-  }
-
   static async updateDomain(id: string, updates: DomainUpdate, userId?: string): Promise<Domain | null> {
     return this.updateDomainWithClient(supabase, id, updates, userId)
   }

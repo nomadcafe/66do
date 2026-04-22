@@ -2,6 +2,65 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCorsHeaders, getCorsHeadersForError } from '../../../src/lib/cors';
 import { getAuthInfoFromRequest } from '../../../src/lib/auth-helper';
 import { createAuthenticatedSupabaseClient } from '../../../src/lib/supabaseAuthClient';
+import { CONSTANTS } from '../../../src/lib/constants';
+
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+const MAX_EXCHANGE_RATE = 1000;
+const MIN_EXCHANGE_RATE = 0.0001;
+
+function clampNumber(value: unknown, max: number, min = 0): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  return Math.max(min, Math.min(max, n));
+}
+
+function clampString(value: unknown, max: number): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return trimmed.slice(0, max);
+}
+
+type SanitizedRenewalPayload = {
+  renewal_date: string;
+  renewal_cost: number;
+  currency: string;
+  exchange_rate: number;
+  base_amount: number;
+  renewal_cycle: number;
+  registrar: string | null;
+  notes: string | null;
+};
+
+function sanitizeRenewalCostPayload(body: Record<string, unknown>): SanitizedRenewalPayload | null {
+  const renewalDate = typeof body.renewal_date === 'string' ? body.renewal_date.trim().slice(0, 10) : '';
+  if (!DATE_REGEX.test(renewalDate)) return null;
+
+  const renewalCost = clampNumber(body.renewal_cost, CONSTANTS.VALIDATION.MAX_RENEWAL_COST);
+  if (renewalCost === null) return null;
+
+  const exchangeRate =
+    clampNumber(body.exchange_rate, MAX_EXCHANGE_RATE, MIN_EXCHANGE_RATE) ?? 1;
+  const baseAmount =
+    clampNumber(body.base_amount, CONSTANTS.VALIDATION.MAX_RENEWAL_COST) ?? renewalCost;
+  const renewalCycle =
+    Math.max(1, Math.min(CONSTANTS.VALIDATION.MAX_RENEWAL_CYCLE, Math.floor(Number(body.renewal_cycle) || 1)));
+
+  const rawCurrency = typeof body.currency === 'string' ? body.currency.trim().toUpperCase() : '';
+  const currency = /^[A-Z]{3}$/.test(rawCurrency) ? rawCurrency : 'USD';
+
+  return {
+    renewal_date: renewalDate,
+    renewal_cost: renewalCost,
+    currency,
+    exchange_rate: exchangeRate,
+    base_amount: baseAmount,
+    renewal_cycle: renewalCycle,
+    registrar: clampString(body.registrar, CONSTANTS.VALIDATION.MAX_REGISTRAR_LENGTH),
+    notes: clampString(body.notes, CONSTANTS.VALIDATION.MAX_NOTES_LENGTH),
+  };
+}
 
 export async function GET(request: NextRequest) {
   const corsHeaders = getCorsHeaders(request);
@@ -80,11 +139,18 @@ export async function POST(request: NextRequest) {
   
   try {
     const body = await request.json();
-    const { domain_id, renewal_date, renewal_cost, currency, exchange_rate, base_amount, renewal_cycle, registrar, notes } = body;
-
-    if (!domain_id || !renewal_date || !renewal_cost) {
+    const domainId = typeof body?.domain_id === 'string' ? body.domain_id.trim() : '';
+    if (!domainId) {
       return NextResponse.json(
         { error: 'Missing required fields' },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    const sanitized = sanitizeRenewalCostPayload(body);
+    if (!sanitized) {
+      return NextResponse.json(
+        { error: 'Invalid renewal cost data' },
         { status: 400, headers: corsHeaders }
       );
     }
@@ -104,7 +170,7 @@ export async function POST(request: NextRequest) {
     const { data: domain, error: domainError } = await client
       .from('domains')
       .select('id, user_id')
-      .eq('id', domain_id)
+      .eq('id', domainId)
       .eq('user_id', userId)
       .single();
 
@@ -118,15 +184,8 @@ export async function POST(request: NextRequest) {
     const { data, error } = await client
       .from('renewal_cost_history')
       .insert({
-        domain_id,
-        renewal_date,
-        renewal_cost,
-        currency: currency || 'USD',
-        exchange_rate: exchange_rate || 1,
-        base_amount: base_amount || renewal_cost,
-        renewal_cycle: renewal_cycle || 1,
-        registrar: registrar || null,
-        notes: notes || null
+        domain_id: domainId,
+        ...sanitized,
       } as never)
       .select()
       .single();
