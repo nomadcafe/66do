@@ -374,7 +374,12 @@ export function validateTransaction(transaction: unknown): ValidationResult {
       errors.push('validation.transaction.receiptUrlTooLong');
     } else if (transactionObj.receipt_url.trim().length > 0) {
       try {
-        new URL(transactionObj.receipt_url);
+        const parsed = new URL(transactionObj.receipt_url);
+        // Reject javascript:, data:, file:, vbscript: etc. -- only safe to
+        // render as an <a href> if the scheme can't execute script.
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          errors.push('validation.transaction.receiptUrlInvalidFormat');
+        }
       } catch {
         errors.push('validation.transaction.receiptUrlInvalidFormat');
       }
@@ -588,10 +593,12 @@ export function sanitizeTransactionData(transaction: unknown): Record<string, un
     const url = transactionObj.receipt_url.trim();
     if (url.length > 0 && url.length <= MAX_RECEIPT_URL_LENGTH) {
       try {
-        new URL(url); // 验证URL格式
-        receiptUrl = url;
+        const parsed = new URL(url);
+        // http/https only -- blocks javascript:/data:/file:/vbscript: etc.
+        if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+          receiptUrl = url;
+        }
       } catch {
-        // URL格式无效，设为null
         receiptUrl = null;
       }
     }
