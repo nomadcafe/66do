@@ -3,7 +3,7 @@ import { TransactionService } from '../../../src/lib/supabaseService'
 import { validateTransaction, sanitizeTransactionData } from '../../../src/lib/validation'
 import { buildTransactionInsertPayload } from '../../../src/lib/transactionInsertPayload'
 import { getAuthInfoFromRequest } from '../../../src/lib/auth-helper'
-import { createAuthenticatedSupabaseClient, createServiceRoleSupabaseClient } from '../../../src/lib/supabaseAuthClient'
+import { createAuthenticatedSupabaseClient } from '../../../src/lib/supabaseAuthClient'
 import { getCorsHeaders, getCorsHeadersForError, noCacheHeaders } from '../../../src/lib/cors'
 import { MAX_BULK_OPERATION_SIZE } from '../../../src/lib/constants'
 import { isDomainOwnedByUser } from '../../../src/lib/domainOwnership'
@@ -20,8 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     const corsHeaders = { ...getCorsHeaders(request), ...noCacheHeaders }
-    const serviceClient = createServiceRoleSupabaseClient()
-    const client = serviceClient ?? await createAuthenticatedSupabaseClient(authInfo.accessToken, request.headers.get('X-Refresh-Token') ?? undefined)
+    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken, request.headers.get('X-Refresh-Token') ?? undefined)
     const transactionList = await TransactionService.getTransactionsWithClient(client, authInfo.userId)
 
     return NextResponse.json({ success: true, data: transactionList }, { headers: corsHeaders })
@@ -55,8 +54,7 @@ export async function POST(request: NextRequest) {
 
     const corsHeaders = getCorsHeaders(request)
     const userId = authInfo.userId
-    const serviceClient = createServiceRoleSupabaseClient()
-    const client = serviceClient ?? await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
+    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
 
     // 支持批量创建
     if (transactions && Array.isArray(transactions)) {
@@ -172,8 +170,7 @@ export async function PATCH(request: NextRequest) {
 
     const corsHeaders = getCorsHeaders(request)
     const userId = authInfo.userId
-    const serviceClient = createServiceRoleSupabaseClient()
-    const client = serviceClient ?? await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
+    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
 
     if (!transactions || !Array.isArray(transactions)) {
       return NextResponse.json({ error: 'Transactions array is required' }, {
