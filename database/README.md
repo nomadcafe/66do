@@ -16,4 +16,3 @@
 ## 其他
 
 - **check_table_structure.sql**：仅查询表结构，不改数据。
-- **d1_schema.sql**：D1 数据库用，若未使用 D1 可忽略。
