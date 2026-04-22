@@ -42,11 +42,15 @@ export async function getAuthInfoFromRequest(request: NextRequest): Promise<{ us
         return acc;
       }, {} as Record<string, string>);
 
-      const possibleKeys = Object.keys(cookies).filter(key =>
-        key.includes('auth-token') ||
-        key.includes('supabase-auth') ||
-        (key.startsWith('sb-') && key.includes('auth'))
-      );
+      const possibleKeys = Object.keys(cookies)
+        .filter(key =>
+          key.includes('auth-token') ||
+          key.includes('supabase-auth') ||
+          (key.startsWith('sb-') && key.includes('auth'))
+        )
+        // Cap iteration so an attacker setting many auth-like cookies
+        // can't amplify each request into unbounded Supabase calls.
+        .slice(0, 3);
 
       logger.debug('Auth: checking cookies (count:', possibleKeys.length, ')');
 
@@ -61,7 +65,11 @@ export async function getAuthInfoFromRequest(request: NextRequest): Promise<{ us
           try {
             sessionData = JSON.parse(decoded);
           } catch {
-            if (decoded.length > 50) {
+            // Only treat as a raw JWT if it looks like one. Real JWTs
+            // start with the base64-encoded {"alg":... header (eyJ...)
+            // and are ~900 chars; the old `> 50` heuristic let arbitrary
+            // garbage trigger a Supabase round-trip.
+            if (decoded.startsWith('eyJ') && decoded.length > 100) {
               const { data: { user }, error } = await supabase.auth.getUser(decoded);
               if (user && !error) {
                 logger.debug('Auth: valid session from cookie');
