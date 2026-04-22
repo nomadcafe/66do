@@ -14,7 +14,6 @@ import {
   ensureDomainWithTags,
   ensureTransactionWithRequiredFields
 } from '../types/dashboard';
-import { auditLogger } from '../lib/security';
 import {
   translateValidationMessages,
   validateDomain,
@@ -75,11 +74,6 @@ export function useDashboardData(
     if (!userId) return;
 
     const { showLoading = true } = options;
-    let loadSummary = {
-      domainsCount: 0,
-      transactionsCount: 0,
-      dataSource: 'supabase' as const,
-    };
 
     try {
       if (showLoading) setLoading(true);
@@ -109,26 +103,12 @@ export function useDashboardData(
       setDataSource('supabase');
       domainCache.cacheDomains(userId, domainsResult.data || []);
       domainCache.cacheTransactions(userId, transactionsResult.data || []);
-      loadSummary = {
-        domainsCount: typedDomains.length,
-        transactionsCount: typedTransactions.length,
-        dataSource: 'supabase',
-      };
       logger.log('Data loaded from Supabase database successfully');
     } catch (error) {
       logger.error('Error loading data from Supabase:', error);
       setError(t('common.dataLoadFailed'));
-      auditLogger.log(userId || 'default', 'data_load_failed', 'dashboard', {
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
     } finally {
       if (showLoading) setLoading(false);
-
-      auditLogger.log(userId || 'default', 'data_loaded', 'dashboard', {
-        domainsCount: loadSummary.domainsCount,
-        transactionsCount: loadSummary.transactionsCount,
-        dataSource: loadSummary.dataSource
-      });
     }
   }, [userId, t]);
 
@@ -433,13 +413,6 @@ export function useDashboardData(
         setError(t('dashboard.domainAlreadyExistsDesc') || t('dashboard.domainAlreadyExists') || errorMessage);
       } else {
         setError(t('common.dataSaveFailed') || `Failed to save data: ${errorMessage}`);
-      }
-
-      if (!isDuplicateDomain) {
-        auditLogger.log(userId || 'unknown', 'data_save_failed', 'dashboard', {
-          error: errorMessage,
-          errorType: isNetworkError ? 'network' : isAuthError ? 'auth' : 'unknown'
-        });
       }
 
       throw error;
