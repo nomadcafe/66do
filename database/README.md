@@ -32,7 +32,6 @@
 ## 其他文件分类
 
 ### 表结构基线
-- `schema.sql`, `supabase_schema.sql` — 原始 schema，按部署目标二选一
 - `users_table.sql` — users 表定义
 - `migration.sql` — 旧版通用迁移
 
@@ -47,8 +46,11 @@
 
 ### 用户同步 / 修复（历史）
 - `complete_user_sync.sql`, `fix_user_sync.sql`, `clean_sync.sql`
-- `fix_email_conflict.sql`, `fix_verification_tokens.sql`
-- `fix_users_rls.sql`, `simplify_user_schema.sql`
+- `fix_email_conflict.sql`, `simplify_user_schema.sql`
+
+> ⚠️ 这些文件里的 `CREATE POLICY` 块已被后续 `simple_uuid_rls.sql` +
+> `fix_users_verification_tokens_password_reset_rls.sql` 覆盖。如需复用用户同步
+> 触发器逻辑，请跳过其中的 RLS 部分。
 
 ### 工具
 - `check_table_structure.sql` — 只读查询
@@ -67,5 +69,12 @@
 - `urgent_rls_fix.sql`, `temp_disable_rls.sql`, `disable_rls_temporarily.sql`, `simple_rls_fix.sql` — `DISABLE ROW LEVEL SECURITY`
 - `fixed_rls_script.sql` — 若 `user_id` 列缺失会回退到 `USING (true)`
 - `scripts/setup-password-reset-table.js` — 用 service role 重建已 drop 的 `password_reset_tokens` 表，并附 `USING (true)` 策略
+
+## 第二批清理（RLS 核查）
+
+- `fix_users_rls.sql` — 为 `public.users` 创建 `USING (true) WITH CHECK (true)` 的 anon 策略，正是 2026-04-22 第一轮清理要修的洞
+- `fix_verification_tokens.sql` — DROP + 重建 `verification_tokens` 并附 `FOR ALL USING (true)` 全开放策略
+- `schema.sql` — 引用不存在的列 `owner_user_id` 和不存在的表 `domain_alerts`/`domain_settings`，`DROP TABLE IF EXISTS` 前导句可能先跑成功，有丢表风险
+- `supabase_schema.sql` — 重新给 `verification_tokens` 加 `FOR ALL USING (auth.uid()::text = user_id::text)`，与当前"零策略 + service_role 专属"的模型冲突
 
 需要追溯历史请查 git log。
