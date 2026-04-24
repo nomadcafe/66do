@@ -240,8 +240,8 @@ export function drawDomainSaleImage(canvas: HTMLCanvasElement, p: DomainSaleImag
   const hasMascot = isProfit && mascot && mascot.complete && mascot.naturalWidth > 0;
   let reservedRight = 0;
   if (hasMascot && mascot) {
-    const maxW = 380;
-    const maxH = 280;
+    const maxW = 500;
+    const maxH = 360;
     const aspect = mascot.naturalWidth / mascot.naturalHeight;
     let w = maxW;
     let h = w / aspect;
@@ -269,8 +269,9 @@ export function drawDomainSaleImage(canvas: HTMLCanvasElement, p: DomainSaleImag
     accent
   );
 
-  // Domain name (hero 1). `reservedRight` keeps the text from crashing
-  // into the mascot / emoji on the right side.
+  // Domain name and sale price both respect `reservedRight` so the
+  // mascot never gets crashed into even when a long domain or an
+  // eight-digit sale price is in play; fitText shrinks instead.
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = INK;
@@ -278,11 +279,9 @@ export function drawDomainSaleImage(canvas: HTMLCanvasElement, p: DomainSaleImag
   fitText(ctx, p.domainName, heroMaxWidth, 72, 40, '800');
   ctx.fillText(p.domainName, margin, 210);
 
-  // Sale price (hero 2). Uses the full width because by the time we
-  // reach y=340 we're below where the mascot ends.
   ctx.fillStyle = accent;
   const priceStr = formatUSD(p.salePrice);
-  fitText(ctx, priceStr, CANVAS_W - margin * 2, 96, 64, '800');
+  fitText(ctx, priceStr, heroMaxWidth, 96, 64, '800');
   ctx.fillText(priceStr, margin, 340);
 
   // "Sale Price" label under the hero number
