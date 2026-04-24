@@ -843,22 +843,10 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     </div>
   );
 
-  // 获取时间范围显示文本
-  const getTimeframeText = () => {
-    switch (selectedTimeframe) {
-      case '6M':
-        return t('analytics.timeframe.6M') || '最近6个月';
-      case '1Y':
-        return t('analytics.timeframe.1Y') || '最近1年';
-      case '2Y':
-        return t('analytics.timeframe.2Y') || '近2年';
-      case '3Y':
-        return t('analytics.timeframe.3Y') || '近3年';
-      case 'ALL':
-      default:
-        return t('analytics.timeframe.ALL') || '全部时间';
-    }
-  };
+  // 时间范围显示文本。旧代码每个 case 都带 `|| '最近6个月'` 之类的中文
+  // 兜底，但 analytics.timeframe.* 的 i18n key 都存在，fallback 永远不会
+  // 触发，只是把中文硬字串留在了英文代码里。
+  const getTimeframeText = () => t(`analytics.timeframe.${selectedTimeframe}`);
 
   return (
     <div className="space-y-6">
