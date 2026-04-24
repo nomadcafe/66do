@@ -334,9 +334,16 @@ export function expandSellToCashReceipts(t: TransactionWithRequiredFields): Cash
     return [{ monthKey: monthKeyOf(txDate), netAmount: sellNetUSD(t) }];
   }
 
-  // 已付总额对应的净额（transactionsForMetrics 已按比例缩放过 net_amount）
-  const totalNetPaid = sellNetUSD(t);
-  const feeRate = totalGrossPaid > 0 ? 1 - totalNetPaid / totalGrossPaid : 0;
+  // feeRate 直接从 tx 自身算（自洽）：fee/gross 比例与 transactionsForMetrics
+  // 是否缩放都无关 —— 缩放时 fee 和 gross 都按同比例缩，比例不变；不缩放
+  // 时也是 tx 上的真实比例。
+  // 旧公式 1 - sellNetUSD/totalGrossPaid 的隐含假设是"二者尺度一致"，在
+  // 部分付清但 transactionsForMetrics 因数据缺失没缩放（hasInstallmentData
+  // = false）的边界 case 上会失败：分母是 partial gross，分子是 full net，
+  // feeRate 算出来可能是负数甚至 > 1。
+  const grossOnTx = sellGrossUSD(t);
+  const fee = Math.max(0, grossOnTx - sellNetUSD(t));
+  const feeRate = grossOnTx > 0 ? fee / grossOnTx : 0;
   const events: CashReceiptEvent[] = [];
 
   if (down > 0) {
