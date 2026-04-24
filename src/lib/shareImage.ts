@@ -106,7 +106,6 @@ const LABEL = '#78716c';         // metric labels
 const DIVIDER = '#e7e5e4';       // hairline separators
 const BRAND_TEAL = '#0d9488';    // accent for profit mode
 const BRAND_SLATE = '#64748b';   // accent for loss mode
-const WATERMARK = '#44403c';     // footer text
 const PROFIT = '#16a34a';        // metric green
 const LOSS = '#dc2626';          // metric red
 const HOLDING = '#7c3aed';       // holding value (neutral data)
@@ -187,6 +186,33 @@ function drawMetricCell(
   ctx.fillText(label, centerX, labelY);
 }
 
+/**
+ * Renders a centered brand watermark at the bottom of the card:
+ * `● Domain.Financial` in the brand teal, big enough to be the last thing
+ * the viewer sees but not so big it fights the hero data. Always teal
+ * regardless of profit/loss -- the product name shouldn't change colour
+ * based on a single deal.
+ */
+function drawCenteredWatermark(ctx: CanvasRenderingContext2D, y: number) {
+  const label = 'Domain.Financial';
+  ctx.font = `700 32px ${FONT}`;
+  const textWidth = ctx.measureText(label).width;
+  const dotRadius = 8;
+  const dotGap = 16;
+  const groupWidth = dotRadius * 2 + dotGap + textWidth;
+  const startX = CANVAS_W / 2 - groupWidth / 2;
+
+  ctx.beginPath();
+  ctx.fillStyle = BRAND_TEAL;
+  ctx.arc(startX + dotRadius, y - 10, dotRadius, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = BRAND_TEAL;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(label, startX + dotRadius * 2 + dotGap, y);
+}
+
 export function drawDomainSaleImage(canvas: HTMLCanvasElement, p: DomainSaleImageParams): void {
   const ctx = setupDprCanvas(canvas);
   if (!ctx) return;
@@ -200,6 +226,15 @@ export function drawDomainSaleImage(canvas: HTMLCanvasElement, p: DomainSaleImag
 
   fillGradientBackground(ctx, isProfit);
 
+  // Top-right celebration emoji (profit only). Loss mode stays clean --
+  // a party popper next to `POSITION CLOSED / -$500` reads as sarcastic.
+  if (isProfit) {
+    ctx.font = `100px ${FONT}`;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText('🎉', contentRight, 170);
+  }
+
   // Badge (top)
   drawBadge(
     ctx,
@@ -209,11 +244,13 @@ export function drawDomainSaleImage(canvas: HTMLCanvasElement, p: DomainSaleImag
     accent
   );
 
-  // Domain name (hero 1)
+  // Domain name (hero 1). Cap its max width a bit short of the canvas
+  // edge so a long name never crashes into the emoji.
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = INK;
-  fitText(ctx, p.domainName, CANVAS_W - margin * 2, 72, 40, '800');
+  const heroMaxWidth = isProfit ? CANVAS_W - margin * 2 - 140 : CANVAS_W - margin * 2;
+  fitText(ctx, p.domainName, heroMaxWidth, 72, 40, '800');
   ctx.fillText(p.domainName, margin, 210);
 
   // Sale price (hero 2)
@@ -231,8 +268,8 @@ export function drawDomainSaleImage(canvas: HTMLCanvasElement, p: DomainSaleImag
   ctx.strokeStyle = DIVIDER;
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(margin, 435);
-  ctx.lineTo(contentRight, 435);
+  ctx.moveTo(margin, 420);
+  ctx.lineTo(contentRight, 420);
   ctx.stroke();
 
   // Three metric cells: Net Profit / ROI / Held
@@ -240,8 +277,8 @@ export function drawDomainSaleImage(canvas: HTMLCanvasElement, p: DomainSaleImag
   const col1X = margin + 1040 / 6;        // 80 + 173 = 253
   const col2X = margin + 1040 / 2;        // 80 + 520 = 600
   const col3X = margin + (1040 / 6) * 5;  // 80 + 867 = 947
-  const metricValueY = 520;
-  const metricLabelY = 560;
+  const metricValueY = 495;
+  const metricLabelY = 535;
 
   drawMetricCell(
     ctx,
@@ -280,30 +317,12 @@ export function drawDomainSaleImage(canvas: HTMLCanvasElement, p: DomainSaleImag
   const sep2X = margin + (1040 / 3) * 2;
   [sep1X, sep2X].forEach((x) => {
     ctx.beginPath();
-    ctx.moveTo(x, 475);
-    ctx.lineTo(x, 580);
+    ctx.moveTo(x, 455);
+    ctx.lineTo(x, 555);
     ctx.stroke();
   });
 
-  // Footer / watermark
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'alphabetic';
-  ctx.beginPath();
-  ctx.fillStyle = accent;
-  ctx.arc(margin + 7, 595, 6, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.font = `600 22px ${FONT}`;
-  ctx.fillStyle = WATERMARK;
-  ctx.fillText('Domain.Financial', margin + 24, 601);
-
-  // Localized holding hint on the right of the footer so the loss /
-  // long-hold narrative still has somewhere to land.
-  if (p.holdingLocalized && p.holdingLocalized !== '—') {
-    ctx.font = `400 22px ${FONT}`;
-    ctx.fillStyle = LABEL;
-    ctx.textAlign = 'right';
-    ctx.fillText(p.holdingLocalized, contentRight, 601);
-  }
+  drawCenteredWatermark(ctx, 612);
 }
 
 // ---- Portfolio card -----------------------------------------------------
@@ -341,39 +360,59 @@ export function drawPortfolioImage(canvas: HTMLCanvasElement, p: PortfolioImageP
 
   fillGradientBackground(ctx, isProfit);
 
+  // Top-right emoji accent. 📊 is neutral and always appropriate for a
+  // portfolio view, regardless of whether this period is net positive.
+  ctx.font = `100px ${FONT}`;
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText('📊', contentRight, 170);
+
   // Badge
   drawBadge(ctx, margin, 108, 'PORTFOLIO SUMMARY', accent);
 
-  // Title (small, single line under the badge)
+  // Title (small, single line under the badge). Constrain its width so
+  // a long localized title never crashes into the emoji.
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = INK;
-  ctx.font = `700 44px ${FONT}`;
+  const titleMaxWidth = CANVAS_W - margin * 2 - 140;
+  fitText(ctx, p.labels.title, titleMaxWidth, 44, 28, '700');
   ctx.fillText(p.labels.title, margin, 180);
 
-  // Hero: total profit with localized label
+  // Hero: total profit with localized label above
   ctx.fillStyle = LABEL;
   ctx.font = `500 26px ${FONT}`;
   ctx.fillText(p.labels.totalProfit, margin, 240);
   ctx.fillStyle = accent;
   const profitStr = formatUSD(profit);
-  fitText(ctx, profitStr, CANVAS_W - margin * 2, 96, 64, '800');
-  ctx.fillText(profitStr, margin, 340);
+  fitText(ctx, profitStr, CANVAS_W - margin * 2, 88, 56, '800');
+  ctx.fillText(profitStr, margin, 335);
+
+  // "Top performer: premium.com" as a caption under the hero --
+  // preserves the info that used to live in the bottom-right corner,
+  // where it competed with the (now-centered) brand watermark.
+  const bestName = p.bestDomain && p.bestDomain !== '—' ? p.bestDomain : '';
+  if (bestName) {
+    const bestTrunc = bestName.length > 32 ? `${bestName.slice(0, 29)}...` : bestName;
+    ctx.font = `500 20px ${FONT}`;
+    ctx.fillStyle = LABEL;
+    ctx.fillText(`${p.labels.bestDomain}: ${bestTrunc}`, margin, 380);
+  }
 
   // Divider
   ctx.strokeStyle = DIVIDER;
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(margin, 435);
-  ctx.lineTo(contentRight, 435);
+  ctx.moveTo(margin, 420);
+  ctx.lineTo(contentRight, 420);
   ctx.stroke();
 
   // Three metric cells: ROI / Total Investment / Investment Period
   const col1X = margin + 1040 / 6;
   const col2X = margin + 1040 / 2;
   const col3X = margin + (1040 / 6) * 5;
-  const metricValueY = 520;
-  const metricLabelY = 560;
+  const metricValueY = 495;
+  const metricLabelY = 535;
 
   drawMetricCell(
     ctx,
@@ -411,30 +450,12 @@ export function drawPortfolioImage(canvas: HTMLCanvasElement, p: PortfolioImageP
   const sep2X = margin + (1040 / 3) * 2;
   [sep1X, sep2X].forEach((x) => {
     ctx.beginPath();
-    ctx.moveTo(x, 475);
-    ctx.lineTo(x, 580);
+    ctx.moveTo(x, 455);
+    ctx.lineTo(x, 555);
     ctx.stroke();
   });
 
-  // Footer
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'alphabetic';
-  ctx.beginPath();
-  ctx.fillStyle = accent;
-  ctx.arc(margin + 7, 595, 6, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.font = `600 22px ${FONT}`;
-  ctx.fillStyle = WATERMARK;
-  ctx.fillText('Domain.Financial', margin + 24, 601);
-
-  const bestName = p.bestDomain && p.bestDomain !== '—' ? p.bestDomain : '';
-  if (bestName) {
-    const bestTrunc = bestName.length > 28 ? `${bestName.slice(0, 25)}...` : bestName;
-    ctx.font = `400 22px ${FONT}`;
-    ctx.fillStyle = LABEL;
-    ctx.textAlign = 'right';
-    ctx.fillText(`${p.labels.bestDomain}: ${bestTrunc}`, contentRight, 601);
-  }
+  drawCenteredWatermark(ctx, 612);
 }
 
 /** Triggers a browser download of the canvas as a PNG. */
