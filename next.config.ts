@@ -102,7 +102,9 @@ const nextConfig: NextConfig = {
               'magnetometer=()',
               'gyroscope=()',
               'accelerometer=()',
-              'interest-cohort=()',
+              // FLoC was replaced by the Topics API; opt out via browsing-topics.
+              // 'interest-cohort' is no longer a recognised feature in modern browsers.
+              'browsing-topics=()',
             ].join(', '),
           },
           // HSTS - 仅在HTTPS环境下启用
