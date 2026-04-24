@@ -490,10 +490,6 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
                 return date.toLocaleDateString(locale === 'zh' ? 'zh-CN' : 'en-US', { year: 'numeric', month: 'long' });
               }}
             />
-            <Legend 
-              wrapperStyle={{ paddingTop: '20px' }}
-              iconType="circle"
-            />
             <defs>
               <linearGradient id="colorInvestment" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
