@@ -25,16 +25,19 @@ import {
   Bar,
   Legend
 } from 'recharts';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
-  Target, 
+import {
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
   BarChart3,
-  Activity,
-  Zap,
   Globe,
-  Info
+  Info,
+  Wallet,
+  Percent,
+  CalendarClock,
+  Scale,
+  Sparkles,
+  Building2,
 } from 'lucide-react';
 import { holdingCostAsOf } from '../../lib/renewalCostBasis';
 import { sellNetUSD } from '../../lib/coreCalculations';
@@ -104,6 +107,29 @@ interface TimeSeriesData {
   portfolioValue: number;
   monthlyCashFlow: number;
 }
+
+const InfoTooltip = ({ text }: { text: string }) => (
+  <span className="group relative inline-flex">
+    <Info className="h-3.5 w-3.5 text-stone-400 cursor-help hover:text-stone-600 transition-colors" />
+    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-stone-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-xs whitespace-normal text-center">
+      {text}
+      <span className="absolute top-full left-1/2 -translate-x-1/2 -mt-1">
+        <span className="block w-2 h-2 bg-stone-900 rotate-45" />
+      </span>
+    </span>
+  </span>
+);
+
+const CHART_PALETTE = [
+  '#0d9488', // teal-600
+  '#10b981', // emerald-500
+  '#f59e0b', // amber-500
+  '#6366f1', // indigo-500
+  '#0891b2', // cyan-600
+  '#84cc16', // lime-500
+  '#a855f7', // purple-500
+  '#f97316', // orange-500
+];
 
 export default function InvestmentAnalytics({ domains, transactions }: InvestmentAnalyticsProps) {
   const { t, locale } = useI18nContext();
@@ -259,142 +285,117 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     if (filteredData.domains.length === 0 && filteredData.transactions.length === 0) {
       return (
         <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
-          <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-            <BarChart3 className="h-16 w-16 text-gray-300 mb-4" />
-            <p className="text-lg font-medium text-gray-600 mb-2">{t('analytics.noDataAvailable')}</p>
-            <p className="text-sm text-gray-400">{t('analytics.noDataMessage')}</p>
+          <div className="flex flex-col items-center justify-center py-12 text-stone-500">
+            <BarChart3 className="h-16 w-16 text-stone-300 mb-4" />
+            <p className="text-lg font-medium text-stone-600 mb-2">{t('analytics.noDataAvailable')}</p>
+            <p className="text-sm text-stone-400">{t('analytics.noDataMessage')}</p>
           </div>
         </div>
       );
     }
 
+    const profitColor = portfolioMetrics.totalProfit >= 0 ? 'text-emerald-700' : 'text-red-600';
+    const returnColor =
+      portfolioMetrics.totalReturn >= 20 ? 'text-emerald-700' :
+      portfolioMetrics.totalReturn >= 10 ? 'text-teal-700' :
+      portfolioMetrics.totalReturn >= 0 ? 'text-stone-900' : 'text-red-600';
+    const sharpeColor =
+      portfolioMetrics.sharpeRatio >= 1 ? 'text-emerald-700' :
+      portfolioMetrics.sharpeRatio >= 0.5 ? 'text-amber-600' : 'text-red-600';
+    const salesCount = filteredData.transactions.filter(t => t.type === 'sell').length;
+
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-2xl text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-100 text-sm">{t('analytics.totalInvestment')}</p>
-              <p className="text-2xl font-bold">${portfolioMetrics.totalInvestment.toLocaleString()}</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="bg-stone-50 rounded-xl p-4 border border-stone-100">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-stone-600">{t('analytics.totalInvestment')}</p>
+              <p className="text-2xl font-bold text-stone-900 mt-1">${portfolioMetrics.totalInvestment.toLocaleString()}</p>
               {filteredData.domains.length > 0 && (
-                <p className="text-blue-200 text-xs mt-1">
+                <p className="text-xs text-stone-500 mt-1">
                   {filteredData.domains.length} {t('analytics.domainsCount')}
                 </p>
               )}
             </div>
-            <DollarSign className="h-8 w-8 text-blue-200" />
+            <DollarSign className="h-8 w-8 text-stone-600 shrink-0" />
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-2xl text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-purple-100 text-sm">{t('analytics.totalRevenue')}</p>
-              <p className="text-2xl font-bold">${portfolioMetrics.totalRevenue.toLocaleString()}</p>
-              {filteredData.transactions.filter(t => t.type === 'sell').length > 0 && (
-                <p className="text-purple-200 text-xs mt-1">
-                  {filteredData.transactions.filter(t => t.type === 'sell').length} {t('analytics.salesCount')}
+        <div className="bg-emerald-50/70 rounded-xl p-4 border border-emerald-100/80">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-emerald-700">{t('analytics.totalRevenue')}</p>
+              <p className="text-2xl font-bold text-emerald-900 mt-1">${portfolioMetrics.totalRevenue.toLocaleString()}</p>
+              {salesCount > 0 && (
+                <p className="text-xs text-emerald-700/70 mt-1">
+                  {salesCount} {t('analytics.salesCount')}
                 </p>
               )}
             </div>
-            <TrendingUp className="h-8 w-8 text-purple-200" />
+            <TrendingUp className="h-8 w-8 text-emerald-600 shrink-0" />
           </div>
         </div>
 
-      <div className="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-2xl text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <p className="text-green-100 text-sm">{t('analytics.netProfit')}</p>
-              <div className="group relative">
-                <Info className="h-4 w-4 text-green-200 cursor-help hover:text-green-100 transition-colors" />
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-xs">
-                  <div className="text-center whitespace-normal">
-                    {t('analytics.netProfitCalculation')}
-                  </div>
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
-                    <div className="w-2 h-2 bg-gray-900 transform rotate-45"></div>
-                  </div>
-                </div>
+        <div className="bg-stone-50 rounded-xl p-4 border border-stone-100">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-medium text-stone-600">{t('analytics.netProfit')}</p>
+                <InfoTooltip text={t('analytics.netProfitCalculation')} />
               </div>
+              <p className={`text-2xl font-bold mt-1 ${profitColor}`}>${portfolioMetrics.totalProfit.toLocaleString()}</p>
+              <p className={`text-xs mt-1 ${portfolioMetrics.totalProfit >= 0 ? 'text-emerald-700/70' : 'text-red-500'}`}>
+                {portfolioMetrics.totalProfit >= 0 ? t('analytics.performanceRating.profitable') : t('analytics.performanceRating.loss')}
+              </p>
             </div>
-            <p className="text-2xl font-bold">${portfolioMetrics.totalProfit.toLocaleString()}</p>
-            <p className={`text-green-200 text-xs mt-1 ${
-              portfolioMetrics.totalProfit >= 0 ? 'text-green-100' : 'text-red-200'
-            }`}>
-              {portfolioMetrics.totalProfit >= 0 ? t('analytics.performanceRating.profitable') : t('analytics.performanceRating.loss')}
-            </p>
+            <Wallet className="h-8 w-8 text-stone-600 shrink-0" />
           </div>
-          <Target className="h-8 w-8 text-green-200" />
         </div>
-      </div>
 
-      <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-6 rounded-2xl text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-orange-100 text-sm">{t('analytics.totalReturn')}</p>
-            <p className="text-2xl font-bold">{portfolioMetrics.totalReturn.toFixed(1)}%</p>
-            <p className={`text-orange-200 text-xs mt-1 ${
-              portfolioMetrics.totalReturn >= 20 ? 'text-green-100' :
-              portfolioMetrics.totalReturn >= 10 ? 'text-yellow-100' : ''
-            }`}>
-              {portfolioMetrics.totalReturn >= 20 ? t('analytics.performanceRating.excellent') :
-               portfolioMetrics.totalReturn >= 10 ? t('analytics.performanceRating.good') :
-               portfolioMetrics.totalReturn >= 0 ? t('analytics.performanceRating.normal') : t('analytics.performanceRating.needsImprovement')}
-            </p>
+        <div className="bg-stone-50 rounded-xl p-4 border border-stone-100">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-stone-600">{t('analytics.totalReturn')}</p>
+              <p className={`text-2xl font-bold mt-1 ${returnColor}`}>{portfolioMetrics.totalReturn.toFixed(1)}%</p>
+              <p className="text-xs text-stone-500 mt-1">
+                {portfolioMetrics.totalReturn >= 20 ? t('analytics.performanceRating.excellent') :
+                 portfolioMetrics.totalReturn >= 10 ? t('analytics.performanceRating.good') :
+                 portfolioMetrics.totalReturn >= 0 ? t('analytics.performanceRating.normal') : t('analytics.performanceRating.needsImprovement')}
+              </p>
+            </div>
+            <Percent className="h-8 w-8 text-stone-600 shrink-0" />
           </div>
-          <BarChart3 className="h-8 w-8 text-orange-200" />
         </div>
-      </div>
 
-      <div className="bg-gradient-to-br from-red-500 to-red-600 p-6 rounded-2xl text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <p className="text-red-100 text-sm">{t('analytics.annualizedReturn')}</p>
-              <div className="group relative">
-                <Info className="h-4 w-4 text-red-200 cursor-help hover:text-red-100 transition-colors" />
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-xs">
-                  <div className="text-center whitespace-normal">
-                    {investmentYears < 1 ? t('analytics.annualizedReturnShortTerm') : t('analytics.annualizedReturnDesc')}
-                  </div>
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
-                    <div className="w-2 h-2 bg-gray-900 transform rotate-45"></div>
-                  </div>
-                </div>
+        <div className="bg-stone-50 rounded-xl p-4 border border-stone-100">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-medium text-stone-600">{t('analytics.annualizedReturn')}</p>
+                <InfoTooltip text={investmentYears < 1 ? t('analytics.annualizedReturnShortTerm') : t('analytics.annualizedReturnDesc')} />
               </div>
+              {investmentYears >= 1 ? (
+                <p className="text-2xl font-bold text-stone-900 mt-1">{portfolioMetrics.annualizedReturn.toFixed(1)}%</p>
+              ) : (
+                <p className="text-sm text-stone-500 mt-2">{t('analytics.annualizedReturnShortTerm')}</p>
+              )}
             </div>
-            {investmentYears >= 1 ? (
-              <p className="text-2xl font-bold">{portfolioMetrics.annualizedReturn.toFixed(1)}%</p>
-            ) : (
-              <p className="text-sm text-red-100">{t('analytics.annualizedReturnShortTerm')}</p>
-            )}
+            <CalendarClock className="h-8 w-8 text-stone-600 shrink-0" />
           </div>
-          <Activity className="h-8 w-8 text-red-200" />
         </div>
-      </div>
 
-      <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 p-6 rounded-2xl text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <p className="text-indigo-100 text-sm">{t('analytics.sharpeRatio')}</p>
-              <div className="group relative">
-                <Info className="h-4 w-4 text-indigo-200 cursor-help hover:text-indigo-100 transition-colors" />
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-xs">
-                  <div className="text-center whitespace-normal">
-                    {t('analytics.sharpeRatioDesc')}
-                  </div>
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
-                    <div className="w-2 h-2 bg-gray-900 transform rotate-45"></div>
-                  </div>
-                </div>
+        <div className="bg-stone-50 rounded-xl p-4 border border-stone-100">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-medium text-stone-600">{t('analytics.sharpeRatio')}</p>
+                <InfoTooltip text={t('analytics.sharpeRatioDesc')} />
               </div>
+              <p className={`text-2xl font-bold mt-1 ${sharpeColor}`}>{portfolioMetrics.sharpeRatio.toFixed(2)}</p>
             </div>
-            <p className="text-2xl font-bold">{portfolioMetrics.sharpeRatio.toFixed(2)}</p>
+            <Scale className="h-8 w-8 text-stone-600 shrink-0" />
           </div>
-          <Zap className="h-8 w-8 text-indigo-200" />
         </div>
-      </div>
       </div>
     );
   };
@@ -403,11 +404,11 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     if (timeSeriesData.length === 0) {
       return (
         <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.portfolioPerformance')}</h3>
-          <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-            <BarChart3 className="h-12 w-12 text-gray-300 mb-4" />
-            <p className="text-gray-600">{t('analytics.noChartData')}</p>
-            <p className="text-sm text-gray-400 mt-2">{t('analytics.noChartDataMessage')}</p>
+          <h3 className="text-lg font-semibold text-stone-900 mb-4">{t('analytics.portfolioPerformance')}</h3>
+          <div className="flex flex-col items-center justify-center py-12 text-stone-500">
+            <BarChart3 className="h-12 w-12 text-stone-300 mb-4" />
+            <p className="text-stone-600">{t('analytics.noChartData')}</p>
+            <p className="text-sm text-stone-400 mt-2">{t('analytics.noChartDataMessage')}</p>
           </div>
         </div>
       );
@@ -416,68 +417,68 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     return (
       <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">{t('analytics.portfolioPerformance')}</h3>
-          <div className="flex items-center gap-4 text-xs text-gray-600">
+          <h3 className="text-lg font-semibold text-stone-900">{t('analytics.portfolioPerformance')}</h3>
+          <div className="flex items-center gap-4 text-xs text-stone-600">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-blue-500 rounded"></div>
+              <div className="w-3 h-3 bg-teal-600 rounded"></div>
               <span>{t('analytics.investment')}</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-green-500 rounded"></div>
+              <div className="w-3 h-3 bg-emerald-500 rounded"></div>
               <span>{t('analytics.revenue')}</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-purple-500 rounded"></div>
+              <div className="w-3 h-3 bg-amber-500 rounded"></div>
               <span>{t('analytics.portfolioValue')}</span>
             </div>
           </div>
         </div>
         <ResponsiveContainer width="100%" height={400}>
-          <AreaChart 
+          <AreaChart
             data={timeSeriesData}
             margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
           >
             <defs>
               <linearGradient id="colorInvestment" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                <stop offset="5%" stopColor="#0d9488" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="#0d9488" stopOpacity={0}/>
               </linearGradient>
               <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#10B981" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
               </linearGradient>
               <linearGradient id="colorPortfolio" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
+                <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-            <XAxis 
-              dataKey="date" 
-              tick={{ fontSize: 12, fill: '#6B7280' }}
+            <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
+            <XAxis
+              dataKey="date"
+              tick={{ fontSize: 12, fill: '#78716c' }}
               tickFormatter={(value) => {
                 const date = new Date(value);
                 return `${date.getMonth() + 1}/${date.getFullYear()}`;
               }}
-              stroke="#9CA3AF"
+              stroke="#a8a29e"
             />
-            <YAxis 
-              tick={{ fontSize: 12, fill: '#6B7280' }}
+            <YAxis
+              tick={{ fontSize: 12, fill: '#78716c' }}
               tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
-              stroke="#9CA3AF"
+              stroke="#a8a29e"
             />
-            <Tooltip 
+            <Tooltip
               contentStyle={{
                 backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                border: '1px solid #E5E7EB',
+                border: '1px solid #e7e5e4',
                 borderRadius: '8px',
                 boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
               }}
-              cursor={{ stroke: '#3B82F6', strokeWidth: 2 }}
+              cursor={{ stroke: '#0d9488', strokeWidth: 2 }}
               formatter={(value, name) => [
-                `$${Number(value).toLocaleString()}`, 
-                name === 'investment' ? t('analytics.investment') : 
-                name === 'revenue' ? t('analytics.revenue') : 
+                `$${Number(value).toLocaleString()}`,
+                name === 'investment' ? t('analytics.investment') :
+                name === 'revenue' ? t('analytics.revenue') :
                 name === 'profit' ? t('analytics.profit') : t('analytics.portfolioValue')
               ]}
               labelFormatter={(value) => {
@@ -487,35 +488,35 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
             />
             <Area
               type="monotone"
-              dataKey="investment" 
-              stackId="1" 
-              stroke="#3B82F6" 
+              dataKey="investment"
+              stackId="1"
+              stroke="#0d9488"
               fill="url(#colorInvestment)"
               strokeWidth={2}
               name={t('analytics.investment')}
-              activeDot={{ r: 6, fill: '#3B82F6' }}
+              activeDot={{ r: 6, fill: '#0d9488' }}
             />
-            <Area 
-              type="monotone" 
-              dataKey="revenue" 
-              stackId="2" 
-              stroke="#10B981" 
+            <Area
+              type="monotone"
+              dataKey="revenue"
+              stackId="2"
+              stroke="#10b981"
               fill="url(#colorRevenue)"
               strokeWidth={2}
               name={t('analytics.revenue')}
-              activeDot={{ r: 6, fill: '#10B981' }}
+              activeDot={{ r: 6, fill: '#10b981' }}
             />
-            <Line 
-              type="monotone" 
-              dataKey="portfolioValue" 
-              stroke="#8B5CF6" 
+            <Line
+              type="monotone"
+              dataKey="portfolioValue"
+              stroke="#f59e0b"
               fill="url(#colorPortfolio)"
               strokeWidth={3}
               name={t('analytics.portfolioValue')}
-              dot={{ r: 4, fill: '#8B5CF6' }}
-              activeDot={{ r: 8, fill: '#8B5CF6' }}
+              dot={{ r: 4, fill: '#f59e0b' }}
+              activeDot={{ r: 8, fill: '#f59e0b' }}
             />
-            <Legend 
+            <Legend
               wrapperStyle={{ paddingTop: '20px' }}
               iconType="circle"
             />
@@ -585,17 +586,17 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
   const renderTrendsAnalysis = () => (
     <div className="space-y-6">
       <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm overflow-x-auto">
-        <h3 className="text-lg font-semibold text-gray-900 mb-1">
+        <h3 className="text-lg font-semibold text-stone-900 mb-1">
           {t('analytics.yearlyRenewalProfit.title')}
         </h3>
-        <p className="text-sm text-gray-500 mb-4">{t('analytics.yearlyRenewalProfit.desc')}</p>
+        <p className="text-sm text-stone-500 mb-4">{t('analytics.yearlyRenewalProfit.desc')}</p>
         {yearlyRenewalProfitRows.length === 0 ? (
-          <p className="text-center py-8 text-gray-500">{t('analytics.yearlyRenewalProfit.noData')}</p>
+          <p className="text-center py-8 text-stone-500">{t('analytics.yearlyRenewalProfit.noData')}</p>
         ) : (
           <div className="min-w-[720px]">
             <table className="w-full text-sm text-left">
               <thead>
-                <tr className="border-b border-gray-200 text-gray-600">
+                <tr className="border-b border-stone-200 text-stone-600">
                   <th className="py-2 pr-3 font-medium">{t('analytics.yearlyRenewalProfit.year')}</th>
                   <th className="py-2 pr-3 font-medium text-right">{t('analytics.yearlyRenewalProfit.renewal')}</th>
                   <th className="py-2 pr-3 font-medium text-right">{t('analytics.yearlyRenewalProfit.otherOutflow')}</th>
@@ -610,8 +611,8 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
               </thead>
               <tbody>
                 {yearlyRenewalProfitRows.map((row) => (
-                  <tr key={row.year} className="border-b border-gray-100">
-                    <td className="py-2.5 pr-3 font-medium text-gray-900">{row.year}</td>
+                  <tr key={row.year} className="border-b border-stone-100">
+                    <td className="py-2.5 pr-3 font-medium text-stone-900">{row.year}</td>
                     <td className="py-2.5 pr-3 text-right tabular-nums">
                       ${row.renewalSpend.toLocaleString()}
                     </td>
@@ -627,17 +628,17 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
                           ? 'text-green-600'
                           : row.netCashflow < 0
                             ? 'text-red-600'
-                            : 'text-gray-700'
+                            : 'text-stone-700'
                       }`}
                     >
                       ${row.netCashflow.toLocaleString()}
                     </td>
-                    <td className="py-2.5 pr-3 text-right tabular-nums text-gray-700">
+                    <td className="py-2.5 pr-3 text-right tabular-nums text-stone-700">
                       {row.renewalToSalePercent != null
                         ? `${row.renewalToSalePercent.toFixed(1)}%`
                         : t('analytics.yearlyRenewalProfit.notApplicable')}
                     </td>
-                    <td className="py-2.5 pr-3 text-right tabular-nums text-gray-700">
+                    <td className="py-2.5 pr-3 text-right tabular-nums text-stone-700">
                       {row.renewalSpend + row.otherOutflow > 0
                         ? `${row.renewalShareOfOutflowsPercent.toFixed(1)}%`
                         : t('analytics.yearlyRenewalProfit.notApplicable')}
@@ -649,7 +650,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
                             ? 'bg-green-100 text-green-800'
                             : row.netCashflow < 0
                               ? 'bg-red-100 text-red-800'
-                              : 'bg-gray-100 text-gray-700'
+                              : 'bg-stone-100 text-stone-700'
                         }`}
                       >
                         {row.netCashflow > 0
@@ -668,7 +669,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       </div>
 
       <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.monthlyCashFlowTrend')}</h3>
+        <h3 className="text-lg font-semibold text-stone-900 mb-4">{t('analytics.monthlyCashFlowTrend')}</h3>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={timeSeriesData}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -696,7 +697,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       </div>
 
       <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.heldDomainSuffix')}</h3>
+        <h3 className="text-lg font-semibold text-stone-900 mb-4">{t('analytics.heldDomainSuffix')}</h3>
         {domainSuffixAnalysis.heldSuffixData.length > 0 ? (
           <div className="space-y-4">
             <ResponsiveContainer width="100%" height={250}>
@@ -711,41 +712,41 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
                   dataKey="value"
                 >
                   {domainSuffixAnalysis.heldSuffixData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={`hsl(${index * 60}, 70%, 50%)`} />
+                    <Cell key={`cell-${index}`} fill={CHART_PALETTE[index % CHART_PALETTE.length]} />
                   ))}
                 </Pie>
                 <Tooltip formatter={(value, name) => [`${value}${t('analytics.countUnit')}`, name]} />
               </PieChart>
             </ResponsiveContainer>
             <div className="space-y-2">
-              <h4 className="font-medium text-gray-700">{t('analytics.detailedStats')}</h4>
+              <h4 className="font-medium text-stone-700">{t('analytics.detailedStats')}</h4>
               {domainSuffixAnalysis.heldSuffixData.slice(0, 5).map((suffix, index) => (
-                <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                <div key={index} className="flex items-center justify-between p-2 bg-stone-50 rounded">
                   <span className="text-sm font-medium">{suffix.name}</span>
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-600">{suffix.value}{t('analytics.countUnit')}</span>
-                    <span className="text-xs text-gray-500">({suffix.percentage.toFixed(1)}%)</span>
+                    <span className="text-sm text-stone-600">{suffix.value}{t('analytics.countUnit')}</span>
+                    <span className="text-xs text-stone-500">({suffix.percentage.toFixed(1)}%)</span>
                   </div>
                 </div>
               ))}
             </div>
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-500">
-            <Globe className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+          <div className="text-center py-8 text-stone-500">
+            <Globe className="h-12 w-12 mx-auto mb-4 text-stone-300" />
             <p>{t('analytics.noHeldDomains')}</p>
           </div>
         )}
       </div>
 
       <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.investmentDistribution')}</h3>
+        <h3 className="text-lg font-semibold text-stone-900 mb-4">{t('analytics.investmentDistribution')}</h3>
         {(() => {
           const statusData = [
-            { name: t('analytics.activeDomains'), value: filteredData.domains.filter(d => d.status === 'active').length, color: '#10B981' },
-            { name: t('analytics.forSaleDomains'), value: filteredData.domains.filter(d => d.status === 'for_sale').length, color: '#F59E0B' },
-            { name: t('analytics.soldDomains'), value: filteredData.domains.filter(d => d.status === 'sold').length, color: '#3B82F6' },
-            { name: t('analytics.expiredDomains'), value: filteredData.domains.filter(d => d.status === 'expired').length, color: '#EF4444' },
+            { name: t('analytics.activeDomains'), value: filteredData.domains.filter(d => d.status === 'active').length, color: '#10b981' },
+            { name: t('analytics.forSaleDomains'), value: filteredData.domains.filter(d => d.status === 'for_sale').length, color: '#f59e0b' },
+            { name: t('analytics.soldDomains'), value: filteredData.domains.filter(d => d.status === 'sold').length, color: '#0d9488' },
+            { name: t('analytics.expiredDomains'), value: filteredData.domains.filter(d => d.status === 'expired').length, color: '#ef4444' },
           ].filter(entry => entry.value > 0);
           if (statusData.length === 0) {
             return (
@@ -781,7 +782,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
 
       <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">{t('analytics.registrarDistribution')}</h3>
+          <h3 className="text-lg font-semibold text-stone-900">{t('analytics.registrarDistribution')}</h3>
           <span className="text-xs text-stone-500">
             {t('analytics.domainsCount')}: {registrarAnalysis.totalHeld}
           </span>
@@ -804,8 +805,8 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-500">
-            <Globe className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+          <div className="text-center py-8 text-stone-500">
+            <Building2 className="h-12 w-12 mx-auto mb-4 text-stone-300" />
             <p>{t('analytics.noRegistrarData')}</p>
           </div>
         )}
@@ -824,11 +825,11 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">{t('analytics.title')}</h3>
-            <p className="text-sm text-gray-500 mt-1">
-              {t('analytics.dataRange')}: <span className="font-medium text-gray-700">{getTimeframeText()}</span>
+            <h3 className="text-lg font-semibold text-stone-900">{t('analytics.title')}</h3>
+            <p className="text-sm text-stone-500 mt-1">
+              {t('analytics.dataRange')}: <span className="font-medium text-stone-700">{getTimeframeText()}</span>
               {selectedTimeframe !== 'ALL' && (
-                <span className="ml-2 text-xs text-gray-400">
+                <span className="ml-2 text-xs text-stone-400">
                   ({filteredData.domains.length} {t('analytics.domainsCount')}, {filteredData.transactions.length} {t('analytics.transactionsCount')})
                 </span>
               )}
@@ -862,47 +863,47 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       {selectedMetric === 'portfolio' && (
         <div className="space-y-6">
           {/* 关键洞察概览 */}
-          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-6 rounded-2xl border border-indigo-100">
-            <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Target className="h-5 w-5 text-indigo-600" />
+          <div className="bg-stone-50 p-6 rounded-2xl border border-stone-200/80">
+            <h4 className="text-lg font-semibold text-stone-900 mb-4 flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-teal-600" />
               {t('analytics.keyInsights')}
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white p-4 rounded-xl shadow-sm">
-                <p className="text-xs text-gray-500 mb-1">{t('analytics.totalReturn')}</p>
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100">
+                <p className="text-xs text-stone-500 mb-1">{t('analytics.totalReturn')}</p>
                 <p className={`text-2xl font-bold ${
-                  portfolioMetrics.totalReturn >= 0 ? 'text-green-600' : 'text-red-600'
+                  portfolioMetrics.totalReturn >= 0 ? 'text-emerald-700' : 'text-red-600'
                 }`}>
                   {portfolioMetrics.totalReturn >= 0 ? '+' : ''}{portfolioMetrics.totalReturn.toFixed(1)}%
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-stone-500 mt-1">
                   {portfolioMetrics.totalReturn >= 20 ? t('analytics.returnRating.excellent') :
                    portfolioMetrics.totalReturn >= 10 ? t('analytics.returnRating.good') :
                    portfolioMetrics.totalReturn >= 0 ? t('analytics.returnRating.slightlyProfitable') : t('analytics.returnRating.loss')}
                 </p>
               </div>
-              <div className="bg-white p-4 rounded-xl shadow-sm">
-                <p className="text-xs text-gray-500 mb-1">{t('analytics.sharpeRatio')}</p>
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100">
+                <p className="text-xs text-stone-500 mb-1">{t('analytics.sharpeRatio')}</p>
                 <p className={`text-2xl font-bold ${
-                  portfolioMetrics.sharpeRatio >= 1 ? 'text-green-600' :
-                  portfolioMetrics.sharpeRatio >= 0.5 ? 'text-yellow-600' : 'text-red-600'
+                  portfolioMetrics.sharpeRatio >= 1 ? 'text-emerald-700' :
+                  portfolioMetrics.sharpeRatio >= 0.5 ? 'text-amber-600' : 'text-red-600'
                 }`}>
                   {portfolioMetrics.sharpeRatio.toFixed(2)}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-stone-500 mt-1">
                   {portfolioMetrics.sharpeRatio >= 1 ? t('analytics.sharpeRating.excellent') :
                    portfolioMetrics.sharpeRatio >= 0.5 ? t('analytics.sharpeRating.average') : t('analytics.sharpeRating.needsOptimization')}
                 </p>
               </div>
-              <div className="bg-white p-4 rounded-xl shadow-sm">
-                <p className="text-xs text-gray-500 mb-1">{t('analytics.winRate')}</p>
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100">
+                <p className="text-xs text-stone-500 mb-1">{t('analytics.winRate')}</p>
                 <p className={`text-2xl font-bold ${
-                  portfolioMetrics.winRate >= 50 ? 'text-green-600' :
-                  portfolioMetrics.winRate >= 30 ? 'text-yellow-600' : 'text-red-600'
+                  portfolioMetrics.winRate >= 50 ? 'text-emerald-700' :
+                  portfolioMetrics.winRate >= 30 ? 'text-amber-600' : 'text-red-600'
                 }`}>
                   {portfolioMetrics.winRate.toFixed(1)}%
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-stone-500 mt-1">
                   {portfolioMetrics.winRate >= 50 ? t('analytics.winRateRating.good') :
                    portfolioMetrics.winRate >= 30 ? t('analytics.winRateRating.average') : t('analytics.winRateRating.needsImprovement')}
                 </p>
@@ -927,7 +928,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         <div className="space-y-6">
           {renderTrendsAnalysis()}
           <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.bestWorstTitle')}</h3>
+            <h3 className="text-lg font-semibold text-stone-900 mb-4">{t('analytics.bestWorstTitle')}</h3>
             <p className="text-sm text-stone-500 mb-4">{t('analytics.bestWorstSoldOnly')}</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="p-4 bg-green-50 rounded-xl">
