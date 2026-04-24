@@ -26,17 +26,12 @@ import {
   Legend
 } from 'recharts';
 import {
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
   BarChart3,
   Globe,
   Info,
   Wallet,
-  Percent,
   CalendarClock,
   Scale,
-  Sparkles,
   Building2,
 } from 'lucide-react';
 import { holdingCostAsOf } from '../../lib/renewalCostBasis';
@@ -294,48 +289,18 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       );
     }
 
+    // Total Investment / Total Revenue / Total Return 三张卡已删：FAO 顶部
+    // 4-KPI 已经显示这三个字段（Investment/Revenue/ROI），同屏重复展示让用户
+    // 误以为是不同口径。IA 现在只保留 FAO 没有的三个深度指标：Net Profit、
+    // Annualized Return、Sharpe Ratio，与 FAO 的 4-KPI 形成"摘要 → 细节"的
+    // 互补，而不是平行复读。
     const profitColor = portfolioMetrics.totalProfit >= 0 ? 'text-emerald-700' : 'text-red-600';
-    const returnColor =
-      portfolioMetrics.totalReturn >= 20 ? 'text-emerald-700' :
-      portfolioMetrics.totalReturn >= 10 ? 'text-teal-700' :
-      portfolioMetrics.totalReturn >= 0 ? 'text-stone-900' : 'text-red-600';
     const sharpeColor =
       portfolioMetrics.sharpeRatio >= 1 ? 'text-emerald-700' :
       portfolioMetrics.sharpeRatio >= 0.5 ? 'text-amber-600' : 'text-red-600';
-    const salesCount = filteredData.transactions.filter(t => t.type === 'sell').length;
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="bg-stone-50 rounded-xl p-4 border border-stone-100">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-stone-600">{t('analytics.totalInvestment')}</p>
-              <p className="text-2xl font-bold text-stone-900 mt-1">${portfolioMetrics.totalInvestment.toLocaleString()}</p>
-              {filteredData.domains.length > 0 && (
-                <p className="text-xs text-stone-500 mt-1">
-                  {filteredData.domains.length} {t('analytics.domainsCount')}
-                </p>
-              )}
-            </div>
-            <DollarSign className="h-8 w-8 text-stone-600 shrink-0" />
-          </div>
-        </div>
-
-        <div className="bg-emerald-50/70 rounded-xl p-4 border border-emerald-100/80">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-emerald-700">{t('analytics.totalRevenue')}</p>
-              <p className="text-2xl font-bold text-emerald-900 mt-1">${portfolioMetrics.totalRevenue.toLocaleString()}</p>
-              {salesCount > 0 && (
-                <p className="text-xs text-emerald-700/70 mt-1">
-                  {salesCount} {t('analytics.salesCount')}
-                </p>
-              )}
-            </div>
-            <TrendingUp className="h-8 w-8 text-emerald-600 shrink-0" />
-          </div>
-        </div>
-
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-stone-50 rounded-xl p-4 border border-stone-100">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
@@ -349,21 +314,6 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
               </p>
             </div>
             <Wallet className="h-8 w-8 text-stone-600 shrink-0" />
-          </div>
-        </div>
-
-        <div className="bg-stone-50 rounded-xl p-4 border border-stone-100">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-stone-600">{t('analytics.totalReturn')}</p>
-              <p className={`text-2xl font-bold mt-1 ${returnColor}`}>{portfolioMetrics.totalReturn.toFixed(1)}%</p>
-              <p className="text-xs text-stone-500 mt-1">
-                {portfolioMetrics.totalReturn >= 20 ? t('analytics.performanceRating.excellent') :
-                 portfolioMetrics.totalReturn >= 10 ? t('analytics.performanceRating.good') :
-                 portfolioMetrics.totalReturn >= 0 ? t('analytics.performanceRating.normal') : t('analytics.performanceRating.needsImprovement')}
-              </p>
-            </div>
-            <Percent className="h-8 w-8 text-stone-600 shrink-0" />
           </div>
         </div>
 
@@ -859,94 +809,27 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         </div>
       </div>
 
-      {/* 投资组合指标 */}
+      {/* 投资组合指标 ——
+          原 "Key Insights" 概览块（Total Return / Sharpe / Win Rate）已删：
+          Total Return = FAO 顶部的 ROI，Win Rate 也在 FAO 4-KPI 里，唯一独占
+          的 Sharpe 已在下方 KPI 行中保留，整块属于纯重复展示。
+          原 4-KPI Key Metrics 块更早已删除（见旧 cecee72：Max Drawdown /
+          Volatility 在稀疏数据上输出误导值，Win Rate / Avg Holding Period
+          已被 FAO 覆盖）。 */}
       {selectedMetric === 'portfolio' && (
         <div className="space-y-6">
-          {/* 关键洞察概览 */}
-          <div className="bg-stone-50 p-6 rounded-2xl border border-stone-200/80">
-            <h4 className="text-lg font-semibold text-stone-900 mb-4 flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-teal-600" />
-              {t('analytics.keyInsights')}
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100">
-                <p className="text-xs text-stone-500 mb-1">{t('analytics.totalReturn')}</p>
-                <p className={`text-2xl font-bold ${
-                  portfolioMetrics.totalReturn >= 0 ? 'text-emerald-700' : 'text-red-600'
-                }`}>
-                  {portfolioMetrics.totalReturn >= 0 ? '+' : ''}{portfolioMetrics.totalReturn.toFixed(1)}%
-                </p>
-                <p className="text-xs text-stone-500 mt-1">
-                  {portfolioMetrics.totalReturn >= 20 ? t('analytics.returnRating.excellent') :
-                   portfolioMetrics.totalReturn >= 10 ? t('analytics.returnRating.good') :
-                   portfolioMetrics.totalReturn >= 0 ? t('analytics.returnRating.slightlyProfitable') : t('analytics.returnRating.loss')}
-                </p>
-              </div>
-              <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100">
-                <p className="text-xs text-stone-500 mb-1">{t('analytics.sharpeRatio')}</p>
-                <p className={`text-2xl font-bold ${
-                  portfolioMetrics.sharpeRatio >= 1 ? 'text-emerald-700' :
-                  portfolioMetrics.sharpeRatio >= 0.5 ? 'text-amber-600' : 'text-red-600'
-                }`}>
-                  {portfolioMetrics.sharpeRatio.toFixed(2)}
-                </p>
-                <p className="text-xs text-stone-500 mt-1">
-                  {portfolioMetrics.sharpeRatio >= 1 ? t('analytics.sharpeRating.excellent') :
-                   portfolioMetrics.sharpeRatio >= 0.5 ? t('analytics.sharpeRating.average') : t('analytics.sharpeRating.needsOptimization')}
-                </p>
-              </div>
-              <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100">
-                <p className="text-xs text-stone-500 mb-1">{t('analytics.winRate')}</p>
-                <p className={`text-2xl font-bold ${
-                  portfolioMetrics.winRate >= 50 ? 'text-emerald-700' :
-                  portfolioMetrics.winRate >= 30 ? 'text-amber-600' : 'text-red-600'
-                }`}>
-                  {portfolioMetrics.winRate.toFixed(1)}%
-                </p>
-                <p className="text-xs text-stone-500 mt-1">
-                  {portfolioMetrics.winRate >= 50 ? t('analytics.winRateRating.good') :
-                   portfolioMetrics.winRate >= 30 ? t('analytics.winRateRating.average') : t('analytics.winRateRating.needsImprovement')}
-                </p>
-              </div>
-            </div>
-          </div>
           {renderPortfolioMetrics()}
           {renderPerformanceChart()}
-          {/* 原来的 "Key Metrics" 4 格块已删除：
-             - Win Rate / Avg Holding Period 在 FinancialAnalysisOptimized
-               的 4-KPI 行和 Portfolio Snapshot 里已经显示，重复
-             - Max Drawdown / Volatility 在底层是按 "过去 12 个月月度销售
-               收入" 计算的（不是组合估值），域名投资本身是低频大额事件，
-               这两个指标在稀疏数据上会给出 -100% / 85% 之类的误导性读数。
-               底层 useComprehensiveFinancialAnalysis 仍在算这些字段，若
-               日后接入真正的组合估值时间序列可以再重新展示。*/}
         </div>
       )}
 
-      {/* 趋势分析 */}
+      {/* 趋势分析 ——
+          原底部 "Best / Worst Performance" 块已删：与 FAO 的 Portfolio
+          Snapshot 中的 bestPerforming / worstPerforming 完全重复，且 FAO
+          的展示更紧凑（行内）。 */}
       {selectedMetric === 'trends' && (
         <div className="space-y-6">
           {renderTrendsAnalysis()}
-          <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-stone-900 mb-4">{t('analytics.bestWorstTitle')}</h3>
-            <p className="text-sm text-stone-500 mb-4">{t('analytics.bestWorstSoldOnly')}</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="p-4 bg-green-50 rounded-xl">
-                <div className="flex items-center space-x-2 mb-2">
-                  <TrendingUp className="h-5 w-5 text-green-600" />
-                  <span className="font-medium text-green-800">{t('analytics.bestPerformance')}</span>
-                </div>
-                <p className="text-lg font-semibold text-green-900">{portfolioMetrics.bestPerformingDomain}</p>
-              </div>
-              <div className="p-4 bg-red-50 rounded-xl">
-                <div className="flex items-center space-x-2 mb-2">
-                  <TrendingDown className="h-5 w-5 text-red-600" />
-                  <span className="font-medium text-red-800">{t('analytics.worstPerformance')}</span>
-                </div>
-                <p className="text-lg font-semibold text-red-900">{portfolioMetrics.worstPerformingDomain}</p>
-              </div>
-            </div>
-          </div>
         </div>
       )}
     </div>
