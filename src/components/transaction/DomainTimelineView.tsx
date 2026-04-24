@@ -1,12 +1,13 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import {
   ShoppingBag,
   RefreshCw,
   TrendingUp,
   CircleDot,
   ChevronRight,
+  Edit,
 } from 'lucide-react';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import type { DomainWithTags } from '../../types/dashboard';
@@ -22,6 +23,9 @@ interface DomainTimelineViewProps {
   transactions: TransactionWithRequiredFields[];
   onEditTransaction: (transaction: TransactionWithRequiredFields) => void;
   domainSearch: string;
+  /** URL-controlled selection（父组件 TransactionList 维护 ?txdomain=）。 */
+  selectedDomainId: string;
+  onSelectDomain: (id: string) => void;
 }
 
 function kindIcon(kind: DomainTimelineKind) {
@@ -60,6 +64,8 @@ export default function DomainTimelineView({
   transactions,
   onEditTransaction,
   domainSearch,
+  selectedDomainId,
+  onSelectDomain,
 }: DomainTimelineViewProps) {
   const { t, locale } = useI18nContext();
   const localeTag = locale === 'zh' ? 'zh-CN' : 'en-US';
@@ -70,19 +76,13 @@ export default function DomainTimelineView({
     return domains.filter((d) => d.domain_name.toLowerCase().includes(q));
   }, [domains, domainSearch]);
 
-  const [selectedId, setSelectedId] = useState('');
-
-  useEffect(() => {
-    if (filteredDomains.length === 0) {
-      setSelectedId('');
-      return;
-    }
-    if (!selectedId || !filteredDomains.some((d) => d.id === selectedId)) {
-      setSelectedId(filteredDomains[0].id);
-    }
-  }, [filteredDomains, selectedId]);
-
-  const selectedDomain = filteredDomains.find((d) => d.id === selectedId) ?? null;
+  // 选中域名的解析：URL 里指定的优先，否则回落到列表第一项。原实现走
+  // useState + useEffect，挂载时会闪一下"未选中"再被设上；这里改为
+  // 直接派生，无 setState、零闪烁。URL 上保留用户原始 pick，即使被搜索
+  // 临时筛掉，清空搜索后还能回到原选择。
+  const selectedDomain =
+    filteredDomains.find((d) => d.id === selectedDomainId) ?? filteredDomains[0] ?? null;
+  const effectiveSelectedId = selectedDomain?.id ?? '';
 
   const events: DomainTimelineEvent[] = useMemo(() => {
     if (!selectedDomain) return [];
@@ -154,12 +154,12 @@ export default function DomainTimelineView({
         <div className="bg-white rounded-2xl border border-stone-200/80 shadow-sm max-h-[min(420px,50vh)] overflow-y-auto">
           <ul className="divide-y divide-stone-100">
             {filteredDomains.map((d) => {
-              const active = d.id === selectedId;
+              const active = d.id === effectiveSelectedId;
               return (
                 <li key={d.id}>
                   <button
                     type="button"
-                    onClick={() => setSelectedId(d.id)}
+                    onClick={() => onSelectDomain(d.id)}
                     className={`w-full text-left px-4 py-3 flex items-center gap-2 text-sm transition ${
                       active
                         ? 'bg-teal-50 text-teal-900 font-medium'
@@ -197,57 +197,48 @@ export default function DomainTimelineView({
               {events.map((ev, index) => {
                 const Icon = kindIcon(ev.kind);
                 const isLast = index === events.length - 1;
-                const clickable = ev.transaction != null;
-                const Row = (
-                  <div
-                    className={`flex gap-4 pb-8 ${isLast ? 'pb-2' : ''} ${
-                      clickable ? 'cursor-pointer group' : ''
-                    }`}
-                    onClick={() => {
-                      if (ev.transaction) onEditTransaction(ev.transaction);
-                    }}
-                    onKeyDown={(e) => {
-                      if (!clickable) return;
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        onEditTransaction(ev.transaction!);
-                      }
-                    }}
-                    role={clickable ? 'button' : undefined}
-                    tabIndex={clickable ? 0 : undefined}
-                  >
-                    <div
-                      className={`relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full ring-2 ring-white shadow-sm ${kindBadgeClass(ev.kind)}`}
-                    >
-                      <Icon className="h-4 w-4" aria-hidden />
-                    </div>
-                    <div className="min-w-0 flex-1 pt-0.5">
-                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                        <span
-                          className={`text-sm font-semibold text-stone-900 ${clickable ? 'group-hover:text-teal-700' : ''}`}
-                        >
-                          {labelForEvent(ev)}
-                        </span>
-                        <span className="text-xs text-stone-500">{formatDate(ev.date)}</span>
+                return (
+                  <li key={ev.id}>
+                    <div className={`flex items-start gap-4 ${isLast ? 'pb-2' : 'pb-8'}`}>
+                      <div
+                        className={`relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full ring-2 ring-white shadow-sm ${kindBadgeClass(ev.kind)}`}
+                      >
+                        <Icon className="h-4 w-4" aria-hidden />
                       </div>
-                      <p className="text-base font-medium text-stone-800 mt-1">
-                        {formatMoney(ev.amount, ev.currency)}
-                      </p>
-                      {!ev.transaction && ev.kind === 'purchase' && (
-                        <p className="text-xs text-stone-500 mt-1">{t('timeline.virtualPurchaseHint')}</p>
-                      )}
-                      {ev.transaction?.notes && (
-                        <p className="text-xs text-stone-500 mt-1 line-clamp-2">{ev.transaction.notes}</p>
-                      )}
-                      {clickable && (
-                        <p className="text-xs text-teal-600 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {t('timeline.openTransaction')} →
+                      <div className="min-w-0 flex-1 pt-0.5">
+                        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                          <span className="text-sm font-semibold text-stone-900">
+                            {labelForEvent(ev)}
+                          </span>
+                          <span className="text-xs text-stone-500">{formatDate(ev.date)}</span>
+                        </div>
+                        <p className="text-base font-medium text-stone-800 mt-1">
+                          {formatMoney(ev.amount, ev.currency)}
                         </p>
+                        {!ev.transaction && ev.kind === 'purchase' && (
+                          <p className="text-xs text-stone-500 mt-1">{t('timeline.virtualPurchaseHint')}</p>
+                        )}
+                        {ev.transaction?.notes && (
+                          <p className="text-xs text-stone-500 mt-1 line-clamp-2">{ev.transaction.notes}</p>
+                        )}
+                      </div>
+                      {/* 显式 edit 按钮：原实现把整行做成 role=button 且
+                          "Open transaction →" 提示靠 hover 才浮现，触摸/键盘
+                          用户完全感知不到可点击。改为右侧固定可见的图标按钮，
+                          单击目标明确，无障碍语义也更干净。 */}
+                      {ev.transaction && (
+                        <button
+                          type="button"
+                          onClick={() => onEditTransaction(ev.transaction!)}
+                          aria-label={`${t('timeline.openTransaction')} · ${labelForEvent(ev)}`}
+                          className="p-2 text-stone-400 hover:text-teal-600 hover:bg-teal-50 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
                       )}
                     </div>
-                  </div>
+                  </li>
                 );
-                return <li key={ev.id}>{Row}</li>;
               })}
             </ul>
           </div>

@@ -129,6 +129,8 @@ const TransactionList = memo(function TransactionList({
   const pageRaw = Math.max(1, Number(searchParams.get('txpage')) || 1);
   // viewMode 持久化到 URL：偏好 timeline 的用户刷新/分享链接也能保住选择。
   const viewMode: 'list' | 'timeline' = searchParams.get('txview') === 'timeline' ? 'timeline' : 'list';
+  // timeline 选中域名同样持久化到 URL，并把状态放在父组件这里集中管理。
+  const selectedDomainId = searchParams.get('txdomain') ?? '';
 
   const updateParams = useCallback((updates: Record<string, string | null>) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -151,6 +153,7 @@ const TransactionList = memo(function TransactionList({
   const setTypeFilter = (s: string) => updateParams({ txtype: s === 'all' ? null : s, txpage: null });
   const setPage = (n: number) => updateParams({ txpage: n <= 1 ? null : String(n) });
   const setViewMode = (mode: 'list' | 'timeline') => updateParams({ txview: mode === 'list' ? null : 'timeline' });
+  const setSelectedDomainId = (id: string) => updateParams({ txdomain: id || null });
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -357,10 +360,13 @@ const TransactionList = memo(function TransactionList({
         <div className="flex-1">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+            {/* timeline 模式下搜索语义改变（只匹配域名名称，用来过滤左侧
+                选择列表），placeholder 也跟着切换，避免之前要靠下方一行
+                hint 文字才能让用户察觉。 */}
             <input
               type="search"
-              aria-label={t('transactionList.searchPlaceholder')}
-              placeholder={t('transactionList.searchPlaceholder')}
+              aria-label={viewMode === 'timeline' ? t('transactionList.searchPlaceholderTimeline') : t('transactionList.searchPlaceholder')}
+              placeholder={viewMode === 'timeline' ? t('transactionList.searchPlaceholderTimeline') : t('transactionList.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
@@ -407,10 +413,6 @@ const TransactionList = memo(function TransactionList({
         )}
       </div>
 
-      {viewMode === 'timeline' && (
-        <p className="text-sm text-stone-500">{t('timeline.searchHint')}</p>
-      )}
-
       {viewMode === 'list' && filteredTransactions.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 rounded-2xl border border-stone-200/80 bg-white shadow-sm divide-y sm:divide-y-0 sm:divide-x divide-stone-100">
           <div className="p-4">
@@ -450,6 +452,8 @@ const TransactionList = memo(function TransactionList({
           transactions={transactions}
           onEditTransaction={onEdit}
           domainSearch={searchTerm}
+          selectedDomainId={selectedDomainId}
+          onSelectDomain={setSelectedDomainId}
         />
       ) : filteredTransactions.length === 0 ? (
         <div className="text-center py-14 bg-white rounded-2xl border border-stone-200/80 shadow-sm">
