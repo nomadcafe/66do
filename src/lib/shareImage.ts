@@ -194,7 +194,7 @@ function drawUpperRightDecoration(
     if (h > maxH) { h = maxH; w = h * aspect; }
     const inset = 80;
     const x = contentRight - w - inset;
-    const y = 30;
+    const y = 10;
     ctx.drawImage(mascot, x, y, w, h);
     // Reserved footprint includes the image width, the inset we shifted
     // it left by, and a bit of buffer so text doesn't touch pixels.
