@@ -175,9 +175,15 @@ export default function DashboardPage() {
       .filter(transaction => (transaction.base_amount ?? transaction.amount) != null)
       .map(transaction => {
         const fullAmount = (transaction.base_amount ?? transaction.amount) ?? 0;
+        const initialFee = Number(transaction.platform_fee) || 0;
         let amountUSD = fullAmount;
         let platformFee: number | undefined = transaction.platform_fee ?? undefined;
-        let netAmount: number | undefined = transaction.net_amount ?? fullAmount;
+        // net_amount fallback 必须减掉平台费 —— 旧 fallback 直接用 fullAmount，
+        // 当 DB 里 net_amount 为 null（旧数据 / 导入数据 / 没经过当前表单
+        // handleSubmit 回写的记录）时，sellNetUSD 看到非 null 的 gross 就直接
+        // 返回，整个出售对所有 KPI / Monthly Cash Flow 都按毛额计算，平台费
+        // 静默丢失。fallback 用 gross - fee 才是 net 的本意。
+        let netAmount: number | undefined = transaction.net_amount ?? (fullAmount - initialFee);
         // 仅真实「分期」出售才按已收款比例折算；lump_sum 时表单仍带 installment_amount=0 等字段，若误判会导致销售额/收入在指标里恒为 0
         const isInstallmentSell =
           transaction.type === 'sell' && transaction.payment_plan === 'installment';
