@@ -50,6 +50,7 @@ import { calculatePaidAmountFromInstallment } from '../../src/lib/platformFeeCal
 import { totalHoldingCostForDomain } from '../../src/lib/renewalCostBasis';
 import {
   Globe,
+  AtSign,
   Plus,
   TrendingUp,
   LogOut,
@@ -811,17 +812,14 @@ export default function DashboardPage() {
       <header className="hidden lg:block border-b border-stone-200/60 bg-white/90 backdrop-blur-md sticky top-0 z-50 shadow-sm shadow-stone-200/50">
         <div className="max-w-6xl mx-auto px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <Link href="/" className="flex items-center gap-3 group">
+            <Link href="/" className="flex items-center gap-3 group" aria-label="Domain.Financial">
               <div className="w-10 h-10 bg-stone-800 rounded-xl flex items-center justify-center text-white shadow-sm group-hover:bg-stone-700 transition-colors">
-                <Globe className="h-5 w-5" />
+                <AtSign className="h-5 w-5" />
               </div>
-              <div>
-                <h1 className="text-lg font-semibold tracking-tight text-stone-900 leading-tight">
-                  <span className="text-stone-800">Domain</span>
-                  <span className="text-teal-600">.Financial</span>
-                </h1>
-                <p className="text-xs text-stone-500 mt-0.5">{t('dashboard.title')}</p>
-              </div>
+              <span className="text-lg font-semibold tracking-tight leading-tight">
+                <span className="text-stone-800">Domain</span>
+                <span className="text-teal-600">.Financial</span>
+              </span>
             </Link>
             <div className="flex items-center gap-4">
               <div
@@ -905,17 +903,14 @@ export default function DashboardPage() {
       <header className="lg:hidden border-b border-stone-200/60 bg-white/95 backdrop-blur-md sticky top-0 z-50 shadow-sm shadow-stone-200/50">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2.5">
+            <Link href="/" className="flex items-center gap-2.5" aria-label="Domain.Financial">
               <div className="w-9 h-9 bg-stone-800 rounded-xl flex items-center justify-center text-white shadow-sm">
-                <Globe className="h-5 w-5" />
+                <AtSign className="h-5 w-5" />
               </div>
-              <div>
-                <h1 className="text-base font-semibold tracking-tight text-stone-900 leading-tight">
-                  <span className="text-stone-800">Domain</span>
-                  <span className="text-teal-600">.Financial</span>
-                </h1>
-                <p className="text-xs text-stone-500 mt-0.5">{t('dashboard.title')}</p>
-              </div>
+              <span className="text-base font-semibold tracking-tight leading-tight">
+                <span className="text-stone-800">Domain</span>
+                <span className="text-teal-600">.Financial</span>
+              </span>
             </Link>
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-stone-700 rounded-full flex items-center justify-center text-white text-xs font-medium">
