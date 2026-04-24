@@ -290,6 +290,72 @@ export function calculateRiskLevel(
   return 'Low';
 }
 
+/** 单笔现金到账事件，用于把分期销售按时间维度展开。 */
+export interface CashReceiptEvent {
+  monthKey: string; // 'YYYY-MM'
+  netAmount: number;
+}
+
+/** 把一笔 sell 交易展开成实际现金到账的月度事件序列。
+ *
+ * - 一次性付款 (lump_sum)：原样返回单条 (t.date, sellNetUSD)
+ * - 分期 (installment)：
+ *   · 首付计入 t.date 当月（downpayment_amount > 0 时）
+ *   · 已付期 i ∈ [1, paid_periods] 各计入 t.date + i 个月
+ *   · 平台费按比例分摊到每条事件，保证 sum(netAmount) === sellNetUSD(t)
+ *   · 未付期不展开（还没到账）
+ *
+ * 用于 Monthly Cash Flow / 累计 Revenue 等"按月"展示，原实现把整笔 sell
+ * 都归到 t.date 那一个月，3 个月分期的收入会一起 spike 在销售当月，1-2
+ * 月间隔的柱子全是 0。
+ *
+ * 假设：分期的隐含付款日是 "t.date 同一日 + N 个月"。数据模型没有显式的
+ * installment_first_payment_date 字段，这是现有数据下能做的最准确近似。
+ */
+export function expandSellToCashReceipts(t: TransactionWithRequiredFields): CashReceiptEvent[] {
+  if (t.type !== 'sell') return [];
+  // monthKey 与 InvestmentAnalytics.timeSeriesData 现有写法对齐：
+  // ISO 字符串前 7 位 'YYYY-MM'。两边 key 格式必须一致，否则 map 取不出。
+  const monthKeyOf = (d: Date) => d.toISOString().slice(0, 7);
+  const txDate = new Date(t.date);
+  if (Number.isNaN(txDate.getTime())) return [];
+
+  const isInstallment = t.payment_plan === 'installment';
+  if (!isInstallment) {
+    return [{ monthKey: monthKeyOf(txDate), netAmount: sellNetUSD(t) }];
+  }
+
+  const down = t.downpayment_amount ?? 0;
+  const perPeriod = t.installment_amount ?? 0;
+  const paidPeriods = t.paid_periods ?? 0;
+  const totalGrossPaid = down + paidPeriods * perPeriod;
+  if (totalGrossPaid <= 0) {
+    // 数据缺失或还没付任何一期：保底回到原口径，避免直接消失
+    return [{ monthKey: monthKeyOf(txDate), netAmount: sellNetUSD(t) }];
+  }
+
+  // 已付总额对应的净额（transactionsForMetrics 已按比例缩放过 net_amount）
+  const totalNetPaid = sellNetUSD(t);
+  const feeRate = totalGrossPaid > 0 ? 1 - totalNetPaid / totalGrossPaid : 0;
+  const events: CashReceiptEvent[] = [];
+
+  if (down > 0) {
+    events.push({
+      monthKey: monthKeyOf(txDate),
+      netAmount: down * (1 - feeRate),
+    });
+  }
+  for (let i = 1; i <= paidPeriods; i++) {
+    const d = new Date(txDate);
+    d.setMonth(d.getMonth() + i);
+    events.push({
+      monthKey: monthKeyOf(d),
+      netAmount: perPeriod * (1 - feeRate),
+    });
+  }
+  return events;
+}
+
 /** 按自然年汇总：续费支出、其他流出（购入/费用/转移/营销等）、售出净收入与年度净现金流 */
 export interface YearlyRenewalProfitRow {
   year: number;

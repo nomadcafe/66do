@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useComprehensiveFinancialAnalysis } from '../../hooks/useFinancialCalculations';
-import { calculateInvestmentYears } from '../../lib/coreCalculations';
+import { calculateInvestmentYears, expandSellToCashReceipts } from '../../lib/coreCalculations';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import {
@@ -32,7 +32,6 @@ import {
   Building2,
 } from 'lucide-react';
 import { holdingCostAsOf } from '../../lib/renewalCostBasis';
-import { sellNetUSD } from '../../lib/coreCalculations';
 
 // interface Domain {
 //   id: string;
@@ -173,6 +172,22 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
   // 计算时间序列数据（基于筛选后的数据和时间范围）。窗口口径与
   // filteredData 保持一致：`monthsWindow` 非 null 时直接使用；ALL 则
   // 根据最早数据日期展开。
+  //
+  // 月度入账走 expandSellToCashReceipts：分期销售按 t.date + i 个月展开
+  // 已付期，避免把 36 个月分期里已付的 3 期都堆在销售当月（旧实现按
+  // t.date 月份归类整笔 sell 的 net，柱状图会一蹦到位 + 中间月份全 0，
+  // 累计 Revenue 线终值正确但途中失真）。
+  const monthlyNetInflowByMonth = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const t of filteredData.transactions) {
+      if (t.type !== 'sell') continue;
+      for (const r of expandSellToCashReceipts(t)) {
+        map.set(r.monthKey, (map.get(r.monthKey) ?? 0) + r.netAmount);
+      }
+    }
+    return map;
+  }, [filteredData.transactions]);
+
   const timeSeriesData: TimeSeriesData[] = useMemo(() => {
     const data: TimeSeriesData[] = [];
     const now = new Date();
@@ -210,12 +225,6 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       // 月末时点（月最后一刻），用于 "截至该月" 的累计计算
       const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
 
-      const monthTransactions = filteredData.transactions.filter(t => {
-        const transactionDate = new Date(t.date);
-        const transactionMonth = transactionDate.toISOString().slice(0, 7);
-        return transactionMonth === monthKey;
-      });
-
       // 用 holdingCostAsOf 按月结存算：已发生的购买/续费才计入，避免
       // 把之后才发生的续费算进历史月份。旧逻辑用 totalHoldingCostForDomain
       // 对当前状态计数，会把 2 年后才发生的续费算进 1 年前的那个点。
@@ -224,17 +233,21 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         0
       );
 
-      const revenue = monthTransactions
-        .filter(t => t.type === 'sell')
-        .reduce((sum, t) => sum + sellNetUSD(t), 0);
+      // 入账：从 monthlyNetInflowByMonth 直接取（已按到账月聚合）。
+      const revenue = monthlyNetInflowByMonth.get(monthKey) ?? 0;
 
       // 月度净现金流 = 本月实收 - 本月花出（买入/续费/平台费）。
       // 旧字段 monthlyReturn = revenue / new-investment 语义错位：分子分母
       // 落在两组不同域名上（本月卖出的域名很少是本月买入的），会在某个月
       // 卖出大额旧域名时算出 5000% 的虚高回报率，完全误导。净现金流是
       // 这个语境下能准确反映"本月发生了什么"的指标。
-      const costThisMonth = monthTransactions
-        .filter(t => t.type === 'buy' || t.type === 'renew' || t.type === 'fee')
+      // 流出仍按 t.date 月份归类：buy/renew/fee 都是一次性付款，不存在
+      // 分期到账问题。
+      const costThisMonth = filteredData.transactions
+        .filter((t) => {
+          if (t.type !== 'buy' && t.type !== 'renew' && t.type !== 'fee') return false;
+          return new Date(t.date).toISOString().slice(0, 7) === monthKey;
+        })
         .reduce((sum, t) => sum + (t.base_amount ?? t.amount), 0);
       const monthlyCashFlow = revenue - costThisMonth;
 
@@ -253,7 +266,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     }
 
     return data;
-  }, [filteredData, monthsWindow]);
+  }, [filteredData, monthsWindow, monthlyNetInflowByMonth]);
 
   // 辅助函数已移至共享计算库
 
