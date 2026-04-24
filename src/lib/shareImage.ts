@@ -95,6 +95,12 @@ export interface DomainSaleImageParams {
   holdingLocalized: string;
   /** Drives colour / copy. When false the card uses a neutral loss palette. */
   isProfit?: boolean;
+  /**
+   * Optional alpha-channel mascot (e.g. the cheering bull-head from
+   * `public/domainfinancialpng.png`). Drawn in the upper-right corner
+   * when profitable. Falls through to a 🎉 emoji if absent or loss mode.
+   */
+  mascotImage?: HTMLImageElement | null;
 }
 
 const FONT = 'Inter, "PingFang SC", "Microsoft YaHei", Arial, sans-serif';
@@ -226,13 +232,32 @@ export function drawDomainSaleImage(canvas: HTMLCanvasElement, p: DomainSaleImag
 
   fillGradientBackground(ctx, isProfit);
 
-  // Top-right celebration emoji (profit only). Loss mode stays clean --
-  // a party popper next to `POSITION CLOSED / -$500` reads as sarcastic.
-  if (isProfit) {
+  // Upper-right personality slot. On a profitable sale we draw the
+  // cheering mascot; if the asset didn't load we fall back to a 🎉
+  // emoji. Loss mode stays clean -- neither a cartoon nor a party
+  // popper belongs next to `POSITION CLOSED / -$500`.
+  const mascot = p.mascotImage;
+  const hasMascot = isProfit && mascot && mascot.complete && mascot.naturalWidth > 0;
+  let reservedRight = 0;
+  if (hasMascot && mascot) {
+    const maxW = 380;
+    const maxH = 280;
+    const aspect = mascot.naturalWidth / mascot.naturalHeight;
+    let w = maxW;
+    let h = w / aspect;
+    if (h > maxH) { h = maxH; w = h * aspect; }
+    const x = contentRight - w;
+    const y = 30;
+    ctx.drawImage(mascot, x, y, w, h);
+    // Reserve the mascot's horizontal footprint so hero text can't
+    // grow into it. +24 pad for breathing room.
+    reservedRight = w + 24;
+  } else if (isProfit) {
     ctx.font = `100px ${FONT}`;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'alphabetic';
     ctx.fillText('🎉', contentRight, 170);
+    reservedRight = 140;
   }
 
   // Badge (top)
@@ -244,16 +269,17 @@ export function drawDomainSaleImage(canvas: HTMLCanvasElement, p: DomainSaleImag
     accent
   );
 
-  // Domain name (hero 1). Cap its max width a bit short of the canvas
-  // edge so a long name never crashes into the emoji.
+  // Domain name (hero 1). `reservedRight` keeps the text from crashing
+  // into the mascot / emoji on the right side.
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = INK;
-  const heroMaxWidth = isProfit ? CANVAS_W - margin * 2 - 140 : CANVAS_W - margin * 2;
+  const heroMaxWidth = CANVAS_W - margin * 2 - reservedRight;
   fitText(ctx, p.domainName, heroMaxWidth, 72, 40, '800');
   ctx.fillText(p.domainName, margin, 210);
 
-  // Sale price (hero 2)
+  // Sale price (hero 2). Uses the full width because by the time we
+  // reach y=340 we're below where the mascot ends.
   ctx.fillStyle = accent;
   const priceStr = formatUSD(p.salePrice);
   fitText(ctx, priceStr, CANVAS_W - margin * 2, 96, 64, '800');
