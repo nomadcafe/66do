@@ -20,7 +20,8 @@ interface DomainCardProps {
 
 const DomainCard = memo(function DomainCard({ domain, transactions = [], onEdit, onDelete, onView }: DomainCardProps) {
   const [showShareModal, setShowShareModal] = useState(false);
-  const { t } = useI18nContext();
+  const { t, locale } = useI18nContext();
+  const localeTag = locale === 'zh' ? 'zh-CN' : 'en-US';
 
   // 计算总持有成本 - 使用useMemo优化
   const totalHoldingCost = useMemo(
@@ -28,27 +29,31 @@ const DomainCard = memo(function DomainCard({ domain, transactions = [], onEdit,
     [domain, transactions]
   );
 
+  // 与 InvestmentAnalytics 状态饼图 + DomainTable 对齐：3 段语义色
+  // (active emerald / for_sale amber / sold teal / expired rose)，统一
+  // 100/700 强度。原 sold=teal-100/800 太重 + expired 用 red 而非项目
+  // 调色板里的 rose；Table 上又是 stone/rose 50/700 一套，两边漂移。
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
-        return 'bg-emerald-100 text-emerald-800';
+        return 'bg-emerald-100 text-emerald-700';
       case 'for_sale':
-        return 'bg-amber-100 text-amber-800';
+        return 'bg-amber-100 text-amber-700';
       case 'sold':
-        return 'bg-teal-100 text-teal-800';
+        return 'bg-teal-100 text-teal-700';
       case 'expired':
-        return 'bg-red-100 text-red-800';
+        return 'bg-rose-100 text-rose-700';
       default:
         return 'bg-stone-100 text-stone-700';
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
+    return new Date(dateString).toLocaleDateString(localeTag);
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(localeTag, {
       style: 'currency',
       currency: 'USD'
     }).format(amount);
@@ -63,7 +68,7 @@ const DomainCard = memo(function DomainCard({ domain, transactions = [], onEdit,
         <button onClick={() => onView(domain)} className="p-1.5 text-stone-500 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label="View Details" title="View Details">
           <Eye className="h-4 w-4" />
         </button>
-        <button onClick={() => onEdit(domain)} className="p-1.5 text-stone-500 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label="Edit Domain" title="Edit Domain">
+        <button onClick={() => onEdit(domain)} className="p-1.5 text-stone-500 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label="Edit Domain" title="Edit Domain">
           <Edit className="h-4 w-4" />
         </button>
         {domain.status === 'sold' && (
@@ -84,14 +89,14 @@ const DomainCard = memo(function DomainCard({ domain, transactions = [], onEdit,
           <h3 className="text-base font-semibold text-stone-900 break-words leading-tight">
             {domain.domain_name}
           </h3>
-          <p className="text-sm text-gray-500 mt-1 break-words">{domain.registrar}</p>
+          <p className="text-sm text-stone-500 mt-1 break-words">{domain.registrar}</p>
         </div>
       </div>
 
       {/* 基本信息 */}
       <div className="space-y-3 mb-4">
         <div className="grid grid-cols-2 gap-3 text-sm">
-          <div className="flex items-center space-x-2 text-gray-600">
+          <div className="flex items-center space-x-2 text-stone-600">
             <Calendar className="h-4 w-4 flex-shrink-0" />
             <span className="truncate">{formatDate(domain.purchase_date || '')}</span>
           </div>
