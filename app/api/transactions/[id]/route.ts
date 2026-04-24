@@ -5,6 +5,7 @@ import { getAuthInfoFromRequest } from '../../../../src/lib/auth-helper'
 import { createAuthenticatedSupabaseClient } from '../../../../src/lib/supabaseAuthClient'
 import { getCorsHeaders, getCorsHeadersForError } from '../../../../src/lib/cors'
 import { isDomainOwnedByUser } from '../../../../src/lib/domainOwnership'
+import { checkUserWriteRateLimit } from '../../../../src/lib/rateLimit'
 
 // GET /api/transactions/[id] - 获取单个交易
 export async function GET(
@@ -75,6 +76,15 @@ export async function PUT(
     const corsHeaders = getCorsHeaders(request)
     const { id: transactionId } = await params
     const userId = authInfo.userId
+
+    const rl = await checkUserWriteRateLimit(userId)
+    if (rl.limited) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429, headers: corsHeaders }
+      )
+    }
+
     const client = await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
 
     if (!transaction) {
@@ -174,6 +184,15 @@ export async function DELETE(
     const corsHeaders = getCorsHeaders(request)
     const { id: transactionId } = await params
     const userId = authInfo.userId
+
+    const rl = await checkUserWriteRateLimit(userId)
+    if (rl.limited) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429, headers: corsHeaders }
+      )
+    }
+
     const client = await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
 
     const rowToDelete = await TransactionService.getTransactionByIdWithClient(client, transactionId, userId)

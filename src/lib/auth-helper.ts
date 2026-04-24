@@ -1,6 +1,27 @@
 import { NextRequest } from 'next/server';
-import { supabase } from '../../src/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import { logger } from './logger';
+
+// Per-call, non-persisting Supabase client. The browser-side singleton in
+// src/lib/supabase.ts keeps a mutable session in memory; reusing it on the
+// server would let supabase.auth.refreshSession() from one request leak the
+// refreshed session into a concurrent request.
+function buildServerAuthClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) {
+    throw new Error(
+      'Missing required env vars: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY'
+    );
+  }
+  return createClient(url, anonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
+}
 
 export async function getUserIdFromRequest(request: NextRequest): Promise<string | null> {
   return getAuthInfoFromRequest(request).then(info => info?.userId || null);
@@ -18,8 +39,10 @@ export async function getAuthInfoFromRequest(request: NextRequest): Promise<{ us
       return null;
     }
 
+    const client = buildServerAuthClient();
+
     const token = authHeader.substring(7);
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    const { data: { user }, error } = await client.auth.getUser(token);
     if (!error && user) {
       return { userId: user.id, accessToken: token };
     }
@@ -27,7 +50,7 @@ export async function getAuthInfoFromRequest(request: NextRequest): Promise<{ us
     const refreshToken =
       request.headers.get('x-refresh-token') || request.headers.get('X-Refresh-Token');
     if (refreshToken) {
-      const { data: refreshData, error: refError } = await supabase.auth.refreshSession({
+      const { data: refreshData, error: refError } = await client.auth.refreshSession({
         refresh_token: refreshToken,
       });
       if (!refError && refreshData.session?.user && refreshData.session.access_token) {

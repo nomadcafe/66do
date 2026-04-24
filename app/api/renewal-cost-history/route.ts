@@ -3,6 +3,7 @@ import { getCorsHeaders, getCorsHeadersForError } from '../../../src/lib/cors';
 import { getAuthInfoFromRequest } from '../../../src/lib/auth-helper';
 import { createAuthenticatedSupabaseClient } from '../../../src/lib/supabaseAuthClient';
 import { CONSTANTS } from '../../../src/lib/constants';
+import { checkUserWriteRateLimit } from '../../../src/lib/rateLimit';
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_EXCHANGE_RATE = 1000;
@@ -164,6 +165,15 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = authInfo.userId;
+
+    const rl = await checkUserWriteRateLimit(userId);
+    if (rl.limited) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429, headers: corsHeaders }
+      );
+    }
+
     const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined;
     const client = await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken);
 

@@ -8,8 +8,14 @@ import { supabase } from '../../../src/lib/supabase';
 function getSafeRedirect(redirect: string | null): string {
   if (!redirect || typeof redirect !== 'string') return '/dashboard';
   const path = redirect.trim();
-  if (path.startsWith('/') && !path.includes('//') && !path.includes(':')) return path;
-  return '/dashboard';
+  // Must be a same-origin path. Reject:
+  //   //evil.com          protocol-relative
+  //   /\evil.com          backslash that some parsers normalize to /
+  //   /foo:bar            any scheme-looking segment
+  if (!path.startsWith('/')) return '/dashboard';
+  if (path.startsWith('//') || path.startsWith('/\\')) return '/dashboard';
+  if (path.includes('\\') || path.includes(':')) return '/dashboard';
+  return path;
 }
 
 function AuthCallbackContent() {

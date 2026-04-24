@@ -258,7 +258,7 @@ export default function SaleSuccessModal({ isOpen, onClose, domain, transaction,
         break;
     }
     if (url) {
-      window.open(url, '_blank', 'width=600,height=400');
+      window.open(url, '_blank', 'width=600,height=400,noopener,noreferrer');
     }
   };
 

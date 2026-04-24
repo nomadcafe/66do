@@ -5,6 +5,7 @@ import { serverLogger } from './logger'
 type Limiters = {
   ip: Ratelimit
   email: Ratelimit
+  userWrite: Ratelimit
 }
 
 let cached: Limiters | null | undefined
@@ -32,6 +33,12 @@ function buildLimiters(): Limiters | null {
       redis,
       limiter: Ratelimit.slidingWindow(3, '1 h'),
       prefix: 'ratelimit:magic-link:email',
+      analytics: false,
+    }),
+    userWrite: new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(60, '1 m'),
+      prefix: 'ratelimit:write:user',
       analytics: false,
     }),
   }
@@ -69,6 +76,27 @@ export async function checkMagicLinkRateLimit(
     return { limited: false }
   } catch (err) {
     serverLogger.error('Rate limit check failed; failing open:', err)
+    return { limited: false }
+  }
+}
+
+/**
+ * Per-user rate limit for state-changing API routes (create/update/delete on
+ * domains, transactions, renewal cost history). Fails open on backend errors
+ * to match checkMagicLinkRateLimit; see M3 in the security audit for the
+ * trade-off discussion.
+ */
+export async function checkUserWriteRateLimit(
+  userId: string
+): Promise<{ limited: boolean }> {
+  const limiters = getLimiters()
+  if (!limiters) return { limited: false }
+
+  try {
+    const res = await limiters.userWrite.limit(userId)
+    return { limited: !res.success }
+  } catch (err) {
+    serverLogger.error('User write rate limit check failed; failing open:', err)
     return { limited: false }
   }
 }

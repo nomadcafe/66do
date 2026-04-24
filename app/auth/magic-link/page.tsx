@@ -16,13 +16,20 @@ function MagicLinkContent() {
 
   useEffect(() => {
     const handleMagicLink = async () => {
-      // Strip tokens from the address bar before anything awaits, so the URL
-      // is clean even if Supabase/async hooks race. Does not affect history.
-      const scrubUrl = () => {
-        if (typeof window !== 'undefined') {
-          window.history.replaceState(null, '', window.location.pathname);
-        }
-      };
+      // Read tokens synchronously, then scrub the address bar BEFORE any
+      // await. If a Supabase template ever delivers tokens via query string
+      // instead of the URL fragment, this keeps them out of the Referer
+      // header on any fetch that happens while we're awaiting setSession /
+      // verifyOtp.
+      const hash = typeof window !== 'undefined' ? window.location.hash : '';
+      const hashParams = new URLSearchParams(hash.replace(/^#/, ''));
+      const accessToken = hashParams.get('access_token') ?? searchParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token') ?? searchParams.get('refresh_token');
+      const token = hashParams.get('token') ?? searchParams.get('token');
+      const type = hashParams.get('type') ?? searchParams.get('type');
+      if (typeof window !== 'undefined') {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
 
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -32,26 +39,15 @@ function MagicLinkContent() {
         }
 
         if (session) {
-          scrubUrl();
           router.replace('/dashboard');
           return;
         }
-
-        // Supabase delivers magic-link tokens in the URL fragment by default;
-        // fall back to query params for older templates / compatibility.
-        const hash = typeof window !== 'undefined' ? window.location.hash : '';
-        const hashParams = new URLSearchParams(hash.replace(/^#/, ''));
-        const accessToken = hashParams.get('access_token') ?? searchParams.get('access_token');
-        const refreshToken = hashParams.get('refresh_token') ?? searchParams.get('refresh_token');
-        const token = hashParams.get('token') ?? searchParams.get('token');
-        const type = hashParams.get('type') ?? searchParams.get('type');
 
         if (accessToken && refreshToken) {
           const { data, error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken
           });
-          scrubUrl();
 
           if (error) {
             console.error('Session setting error:', error.message);
@@ -70,7 +66,6 @@ function MagicLinkContent() {
           const validTypes = ['email', 'signup', 'recovery', 'invite', 'email_change'] as const;
           type ValidOtpType = typeof validTypes[number];
           if (!validTypes.includes(type as ValidOtpType)) {
-            scrubUrl();
             setError(t('auth.magicLink.invalidLink'));
             setLoading(false);
             return;
@@ -80,7 +75,6 @@ function MagicLinkContent() {
             token_hash: token,
             type: type as ValidOtpType
           });
-          scrubUrl();
 
           if (error) {
             console.error('OTP verification error:', error.message);

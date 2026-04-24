@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
-import { Database } from './supabase'
-import { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from './supabase'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { logger } from './logger'
 
 type Tables = Database['public']['Tables']
@@ -25,10 +25,6 @@ export interface DataServiceResult<T> {
 
 // 域名相关操作
 export class DomainService {
-  static async getDomains(userId: string): Promise<Domain[]> {
-    return this.getDomainsWithClient(supabase, userId)
-  }
-
   static async getDomainsWithClient(
     client: SupabaseClient<Database>,
     userId: string
@@ -49,10 +45,6 @@ export class DomainService {
     return (data || []) as Domain[]
   }
 
-  static async createDomain(domain: DomainInsert): Promise<Domain | null> {
-    return this.createDomainWithClient(supabase, domain)
-  }
-
   static async createDomainWithClient(
     client: SupabaseClient<Database>,
     domain: DomainInsert
@@ -71,10 +63,6 @@ export class DomainService {
     }
     
     return data as Domain
-  }
-
-  static async updateDomain(id: string, updates: DomainUpdate, userId?: string): Promise<Domain | null> {
-    return this.updateDomainWithClient(supabase, id, updates, userId)
   }
 
   static async updateDomainWithClient(
@@ -111,10 +99,6 @@ export class DomainService {
     return data as Domain
   }
 
-  static async deleteDomain(id: string, userId?: string): Promise<boolean> {
-    return this.deleteDomainWithClient(supabase, id, userId)
-  }
-
   /** 使用带用户 JWT 的 client 执行删除，RLS 才能通过 */
   static async deleteDomainWithClient(
     client: SupabaseClient<Database>,
@@ -137,10 +121,6 @@ export class DomainService {
 
 // 交易相关操作
 export class TransactionService {
-  static async getTransactions(userId: string): Promise<Transaction[]> {
-    return this.getTransactionsWithClient(supabase, userId)
-  }
-
   /** PostgREST 默认每页有上限（常见 1000），必须分页否则 GET/PUT 用全表扫描会漏掉旧记录 */
   private static readonly TRANSACTION_PAGE_SIZE = 1000
 
@@ -188,11 +168,6 @@ export class TransactionService {
     return all
   }
 
-  static async createTransaction(transaction: TransactionInsert): Promise<Transaction | null> {
-    const { data } = await this.createTransactionWithClient(supabase, transaction)
-    return data
-  }
-
   static async createTransactionWithClient(
     client: SupabaseClient<Database>,
     transaction: TransactionInsert
@@ -210,10 +185,6 @@ export class TransactionService {
     }
 
     return { data, error: null }
-  }
-
-  static async updateTransaction(id: string, updates: TransactionUpdate, userId?: string): Promise<Transaction | null> {
-    return this.updateTransactionWithClient(supabase, id, updates, userId)
   }
 
   static async updateTransactionWithClient(
@@ -241,10 +212,6 @@ export class TransactionService {
     }
 
     return data
-  }
-
-  static async deleteTransaction(id: string, userId?: string): Promise<boolean> {
-    return this.deleteTransactionWithClient(supabase, id, userId)
   }
 
   static async deleteTransactionWithClient(
