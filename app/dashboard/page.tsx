@@ -45,7 +45,7 @@ import { useDashboardData } from '../../src/hooks/useDashboardData';
 import { useDomainOperations } from '../../src/hooks/useDomainOperations';
 import { useTransactionOperations } from '../../src/hooks/useTransactionOperations';
 import { useDomainStats } from '../../src/hooks/useDomainStats';
-import { calculateBasicFinancialMetrics, sellNetUSD } from '../../src/lib/coreCalculations';
+import { calculateBasicFinancialMetrics, sellNetUSD, expandSellToCashReceipts } from '../../src/lib/coreCalculations';
 import { calculatePaidAmountFromInstallment } from '../../src/lib/platformFeeCalculator';
 import { totalHoldingCostForDomain } from '../../src/lib/renewalCostBasis';
 import {
@@ -518,13 +518,21 @@ export default function DashboardPage() {
     const buckets = new Array(monthCount).fill(0) as number[];
     const now = new Date();
     const startMonth = new Date(now.getFullYear(), now.getMonth() - (monthCount - 1), 1);
+    // 走 expandSellToCashReceipts：分期销售按已付期数摊到对应到账月，每条
+    // 事件用 sellNetUSD 口径（已扣平台费，与 IA Monthly Cash Flow 一致）。
+    // 旧实现按 tx.date 把整笔 sell 加到销售月，且用 base_amount/amount（毛额），
+    // 让分期收入"全部 spike 在销售月 + 中间月份全 0 + 数额含平台费"三连错。
     for (const tx of transactionsForMetrics) {
-      if (tx.type !== 'sell' || !tx.date) continue;
-      const txDate = new Date(tx.date);
-      if (Number.isNaN(txDate.getTime())) continue;
-      const monthsDiff = (txDate.getFullYear() - startMonth.getFullYear()) * 12 + (txDate.getMonth() - startMonth.getMonth());
-      if (monthsDiff >= 0 && monthsDiff < monthCount) {
-        buckets[monthsDiff] += Number(tx.base_amount ?? tx.amount ?? 0);
+      if (tx.type !== 'sell') continue;
+      for (const receipt of expandSellToCashReceipts(tx)) {
+        const [yearStr, monthStr] = receipt.monthKey.split('-');
+        const year = Number(yearStr);
+        const month = Number(monthStr); // 1-based
+        if (!Number.isFinite(year) || !Number.isFinite(month)) continue;
+        const monthsDiff = (year - startMonth.getFullYear()) * 12 + ((month - 1) - startMonth.getMonth());
+        if (monthsDiff >= 0 && monthsDiff < monthCount) {
+          buckets[monthsDiff] += receipt.netAmount;
+        }
       }
     }
     const monthFormatter = new Intl.DateTimeFormat(locale === 'zh' ? 'zh-CN' : 'en-US', {
