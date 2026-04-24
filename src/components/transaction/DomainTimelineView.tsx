@@ -37,16 +37,21 @@ function kindIcon(kind: DomainTimelineKind) {
   }
 }
 
+// 与 TransactionList 的 getTypeColor 对齐 3 段语义色：
+//   sell (入账)            → emerald
+//   purchase / renew (主支出) → stone
+//   other (杂项支出)       → amber
+// 旧实现用 rose/sky 是孤立色（项目其他地方都没用）且与 list 不一致 ——
+// 同一笔续费在 list 是 stone、在 timeline 是 sky，跨视图认不出。
 function kindBadgeClass(kind: DomainTimelineKind): string {
   switch (kind) {
-    case 'purchase':
-      return 'bg-rose-100 text-rose-800 ring-rose-200/80';
-    case 'renew':
-      return 'bg-sky-100 text-sky-800 ring-sky-200/80';
     case 'sell':
-      return 'bg-emerald-100 text-emerald-800 ring-emerald-200/80';
-    default:
+      return 'bg-emerald-100 text-emerald-700 ring-emerald-200/80';
+    case 'purchase':
+    case 'renew':
       return 'bg-stone-100 text-stone-700 ring-stone-200/80';
+    default:
+      return 'bg-amber-50 text-amber-700 ring-amber-200/80';
   }
 }
 
@@ -56,7 +61,8 @@ export default function DomainTimelineView({
   onEditTransaction,
   domainSearch,
 }: DomainTimelineViewProps) {
-  const { t } = useI18nContext();
+  const { t, locale } = useI18nContext();
+  const localeTag = locale === 'zh' ? 'zh-CN' : 'en-US';
 
   const filteredDomains = useMemo(() => {
     const q = domainSearch.trim().toLowerCase();
@@ -85,7 +91,7 @@ export default function DomainTimelineView({
 
   const formatMoney = (amount: number | null, currency: string) => {
     if (amount == null || Number.isNaN(amount)) return '—';
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(localeTag, {
       style: 'currency',
       currency: currency || 'USD',
     }).format(amount);
@@ -93,7 +99,7 @@ export default function DomainTimelineView({
 
   const formatDate = (d: string) => {
     try {
-      return new Date(d).toLocaleDateString();
+      return new Date(d).toLocaleDateString(localeTag);
     } catch {
       return d;
     }
@@ -174,10 +180,7 @@ export default function DomainTimelineView({
 
       <div className="lg:col-span-8">
         {selectedDomain && (
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold text-stone-900">{selectedDomain.domain_name}</h3>
-            <p className="text-xs text-stone-500 mt-0.5">{t('timeline.subtitle')}</p>
-          </div>
+          <h3 className="mb-4 text-lg font-semibold text-stone-900">{selectedDomain.domain_name}</h3>
         )}
 
         {events.length === 0 ? (
