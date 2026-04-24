@@ -367,24 +367,28 @@ export default function DashboardPage() {
   }, [user, authLoading, router]);
 
   // 计算续费分析 - 使用缓存优化性能
+  // 注意：calculateAnnualRenewalCost 内部在缺 expiry_date 时会跳过该域名
+  // （见 src/lib/renewalCalculations.ts L49-50），所以上层 filter 也要
+  // 同步过滤，否则会出现"filter 通过但计算时被默默丢弃"的数据不一致。
   const renewalAnalysis = useMemo(() => {
     const validDomains = domains
-      .filter(domain => 
-        domain.status === 'active' && 
-        domain.renewal_cost !== null && 
-        domain.purchase_date !== null
+      .filter(domain =>
+        domain.status === 'active' &&
+        domain.renewal_cost !== null &&
+        domain.purchase_date !== null &&
+        domain.expiry_date !== null
       )
       .map(domain => ({
         id: domain.id,
-                domain_name: domain.domain_name,
+        domain_name: domain.domain_name,
         renewal_cost: domain.renewal_cost!,
-                renewal_cycle: domain.renewal_cycle,
-                renewal_count: domain.renewal_count,
+        renewal_cycle: domain.renewal_cycle,
+        renewal_count: domain.renewal_count,
         purchase_date: domain.purchase_date!,
-        expiry_date: domain.expiry_date || undefined,
+        expiry_date: domain.expiry_date!,
         status: domain.status
       }));
-    
+
     return calculateAnnualRenewalCost(validDomains);
   }, [domains]);
 
@@ -1105,14 +1109,14 @@ export default function DashboardPage() {
 
         {activeTab === 'insights' && (
           <div className="space-y-6">
-            {/* 续费分析 */}
+            {/* 续费分析 —— 即时轻 KPI：本块专注静态计数（需/不需续费）+
+                按周期分布。"今年预估成本"/"平均每域名成本"已拿掉，
+                前者与下方 Advanced Renewal Analysis 的线性回归预估值
+                口径不同会冲突，后者的 label 和实际公式（分母只算需续费域名）
+                不吻合，容易误导。 */}
             <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
               <h3 className="text-base font-semibold text-stone-900 mb-4">{t('renewal.analysis')}</h3>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="rounded-xl bg-stone-50 p-4 border border-stone-100">
-                  <p className="text-xs font-medium text-stone-500">{t('renewal.thisYearCost')}</p>
-                  <p className="text-xl font-bold text-stone-900 mt-1">{formatCurrencyEnhanced(renewalAnalysis.totalAnnualCost, 'USD')}</p>
-                </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div className="rounded-xl bg-stone-50 p-4 border border-stone-100">
                   <p className="text-xs font-medium text-stone-500">{t('renewal.needRenewal')}</p>
                   <p className="text-xl font-bold text-teal-700 mt-1">{renewalAnalysis.domainsNeedingRenewal.length}</p>
@@ -1120,14 +1124,6 @@ export default function DashboardPage() {
                 <div className="rounded-xl bg-stone-50 p-4 border border-stone-100">
                   <p className="text-xs font-medium text-stone-500">{t('renewal.noRenewal')}</p>
                   <p className="text-xl font-bold text-stone-900 mt-1">{renewalAnalysis.domainsNotNeedingRenewal.length}</p>
-                </div>
-                <div className="rounded-xl bg-stone-50 p-4 border border-stone-100">
-                  <p className="text-xs font-medium text-stone-500">{t('renewal.averageCostPerDomain')}</p>
-                  <p className="text-xl font-bold text-stone-900 mt-1">
-                    {renewalAnalysis.domainsNeedingRenewal.length > 0
-                      ? formatCurrencyEnhanced(renewalAnalysis.totalAnnualCost / renewalAnalysis.domainsNeedingRenewal.length, 'USD')
-                      : formatCurrencyEnhanced(0, 'USD')}
-                  </p>
                 </div>
               </div>
               {Object.keys(renewalAnalysis.costByCycle).length > 0 && (
