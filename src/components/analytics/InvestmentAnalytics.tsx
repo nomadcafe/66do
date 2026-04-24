@@ -258,7 +258,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
   const renderPortfolioMetrics = () => {
     if (filteredData.domains.length === 0 && filteredData.transactions.length === 0) {
       return (
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
           <div className="flex flex-col items-center justify-center py-12 text-gray-500">
             <BarChart3 className="h-16 w-16 text-gray-300 mb-4" />
             <p className="text-lg font-medium text-gray-600 mb-2">{t('analytics.noDataAvailable')}</p>
@@ -270,7 +270,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-lg text-white">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-2xl text-white">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-blue-100 text-sm">{t('analytics.totalInvestment')}</p>
@@ -285,7 +285,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-lg text-white">
+        <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-2xl text-white">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-purple-100 text-sm">{t('analytics.totalRevenue')}</p>
@@ -300,7 +300,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
           </div>
         </div>
 
-      <div className="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-lg text-white">
+      <div className="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-2xl text-white">
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
@@ -328,7 +328,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         </div>
       </div>
 
-      <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-6 rounded-lg text-white">
+      <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-6 rounded-2xl text-white">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-orange-100 text-sm">{t('analytics.totalReturn')}</p>
@@ -346,7 +346,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         </div>
       </div>
 
-      <div className="bg-gradient-to-br from-red-500 to-red-600 p-6 rounded-lg text-white">
+      <div className="bg-gradient-to-br from-red-500 to-red-600 p-6 rounded-2xl text-white">
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
@@ -373,7 +373,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         </div>
       </div>
 
-      <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 p-6 rounded-lg text-white">
+      <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 p-6 rounded-2xl text-white">
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
@@ -402,7 +402,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
   const renderPerformanceChart = () => {
     if (timeSeriesData.length === 0) {
       return (
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.portfolioPerformance')}</h3>
           <div className="flex flex-col items-center justify-center py-12 text-gray-500">
             <BarChart3 className="h-12 w-12 text-gray-300 mb-4" />
@@ -414,7 +414,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     }
 
     return (
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
+      <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">{t('analytics.portfolioPerformance')}</h3>
           <div className="flex items-center gap-4 text-xs text-gray-600">
@@ -584,7 +584,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
 
   const renderTrendsAnalysis = () => (
     <div className="space-y-6">
-      <div className="bg-white p-6 rounded-lg shadow-sm border overflow-x-auto">
+      <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm overflow-x-auto">
         <h3 className="text-lg font-semibold text-gray-900 mb-1">
           {t('analytics.yearlyRenewalProfit.title')}
         </h3>
@@ -667,7 +667,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         )}
       </div>
 
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
+      <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.monthlyCashFlowTrend')}</h3>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={timeSeriesData}>
@@ -695,7 +695,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         </ResponsiveContainer>
       </div>
 
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
+      <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.heldDomainSuffix')}</h3>
         {domainSuffixAnalysis.heldSuffixData.length > 0 ? (
           <div className="space-y-4">
@@ -738,7 +738,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         )}
       </div>
 
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
+      <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.investmentDistribution')}</h3>
         {(() => {
           const statusData = [
@@ -779,7 +779,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         })()}
       </div>
 
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
+      <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">{t('analytics.registrarDistribution')}</h3>
           <span className="text-xs text-stone-500">
@@ -789,7 +789,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         {registrarAnalysis.data.length > 0 ? (
           <div className="space-y-2">
             {registrarAnalysis.data.slice(0, 12).map((item, index) => (
-              <div key={`${item.name}-${index}`} className="flex items-center justify-between p-3 bg-stone-50 rounded-lg">
+              <div key={`${item.name}-${index}`} className="flex items-center justify-between p-3 bg-stone-50 rounded-xl">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-stone-900 truncate">{item.name}</p>
                   <div className="mt-1 h-2 bg-stone-200 rounded-full overflow-hidden">
@@ -821,7 +821,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
   return (
     <div className="space-y-6">
       {/* 分析类型选择器 */}
-      <div className="bg-white p-4 rounded-lg shadow-sm border">
+      <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">{t('analytics.title')}</h3>
@@ -838,7 +838,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
             <select
               value={selectedMetric}
               onChange={(e) => setSelectedMetric(e.target.value as 'portfolio' | 'trends')}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-400"
             >
               <option value="portfolio">{t('analytics.tab.portfolio')}</option>
               <option value="trends">{t('analytics.tab.trends')}</option>
@@ -846,7 +846,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
             <select
               value={selectedTimeframe}
               onChange={(e) => setSelectedTimeframe(e.target.value as '6M' | '1Y' | '2Y' | '3Y' | 'ALL')}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-400"
             >
               <option value="6M">{t('analytics.timeframe.6M')}</option>
               <option value="1Y">{t('analytics.timeframe.1Y')}</option>
@@ -862,13 +862,13 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       {selectedMetric === 'portfolio' && (
         <div className="space-y-6">
           {/* 关键洞察概览 */}
-          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-6 rounded-lg border border-indigo-100">
+          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-6 rounded-2xl border border-indigo-100">
             <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Target className="h-5 w-5 text-indigo-600" />
               {t('analytics.keyInsights')}
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white p-4 rounded-lg shadow-sm">
+              <div className="bg-white p-4 rounded-xl shadow-sm">
                 <p className="text-xs text-gray-500 mb-1">{t('analytics.totalReturn')}</p>
                 <p className={`text-2xl font-bold ${
                   portfolioMetrics.totalReturn >= 0 ? 'text-green-600' : 'text-red-600'
@@ -881,7 +881,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
                    portfolioMetrics.totalReturn >= 0 ? t('analytics.returnRating.slightlyProfitable') : t('analytics.returnRating.loss')}
                 </p>
               </div>
-              <div className="bg-white p-4 rounded-lg shadow-sm">
+              <div className="bg-white p-4 rounded-xl shadow-sm">
                 <p className="text-xs text-gray-500 mb-1">{t('analytics.sharpeRatio')}</p>
                 <p className={`text-2xl font-bold ${
                   portfolioMetrics.sharpeRatio >= 1 ? 'text-green-600' :
@@ -894,7 +894,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
                    portfolioMetrics.sharpeRatio >= 0.5 ? t('analytics.sharpeRating.average') : t('analytics.sharpeRating.needsOptimization')}
                 </p>
               </div>
-              <div className="bg-white p-4 rounded-lg shadow-sm">
+              <div className="bg-white p-4 rounded-xl shadow-sm">
                 <p className="text-xs text-gray-500 mb-1">{t('analytics.winRate')}</p>
                 <p className={`text-2xl font-bold ${
                   portfolioMetrics.winRate >= 50 ? 'text-green-600' :
@@ -926,18 +926,18 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       {selectedMetric === 'trends' && (
         <div className="space-y-6">
           {renderTrendsAnalysis()}
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
+          <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.bestWorstTitle')}</h3>
             <p className="text-sm text-stone-500 mb-4">{t('analytics.bestWorstSoldOnly')}</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="p-4 bg-green-50 rounded-lg">
+              <div className="p-4 bg-green-50 rounded-xl">
                 <div className="flex items-center space-x-2 mb-2">
                   <TrendingUp className="h-5 w-5 text-green-600" />
                   <span className="font-medium text-green-800">{t('analytics.bestPerformance')}</span>
                 </div>
                 <p className="text-lg font-semibold text-green-900">{portfolioMetrics.bestPerformingDomain}</p>
               </div>
-              <div className="p-4 bg-red-50 rounded-lg">
+              <div className="p-4 bg-red-50 rounded-xl">
                 <div className="flex items-center space-x-2 mb-2">
                   <TrendingDown className="h-5 w-5 text-red-600" />
                   <span className="font-medium text-red-800">{t('analytics.worstPerformance')}</span>
