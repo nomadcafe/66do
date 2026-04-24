@@ -1,12 +1,19 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { X, Download, Linkedin, Facebook } from 'lucide-react';
+import { X, Download } from 'lucide-react';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags } from '../../types/dashboard';
 import type { TransactionWithRequiredFields } from '../../types/transaction';
 import { calculateBasicFinancialMetrics, sellNetUSD } from '../../lib/coreCalculations';
 import { totalHoldingCostForDomain } from '../../lib/renewalCostBasis';
+
+// `#example.co.uk` is not a valid hashtag; `replace('.', '')` only strips
+// the first dot so multi-dot TLDs leaked through. Take the SLD instead.
+function domainHashtag(name: string): string {
+  const sld = name.split('.')[0] || name.replace(/\./g, '');
+  return sld ? `#${sld}` : '';
+}
 
 export interface ShareData {
   totalProfit: number;
@@ -45,7 +52,10 @@ function domainROI(domain: DomainWithTags, transactions: TransactionWithRequired
 function domainHoldingPeriod(domain: DomainWithTags, t: (key: string) => string, shortFormat = false): string {
   const purchaseDate = new Date(domain.purchase_date || '');
   const saleDate = domain.sale_date ? new Date(domain.sale_date) : new Date();
-  const diffDays = Math.ceil(Math.abs(saleDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
+  const a = purchaseDate.getTime();
+  const b = saleDate.getTime();
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return '—';
+  const diffDays = Math.ceil(Math.abs(b - a) / (1000 * 60 * 60 * 24));
   if (shortFormat) {
     if (diffDays < 30) return `${diffDays}d`;
     if (diffDays < 365) return `${Math.floor(diffDays / 30)}m`;
@@ -180,8 +190,13 @@ export default function ShareModal({ isOpen, onClose, shareData, domains = [], t
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    canvas.width = 800;
-    canvas.height = 600;
+    const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+    canvas.width = 800 * dpr;
+    canvas.height = 600 * dpr;
+    canvas.style.width = '800px';
+    canvas.style.height = '600px';
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
     // Portfolio 摘要：米白色暖渐变；单域名出售仍用 domainfinancial.png（见 drawDomainSaleCanvas）
     const gradient = ctx.createLinearGradient(0, 0, 0, 600);
     gradient.addColorStop(0, '#faf8f5');
@@ -236,8 +251,13 @@ export default function ShareModal({ isOpen, onClose, shareData, domains = [], t
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
-      canvas.width = 800;
-      canvas.height = 600;
+      const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+      canvas.width = 800 * dpr;
+      canvas.height = 600 * dpr;
+      canvas.style.width = '800px';
+      canvas.style.height = '600px';
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
       const img = celebrationImageRef.current;
       const useCelebrationImage = img && img.complete && img.naturalWidth > 0;
 
@@ -380,32 +400,38 @@ export default function ShareModal({ isOpen, onClose, shareData, domains = [], t
     link.click();
   };
 
-  const shareToSocial = (platform: string) => {
-    if (canvasRef.current) drawCanvas();
-    const imageData = canvasRef.current?.toDataURL();
-    if (!imageData) return;
+  const shareToX = () => {
     let text: string;
     if (shareMode === 'single' && selectedDomain) {
       const profit = domainProfit(selectedDomain, transactions);
       const roi = domainROI(selectedDomain, transactions);
-      text = `Successfully invested in ${selectedDomain.domain_name} on Domain Financial! Net profit $${profit.toLocaleString()}, ROI ${roi.toFixed(1)}%! 🚀 #DomainInvestment #DomainFinancial #${selectedDomain.domain_name.replace('.', '')}`;
+      const lede = profit >= 0
+        ? `Successfully invested in ${selectedDomain.domain_name} on Domain Financial! Net profit $${profit.toLocaleString()}, ROI ${roi.toFixed(1)}%! 🚀`
+        : `Closed out ${selectedDomain.domain_name} on Domain Financial. P&L $${profit.toLocaleString()}, ROI ${roi.toFixed(1)}%.`;
+      text = `${lede} #DomainInvestment #DomainFinancial ${domainHashtag(selectedDomain.domain_name)}`.trim();
     } else {
       const profit = Number.isFinite(portfolioShareData.totalProfit) ? portfolioShareData.totalProfit : 0;
       const roiVal = Number.isFinite(portfolioShareData.roi) ? portfolioShareData.roi : 0;
-      text = `My domain investment results on Domain Financial: Total profit $${profit.toLocaleString()}, ROI ${roiVal.toFixed(1)}%! 🚀 #DomainInvestment #DomainFinancial`;
+      const lede = profit >= 0
+        ? `My domain investment results on Domain Financial: Total profit $${profit.toLocaleString()}, ROI ${roiVal.toFixed(1)}%! 🚀`
+        : `My domain portfolio update on Domain Financial: P&L $${profit.toLocaleString()}, ROI ${roiVal.toFixed(1)}%.`;
+      text = `${lede} #DomainInvestment #DomainFinancial`;
     }
-    switch (platform) {
-      case 'x':
-        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank', 'width=600,height=400,noopener,noreferrer');
-        break;
-      case 'linkedin':
-        window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent('https://www.domain.financial')}`, '_blank', 'width=600,height=400,noopener,noreferrer');
-        break;
-      case 'facebook':
-        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent('https://www.domain.financial')}`, '_blank', 'width=600,height=400,noopener,noreferrer');
-        break;
-    }
+    window.open(
+      `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`,
+      '_blank',
+      'width=600,height=400,noopener,noreferrer'
+    );
   };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -413,8 +439,17 @@ export default function ShareModal({ isOpen, onClose, shareData, domains = [], t
   const canSelectSingle = soldDomains.length > 0;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-stone-200/80 shadow-xl">
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={t('dashboard.shareResults')}
+    >
+      <div
+        className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-stone-200/80 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="sticky top-0 bg-white border-b border-stone-200/80 px-6 py-4 flex items-center justify-between rounded-t-2xl">
           <h2 className="text-xl font-semibold text-stone-900">
             {t('dashboard.shareResults')}
@@ -511,31 +546,19 @@ export default function ShareModal({ isOpen, onClose, shareData, domains = [], t
             </div>
           </div>
 
+          {/* LinkedIn and Facebook sharers only accept a URL to scrape;
+              they cannot attach the canvas image and would post the site
+              homepage instead of the user's actual result. Keep X (text
+              intent carries the numbers) and Download. */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium text-stone-900">{t('common.shareToSocialMedia')}</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <button
-                onClick={() => shareToSocial('x')}
-                className="flex items-center justify-center gap-2 bg-stone-800 text-white px-4 py-3 rounded-xl hover:bg-stone-700 font-medium"
-              >
-                <span className="text-lg font-bold">𝕏</span>
-                <span>X</span>
-              </button>
-              <button
-                onClick={() => shareToSocial('linkedin')}
-                className="flex items-center justify-center gap-2 bg-stone-700 text-white px-4 py-3 rounded-xl hover:bg-stone-600"
-              >
-                <Linkedin className="h-5 w-5" />
-                <span>LinkedIn</span>
-              </button>
-              <button
-                onClick={() => shareToSocial('facebook')}
-                className="flex items-center justify-center gap-2 bg-stone-600 text-white px-4 py-3 rounded-xl hover:bg-stone-500"
-              >
-                <Facebook className="h-5 w-5" />
-                <span>Facebook</span>
-              </button>
-            </div>
+            <button
+              onClick={shareToX}
+              className="w-full flex items-center justify-center gap-2 bg-stone-800 text-white px-4 py-3 rounded-xl hover:bg-stone-700 font-medium"
+            >
+              <span className="text-lg font-bold">𝕏</span>
+              <span>X</span>
+            </button>
             <div className="flex justify-center">
               <button
                 onClick={downloadImage}
