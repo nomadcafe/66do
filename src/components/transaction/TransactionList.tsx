@@ -36,7 +36,8 @@ const TransactionList = memo(function TransactionList({
   onDelete,
   onAdd 
 }: TransactionListProps) {
-  const { t } = useI18nContext();
+  const { t, locale } = useI18nContext();
+  const localeTag = locale === 'zh' ? 'zh-CN' : 'en-US';
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -93,24 +94,23 @@ const TransactionList = memo(function TransactionList({
     }
   };
 
+  // 按"金钱方向"3 段着色：入账绿、主支出中性 stone、杂项支出 amber。
+  // 旧实现给 7 个 type 各分一种孤立色（红/绿/蓝/黄/灰/紫/粉），其中 buy
+  // 用红色像"危险"，但买入只是常规支出，配色没有信息量反而误导。
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'buy':
-        return 'bg-red-100 text-red-800';
       case 'sell':
-        return 'bg-green-100 text-green-800';
+        return 'bg-emerald-100 text-emerald-700';
+      case 'buy':
       case 'renew':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-stone-100 text-stone-700';
       case 'transfer':
-        return 'bg-yellow-100 text-yellow-800';
       case 'fee':
-        return 'bg-gray-100 text-gray-800';
       case 'marketing':
-        return 'bg-purple-100 text-purple-800';
       case 'advertising':
-        return 'bg-pink-100 text-pink-800';
+        return 'bg-amber-50 text-amber-700';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-stone-100 text-stone-700';
     }
   };
 
@@ -127,27 +127,29 @@ const TransactionList = memo(function TransactionList({
     }
   };
 
-  const formatCurrency = (amount: number, currency: string) => {
-    return new Intl.NumberFormat('en-US', {
+  const formatCurrency = useCallback((amount: number, currency: string) => {
+    return new Intl.NumberFormat(localeTag, {
       style: 'currency',
       currency: currency
     }).format(amount);
-  };
+  }, [localeTag]);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
-  };
+  const formatDate = useCallback((dateString: string) => {
+    return new Date(dateString).toLocaleDateString(localeTag);
+  }, [localeTag]);
 
-  // 使用useMemo优化域名查找
-  const domainMap = useMemo(() => {
-    const map = new Map<string, string>();
-    domains.forEach(d => map.set(d.id, d.domain_name));
+  // domainById：行渲染需要拿完整 domain 对象算 ROI（旧逻辑每行 .find 是
+  // O(n×m)）。原 domainMap 只存 id→name，独立留一份完整对象的 Map，
+  // getDomainName 改走它，避免维护两份索引。
+  const domainById = useMemo(() => {
+    const map = new Map<string, DomainWithTags>();
+    domains.forEach((d) => map.set(d.id, d));
     return map;
   }, [domains]);
 
   const getDomainName = useCallback((domainId: string) => {
-    return domainMap.get(domainId) || t('transactionList.unknownDomain');
-  }, [domainMap, t]);
+    return domainById.get(domainId)?.domain_name || t('transactionList.unknownDomain');
+  }, [domainById, t]);
 
   const filteredTransactions = useMemo(() => {
     const filtered = transactions.filter(transaction => {
@@ -411,7 +413,7 @@ const TransactionList = memo(function TransactionList({
               const grossAmt = sellGrossUSD(transaction);
               const hasPlatformFee = isSell && transaction.platform_fee != null && transaction.platform_fee > 0;
               const isInstallment = isSell && transaction.payment_plan === 'installment';
-              const domain = isSell ? domains.find((d) => d.id === transaction.domain_id) : null;
+              const domain = isSell ? domainById.get(transaction.domain_id) : null;
               const sellRoi = isSell && domain ? calculateDomainROI(domain, [transaction]) : null;
               return (
                 <article key={transaction.id} className="bg-white rounded-2xl border border-stone-200/80 shadow-sm p-4">
@@ -539,7 +541,7 @@ const TransactionList = memo(function TransactionList({
                   {paginatedTransactions.map((transaction) => (
                   <tr key={transaction.id} className="hover:bg-stone-50/80">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-sm font-medium text-stone-900">
                         {getDomainName(transaction.domain_id)}
                       </div>
                     </td>
@@ -558,7 +560,7 @@ const TransactionList = memo(function TransactionList({
                             const grossAmt = sellGrossUSD(transaction);
                             const hasPlatformFee = isSell && transaction.platform_fee != null && transaction.platform_fee > 0;
                             const isInstallment = isSell && transaction.payment_plan === 'installment';
-                            const domain = isSell ? domains.find((d) => d.id === transaction.domain_id) : null;
+                            const domain = isSell ? domainById.get(transaction.domain_id) : null;
                             const sellRoi = isSell && domain ? calculateDomainROI(domain, [transaction]) : null;
                             return (
                               <>
@@ -589,28 +591,30 @@ const TransactionList = memo(function TransactionList({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <Calendar className="h-4 w-4 text-gray-400 mr-1" />
-                        <span className="text-sm text-gray-900">
+                        <Calendar className="h-4 w-4 text-stone-400 mr-1" />
+                        <span className="text-sm text-stone-900">
                           {formatDate(transaction.date)}
                         </span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 max-w-xs truncate">
+                      <div className="text-sm text-stone-700 max-w-xs truncate">
                         {transaction.notes || '-'}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end space-x-2">
+                      <div className="flex items-center justify-end gap-0.5">
                         <button
                           onClick={() => onEdit(transaction)}
-                          className="text-teal-600 hover:text-teal-800"
+                          aria-label={`${t('common.edit')} ${getDomainName(transaction.domain_id)}`}
+                          className="p-2 text-stone-500 hover:text-teal-600 hover:bg-teal-50 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
                         >
                           <Edit className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => onDelete(transaction.id)}
-                          className="text-red-600 hover:text-red-900"
+                          aria-label={`${t('common.delete')} ${getDomainName(transaction.domain_id)}`}
+                          className="p-2 text-stone-500 hover:text-rose-600 hover:bg-rose-50 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
