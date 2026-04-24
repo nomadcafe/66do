@@ -8,19 +8,21 @@ import {
 } from '../../lib/coreCalculations';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
   Area,
   AreaChart,
+  BarChart,
+  Bar,
   Legend
 } from 'recharts';
 import { 
@@ -100,7 +102,7 @@ interface TimeSeriesData {
   revenue: number;
   profit: number;
   portfolioValue: number;
-  monthlyReturn: number;
+  monthlyCashFlow: number;
 }
 
 export default function InvestmentAnalytics({ domains, transactions }: InvestmentAnalyticsProps) {
@@ -240,10 +242,19 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         .filter(t => t.type === 'sell')
         .reduce((sum, t) => sum + sellNetUSD(t), 0);
 
+      // 月度净现金流 = 本月实收 - 本月花出（买入/续费/平台费）。
+      // 旧字段 monthlyReturn = revenue / new-investment 语义错位：分子分母
+      // 落在两组不同域名上（本月卖出的域名很少是本月买入的），会在某个月
+      // 卖出大额旧域名时算出 5000% 的虚高回报率，完全误导。净现金流是
+      // 这个语境下能准确反映"本月发生了什么"的指标。
+      const costThisMonth = monthTransactions
+        .filter(t => t.type === 'buy' || t.type === 'renew' || t.type === 'fee')
+        .reduce((sum, t) => sum + (t.base_amount ?? t.amount), 0);
+      const monthlyCashFlow = revenue - costThisMonth;
+
       cumulativeRevenue += revenue;
       const profit = cumulativeRevenue - investment;
       const portfolioValue = investment + profit;
-      const monthlyReturn = investment > 0 ? (revenue / investment) * 100 : 0;
 
       data.push({
         date: monthKey,
@@ -251,7 +262,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         revenue,
         profit,
         portfolioValue,
-        monthlyReturn
+        monthlyCashFlow
       });
     }
 
@@ -687,21 +698,30 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       </div>
 
       <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.monthlyReturnTrend')}</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.monthlyCashFlowTrend')}</h3>
         <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={timeSeriesData}>
+          <BarChart data={timeSeriesData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="date" />
-            <YAxis />
-            <Tooltip formatter={(value) => [`${Number(value).toFixed(1)}%`, t('analytics.monthlyReturn')]} />
-            <Line 
-              type="monotone" 
-              dataKey="monthlyReturn" 
-              stroke="#3B82F6" 
-              strokeWidth={2}
-              name={t('analytics.monthlyReturn')}
+            <YAxis tickFormatter={(value) => `$${Number(value).toLocaleString()}`} />
+            <Tooltip
+              formatter={(value) => [
+                `$${Number(value).toLocaleString()}`,
+                t('analytics.monthlyCashFlow'),
+              ]}
             />
-          </LineChart>
+            <Bar
+              dataKey="monthlyCashFlow"
+              name={t('analytics.monthlyCashFlow')}
+            >
+              {timeSeriesData.map((entry, index) => (
+                <Cell
+                  key={`cashflow-${index}`}
+                  fill={entry.monthlyCashFlow >= 0 ? '#10B981' : '#EF4444'}
+                />
+              ))}
+            </Bar>
+          </BarChart>
         </ResponsiveContainer>
       </div>
 

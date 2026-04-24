@@ -819,8 +819,8 @@ const translations: Record<Locale, Translations> = {
       liquidityRisk: '流动性风险',
       investmentAdvice: '投资建议',
       portfolioPerformingWell: '投资组合表现良好，风险控制得当',
-      monthlyReturnTrend: '月度收益趋势',
-      monthlyReturn: '月度收益',
+      monthlyCashFlowTrend: '月度净现金流',
+      monthlyCashFlow: '月度净现金流',
       yearlyRenewalProfit: {
         title: '年度续费与售出对比',
         desc: '按自然年汇总当前时间范围内的交易；若未记购入/续费交易，则用域名档案补充：购入年计入 purchase_cost，续费按 renewal_count、renewal_cost、renewal_cycle 从购入日起推算到出售年（或今年），且不与已有 renew 交易重复。售出仍以 sell 交易为准。净现金流 = 售出净收入 − 续费 − 购入与费用。',
@@ -2011,8 +2011,8 @@ const translations: Record<Locale, Translations> = {
       liquidityRisk: 'Liquidity Risk',
       investmentAdvice: 'Investment Advice',
       portfolioPerformingWell: 'Portfolio performing well with good risk control',
-      monthlyReturnTrend: 'Monthly Return Trend',
-      monthlyReturn: 'Monthly Return',
+      monthlyCashFlowTrend: 'Monthly Net Cash Flow',
+      monthlyCashFlow: 'Monthly Net Cash Flow',
       yearlyRenewalProfit: {
         title: 'Annual renewal vs. sales',
         desc: 'Calendar-year totals from transactions in the selected range. If you did not log buy/renewal transactions, values are filled from domain records: purchase_cost in the purchase year; renewals inferred from renewal_count, renewal_cost, and renewal_cycle from purchase through sale year (or current year), without duplicating years that already have renew transactions. Sales use sell transactions only. Net cash flow = net sales − renewals − purchases & fees.',
