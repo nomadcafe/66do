@@ -304,8 +304,9 @@ export default async function HomePage({ params }: PageProps) {
           </div>
         </section>
 
-        {/* CTA strip */}
-        <section className="bg-stone-900 py-16 sm:py-20">
+        {/* CTA strip —— 与下方 footer 共用 stone-950，避免相邻深色块出现细微
+            色差接缝（旧 stone-900 → stone-950 视觉上像两段没对齐的渲染） */}
+        <section className="bg-stone-950 py-16 sm:py-20">
           <div className="mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
             <h2 className="text-2xl font-bold text-white sm:text-3xl">{d.home.startJourney}</h2>
             <p className="mt-3 text-lg text-stone-300">{d.home.joinThousands}</p>
@@ -316,7 +317,7 @@ export default async function HomePage({ params }: PageProps) {
                 startFreeLabel={d.home.startFree}
                 startFreeAria={d.home.startFree}
                 variant="cta"
-                className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-8 py-3.5 text-base font-semibold text-white transition hover:bg-teal-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-900"
+                className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-8 py-3.5 text-base font-semibold text-white transition hover:bg-teal-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-950"
               />
             </div>
           </div>
@@ -325,8 +326,12 @@ export default async function HomePage({ params }: PageProps) {
 
       <footer className="text-stone-300 bg-stone-950">
         <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
-          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="lg:col-span-1">
+          {/* 12-col grid 让 logo 列占 5 给描述留呼吸，product/support 各 3-4。
+              旧 4 列均分时 Contact 列只有 1 个邮箱链接显得空旷，与中间 2
+              列 3 行内容严重失衡；合并 Contact 到 Support 末尾、socials 占
+              位（T/D/G）暂去，等真有链接再加，让 footer 更整齐。 */}
+          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-12">
+            <div className="lg:col-span-5">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-stone-800">
                   <Globe className="h-5 w-5 text-white" />
@@ -335,32 +340,9 @@ export default async function HomePage({ params }: PageProps) {
                   {d.platform.name}
                 </span>
               </div>
-              <p className="mt-4 text-sm leading-relaxed">{d.footer.description}</p>
-              <div className="mt-4 flex gap-2">
-                <span
-                  className="flex h-9 w-9 cursor-default items-center justify-center rounded-lg bg-stone-800 text-xs font-medium text-stone-400"
-                  title={d.footer.socialComingSoon}
-                  aria-label={`Twitter — ${d.footer.socialComingSoon}`}
-                >
-                  T
-                </span>
-                <span
-                  className="flex h-9 w-9 cursor-default items-center justify-center rounded-lg bg-stone-800 text-xs font-medium text-stone-400"
-                  title={d.footer.socialComingSoon}
-                  aria-label={`Discord — ${d.footer.socialComingSoon}`}
-                >
-                  D
-                </span>
-                <span
-                  className="flex h-9 w-9 cursor-default items-center justify-center rounded-lg bg-stone-800 text-xs font-medium text-stone-400"
-                  title={d.footer.socialComingSoon}
-                  aria-label={`GitHub — ${d.footer.socialComingSoon}`}
-                >
-                  G
-                </span>
-              </div>
+              <p className="mt-4 text-sm leading-relaxed max-w-md">{d.footer.description}</p>
             </div>
-            <div>
+            <div className="lg:col-span-3">
               <h4 className="text-sm font-semibold uppercase tracking-wider text-white">
                 {d.footer.product}
               </h4>
@@ -370,7 +352,7 @@ export default async function HomePage({ params }: PageProps) {
                 performanceTracking={d.footer.performanceTracking}
               />
             </div>
-            <div>
+            <div className="lg:col-span-4">
               <h4 className="text-sm font-semibold uppercase tracking-wider text-white">
                 {d.footer.support}
               </h4>
@@ -394,13 +376,6 @@ export default async function HomePage({ params }: PageProps) {
                     {d.footer.termsOfService}
                   </Link>
                 </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-sm font-semibold uppercase tracking-wider text-white">
-                {d.footer.contact}
-              </h4>
-              <ul className="mt-4 space-y-2 text-sm">
                 <li>
                   <a
                     href="mailto:hello@domain.financial"
