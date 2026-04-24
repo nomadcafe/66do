@@ -120,7 +120,6 @@ const CHART_PALETTE = [
 export default function InvestmentAnalytics({ domains, transactions }: InvestmentAnalyticsProps) {
   const { t, locale } = useI18nContext();
   const [selectedTimeframe, setSelectedTimeframe] = useState<'6M' | '1Y' | '2Y' | '3Y' | 'ALL'>('ALL');
-  const [selectedMetric, setSelectedMetric] = useState<'portfolio' | 'trends'>('portfolio');
 
   // 根据选择的时间范围筛选数据
   // N 个月窗口（含当前月）。先前 filter 用 month-6/year-1-same-month 的
@@ -352,7 +351,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
           <h3 className="text-lg font-semibold text-stone-900">{t('analytics.portfolioPerformance')}</h3>
           <div className="flex items-center gap-4 text-xs text-stone-600">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-teal-600 rounded"></div>
+              <div className="w-3 h-3 bg-indigo-500 rounded"></div>
               <span>{t('analytics.investment')}</span>
             </div>
             <div className="flex items-center gap-2">
@@ -372,8 +371,8 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
           >
             <defs>
               <linearGradient id="colorInvestment" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#0d9488" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#0d9488" stopOpacity={0}/>
+                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
               </linearGradient>
               <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
@@ -406,7 +405,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
                 borderRadius: '8px',
                 boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
               }}
-              cursor={{ stroke: '#0d9488', strokeWidth: 2 }}
+              cursor={{ stroke: '#6366f1', strokeWidth: 2 }}
               formatter={(value, name) => [
                 `$${Number(value).toLocaleString()}`,
                 name === 'investment' ? t('analytics.investment') :
@@ -422,11 +421,11 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
               type="monotone"
               dataKey="investment"
               stackId="1"
-              stroke="#0d9488"
+              stroke="#6366f1"
               fill="url(#colorInvestment)"
               strokeWidth={2}
               name={t('analytics.investment')}
-              activeDot={{ r: 6, fill: '#0d9488' }}
+              activeDot={{ r: 6, fill: '#6366f1' }}
             />
             <Area
               type="monotone"
@@ -510,39 +509,41 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     return { data, totalHeld: heldDomains.length };
   }, [filteredData.domains, t]);
 
-  const renderTrendsAnalysis = () => (
-    <div className="space-y-6">
-      {/* Yearly Renewal vs Profit 表已迁到 AdvancedRenewalAnalysis：内容主体
-          是按年的续费支出/卖出净额对比，主题属于续费维度，与 IA 的图表/分布
-          剥离更清晰。 */}
-      <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-stone-900 mb-4">{t('analytics.monthlyCashFlowTrend')}</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={timeSeriesData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
-            <YAxis tickFormatter={(value) => `$${Number(value).toLocaleString()}`} />
-            <Tooltip
-              formatter={(value) => [
-                `$${Number(value).toLocaleString()}`,
-                t('analytics.monthlyCashFlow'),
-              ]}
-            />
-            <Bar
-              dataKey="monthlyCashFlow"
-              name={t('analytics.monthlyCashFlow')}
-            >
-              {timeSeriesData.map((entry, index) => (
-                <Cell
-                  key={`cashflow-${index}`}
-                  fill={entry.monthlyCashFlow >= 0 ? '#10B981' : '#EF4444'}
-                />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+  // 月度净现金流：原本在 Trends 子 tab 里，但属于"时间 × 金额"的月度
+  // delta 视角，与 Portfolio 的累计 AreaChart 互补，因此并到主流程紧跟在
+  // Performance Chart 之后展示。
+  const renderMonthlyCashFlow = () => (
+    <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
+      <h3 className="text-lg font-semibold text-stone-900 mb-4">{t('analytics.monthlyCashFlowTrend')}</h3>
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart data={timeSeriesData}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="date" />
+          <YAxis tickFormatter={(value) => `$${Number(value).toLocaleString()}`} />
+          <Tooltip
+            formatter={(value) => [
+              `$${Number(value).toLocaleString()}`,
+              t('analytics.monthlyCashFlow'),
+            ]}
+          />
+          <Bar
+            dataKey="monthlyCashFlow"
+            name={t('analytics.monthlyCashFlow')}
+          >
+            {timeSeriesData.map((entry, index) => (
+              <Cell
+                key={`cashflow-${index}`}
+                fill={entry.monthlyCashFlow >= 0 ? '#10b981' : '#ef4444'}
+              />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
 
+  const renderDistribution = () => (
+    <div className="space-y-6">
       <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
         <h3 className="text-lg font-semibold text-stone-900 mb-4">{t('analytics.heldDomainSuffix')}</h3>
         {domainSuffixAnalysis.heldSuffixData.length > 0 ? (
@@ -668,7 +669,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
 
   return (
     <div className="space-y-6">
-      {/* 分析类型选择器 */}
+      {/* 标题 + 时间范围选择器 */}
       <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -682,53 +683,35 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
               )}
             </p>
           </div>
-          <div className="flex items-center space-x-4">
-            <select
-              value={selectedMetric}
-              onChange={(e) => setSelectedMetric(e.target.value as 'portfolio' | 'trends')}
-              className="px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-400"
-            >
-              <option value="portfolio">{t('analytics.tab.portfolio')}</option>
-              <option value="trends">{t('analytics.tab.trends')}</option>
-            </select>
-            <select
-              value={selectedTimeframe}
-              onChange={(e) => setSelectedTimeframe(e.target.value as '6M' | '1Y' | '2Y' | '3Y' | 'ALL')}
-              className="px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-400"
-            >
-              <option value="6M">{t('analytics.timeframe.6M')}</option>
-              <option value="1Y">{t('analytics.timeframe.1Y')}</option>
-              <option value="2Y">{t('analytics.timeframe.2Y')}</option>
-              <option value="3Y">{t('analytics.timeframe.3Y')}</option>
-              <option value="ALL">{t('analytics.timeframe.ALL')}</option>
-            </select>
-          </div>
+          <select
+            value={selectedTimeframe}
+            onChange={(e) => setSelectedTimeframe(e.target.value as '6M' | '1Y' | '2Y' | '3Y' | 'ALL')}
+            className="px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-400"
+          >
+            <option value="6M">{t('analytics.timeframe.6M')}</option>
+            <option value="1Y">{t('analytics.timeframe.1Y')}</option>
+            <option value="2Y">{t('analytics.timeframe.2Y')}</option>
+            <option value="3Y">{t('analytics.timeframe.3Y')}</option>
+            <option value="ALL">{t('analytics.timeframe.ALL')}</option>
+          </select>
         </div>
       </div>
 
-      {/* 投资组合指标 ——
-          原 "Key Insights" 概览块（Total Return / Sharpe / Win Rate）已删：
-          Total Return = FAO 顶部的 ROI，Win Rate 也在 FAO 4-KPI 里，唯一独占
-          的 Sharpe 已在下方 KPI 行中保留，整块属于纯重复展示。
-          原 4-KPI Key Metrics 块更早已删除（见旧 cecee72：Max Drawdown /
-          Volatility 在稀疏数据上输出误导值，Win Rate / Avg Holding Period
-          已被 FAO 覆盖）。 */}
-      {selectedMetric === 'portfolio' && (
-        <div className="space-y-6">
-          {renderPortfolioMetrics()}
-          {renderPerformanceChart()}
-        </div>
-      )}
-
-      {/* 趋势分析 ——
-          原底部 "Best / Worst Performance" 块已删：与 FAO 的 Portfolio
-          Snapshot 中的 bestPerforming / worstPerforming 完全重复，且 FAO
-          的展示更紧凑（行内）。 */}
-      {selectedMetric === 'trends' && (
-        <div className="space-y-6">
-          {renderTrendsAnalysis()}
-        </div>
-      )}
+      {/* 单页流：原 Portfolio / Trends 子 tab 已合并 ——
+          - Insights tab 内再嵌一层子 tab 是双重导航，反直觉。
+          - 去重后 IA 内容已经很瘦（3 KPI + 1 累计图 + 1 月度图 + 3 个分布
+            视图），垂直堆叠完全可读。
+          - "Trends" 名实不符问题（搬走 Yearly Renewal 表后只剩分布）随子
+            tab 一起消失。
+          先删的有：
+          - Key Insights（Total Return / Sharpe / Win Rate 全部在 FAO）
+          - Best/Worst（与 FAO Portfolio Snapshot 的同名行重复）
+          - Key Metrics 4 格（cecee72：Max Drawdown / Volatility 在稀疏数据
+            上误导，其余 KPI 已被 FAO 覆盖）。 */}
+      {renderPortfolioMetrics()}
+      {renderPerformanceChart()}
+      {renderMonthlyCashFlow()}
+      {renderDistribution()}
     </div>
   );
 }
