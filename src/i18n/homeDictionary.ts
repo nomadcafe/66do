@@ -30,9 +30,7 @@ export interface HomeDictionary {
     title: string;
     subtitle: string;
     getStarted: string;
-    startJourney: string;
     trustedBy: string;
-    joinThousands: string;
     startFree: string;
     feature1: string;
     feature2: string;
@@ -105,10 +103,7 @@ const zh: HomeDictionary = {
     subtitle:
       '智能化的域名管理工具，帮您轻松追踪每个域名的成本、收益与表现。',
     getStarted: '开始使用',
-    startJourney: '开始您的域名投资之旅',
     trustedBy: '已有 200+ 域名投资者使用',
-    joinThousands:
-      '加入域名投资者使用 Domain.Financial 追踪他们的域名投资组合',
     startFree: '免费开始',
     feature1: '从一个域名开始，管理你的数字资产。',
     feature2: '记录购买、出售与到期时间。',
@@ -203,10 +198,7 @@ const en: HomeDictionary = {
     subtitle:
       'Intelligent domain management tools to help you easily track the cost, revenue and performance of each domain.',
     getStarted: 'Get Started',
-    startJourney: 'Start Your Domain Investment Journey',
     trustedBy: 'Trusted by 200+ domain investors',
-    joinThousands:
-      'Join domain investors using Domain.Financial to track their domain portfolios',
     startFree: 'Start Free',
     feature1: 'Start with one domain and manage your digital assets.',
     feature2: 'Track purchases, sales, and expiration dates.',

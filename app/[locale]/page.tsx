@@ -304,24 +304,6 @@ export default async function HomePage({ params }: PageProps) {
           </div>
         </section>
 
-        {/* CTA strip —— 与下方 footer 共用 stone-950，避免相邻深色块出现细微
-            色差接缝（旧 stone-900 → stone-950 视觉上像两段没对齐的渲染） */}
-        <section className="bg-stone-950 py-16 sm:py-20">
-          <div className="mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
-            <h2 className="text-2xl font-bold text-white sm:text-3xl">{d.home.startJourney}</h2>
-            <p className="mt-3 text-lg text-stone-300">{d.home.joinThousands}</p>
-            <div className="mt-8 flex justify-center">
-              <HomeCtaButtons
-                getStartedLabel={d.home.getStarted}
-                getStartedAria={d.home.getStarted}
-                startFreeLabel={d.home.startFree}
-                startFreeAria={d.home.startFree}
-                variant="cta"
-                className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-8 py-3.5 text-base font-semibold text-white transition hover:bg-teal-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-950"
-              />
-            </div>
-          </div>
-        </section>
       </main>
 
       <footer className="text-stone-300 bg-stone-950">
