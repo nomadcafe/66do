@@ -2,19 +2,21 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { TrendingUp, TrendingDown, Calendar, DollarSign, BarChart3, AlertTriangle } from 'lucide-react';
-import { DomainWithTags } from '../../types/dashboard';
+import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import { RenewalCostService, AnnualRenewalCostAnalysis, RenewalYearSummary } from '../../lib/renewalCostService';
 import { formatCurrency } from '../../lib/financialCalculations';
+import { calculateYearlyRenewalVsProfit } from '../../lib/coreCalculations';
 import { useI18nContext } from '../../contexts/I18nProvider';
 
 interface AdvancedRenewalAnalysisProps {
   domains: DomainWithTags[];
+  transactions: TransactionWithRequiredFields[];
 }
 
 const PAST_YEARS = 2;
 const FUTURE_YEARS = 3;
 
-export default function AdvancedRenewalAnalysis({ domains }: AdvancedRenewalAnalysisProps) {
+export default function AdvancedRenewalAnalysis({ domains, transactions }: AdvancedRenewalAnalysisProps) {
   const { t } = useI18nContext();
   const [analysis, setAnalysis] = useState<AnnualRenewalCostAnalysis | null>(null);
   const [yearSummaries, setYearSummaries] = useState<RenewalYearSummary[]>([]);
@@ -54,6 +56,15 @@ export default function AdvancedRenewalAnalysis({ domains }: AdvancedRenewalAnal
     const y = new Date().getFullYear();
     return Array.from({ length: PAST_YEARS + FUTURE_YEARS + 1 }, (_, i) => y - PAST_YEARS + i);
   }, [yearSummaries]);
+
+  // 续费 vs 利润：跨所有有数据的年份做现金流总览。原来挂在
+  // InvestmentAnalytics 的 Trends tab 里，但内容主体是按年的续费支出/卖出
+  // 净额对比，主题上属于续费维度而不是组合分析；移到本块，与上方的年度
+  // 预估前瞻并列，让用户一处看清多年现金流走向。
+  const yearlyRenewalProfitRows = useMemo(
+    () => calculateYearlyRenewalVsProfit(transactions, domains),
+    [transactions, domains]
+  );
 
   const maxEstimated = useMemo(
     () => Math.max(1, ...yearSummaries.map((s) => s.total_estimated_cost)),
@@ -344,6 +355,89 @@ export default function AdvancedRenewalAnalysis({ domains }: AdvancedRenewalAnal
           </div>
         </div>
       )}
+
+      <div className="overflow-x-auto">
+        <h4 className="text-md font-semibold text-stone-900 mb-1">
+          {t('analytics.yearlyRenewalProfit.title')}
+        </h4>
+        <p className="text-sm text-stone-500 mb-4">{t('analytics.yearlyRenewalProfit.desc')}</p>
+        {yearlyRenewalProfitRows.length === 0 ? (
+          <p className="text-center py-8 text-stone-500">{t('analytics.yearlyRenewalProfit.noData')}</p>
+        ) : (
+          <div className="min-w-[720px]">
+            <table className="w-full text-sm text-left">
+              <thead>
+                <tr className="border-b border-stone-200 text-stone-600">
+                  <th className="py-2 pr-3 font-medium">{t('analytics.yearlyRenewalProfit.year')}</th>
+                  <th className="py-2 pr-3 font-medium text-right">{t('analytics.yearlyRenewalProfit.renewal')}</th>
+                  <th className="py-2 pr-3 font-medium text-right">{t('analytics.yearlyRenewalProfit.otherOutflow')}</th>
+                  <th className="py-2 pr-3 font-medium text-right">{t('analytics.yearlyRenewalProfit.saleNet')}</th>
+                  <th className="py-2 pr-3 font-medium text-right">{t('analytics.yearlyRenewalProfit.netCashflow')}</th>
+                  <th className="py-2 pr-3 font-medium text-right">{t('analytics.yearlyRenewalProfit.renewalVsSale')}</th>
+                  <th className="py-2 pr-3 font-medium text-right">{t('analytics.yearlyRenewalProfit.renewalOfOutflows')}</th>
+                  <th className="py-2 font-medium text-center">
+                    {t('analytics.yearlyRenewalProfit.resultColumn')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {yearlyRenewalProfitRows.map((row) => (
+                  <tr key={row.year} className="border-b border-stone-100">
+                    <td className="py-2.5 pr-3 font-medium text-stone-900">{row.year}</td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums">
+                      ${row.renewalSpend.toLocaleString()}
+                    </td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums">
+                      ${row.otherOutflow.toLocaleString()}
+                    </td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums text-emerald-700">
+                      ${row.saleNet.toLocaleString()}
+                    </td>
+                    <td
+                      className={`py-2.5 pr-3 text-right font-semibold tabular-nums ${
+                        row.netCashflow > 0
+                          ? 'text-emerald-700'
+                          : row.netCashflow < 0
+                            ? 'text-red-600'
+                            : 'text-stone-700'
+                      }`}
+                    >
+                      ${row.netCashflow.toLocaleString()}
+                    </td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums text-stone-700">
+                      {row.renewalToSalePercent != null
+                        ? `${row.renewalToSalePercent.toFixed(1)}%`
+                        : t('analytics.yearlyRenewalProfit.notApplicable')}
+                    </td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums text-stone-700">
+                      {row.renewalSpend + row.otherOutflow > 0
+                        ? `${row.renewalShareOfOutflowsPercent.toFixed(1)}%`
+                        : t('analytics.yearlyRenewalProfit.notApplicable')}
+                    </td>
+                    <td className="py-2.5 text-center">
+                      <span
+                        className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                          row.netCashflow > 0
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : row.netCashflow < 0
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-stone-100 text-stone-700'
+                        }`}
+                      >
+                        {row.netCashflow > 0
+                          ? t('analytics.yearlyRenewalProfit.statusProfit')
+                          : row.netCashflow < 0
+                            ? t('analytics.yearlyRenewalProfit.statusLoss')
+                            : t('analytics.yearlyRenewalProfit.statusFlat')}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
