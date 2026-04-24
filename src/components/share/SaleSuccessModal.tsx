@@ -1,33 +1,13 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Download, Share2, Linkedin, Facebook, CheckCircle, DollarSign, TrendingUp } from 'lucide-react';
+import { X, Download, Share2, CheckCircle, DollarSign, TrendingUp } from 'lucide-react';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { calculateTotalInstallmentAmount } from '../../lib/platformFeeCalculator';
 import { totalHoldingCostForDomain } from '../../lib/renewalCostBasis';
 
 const CELEBRATION_IMAGE_URL = '/domainfinancial.png';
-
-// interface Domain {
-//   id: string;
-//   domain_name: string;
-//   purchase_date: string;
-//   purchase_cost: number;
-//   renewal_cost: number;
-//   renewal_count: number;
-//   status: 'active' | 'for_sale' | 'sold' | 'expired';
-// }
-
-// interface Transaction {
-//   domain_id: string;
-//   type: 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising';
-//   amount: number;
-//   currency: string;
-//   platform_fee?: number;
-//   net_amount?: number;
-//   date: string;
-// }
 
 interface SaleSuccessModalProps {
   isOpen: boolean;
@@ -38,12 +18,23 @@ interface SaleSuccessModalProps {
 }
 
 function holdingPeriodShort(purchaseDate: Date, saleDate: Date): string {
-  const diffDays = Math.ceil(Math.abs(saleDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
+  const a = purchaseDate.getTime();
+  const b = saleDate.getTime();
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return '—';
+  const diffDays = Math.ceil(Math.abs(b - a) / (1000 * 60 * 60 * 24));
   if (diffDays < 30) return `${diffDays}d`;
   if (diffDays < 365) return `${Math.floor(diffDays / 30)}m`;
   const years = Math.floor(diffDays / 365);
   const months = Math.floor((diffDays % 365) / 30);
   return months > 0 ? `${years}y ${months}m` : `${years}y`;
+}
+
+// `#example.co.uk` is not a valid hashtag. Take only the SLD so
+// multi-dot TLDs still render cleanly, and fall back to a stripped
+// form if the name is already a single token.
+function domainHashtag(name: string): string {
+  const sld = name.split('.')[0] || name.replace(/\./g, '');
+  return sld ? `#${sld}` : '';
 }
 
 export default function SaleSuccessModal({ isOpen, onClose, domain, transaction, transactions = [] }: SaleSuccessModalProps) {
@@ -119,9 +110,11 @@ export default function SaleSuccessModal({ isOpen, onClose, domain, transaction,
   const calculateHoldingPeriod = () => {
     const purchaseDate = new Date(domain.purchase_date || '');
     const saleDate = new Date(transaction.date);
-    const diffTime = Math.abs(saleDate.getTime() - purchaseDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+    const a = purchaseDate.getTime();
+    const b = saleDate.getTime();
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return '—';
+    const diffDays = Math.ceil(Math.abs(b - a) / (1000 * 60 * 60 * 24));
+
     if (diffDays < 30) {
       return `${diffDays}${t('common.days')}`;
     } else if (diffDays < 365) {
@@ -139,8 +132,16 @@ export default function SaleSuccessModal({ isOpen, onClose, domain, transaction,
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    canvas.width = 800;
-    canvas.height = 600;
+    // Render at device-pixel-ratio so the downloaded PNG stays crisp on
+    // retina screens and when re-uploaded at social-feed sizes. Logical
+    // coordinates below (800x600) are unchanged thanks to ctx.scale.
+    const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+    canvas.width = 800 * dpr;
+    canvas.height = 600 * dpr;
+    canvas.style.width = '800px';
+    canvas.style.height = '600px';
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
 
     const salePrice = getSalePriceUSD();
     const roi = calculateROI();
@@ -236,37 +237,41 @@ export default function SaleSuccessModal({ isOpen, onClose, domain, transaction,
     link.click();
   };
 
-  const shareToSocial = (platform: string) => {
-    drawShareImage();
-    const imageData = canvasRef.current?.toDataURL();
-    if (!imageData) return;
-
+  const shareToX = () => {
     const profit = calculateProfit();
     const roi = calculateROI();
-    const text = `🎉 Just sold ${domain.domain_name} on Domain Financial! Net profit $${profit.toLocaleString()}, ROI ${roi.toFixed(1)}%! 🚀 #DomainInvestment #DomainFinancial #${domain.domain_name.replace('.', '')}`;
-    
-    let url = '';
-    switch (platform) {
-      case 'x':
-        url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
-        break;
-      case 'linkedin':
-        url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent('https://www.domain.financial')}`;
-        break;
-      case 'facebook':
-        url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent('https://www.domain.financial')}`;
-        break;
-    }
-    if (url) {
-      window.open(url, '_blank', 'width=600,height=400,noopener,noreferrer');
-    }
+    // Don't put a celebration emoji on a loss -- 🎉 Net profit $-500 reads badly.
+    const lede = profit >= 0
+      ? `🎉 Just sold ${domain.domain_name} on Domain Financial! Net profit $${profit.toLocaleString()}, ROI ${roi.toFixed(1)}%! 🚀`
+      : `Closed out ${domain.domain_name} on Domain Financial. P&L $${profit.toLocaleString()}, ROI ${roi.toFixed(1)}%.`;
+    const text = `${lede} #DomainInvestment #DomainFinancial ${domainHashtag(domain.domain_name)}`.trim();
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank', 'width=600,height=400,noopener,noreferrer');
   };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={t('common.saleSuccess')}
+    >
+      <div
+        className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="flex items-center justify-center w-10 h-10 bg-green-100 rounded-full">
@@ -345,34 +350,23 @@ export default function SaleSuccessModal({ isOpen, onClose, domain, transaction,
             </div>
           </div>
 
-          {/* 分享选项：与 Share Investment Results 单域名样式一致，自动生成后即可分享 */}
+          {/* LinkedIn and Facebook sharers only accept a URL to scrape OG
+              metadata from -- they can't attach the generated image, and
+              the site's OG tags describe the homepage, not this sale. Only
+              X is kept because its text intent actually carries the P&L
+              numbers. Users who want LinkedIn/Facebook still download the
+              image and upload it manually. */}
           {imageGenerated && (
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900">{t('common.shareToSocialMedia')}</h3>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <button
-                  onClick={() => shareToSocial('x')}
-                  className="flex items-center justify-center gap-2 bg-stone-800 text-white px-4 py-3 rounded-xl hover:bg-stone-700 font-medium"
-                >
-                  <span className="text-lg font-bold">𝕏</span>
-                  <span>X</span>
-                </button>
-                <button
-                  onClick={() => shareToSocial('linkedin')}
-                  className="flex items-center justify-center gap-2 bg-stone-700 text-white px-4 py-3 rounded-xl hover:bg-stone-600"
-                >
-                  <Linkedin className="h-5 w-5" />
-                  <span>LinkedIn</span>
-                </button>
-                <button
-                  onClick={() => shareToSocial('facebook')}
-                  className="flex items-center justify-center gap-2 bg-stone-600 text-white px-4 py-3 rounded-xl hover:bg-stone-500"
-                >
-                  <Facebook className="h-5 w-5" />
-                  <span>Facebook</span>
-                </button>
-              </div>
+
+              <button
+                onClick={shareToX}
+                className="w-full flex items-center justify-center gap-2 bg-stone-800 text-white px-4 py-3 rounded-xl hover:bg-stone-700 font-medium"
+              >
+                <span className="text-lg font-bold">𝕏</span>
+                <span>X</span>
+              </button>
 
               <div className="flex justify-center">
                 <button
