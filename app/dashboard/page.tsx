@@ -490,7 +490,9 @@ export default function DashboardPage() {
   // Trend window for the portfolio sparkline (affects sparkline only — totals stay all-time)
   const [trendWindow, setTrendWindow] = useState<'3M' | '6M' | '1Y' | 'All'>('1Y');
 
-  const monthlyRevenueSeries = useMemo(() => {
+  // Sparkline 同时返回 labels（"YYYY-MM 简写"）让 PortfolioHealthCard 在 hover
+  // 时能展示对应月份；旧实现只返回 number[]，hover tooltip 没法说出"哪个月"。
+  const monthlyRevenue = useMemo(() => {
     let monthCount: number;
     if (trendWindow === '3M') monthCount = 3;
     else if (trendWindow === '6M') monthCount = 6;
@@ -525,8 +527,20 @@ export default function DashboardPage() {
         buckets[monthsDiff] += Number(tx.base_amount ?? tx.amount ?? 0);
       }
     }
-    return buckets;
-  }, [transactionsForMetrics, trendWindow]);
+    const monthFormatter = new Intl.DateTimeFormat(locale === 'zh' ? 'zh-CN' : 'en-US', {
+      year: 'numeric',
+      month: 'short',
+    });
+    const labels = buckets.map((_, i) => {
+      const d = new Date(startMonth);
+      d.setMonth(d.getMonth() + i);
+      return monthFormatter.format(d);
+    });
+    return { series: buckets, labels };
+  }, [transactionsForMetrics, trendWindow, locale]);
+
+  const monthlyRevenueSeries = monthlyRevenue.series;
+  const monthlyRevenueLabels = monthlyRevenue.labels;
 
   const trendWindowOptions: { key: '3M' | '6M' | '1Y' | 'All'; label: string }[] = [
     { key: '3M', label: '3M' },
@@ -549,13 +563,26 @@ export default function DashboardPage() {
   }, [trendWindow, stats.totalRevenue, monthlyRevenueSeries]);
 
   // Days until the next non-sold domain expires (negative = already expired but not yet marked)
-  const nextExpiryDays = useMemo(() => {
+  // 同时返回域名名 / 到期日 / 剩余天数，让 PortfolioHealthCard 的"Next Expiry"
+  // 不再只是一个孤零零的天数（用户根本不知道是哪个域名）。
+  const nextExpiry = useMemo(() => {
     const candidates = domains
       .filter((d) => d.status !== 'sold' && d.expiry_date)
-      .map((d) => Math.ceil((new Date(d.expiry_date!).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
-      .sort((a, b) => a - b);
+      .map((d) => ({
+        domainName: d.domain_name,
+        expiryDate: d.expiry_date!,
+        days: Math.ceil((new Date(d.expiry_date!).getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+      }))
+      .sort((a, b) => a.days - b.days);
     return candidates.length > 0 ? candidates[0] : null;
   }, [domains]);
+  const nextExpiryDays = nextExpiry?.days ?? null;
+  const nextExpiryDomain = nextExpiry?.domainName ?? null;
+  const nextExpiryDateLabel = nextExpiry
+    ? new Intl.DateTimeFormat(locale === 'zh' ? 'zh-CN' : 'en-US', { month: 'short', day: 'numeric' }).format(
+        new Date(nextExpiry.expiryDate)
+      )
+    : null;
 
   // "Stuck" = active/for_sale, held > 12 months, never sold. Investor signal to consider listing.
   const stuckDomains = useMemo(() => {
@@ -1008,7 +1035,10 @@ export default function DashboardPage() {
               allTimeRevenue={stats.totalRevenue}
               roi={stats.roi}
               monthlyRevenueSeries={monthlyRevenueSeries}
+              monthlyRevenueLabels={monthlyRevenueLabels}
               nextExpiryDays={nextExpiryDays}
+              nextExpiryDomain={nextExpiryDomain}
+              nextExpiryDateLabel={nextExpiryDateLabel}
               formatCurrency={(n) => formatCurrencyEnhanced(n)}
               windowOptions={trendWindowOptions}
               selectedWindow={trendWindow}
@@ -1027,6 +1057,7 @@ export default function DashboardPage() {
                 none: t('dashboard.portfolioCardNoExpiry'),
                 expired: t('dashboard.portfolioCardExpired'),
                 trendWindowAria: t('dashboard.trendWindow'),
+                allTimeFooter: t('dashboard.portfolioCardAllTimeFooter'),
               }}
             />
 
