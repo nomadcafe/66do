@@ -7,6 +7,7 @@ import { DomainWithTags } from '../../types/dashboard';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { calculateDomainROI } from '../../lib/financialCalculations';
 import { totalHoldingCostForDomain } from '../../lib/renewalCostBasis';
+import { domainStatusLabel as statusLabel } from '../../lib/domainStatusLabel';
 import type { TransactionWithRequiredFields } from '../../types/transaction';
 
 interface DomainCardProps {
@@ -65,18 +66,18 @@ const DomainCard = memo(function DomainCard({ domain, transactions = [], onEdit,
     >
       {/* Actions always visible — touch-friendly. On a translucent backdrop so they remain legible over content. */}
       <div className="absolute top-3 right-3 flex items-center gap-0.5 z-10 bg-white/80 backdrop-blur-sm rounded-lg p-0.5 border border-stone-200/60">
-        <button onClick={() => onView(domain)} className="p-1.5 text-stone-500 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label="View Details" title="View Details">
+        <button onClick={() => onView(domain)} className="p-1.5 text-stone-500 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label={`${t('domainList.table.viewDetails')} ${domain.domain_name}`} title={t('domainList.table.viewDetails')}>
           <Eye className="h-4 w-4" />
         </button>
-        <button onClick={() => onEdit(domain)} className="p-1.5 text-stone-500 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label="Edit Domain" title="Edit Domain">
+        <button onClick={() => onEdit(domain)} className="p-1.5 text-stone-500 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label={`${t('domainList.table.editDomain')} ${domain.domain_name}`} title={t('domainList.table.editDomain')}>
           <Edit className="h-4 w-4" />
         </button>
         {domain.status === 'sold' && (
-          <button onClick={() => setShowShareModal(true)} className="p-1.5 text-stone-500 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label="Share Success" title="Share Success">
+          <button onClick={() => setShowShareModal(true)} className="p-1.5 text-stone-500 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label={`${t('domainList.table.shareSale')} ${domain.domain_name}`} title={t('domainList.table.shareSale')}>
             <Share2 className="h-4 w-4" />
           </button>
         )}
-        <button onClick={() => onDelete(domain.id)} className="p-1.5 text-stone-500 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label="Delete Domain" title="Delete Domain">
+        <button onClick={() => onDelete(domain.id)} className="p-1.5 text-stone-500 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label={`${t('domainList.table.deleteDomain')} ${domain.domain_name}`} title={t('domainList.table.deleteDomain')}>
           <Trash2 className="h-4 w-4" />
         </button>
       </div>
@@ -161,10 +162,10 @@ const DomainCard = memo(function DomainCard({ domain, transactions = [], onEdit,
       <div className="mt-auto">
         <div className="flex items-center justify-between">
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(domain.status)}`}>
-            {domain.status.replace('_', ' ')}
+            {statusLabel(domain.status, t)}
           </span>
           <div className="text-right">
-            <p className="text-xs text-stone-500">Estimated Value</p>
+            <p className="text-xs text-stone-500">{t('domainList.table.estimatedValue')}</p>
             <p className="text-sm font-semibold text-stone-900">{formatCurrency(domain.estimated_value || 0)}</p>
           </div>
         </div>
