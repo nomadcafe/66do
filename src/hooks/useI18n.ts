@@ -859,13 +859,6 @@ const translations: Record<Locale, Translations> = {
       registrarDistribution: 'Registrar 域名分布',
       unknownRegistrar: '未填写 Registrar',
       noRegistrarData: '暂无 Registrar 统计数据',
-      analysisTypeSelector: '分析类型选择器',
-      tab: {
-        portfolio: '投资组合',
-        performance: '表现分析',
-        risk: '风险评估',
-        trends: '趋势分析'
-      },
       keyMetrics: '关键指标',
       bestWorstTitle: '最佳/最差表现',
       bestWorstSoldOnly: '仅基于已售出域名的已实现 ROI。',
@@ -2055,13 +2048,6 @@ const translations: Record<Locale, Translations> = {
       registrarDistribution: 'Registrar Domain Distribution',
       unknownRegistrar: 'Unknown registrar',
       noRegistrarData: 'No registrar distribution data',
-      analysisTypeSelector: 'Analysis Type Selector',
-      tab: {
-        portfolio: 'Portfolio',
-        performance: 'Performance',
-        risk: 'Risk',
-        trends: 'Trends'
-      },
       keyMetrics: 'Key Metrics',
       bestWorstTitle: 'Best / Worst Performance',
       bestWorstSoldOnly: 'Based on realized ROI of sold domains only.',
