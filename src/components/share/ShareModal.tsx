@@ -154,10 +154,11 @@ export default function ShareModal({ isOpen, onClose, shareData, domains = [], t
     if (shareMode === 'single' && selectedDomain) {
       const purchaseDate = new Date(selectedDomain.purchase_date || '');
       const saleDate = selectedDomain.sale_date ? new Date(selectedDomain.sale_date) : new Date();
+      const profit = domainProfit(selectedDomain, transactions);
       drawDomainSaleImage(canvasRef.current, {
         domainName: selectedDomain.domain_name,
         salePrice: selectedDomain.sale_price ?? 0,
-        profit: domainProfit(selectedDomain, transactions),
+        profit,
         roi: domainROI(selectedDomain, transactions),
         holdingShort: holdingPeriodShort(purchaseDate, saleDate),
         holdingLocalized: holdingPeriodLocalized(purchaseDate, saleDate, {
@@ -165,6 +166,7 @@ export default function ShareModal({ isOpen, onClose, shareData, domains = [], t
           months: t('common.months'),
           years: t('common.years'),
         }),
+        isProfit: profit >= 0,
         celebrationImage,
       });
     } else {

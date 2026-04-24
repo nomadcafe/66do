@@ -90,13 +90,15 @@ export default function SaleSuccessModal({
 
   const drawShareImage = useCallback(() => {
     if (!canvasRef.current) return;
+    const profit = calculateProfit();
     drawDomainSaleImage(canvasRef.current, {
       domainName: domain.domain_name,
       salePrice: getSalePriceUSD(),
-      profit: calculateProfit(),
+      profit,
       roi: calculateROI(),
       holdingShort: holdingPeriodShort(purchaseDate, saleDate),
       holdingLocalized,
+      isProfit: profit >= 0,
       celebrationImage,
     });
     setImageGenerated(true);
