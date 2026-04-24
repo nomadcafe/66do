@@ -92,6 +92,10 @@ const nextConfig: NextConfig = {
             value: 'strict-origin-when-cross-origin',
           },
           {
+            // Device-capability opt-outs only. The Topics API equivalent
+            // ('browsing-topics') is dropped intentionally: Firefox and Safari
+            // don't implement it and log a console warning for each request,
+            // and the privacy gain for a domain-tracking app is negligible.
             key: 'Permissions-Policy',
             value: [
               'camera=()',
@@ -102,9 +106,6 @@ const nextConfig: NextConfig = {
               'magnetometer=()',
               'gyroscope=()',
               'accelerometer=()',
-              // FLoC was replaced by the Topics API; opt out via browsing-topics.
-              // 'interest-cohort' is no longer a recognised feature in modern browsers.
-              'browsing-topics=()',
             ].join(', '),
           },
           // HSTS - 仅在HTTPS环境下启用
