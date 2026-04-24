@@ -46,6 +46,7 @@ import { useDomainOperations } from '../../src/hooks/useDomainOperations';
 import { useTransactionOperations } from '../../src/hooks/useTransactionOperations';
 import { useDomainStats } from '../../src/hooks/useDomainStats';
 import { calculateBasicFinancialMetrics, sellNetUSD } from '../../src/lib/coreCalculations';
+import { calculatePaidAmountFromInstallment } from '../../src/lib/platformFeeCalculator';
 import { totalHoldingCostForDomain } from '../../src/lib/renewalCostBasis';
 import {
   Globe,
@@ -192,12 +193,59 @@ export default function DashboardPage() {
           (transaction.installment_amount != null ||
             transaction.downpayment_amount != null ||
             (transaction.paid_periods != null && transaction.installment_period != null));
+        // 带"平台规则"的分期类型：费率由平台决定（Spaceship 5% / Atom 阶梯
+        // surcharge / Afternic 阶梯佣金 / Escrow 加项费），表单的"平台费用计算"
+        // 黄框只是展示，不会自动写入 transaction.platform_fee。所以 stored 值
+        // 通常是 0 或老数据残留。直接调 platformFeeCalculator 实时算，覆盖
+        // stored 值，所有指标都拿到正确净额。
+        // 'standard' 与未知类型仍走老的"按已收比例缩 stored fee"路径，让用户
+        // 对 standard 类型的 platform_fee 字段保持手动控制权。
+        const brandedInstallmentTypes = new Set([
+          'spaceship_installment',
+          'atom_installment',
+          'afternic_installment',
+          'escrow_installment',
+        ]);
+        const isBrandedInstallment =
+          isInstallmentSell &&
+          hasInstallmentData &&
+          typeof transaction.platform_fee_type === 'string' &&
+          brandedInstallmentTypes.has(transaction.platform_fee_type);
         const isInstallmentPartialOrCancelled =
           isInstallmentSell &&
           hasInstallmentData &&
           (transaction.installment_status === 'cancelled' ||
             ((transaction.paid_periods ?? 0) < (transaction.installment_period ?? 1)));
-        if (isInstallmentPartialOrCancelled) {
+        if (isBrandedInstallment) {
+          const down = transaction.downpayment_amount ?? 0;
+          const perPeriod = transaction.installment_amount ?? 0;
+          const totalPeriods = transaction.installment_period ?? 0;
+          // 对 status='completed' 的数据保险：哪怕 paid_periods 没被同步到 ==
+          // installment_period，也按全付计算，避免显示成部分付。
+          const effectivePaidPeriods =
+            transaction.installment_status === 'completed'
+              ? totalPeriods
+              : Math.min(totalPeriods, transaction.paid_periods ?? 0);
+          const customRate =
+            transaction.platform_fee_percentage != null && transaction.platform_fee_percentage > 0
+              ? transaction.platform_fee_percentage / 100
+              : undefined;
+          const result = calculatePaidAmountFromInstallment(
+            perPeriod,
+            effectivePaidPeriods,
+            totalPeriods,
+            transaction.platform_fee_type as string,
+            customRate,
+            undefined,
+            undefined,
+            transaction.user_input_fee_rate ?? undefined,
+            transaction.user_input_surcharge_rate ?? undefined,
+            { downpaymentAmount: down, finalPaymentAmount: transaction.final_payment_amount ?? 0 }
+          );
+          amountUSD = result.customerTotalAmount;
+          platformFee = result.platformFee;
+          netAmount = result.sellerNetAmount;
+        } else if (isInstallmentPartialOrCancelled) {
           const down = transaction.downpayment_amount ?? 0;
           const paid = transaction.paid_periods ?? 0;
           const perPeriod = transaction.installment_amount ?? 0;
