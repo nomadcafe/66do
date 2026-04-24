@@ -130,7 +130,7 @@ function computeShareDataFromData(
 export default function ShareModal({ isOpen, onClose, shareData, domains = [], transactions = [] }: ShareModalProps) {
   const { t, locale } = useI18nContext();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mascotImage = useMascotImage();
+  const mascots = useMascotImage();
   const [shareMode, setShareMode] = useState<'portfolio' | 'single'>('portfolio');
   const [selectedDomainId, setSelectedDomainId] = useState<string>('');
   const [portfolioRange, setPortfolioRange] = useState<PortfolioRange>('all');
@@ -167,11 +167,12 @@ export default function ShareModal({ isOpen, onClose, shareData, domains = [], t
           years: t('common.years'),
         }),
         isProfit: profit >= 0,
-        mascotImage,
+        mascotImage: profit >= 0 ? mascots.happy : mascots.sad,
       });
     } else {
+      const portfolioProfit = effectivePortfolioData.totalProfit;
       drawPortfolioImage(canvasRef.current, {
-        totalProfit: effectivePortfolioData.totalProfit,
+        totalProfit: portfolioProfit,
         roi: effectivePortfolioData.roi,
         bestDomain: effectivePortfolioData.bestDomain,
         totalInvestment: effectivePortfolioData.totalInvestment,
@@ -183,10 +184,10 @@ export default function ShareModal({ isOpen, onClose, shareData, domains = [], t
           totalInvestment: t('share.totalInvestment'),
           investmentPeriod: t('share.investmentPeriod'),
         },
-        mascotImage,
+        mascotImage: portfolioProfit >= 0 ? mascots.happy : mascots.sad,
       });
     }
-  }, [shareMode, selectedDomain, effectivePortfolioData, transactions, t, mascotImage]);
+  }, [shareMode, selectedDomain, effectivePortfolioData, transactions, t, mascots.happy, mascots.sad]);
 
   useEffect(() => {
     if (!isOpen) return;

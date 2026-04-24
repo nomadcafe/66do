@@ -172,11 +172,12 @@ function drawBadge(ctx: CanvasRenderingContext2D, x: number, y: number, label: s
 }
 
 /**
- * Draws the celebratory mascot in the upper-right (offset 80px inward
- * from the right edge so it doesn't feel glued to the corner). Falls
- * through to the given emoji when the mascot image isn't available,
- * and returns the horizontal footprint the caller should reserve on
- * the right side so hero text can't crash into the illustration.
+ * Draws the mascot in the upper-right (offset 80px inward from the
+ * right edge so it doesn't feel glued to the corner). If no mascot is
+ * available, falls through to the emoji if one was supplied, or
+ * renders nothing at all when the caller passes an empty string.
+ * Returns the horizontal footprint the caller should reserve on the
+ * right side so hero text can't crash into the illustration.
  */
 function drawUpperRightDecoration(
   ctx: CanvasRenderingContext2D,
@@ -186,8 +187,9 @@ function drawUpperRightDecoration(
 ): number {
   const hasMascot = !!(mascot && mascot.complete && mascot.naturalWidth > 0);
   if (hasMascot && mascot) {
-    // Source PNG is 612x408; drawing up to 600x400 keeps us at near
-    // 1:1 pixel scale (crispest render, no upscale blur).
+    // Happy PNG is 612x408 and sad PNG is 500x500; 600x400 keeps the
+    // wider happy mascot near 1:1 pixel scale and the square sad
+    // mascot scales to 400x400 which suits its compact composition.
     const maxW = 600;
     const maxH = 400;
     const aspect = mascot.naturalWidth / mascot.naturalHeight;
@@ -198,15 +200,16 @@ function drawUpperRightDecoration(
     const x = contentRight - w - inset;
     const y = 10;
     ctx.drawImage(mascot, x, y, w, h);
-    // Reserved footprint includes the image width, the inset we shifted
-    // it left by, and a bit of buffer so text doesn't touch pixels.
     return w + inset + 24;
   }
-  ctx.font = `100px ${FONT}`;
-  ctx.textAlign = 'right';
-  ctx.textBaseline = 'alphabetic';
-  ctx.fillText(emojiFallback, contentRight, 170);
-  return 140;
+  if (emojiFallback) {
+    ctx.font = `100px ${FONT}`;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(emojiFallback, contentRight, 170);
+    return 140;
+  }
+  return 0;
 }
 
 function drawMetricCell(
@@ -274,10 +277,16 @@ export function drawDomainSaleImage(canvas: HTMLCanvasElement, p: DomainSaleImag
   // cheering mascot; if the asset didn't load we fall back to a 🎉
   // emoji. Loss mode stays clean -- neither a cartoon nor a party
   // popper belongs next to `POSITION CLOSED / -$500`.
-  let reservedRight = 0;
-  if (isProfit) {
-    reservedRight = drawUpperRightDecoration(ctx, contentRight, p.mascotImage, '🎉');
-  }
+  // Profit: happy mascot with 🎉 emoji fallback. Loss: sad mascot
+  // with no emoji fallback -- if the sad PNG fails to load we keep
+  // the upper-right clean rather than force a 📉 that would feel
+  // bolted on.
+  const reservedRight = drawUpperRightDecoration(
+    ctx,
+    contentRight,
+    p.mascotImage,
+    isProfit ? '🎉' : ''
+  );
 
   // Badge (top)
   drawBadge(
@@ -410,12 +419,10 @@ export function drawPortfolioImage(canvas: HTMLCanvasElement, p: PortfolioImageP
 
   fillGradientBackground(ctx, isProfit);
 
-  // Same upper-right decoration as the sale card, but the celebratory
-  // mascot is only appropriate when the portfolio is actually up for
-  // this range. Losing portfolios fall through to the neutral 📊.
-  const reservedRight = isProfit
-    ? drawUpperRightDecoration(ctx, contentRight, p.mascotImage, '📊')
-    : drawUpperRightDecoration(ctx, contentRight, null, '📊');
+  // Same upper-right slot as the sale card. Caller passes the happy
+  // mascot for net-positive portfolios and the sad one for losing
+  // periods; 📊 stays as the neutral emoji fallback either way.
+  const reservedRight = drawUpperRightDecoration(ctx, contentRight, p.mascotImage, '📊');
 
   // Badge
   drawBadge(ctx, margin, 108, 'PORTFOLIO SUMMARY', accent);
