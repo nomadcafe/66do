@@ -1160,7 +1160,8 @@ export default function DashboardPage() {
             </LazyWrapper>
 
             <LazyWrapper>
-              <LazyExpiredDomainLossAnalysis domains={domains} transactions={transactions} />
+              {/* 对齐项目数据源约定（见第 172 行注释）：所有指标/图表都用 transactionsForMetrics */}
+              <LazyExpiredDomainLossAnalysis domains={domains} transactions={transactionsForMetrics} />
             </LazyWrapper>
 
             <LazyWrapper>

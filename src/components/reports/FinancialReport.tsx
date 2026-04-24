@@ -164,15 +164,33 @@ export default function FinancialReport({ domains, transactions }: FinancialRepo
     const activeDomains = filteredDomains.filter(d => d.status === 'active').length;
     const soldDomains = filteredDomains.filter(d => d.status === 'sold').length;
 
-    // 平均持有期
-    const soldDomainsWithDates = filteredDomains.filter(d => d.status === 'sold');
-    const avgHoldingPeriod = soldDomainsWithDates.length > 0 
-      ? soldDomainsWithDates.reduce((sum, domain) => {
-          const purchaseDate = new Date(domain.purchase_date || '');
-          const sellDate = new Date(); // 这里应该从交易记录中获取实际出售日期
-          const days = Math.floor((sellDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
-          return sum + days;
-        }, 0) / soldDomainsWithDates.length
+    // 平均持有期：用 domain.sale_date 做主来源；若缺失退回到该域名在本期内
+    // 最早一笔 sell 交易的日期。旧代码用 `new Date()` 当作所有已售域名的成交
+    // 日期，会把所有域名的持有期都算成"购入到今天"，人为拉长指标。
+    const soldDomainRows = filteredDomains.filter(d => d.status === 'sold');
+
+    const earliestSellByDomain = new Map<string, number>();
+    for (const tx of filteredTransactions) {
+      if (tx.type !== 'sell') continue;
+      const t = new Date(tx.date).getTime();
+      if (!Number.isFinite(t)) continue;
+      const prev = earliestSellByDomain.get(tx.domain_id);
+      if (prev === undefined || t < prev) earliestSellByDomain.set(tx.domain_id, t);
+    }
+
+    const holdingDaysSamples = soldDomainRows
+      .map((domain) => {
+        const purchaseTime = domain.purchase_date ? new Date(domain.purchase_date).getTime() : NaN;
+        const saleTime = domain.sale_date
+          ? new Date(domain.sale_date).getTime()
+          : earliestSellByDomain.get(domain.id) ?? NaN;
+        if (!Number.isFinite(purchaseTime) || !Number.isFinite(saleTime)) return null;
+        return Math.max(0, Math.floor((saleTime - purchaseTime) / (1000 * 60 * 60 * 24)));
+      })
+      .filter((d): d is number => d !== null);
+
+    const avgHoldingPeriod = holdingDaysSamples.length > 0
+      ? holdingDaysSamples.reduce((a, b) => a + b, 0) / holdingDaysSamples.length
       : 0;
 
     // 最佳/最差表现域名
@@ -292,8 +310,8 @@ export default function FinancialReport({ domains, transactions }: FinancialRepo
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Financial Report</h2>
-            <p className="text-gray-600">Comprehensive analysis of your domain investment portfolio</p>
+            <h2 className="text-2xl font-bold text-gray-900">{t('reports.financialReport')}</h2>
+            <p className="text-gray-600">{t('reports.financialReportSubtitle')}</p>
           </div>
           
           <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
