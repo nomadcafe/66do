@@ -1109,6 +1109,29 @@ export default function DashboardPage() {
 
         {activeTab === 'insights' && (
           <div className="space-y-6">
+            {/* 顺序按"概览 → 细节 → 主题分组"排列：
+                1) Financial Analysis：综合摘要（4 KPI + Snapshot + 推荐），用户进
+                   Insights 第一眼看整体健康。
+                2) Investment Analytics：放大镜，看图表/分布/趋势。
+                3) Renewal Overview（light）+ 4) Advanced Renewal Analysis（deep）：
+                   续费两块相邻，让用户一眼从 light counts 钻到 annual forecast。
+                5) Expired Domain Loss Analysis：失败案例放最末。
+                旧顺序把 light renewal 放最顶 + 把两个 renewal 块用 IA 隔开，违反
+                "概览→细节"和"主题相邻"两条原则，故调整。 */}
+            <LazyWrapper>
+              <LazyFinancialAnalysis
+                domains={domains}
+                transactions={transactionsForMetrics}
+              />
+            </LazyWrapper>
+
+            <LazyWrapper>
+              <LazyInvestmentAnalytics
+                domains={domains}
+                transactions={transactionsForMetrics}
+              />
+            </LazyWrapper>
+
             {/* 续费分析 —— 即时轻 KPI：本块专注静态计数（需/不需续费）+
                 按周期分布。"今年预估成本"/"平均每域名成本"已拿掉，
                 前者与下方 Advanced Renewal Analysis 的线性回归预估值
@@ -1144,26 +1167,12 @@ export default function DashboardPage() {
             </div>
 
             <LazyWrapper>
-              <LazyInvestmentAnalytics
-                domains={domains}
-                transactions={transactionsForMetrics}
-              />
-            </LazyWrapper>
-
-            <LazyWrapper>
               <LazyAdvancedRenewalAnalysis domains={domains} />
             </LazyWrapper>
 
             <LazyWrapper>
               {/* 对齐项目数据源约定（见第 172 行注释）：所有指标/图表都用 transactionsForMetrics */}
               <LazyExpiredDomainLossAnalysis domains={domains} transactions={transactionsForMetrics} />
-            </LazyWrapper>
-
-            <LazyWrapper>
-              <LazyFinancialAnalysis
-                domains={domains}
-                transactions={transactionsForMetrics}
-              />
             </LazyWrapper>
           </div>
         )}
