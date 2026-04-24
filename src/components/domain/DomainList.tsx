@@ -9,6 +9,7 @@ import { ListPagination } from '../ui/ListPagination';
 import { DomainWithTags } from '../../types/dashboard';
 import type { TransactionWithRequiredFields } from '../../types/transaction';
 import { useI18nContext } from '../../contexts/I18nProvider';
+import { useDebouncedUrlParam } from '../../hooks/useDebouncedUrlParam';
 
 interface DomainListProps {
   domains: DomainWithTags[];
@@ -30,7 +31,7 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
 
   // search / status / tag / view / page persisted in URL via dm* prefixed params (domain).
   // Defaults are omitted to keep URLs clean.
-  const searchTerm = searchParams.get('dmq') ?? '';
+  const urlSearchTerm = searchParams.get('dmq') ?? '';
   const statusFilter = searchParams.get('dmstatus') ?? 'all';
   const tagFilter = searchParams.get('dmtag') ?? 'all';
   const viewMode: 'grid' | 'table' = searchParams.get('dmview') === 'grid' ? 'grid' : 'table';
@@ -46,7 +47,15 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }, [searchParams, pathname, router]);
 
-  const setSearchTerm = (s: string) => updateParams({ dmq: s || null, dmpage: null });
+  // Input state is local + debounced to URL. Binding value={urlSearchTerm}
+  // directly drops characters on fast typing because every keystroke does a
+  // router.replace(). `searchTerm` is what we filter on -- updates instantly.
+  const writeSearchParam = useCallback(
+    (v: string | null) => updateParams({ dmq: v, dmpage: null }),
+    [updateParams]
+  );
+  const [searchTerm, setSearchTerm] = useDebouncedUrlParam(urlSearchTerm, writeSearchParam);
+
   const setStatusFilter = (s: string) => updateParams({ dmstatus: s === 'all' ? null : s, dmpage: null });
   const setTagFilter = (s: string) => updateParams({ dmtag: s === 'all' ? null : s, dmpage: null });
   const setViewMode = (m: 'grid' | 'table') => updateParams({ dmview: m === 'table' ? null : m });

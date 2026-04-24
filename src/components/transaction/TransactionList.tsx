@@ -9,6 +9,7 @@ import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import DomainTimelineView from './DomainTimelineView';
 import { ListPagination } from '../ui/ListPagination';
+import { useDebouncedUrlParam } from '../../hooks/useDebouncedUrlParam';
 
 interface TransactionListProps {
   transactions: TransactionWithRequiredFields[];
@@ -46,7 +47,7 @@ const TransactionList = memo(function TransactionList({
   // search/type/sort/page derived from URL (namespaced as tx* to avoid colliding with other components)
   type SortField = 'date' | 'amount' | 'type';
   type SortDir = 'asc' | 'desc';
-  const searchTerm = searchParams.get('txq') ?? '';
+  const urlSearchTerm = searchParams.get('txq') ?? '';
   const typeFilter = searchParams.get('txtype') ?? 'all';
   const sortField: SortField = ((): SortField => {
     const raw = searchParams.get('txsort');
@@ -65,7 +66,14 @@ const TransactionList = memo(function TransactionList({
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }, [searchParams, pathname, router]);
 
-  const setSearchTerm = (s: string) => updateParams({ txq: s || null, txpage: null });
+  // Input state is local + debounced to URL. See DomainList for details --
+  // binding value= directly to a URL param drops keystrokes on fast typing.
+  const writeSearchParam = useCallback(
+    (v: string | null) => updateParams({ txq: v, txpage: null }),
+    [updateParams]
+  );
+  const [searchTerm, setSearchTerm] = useDebouncedUrlParam(urlSearchTerm, writeSearchParam);
+
   const setTypeFilter = (s: string) => updateParams({ txtype: s === 'all' ? null : s, txpage: null });
   const setPage = (n: number) => updateParams({ txpage: n <= 1 ? null : String(n) });
 
