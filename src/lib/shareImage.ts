@@ -25,6 +25,16 @@ export function setupDprCanvas(canvas: HTMLCanvasElement): CanvasRenderingContex
   return ctx;
 }
 
+/**
+ * `1234` -> `$1,234`, `-1234` -> `-$1,234`. Using plain
+ * `$${n.toLocaleString()}` produced `$-1,234` which reads wrong.
+ */
+export function formatUSD(n: number): string {
+  return n < 0
+    ? `-$${Math.abs(n).toLocaleString()}`
+    : `$${n.toLocaleString()}`;
+}
+
 /** "2y 3m" / "6m" / "14d" — locale-neutral short form for the overlay. */
 export function holdingPeriodShort(purchase: Date, sale: Date): string {
   const a = purchase.getTime();
@@ -70,9 +80,19 @@ export interface DomainSaleImageParams {
   roi: number;
   holdingShort: string;
   holdingLocalized: string;
-  /** When present and loaded, draws the celebration-PNG overlay variant. */
+  /**
+   * When false, skips the celebration PNG overlay even if an image is
+   * passed in -- losses get the neutral gradient card instead. A
+   * "Domain Sold!" celebration PNG over `-$500 / ROI -45%` is a social
+   * disaster.
+   */
+  isProfit?: boolean;
+  /** When present and loaded AND isProfit, draws the celebration-PNG overlay. */
   celebrationImage?: HTMLImageElement | null;
 }
+
+const COLOR_PROFIT = '#059669';
+const COLOR_LOSS = '#dc2626';
 
 function drawCelebrationOverlay(
   ctx: CanvasRenderingContext2D,
@@ -92,8 +112,10 @@ function drawCelebrationOverlay(
   ctx.fillText(p.domainName, screenLeftX, y);
   y += lineGap;
   ctx.font = 'bold 36px Inter, Arial, sans-serif';
+  // Sale price is always positive revenue; the celebration overlay is
+  // only shown for profitable sales so keeping green is correct.
   ctx.fillStyle = '#22c55e';
-  ctx.fillText(`$${p.salePrice.toLocaleString()}`, screenLeftX, y);
+  ctx.fillText(formatUSD(p.salePrice), screenLeftX, y);
   y += lineGap;
   ctx.font = 'bold 38px Inter, Arial, sans-serif';
   ctx.fillText(`ROI: ${p.roi.toFixed(1)}%`, screenLeftX, y);
@@ -107,6 +129,9 @@ function drawSaleFallbackCard(
   ctx: CanvasRenderingContext2D,
   p: DomainSaleImageParams
 ): void {
+  const isProfit = p.isProfit !== false;
+  const pnlColor = isProfit ? COLOR_PROFIT : COLOR_LOSS;
+
   const gradient = ctx.createLinearGradient(0, 0, CANVAS_W, CANVAS_H);
   gradient.addColorStop(0, '#f8fafc');
   gradient.addColorStop(0.5, '#f1f5f9');
@@ -133,20 +158,23 @@ function drawSaleFallbackCard(
   ctx.shadowBlur = 0;
   ctx.shadowOffsetY = 0;
 
+  // Title matches the mood -- "Successfully" is cringe on a loss card.
   ctx.font = 'bold 48px Inter, Arial, sans-serif';
   ctx.textAlign = 'center';
   ctx.fillStyle = '#1e293b';
-  ctx.fillText('Domain Sold Successfully', CANVAS_W / 2, 140);
+  ctx.fillText(isProfit ? 'Domain Sold Successfully' : 'Sale Completed', CANVAS_W / 2, 140);
 
   ctx.font = 'bold 36px Inter, Arial, sans-serif';
   ctx.fillStyle = '#3b82f6';
   ctx.fillText(p.domainName, CANVAS_W / 2, 200);
 
+  // Sale price is always positive revenue, keep neutral-green.
   ctx.font = 'bold 44px Inter, Arial, sans-serif';
-  ctx.fillStyle = '#059669';
-  ctx.fillText(`$${p.salePrice.toLocaleString()}`, CANVAS_W / 2, 260);
+  ctx.fillStyle = COLOR_PROFIT;
+  ctx.fillText(formatUSD(p.salePrice), CANVAS_W / 2, 260);
 
-  ctx.fillStyle = '#059669';
+  // "SOLD" badge stays the same regardless of P&L -- it states a fact.
+  ctx.fillStyle = COLOR_PROFIT;
   ctx.fillRect(350, 290, 100, 32);
   ctx.strokeStyle = '#047857';
   ctx.lineWidth = 1;
@@ -162,19 +190,21 @@ function drawSaleFallbackCard(
   ctx.lineTo(700, 340);
   ctx.stroke();
 
+  // Net Profit label flips to "Net Loss" so the number beneath reads
+  // naturally (otherwise the label says "profit" and the value is -$500).
   ctx.textAlign = 'left';
   ctx.font = 'bold 24px Inter, Arial, sans-serif';
   ctx.fillStyle = '#64748b';
-  ctx.fillText('Net Profit', 100, 400);
+  ctx.fillText(isProfit ? 'Net Profit' : 'Net Loss', 100, 400);
   ctx.font = 'bold 32px Inter, Arial, sans-serif';
-  ctx.fillStyle = '#059669';
-  ctx.fillText(`$${p.profit.toLocaleString()}`, 100, 430);
+  ctx.fillStyle = pnlColor;
+  ctx.fillText(formatUSD(p.profit), 100, 430);
 
   ctx.font = 'bold 24px Inter, Arial, sans-serif';
   ctx.fillStyle = '#64748b';
   ctx.fillText('ROI', 300, 400);
   ctx.font = 'bold 32px Inter, Arial, sans-serif';
-  ctx.fillStyle = '#3b82f6';
+  ctx.fillStyle = pnlColor;
   ctx.fillText(`${p.roi.toFixed(1)}%`, 300, 430);
 
   ctx.font = 'bold 24px Inter, Arial, sans-serif';
@@ -197,7 +227,11 @@ export function drawDomainSaleImage(canvas: HTMLCanvasElement, p: DomainSaleImag
   const ctx = setupDprCanvas(canvas);
   if (!ctx) return;
   const img = p.celebrationImage;
-  const useCelebration = img && img.complete && img.naturalWidth > 0;
+  const isProfit = p.isProfit !== false;
+  // Celebration overlay is only appropriate for wins. On a loss the "Domain
+  // Sold!" title + confetti + cheering mascot reads as tone-deaf, so we
+  // fall through to the neutral gradient card even if the PNG loaded.
+  const useCelebration = isProfit && img && img.complete && img.naturalWidth > 0;
   if (useCelebration) drawCelebrationOverlay(ctx, img, p);
   else drawSaleFallbackCard(ctx, p);
 }
