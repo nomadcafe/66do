@@ -7,6 +7,7 @@ import { createAuthenticatedSupabaseClient } from '../../../src/lib/supabaseAuth
 import { getCorsHeaders, getCorsHeadersForError, noCacheHeaders } from '../../../src/lib/cors'
 import { MAX_BULK_OPERATION_SIZE } from '../../../src/lib/constants'
 import { isDomainOwnedByUser } from '../../../src/lib/domainOwnership'
+import { checkUserWriteRateLimit } from '../../../src/lib/rateLimit'
 
 // GET /api/transactions - 获取所有交易
 export async function GET(request: NextRequest) {
@@ -54,6 +55,15 @@ export async function POST(request: NextRequest) {
 
     const corsHeaders = getCorsHeaders(request)
     const userId = authInfo.userId
+
+    const rl = await checkUserWriteRateLimit(userId)
+    if (rl.limited) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429, headers: corsHeaders }
+      )
+    }
+
     const client = await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
 
     // 支持批量创建

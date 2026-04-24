@@ -4,6 +4,7 @@ import { validateDomain, sanitizeDomainData } from '../../../../src/lib/validati
 import { getAuthInfoFromRequest } from '../../../../src/lib/auth-helper'
 import { createAuthenticatedSupabaseClient } from '../../../../src/lib/supabaseAuthClient'
 import { getCorsHeaders, getCorsHeadersForError } from '../../../../src/lib/cors'
+import { checkUserWriteRateLimit } from '../../../../src/lib/rateLimit'
 
 // GET /api/domains/[id] - 获取单个域名
 export async function GET(
@@ -72,13 +73,21 @@ export async function PUT(
     const corsHeaders = getCorsHeaders(request)
     const { id: domainId } = await params
 
+    const rl = await checkUserWriteRateLimit(userId)
+    if (rl.limited) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429, headers: corsHeaders }
+      )
+    }
+
     if (!domain) {
-      return NextResponse.json({ error: 'Domain data is required' }, { 
+      return NextResponse.json({ error: 'Domain data is required' }, {
         status: 400,
         headers: corsHeaders
       })
     }
-    
+
     // 确保ID匹配
     if (domain.id && domain.id !== domainId) {
       return NextResponse.json({ error: 'Domain ID mismatch' }, { 
@@ -164,6 +173,15 @@ export async function DELETE(
     const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined
     const corsHeaders = getCorsHeaders(request)
     const { id: domainId } = await params
+
+    const rl = await checkUserWriteRateLimit(userId)
+    if (rl.limited) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429, headers: corsHeaders }
+      )
+    }
+
     const authenticatedClientForDelete = await createAuthenticatedSupabaseClient(accessToken, refreshToken)
     const userDomains = await DomainService.getDomainsWithClient(authenticatedClientForDelete, userId)
     const canDeleteDomain = userDomains.some(d => d.id === domainId)

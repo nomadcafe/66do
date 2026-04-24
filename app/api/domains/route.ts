@@ -5,6 +5,7 @@ import { getAuthInfoFromRequest } from '../../../src/lib/auth-helper'
 import { createAuthenticatedSupabaseClient } from '../../../src/lib/supabaseAuthClient'
 import { getCorsHeaders, getCorsHeadersForError, noCacheHeaders } from '../../../src/lib/cors'
 import { MAX_BULK_OPERATION_SIZE } from '../../../src/lib/constants'
+import { checkUserWriteRateLimit } from '../../../src/lib/rateLimit'
 
 // GET /api/domains - 获取所有域名
 export async function GET(request: NextRequest) {
@@ -46,14 +47,23 @@ export async function POST(request: NextRequest) {
 
     const authInfo = await getAuthInfoFromRequest(request);
     if (!authInfo || !authInfo.userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { 
+      return NextResponse.json({ error: 'Unauthorized' }, {
         status: 401,
         headers: { 'Content-Type': 'application/json' }
       })
     }
-    
+
     const { userId, accessToken } = authInfo;
     const corsHeaders = getCorsHeaders(request)
+
+    const rl = await checkUserWriteRateLimit(userId)
+    if (rl.limited) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429, headers: corsHeaders }
+      )
+    }
+
     const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken, refreshToken)
 
     // 支持批量创建

@@ -11,6 +11,11 @@ const supabase = createClient(supabaseUrl, supabaseKey)
 const MAX_EMAIL_LENGTH = 254
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+// Assumes a Vercel deployment (see vercel.json). Vercel rewrites these
+// headers at the edge, so the values here reflect the real client IP and
+// can't be spoofed by incoming requests. If we ever deploy this code behind
+// a different proxy (or with no proxy), this function is vulnerable to
+// header spoofing and the rate limit becomes bypassable -- revisit then.
 function getClientIp(request: NextRequest): string {
   return (
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
@@ -54,11 +59,10 @@ export async function POST(request: NextRequest) {
     const ip = getClientIp(request)
     const rl = await checkMagicLinkRateLimit(ip, email)
     if (rl.limited) {
-      const message = rl.reason === 'email'
-        ? 'Too many magic link requests for this email. Please try again later.'
-        : 'Too many requests. Please try again later.'
+      // Unified message -- distinguishing ip vs email would let a caller probe
+      // whether a given address has recently requested a link.
       return NextResponse.json(
-        { error: message },
+        { error: 'Too many requests. Please try again later.' },
         { status: 429, headers: corsHeaders }
       )
     }
@@ -76,12 +80,10 @@ export async function POST(request: NextRequest) {
 
     // 使用Supabase原生Magic Link
     const redirectUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.domain.financial'}/auth/magic-link`
-    
-    logger.log('Sending magic link to:', email)
-    logger.log('Redirect URL:', redirectUrl)
-    logger.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
 
-    const { data, error } = await supabase.auth.signInWithOtp({
+    logger.debug('Sending magic link (email redacted)')
+
+    const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
         emailRedirectTo: redirectUrl,
@@ -112,9 +114,9 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    logger.log('Magic link sent successfully:', data)
-    
-    return NextResponse.json({ 
+    logger.debug('Magic link sent successfully')
+
+    return NextResponse.json({
       success: true, 
       message: 'Magic link email sent'
     }, { 

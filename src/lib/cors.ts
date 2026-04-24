@@ -15,15 +15,19 @@ const allowedOrigins = process.env.NODE_ENV === 'production'
   ? productionOrigins
   : [...productionOrigins, ...developmentOrigins];
 
+// Auth is Bearer-only via the Authorization header (see auth-helper.ts);
+// cookies are never used for auth. We intentionally do NOT send
+// Access-Control-Allow-Credentials -- leaving it off means a future addition
+// of cookie-based auth would have to be done deliberately and paired with
+// CSRF protection instead of silently inheriting CORS credentials.
 export function getCorsHeaders(request: NextRequest) {
   const origin = request.headers.get('origin');
   const isAllowedOrigin = allowedOrigins.includes(origin || '');
-  
+
   return {
     'Access-Control-Allow-Origin': isAllowedOrigin ? origin! : 'https://www.domain.financial',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Refresh-Token',
-    'Access-Control-Allow-Credentials': 'true'
   };
 }
 
@@ -32,7 +36,6 @@ export function getCorsHeadersForError() {
     'Access-Control-Allow-Origin': 'https://www.domain.financial',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Refresh-Token',
-    'Access-Control-Allow-Credentials': 'true'
   };
 }
 

@@ -1,10 +1,16 @@
 import { createClient } from '@supabase/supabase-js'
 import { Database } from './supabase'
 import { validateEnvVars } from './env-validator'
+import { serverLogger } from './logger'
 
 /**
- * 创建带用户认证的 Supabase 客户端（用于 API 路由，与 RLS 配合）
- * 传入 refreshToken 以便 setSession 成功，RLS 才能正确识别 auth.uid()
+ * 创建带用户认证的 Supabase 客户端（用于 API 路由，与 RLS 配合）。
+ *
+ * 鉴权实际靠 `global.headers.Authorization: Bearer <JWT>` —— PostgREST 会从这里
+ * 解出 `auth.uid()` 来匹配 RLS。`setSession` 是给 SDK 内部的 session 机制用的，
+ * 在 server 端（persistSession/autoRefreshToken 都关掉）基本是冗余，但不同版本
+ * 的 SDK 行为略有差异，所以保留；即使它失败，Authorization header 仍能让 RLS
+ * 正常工作，故 soft-fail。
  */
 export async function createAuthenticatedSupabaseClient(
   accessToken?: string,
@@ -31,12 +37,21 @@ export async function createAuthenticatedSupabaseClient(
 
   if (accessToken) {
     try {
-      await client.auth.setSession({
+      const { error } = await client.auth.setSession({
         access_token: accessToken,
         refresh_token: refreshToken || '',
       })
+      if (error) {
+        serverLogger.error(
+          'Supabase setSession returned error; falling back to Authorization header:',
+          error
+        )
+      }
     } catch (err) {
-      console.error('Error setting session in Supabase client:', err)
+      serverLogger.error(
+        'Supabase setSession threw; falling back to Authorization header:',
+        err
+      )
     }
   }
 

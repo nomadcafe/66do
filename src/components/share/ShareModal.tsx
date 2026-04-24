@@ -396,13 +396,13 @@ export default function ShareModal({ isOpen, onClose, shareData, domains = [], t
     }
     switch (platform) {
       case 'x':
-        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank', 'width=600,height=400');
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank', 'width=600,height=400,noopener,noreferrer');
         break;
       case 'linkedin':
-        window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent('https://www.domain.financial')}`, '_blank', 'width=600,height=400');
+        window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent('https://www.domain.financial')}`, '_blank', 'width=600,height=400,noopener,noreferrer');
         break;
       case 'facebook':
-        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent('https://www.domain.financial')}`, '_blank', 'width=600,height=400');
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent('https://www.domain.financial')}`, '_blank', 'width=600,height=400,noopener,noreferrer');
         break;
     }
   };
