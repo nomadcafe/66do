@@ -36,7 +36,7 @@ import {
   Globe,
   Info
 } from 'lucide-react';
-import { totalHoldingCostForDomain } from '../../lib/renewalCostBasis';
+import { holdingCostAsOf } from '../../lib/renewalCostBasis';
 import { sellNetUSD } from '../../lib/coreCalculations';
 
 // interface Domain {
@@ -205,11 +205,8 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
 
       if (date > now) break;
 
-      const monthDomains = filteredData.domains.filter(d => {
-        const domainDate = new Date(d.purchase_date || '');
-        const domainMonth = domainDate.toISOString().slice(0, 7);
-        return domainMonth <= monthKey;
-      });
+      // 月末时点（月最后一刻），用于 "截至该月" 的累计计算
+      const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
 
       const monthTransactions = filteredData.transactions.filter(t => {
         const transactionDate = new Date(t.date);
@@ -217,8 +214,11 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         return transactionMonth === monthKey;
       });
 
-      const investment = monthDomains.reduce(
-        (sum, domain) => sum + totalHoldingCostForDomain(domain, filteredData.transactions),
+      // 用 holdingCostAsOf 按月结存算：已发生的购买/续费才计入，避免
+      // 把之后才发生的续费算进历史月份。旧逻辑用 totalHoldingCostForDomain
+      // 对当前状态计数，会把 2 年后才发生的续费算进 1 年前的那个点。
+      const investment = filteredData.domains.reduce(
+        (sum, domain) => sum + holdingCostAsOf(domain, filteredData.transactions, monthEnd),
         0
       );
 
