@@ -183,6 +183,7 @@ export default function ShareModal({ isOpen, onClose, shareData, domains = [], t
           totalInvestment: t('share.totalInvestment'),
           investmentPeriod: t('share.investmentPeriod'),
         },
+        mascotImage,
       });
     }
   }, [shareMode, selectedDomain, effectivePortfolioData, transactions, t, mascotImage]);
