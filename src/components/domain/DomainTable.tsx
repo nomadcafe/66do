@@ -52,7 +52,7 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
   const [draftValue, setDraftValue] = useState<string>('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const valueInputRef = useRef<HTMLInputElement>(null);
-  const { t } = useI18nContext();
+  const { t, locale } = useI18nContext();
 
   const beginEditStatus = useCallback((domain: DomainWithTags) => {
     if (!onUpdateDomain) return;
@@ -163,16 +163,19 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
     }
   };
 
+  // 与 DomainCard / IA 状态饼图对齐：3 段语义色 + sold=teal + expired=rose，
+  // 统一 100/700 强度。原来 sold 用 stone-100 与 Card 的 teal 漂移，强度
+  // 50/700 也比 Card 的 100/800 更淡，跨视图同一域名状态徽章看起来不一致。
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
-        return 'bg-emerald-50 text-emerald-700';
+        return 'bg-emerald-100 text-emerald-700';
       case 'for_sale':
-        return 'bg-amber-50 text-amber-700';
+        return 'bg-amber-100 text-amber-700';
       case 'sold':
-        return 'bg-stone-100 text-stone-700';
+        return 'bg-teal-100 text-teal-700';
       case 'expired':
-        return 'bg-rose-50 text-rose-700';
+        return 'bg-rose-100 text-rose-700';
       default:
         return 'bg-stone-100 text-stone-700';
     }
@@ -183,11 +186,15 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
   //   return (domain.purchase_cost || 0) + totalRenewalCost;
   // };
 
+  const localeTag = locale === 'zh' ? 'zh-CN' : 'en-US';
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(localeTag, {
       style: 'currency',
       currency: 'USD'
     }).format(amount);
+  };
+  const formatDateLocale = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString(localeTag);
   };
 
 
@@ -409,7 +416,7 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                             </span>
                           </div>
                           <p className="text-xs text-stone-500 mt-0.5 tabular-nums">
-                            {new Date(domain.expiry_date).toLocaleDateString()}
+                            {formatDateLocale(domain.expiry_date)}
                           </p>
                         </div>
                       ) : (
@@ -442,7 +449,7 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                         </button>
                         <button
                           onClick={() => onEdit(domain)}
-                          className="p-1 text-stone-400 hover:text-emerald-600 transition-colors"
+                          className="p-1 text-stone-400 hover:text-teal-600 transition-colors"
                           title="Edit Domain"
                         >
                           <Edit className="w-4 h-4" />
@@ -453,7 +460,7 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                               setSelectedDomain(domain);
                               setShowShareModal(true);
                             }}
-                            className="p-1 text-stone-400 hover:text-purple-600 transition-colors"
+                            className="p-1 text-stone-400 hover:text-teal-600 transition-colors"
                             title="Share Sale"
                           >
                             <Share2 className="w-4 h-4" />
@@ -479,14 +486,15 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                             {domainEvents.map((tx) => {
                               const tone = tx.type;
                               const Icon = tone === 'sell' ? TrendingUp : tone === 'renew' ? RefreshCw : tone === 'buy' ? Plus : FileText;
+                              // 与 TransactionList / DomainTimelineView 对齐 3 段语义色：
+                              // sell=emerald (入账)，buy/renew=stone (主支出)，其他=amber (杂项)。
                               const iconBg =
                                 tone === 'sell' ? 'bg-emerald-100 text-emerald-700' :
-                                tone === 'renew' ? 'bg-amber-100 text-amber-700' :
-                                tone === 'buy' ? 'bg-teal-100 text-teal-700' :
-                                'bg-stone-100 text-stone-600';
+                                tone === 'buy' || tone === 'renew' ? 'bg-stone-100 text-stone-700' :
+                                'bg-amber-50 text-amber-700';
                               const sign = tone === 'sell' ? '+' : '-';
                               const amount = tx.base_amount ?? tx.amount ?? 0;
-                              const dateStr = tx.date ? new Date(tx.date).toLocaleDateString() : '';
+                              const dateStr = tx.date ? formatDateLocale(tx.date) : '';
                               return (
                                 <li key={tx.id} className="flex items-center gap-3 text-sm">
                                   <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${iconBg}`}>
@@ -494,7 +502,7 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                                   </span>
                                   <span className="font-medium text-stone-900 capitalize">{t(`transaction.${tx.type}`)}</span>
                                   <span className="text-stone-500">{dateStr}</span>
-                                  <span className={`ml-auto font-semibold tabular-nums ${tone === 'sell' ? 'text-emerald-600' : tone === 'buy' ? 'text-teal-700' : tone === 'renew' ? 'text-amber-700' : 'text-stone-700'}`}>
+                                  <span className={`ml-auto font-semibold tabular-nums ${tone === 'sell' ? 'text-emerald-700' : 'text-stone-900'}`}>
                                     {sign}{formatCurrency(amount)}
                                   </span>
                                   {tx.notes && (
