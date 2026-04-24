@@ -3,7 +3,6 @@
 import React, { lazy, Suspense } from 'react';
 
 // 懒加载组件
-export const LazyFinancialReport = lazy(() => import('./reports/FinancialReport'));
 export const LazyFinancialAnalysis = lazy(() => import('./reports/FinancialAnalysisOptimized'));
 export const LazyInvestmentAnalytics = lazy(() => import('./analytics/InvestmentAnalytics'));
 export const LazyAdvancedRenewalAnalysis = lazy(() => import('./analytics/AdvancedRenewalAnalysis'));
@@ -75,7 +74,6 @@ class ErrorBoundary extends React.Component<
 // 预加载函数
 export const preloadComponents = () => {
   // 预加载关键组件
-  import('./reports/FinancialReport');
   import('./reports/FinancialAnalysisOptimized');
   import('./analytics/InvestmentAnalytics');
 };
