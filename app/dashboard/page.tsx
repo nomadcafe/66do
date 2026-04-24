@@ -1167,7 +1167,7 @@ export default function DashboardPage() {
             </div>
 
             <LazyWrapper>
-              <LazyAdvancedRenewalAnalysis domains={domains} />
+              <LazyAdvancedRenewalAnalysis domains={domains} transactions={transactionsForMetrics} />
             </LazyWrapper>
 
             <LazyWrapper>
