@@ -111,27 +111,26 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
   const [selectedMetric, setSelectedMetric] = useState<'portfolio' | 'trends'>('portfolio');
 
   // 根据选择的时间范围筛选数据
-  const filteredData = useMemo(() => {
-    const now = new Date();
-    let startDate: Date;
-
+  // N 个月窗口（含当前月）。先前 filter 用 month-6/year-1-same-month 的
+  // 写法：6M 变成 7 个月、1Y/2Y/3Y 都多 1 个月，而图表用 month-5+6 iter
+  // 的写法确实 6 个月，但 1Y/2Y/3Y 又差 1 —— 结果 KPI 用的筛选窗、图
+  // 表展示窗永远不匹配，1Y 模式下用户甚至看不到当前月的柱子/面积。
+  // 统一成 "month - (N-1)"，filter 和 timeSeriesData 共用。
+  const monthsWindow = useMemo(() => {
     switch (selectedTimeframe) {
-      case '6M':
-        startDate = new Date(now.getFullYear(), now.getMonth() - 6, 1);
-        break;
-      case '1Y':
-        startDate = new Date(now.getFullYear() - 1, now.getMonth(), 1);
-        break;
-      case '2Y':
-        startDate = new Date(now.getFullYear() - 2, now.getMonth(), 1);
-        break;
-      case '3Y':
-        startDate = new Date(now.getFullYear() - 3, now.getMonth(), 1);
-        break;
-      case 'ALL':
-      default:
-        return { domains, transactions };
+      case '6M': return 6;
+      case '1Y': return 12;
+      case '2Y': return 24;
+      case '3Y': return 36;
+      default: return null; // ALL
     }
+  }, [selectedTimeframe]);
+
+  const filteredData = useMemo(() => {
+    if (monthsWindow === null) return { domains, transactions };
+
+    const now = new Date();
+    const startDate = new Date(now.getFullYear(), now.getMonth() - (monthsWindow - 1), 1);
 
     const filteredDomains = domains.filter(domain => {
       const domainDate = new Date(domain.purchase_date || '');
@@ -144,7 +143,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     });
 
     return { domains: filteredDomains, transactions: filteredTransactions };
-  }, [domains, transactions, selectedTimeframe]);
+  }, [domains, transactions, monthsWindow]);
 
   const investmentYears = useMemo(
     () => calculateInvestmentYears(filteredData.domains),
@@ -169,48 +168,33 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     worstPerformingDomain: financialAnalysis.advanced.worstPerformingDomain
   }), [financialAnalysis]);
 
-  // 计算时间序列数据（基于筛选后的数据和时间范围）
+  // 计算时间序列数据（基于筛选后的数据和时间范围）。窗口口径与
+  // filteredData 保持一致：`monthsWindow` 非 null 时直接使用；ALL 则
+  // 根据最早数据日期展开。
   const timeSeriesData: TimeSeriesData[] = useMemo(() => {
     const data: TimeSeriesData[] = [];
     const now = new Date();
     let monthsToShow: number;
     let startDate: Date;
 
-    switch (selectedTimeframe) {
-      case '6M':
-        monthsToShow = 6;
-        startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1);
-        break;
-      case '1Y':
-        monthsToShow = 12;
-        startDate = new Date(now.getFullYear() - 1, now.getMonth(), 1);
-        break;
-      case '2Y':
-        monthsToShow = 24;
-        startDate = new Date(now.getFullYear() - 2, now.getMonth(), 1);
-        break;
-      case '3Y':
-        monthsToShow = 36;
-        startDate = new Date(now.getFullYear() - 3, now.getMonth(), 1);
-        break;
-      case 'ALL':
-      default:
-        monthsToShow = 12;
-        // 找到最早的数据日期
-        const allDates = [
-          ...filteredData.domains.map(d => new Date(d.purchase_date || '')),
-          ...filteredData.transactions.map(t => new Date(t.date))
-        ].filter(d => !isNaN(d.getTime()));
-        const earliestDate = allDates.length > 0 
-          ? new Date(Math.min(...allDates.map(d => d.getTime())))
-          : new Date(now.getFullYear() - 1, now.getMonth(), 1);
-        startDate = new Date(earliestDate.getFullYear(), earliestDate.getMonth(), 1);
-        // 如果数据跨度超过12个月，显示所有月份
-        const monthsDiff = (now.getFullYear() - earliestDate.getFullYear()) * 12 + (now.getMonth() - earliestDate.getMonth());
-        if (monthsDiff > 12) {
-          monthsToShow = monthsDiff + 1;
-        }
-        break;
+    if (monthsWindow !== null) {
+      monthsToShow = monthsWindow;
+      startDate = new Date(now.getFullYear(), now.getMonth() - (monthsWindow - 1), 1);
+    } else {
+      // ALL: 找到最早的数据日期并展开
+      monthsToShow = 12;
+      const allDates = [
+        ...filteredData.domains.map(d => new Date(d.purchase_date || '')),
+        ...filteredData.transactions.map(t => new Date(t.date))
+      ].filter(d => !isNaN(d.getTime()));
+      const earliestDate = allDates.length > 0
+        ? new Date(Math.min(...allDates.map(d => d.getTime())))
+        : new Date(now.getFullYear() - 1, now.getMonth(), 1);
+      startDate = new Date(earliestDate.getFullYear(), earliestDate.getMonth(), 1);
+      const monthsDiff = (now.getFullYear() - earliestDate.getFullYear()) * 12 + (now.getMonth() - earliestDate.getMonth());
+      if (monthsDiff > 12) {
+        monthsToShow = monthsDiff + 1;
+      }
     }
 
     let cumulativeRevenue = 0;
@@ -267,7 +251,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     }
 
     return data;
-  }, [filteredData, selectedTimeframe]);
+  }, [filteredData, monthsWindow]);
 
   // 辅助函数已移至共享计算库
 
@@ -293,7 +277,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
               <p className="text-2xl font-bold">${portfolioMetrics.totalInvestment.toLocaleString()}</p>
               {filteredData.domains.length > 0 && (
                 <p className="text-blue-200 text-xs mt-1">
-                  {filteredData.domains.length} {t('analytics.domainsCount') || '个域名'}
+                  {filteredData.domains.length} {t('analytics.domainsCount')}
                 </p>
               )}
             </div>
@@ -308,7 +292,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
               <p className="text-2xl font-bold">${portfolioMetrics.totalRevenue.toLocaleString()}</p>
               {filteredData.transactions.filter(t => t.type === 'sell').length > 0 && (
                 <p className="text-purple-200 text-xs mt-1">
-                  {filteredData.transactions.filter(t => t.type === 'sell').length} {t('analytics.salesCount') || '笔出售'}
+                  {filteredData.transactions.filter(t => t.type === 'sell').length} {t('analytics.salesCount')}
                 </p>
               )}
             </div>
@@ -501,22 +485,8 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
                 return date.toLocaleDateString(locale === 'zh' ? 'zh-CN' : 'en-US', { year: 'numeric', month: 'long' });
               }}
             />
-            <defs>
-              <linearGradient id="colorInvestment" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
-              </linearGradient>
-              <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#10B981" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
-              </linearGradient>
-              <linearGradient id="colorPortfolio" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
-              </linearGradient>
-            </defs>
-            <Area 
-              type="monotone" 
+            <Area
+              type="monotone"
               dataKey="investment" 
               stackId="1" 
               stroke="#3B82F6" 
@@ -854,12 +824,12 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       <div className="bg-white p-4 rounded-lg shadow-sm border">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">{t('analytics.title') || '投资分析'}</h3>
+            <h3 className="text-lg font-semibold text-gray-900">{t('analytics.title')}</h3>
             <p className="text-sm text-gray-500 mt-1">
-              {t('analytics.dataRange') || '数据范围'}: <span className="font-medium text-gray-700">{getTimeframeText()}</span>
+              {t('analytics.dataRange')}: <span className="font-medium text-gray-700">{getTimeframeText()}</span>
               {selectedTimeframe !== 'ALL' && (
                 <span className="ml-2 text-xs text-gray-400">
-                  ({filteredData.domains.length} {t('analytics.domainsCount') || '个域名'}, {filteredData.transactions.length} {t('analytics.transactionsCount') || '笔交易'})
+                  ({filteredData.domains.length} {t('analytics.domainsCount')}, {filteredData.transactions.length} {t('analytics.transactionsCount')})
                 </span>
               )}
             </p>
