@@ -171,6 +171,42 @@ function drawBadge(ctx: CanvasRenderingContext2D, x: number, y: number, label: s
   }
 }
 
+/**
+ * Draws the celebratory mascot in the upper-right (offset 80px inward
+ * from the right edge so it doesn't feel glued to the corner). Falls
+ * through to the given emoji when the mascot image isn't available,
+ * and returns the horizontal footprint the caller should reserve on
+ * the right side so hero text can't crash into the illustration.
+ */
+function drawUpperRightDecoration(
+  ctx: CanvasRenderingContext2D,
+  contentRight: number,
+  mascot: HTMLImageElement | null | undefined,
+  emojiFallback: string
+): number {
+  const hasMascot = !!(mascot && mascot.complete && mascot.naturalWidth > 0);
+  if (hasMascot && mascot) {
+    const maxW = 500;
+    const maxH = 360;
+    const aspect = mascot.naturalWidth / mascot.naturalHeight;
+    let w = maxW;
+    let h = w / aspect;
+    if (h > maxH) { h = maxH; w = h * aspect; }
+    const inset = 80;
+    const x = contentRight - w - inset;
+    const y = 30;
+    ctx.drawImage(mascot, x, y, w, h);
+    // Reserved footprint includes the image width, the inset we shifted
+    // it left by, and a bit of buffer so text doesn't touch pixels.
+    return w + inset + 24;
+  }
+  ctx.font = `100px ${FONT}`;
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(emojiFallback, contentRight, 170);
+  return 140;
+}
+
 function drawMetricCell(
   ctx: CanvasRenderingContext2D,
   centerX: number,
@@ -236,28 +272,9 @@ export function drawDomainSaleImage(canvas: HTMLCanvasElement, p: DomainSaleImag
   // cheering mascot; if the asset didn't load we fall back to a 🎉
   // emoji. Loss mode stays clean -- neither a cartoon nor a party
   // popper belongs next to `POSITION CLOSED / -$500`.
-  const mascot = p.mascotImage;
-  const hasMascot = isProfit && mascot && mascot.complete && mascot.naturalWidth > 0;
   let reservedRight = 0;
-  if (hasMascot && mascot) {
-    const maxW = 500;
-    const maxH = 360;
-    const aspect = mascot.naturalWidth / mascot.naturalHeight;
-    let w = maxW;
-    let h = w / aspect;
-    if (h > maxH) { h = maxH; w = h * aspect; }
-    const x = contentRight - w;
-    const y = 30;
-    ctx.drawImage(mascot, x, y, w, h);
-    // Reserve the mascot's horizontal footprint so hero text can't
-    // grow into it. +24 pad for breathing room.
-    reservedRight = w + 24;
-  } else if (isProfit) {
-    ctx.font = `100px ${FONT}`;
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'alphabetic';
-    ctx.fillText('🎉', contentRight, 170);
-    reservedRight = 140;
+  if (isProfit) {
+    reservedRight = drawUpperRightDecoration(ctx, contentRight, p.mascotImage, '🎉');
   }
 
   // Badge (top)
@@ -367,6 +384,12 @@ export interface PortfolioImageParams {
   totalInvestment: number;
   investmentPeriod: string;
   labels: PortfolioImageLabels;
+  /**
+   * Same cheering-mascot asset as the sale card. Only drawn when the
+   * portfolio is net-positive; losing portfolios keep the neutral 📊
+   * emoji so the celebration doesn't contradict the data.
+   */
+  mascotImage?: HTMLImageElement | null;
 }
 
 export function drawPortfolioImage(canvas: HTMLCanvasElement, p: PortfolioImageParams): void {
@@ -385,23 +408,23 @@ export function drawPortfolioImage(canvas: HTMLCanvasElement, p: PortfolioImageP
 
   fillGradientBackground(ctx, isProfit);
 
-  // Top-right emoji accent. 📊 is neutral and always appropriate for a
-  // portfolio view, regardless of whether this period is net positive.
-  ctx.font = `100px ${FONT}`;
-  ctx.textAlign = 'right';
-  ctx.textBaseline = 'alphabetic';
-  ctx.fillText('📊', contentRight, 170);
+  // Same upper-right decoration as the sale card, but the celebratory
+  // mascot is only appropriate when the portfolio is actually up for
+  // this range. Losing portfolios fall through to the neutral 📊.
+  const reservedRight = isProfit
+    ? drawUpperRightDecoration(ctx, contentRight, p.mascotImage, '📊')
+    : drawUpperRightDecoration(ctx, contentRight, null, '📊');
 
   // Badge
   drawBadge(ctx, margin, 108, 'PORTFOLIO SUMMARY', accent);
 
-  // Title (small, single line under the badge). Constrain its width so
-  // a long localized title never crashes into the emoji.
+  // Title and hero both respect `reservedRight` so nothing crashes
+  // into the mascot on the right.
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = INK;
-  const titleMaxWidth = CANVAS_W - margin * 2 - 140;
-  fitText(ctx, p.labels.title, titleMaxWidth, 44, 28, '700');
+  const heroMaxWidth = CANVAS_W - margin * 2 - reservedRight;
+  fitText(ctx, p.labels.title, heroMaxWidth, 44, 28, '700');
   ctx.fillText(p.labels.title, margin, 180);
 
   // Hero: total profit with localized label above
@@ -410,7 +433,7 @@ export function drawPortfolioImage(canvas: HTMLCanvasElement, p: PortfolioImageP
   ctx.fillText(p.labels.totalProfit, margin, 240);
   ctx.fillStyle = accent;
   const profitStr = formatUSD(profit);
-  fitText(ctx, profitStr, CANVAS_W - margin * 2, 88, 56, '800');
+  fitText(ctx, profitStr, heroMaxWidth, 88, 56, '800');
   ctx.fillText(profitStr, margin, 335);
 
   // "Top performer: premium.com" as a caption under the hero --
