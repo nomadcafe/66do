@@ -941,27 +941,14 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
           </div>
           {renderPortfolioMetrics()}
           {renderPerformanceChart()}
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.keyMetrics')}</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">{t('analytics.winRate')}</p>
-                <p className="text-2xl font-bold text-green-600">{portfolioMetrics.winRate.toFixed(1)}%</p>
-              </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">{t('analytics.avgHoldingPeriodLabel')}</p>
-                <p className="text-2xl font-bold text-blue-600">{portfolioMetrics.avgHoldingPeriod.toFixed(0)}{t('analytics.daysUnit')}</p>
-              </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg" title={t('analytics.maxDrawdownDesc')}>
-                <p className="text-sm text-gray-600">{t('analytics.maxDrawdownLabel')}</p>
-                <p className="text-2xl font-bold text-red-600">{portfolioMetrics.maxDrawdown.toFixed(1)}%</p>
-              </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg" title={t('analytics.volatilityDesc')}>
-                <p className="text-sm text-gray-600">{t('analytics.volatilityLabel')}</p>
-                <p className="text-2xl font-bold text-orange-600">{portfolioMetrics.volatility.toFixed(1)}%</p>
-              </div>
-            </div>
-          </div>
+          {/* 原来的 "Key Metrics" 4 格块已删除：
+             - Win Rate / Avg Holding Period 在 FinancialAnalysisOptimized
+               的 4-KPI 行和 Portfolio Snapshot 里已经显示，重复
+             - Max Drawdown / Volatility 在底层是按 "过去 12 个月月度销售
+               收入" 计算的（不是组合估值），域名投资本身是低频大额事件，
+               这两个指标在稀疏数据上会给出 -100% / 85% 之类的误导性读数。
+               底层 useComprehensiveFinancialAnalysis 仍在算这些字段，若
+               日后接入真正的组合估值时间序列可以再重新展示。*/}
         </div>
       )}
 
