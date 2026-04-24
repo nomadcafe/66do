@@ -76,19 +76,13 @@ interface InvestmentAnalyticsProps {
   transactions: TransactionWithRequiredFields[];
 }
 
+// 仅保留 IA 还展示的三个深度指标：Investment / Revenue / ROI / Win Rate
+// 在 FAO 已经显示，best/worst/holdingPeriod 也在 FAO Snapshot 里，
+// max-drawdown/volatility 早被弃用（在稀疏数据上误导）。
 interface PortfolioMetrics {
-  totalInvestment: number;
-  totalRevenue: number;
   totalProfit: number;
-  totalReturn: number;
   annualizedReturn: number;
   sharpeRatio: number;
-  maxDrawdown: number;
-  volatility: number;
-  winRate: number;
-  avgHoldingPeriod: number;
-  bestPerformingDomain: string;
-  worstPerformingDomain: string;
 }
 
 interface TimeSeriesData {
@@ -172,18 +166,9 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
   const financialAnalysis = useComprehensiveFinancialAnalysis(filteredData.domains, filteredData.transactions);
   
   const portfolioMetrics: PortfolioMetrics = useMemo(() => ({
-    totalInvestment: financialAnalysis.basic.totalInvestment,
-    totalRevenue: financialAnalysis.basic.totalRevenue,
     totalProfit: financialAnalysis.basic.totalProfit,
-    totalReturn: financialAnalysis.basic.roi,
     annualizedReturn: financialAnalysis.advanced.annualizedReturn,
     sharpeRatio: financialAnalysis.advanced.sharpeRatio,
-    maxDrawdown: financialAnalysis.advanced.maxDrawdown,
-    volatility: financialAnalysis.advanced.volatility,
-    winRate: financialAnalysis.advanced.winRate,
-    avgHoldingPeriod: financialAnalysis.advanced.avgHoldingPeriod,
-    bestPerformingDomain: financialAnalysis.advanced.bestPerformingDomain,
-    worstPerformingDomain: financialAnalysis.advanced.worstPerformingDomain
   }), [financialAnalysis]);
 
   // 计算时间序列数据（基于筛选后的数据和时间范围）。窗口口径与
