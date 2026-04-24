@@ -23,7 +23,6 @@ import { calculateAnnualRenewalCost, formatRenewalCycleDistributionLabel } from 
 import { formatCurrency as formatCurrencyEnhanced } from '../../src/lib/enhancedFinancialMetrics';
 // 懒加载组件
 import {
-  LazyFinancialReport,
   LazyFinancialAnalysis,
   LazyInvestmentAnalytics,
   LazyAdvancedRenewalAnalysis,
@@ -1162,13 +1161,6 @@ export default function DashboardPage() {
             <LazyWrapper>
               {/* 对齐项目数据源约定（见第 172 行注释）：所有指标/图表都用 transactionsForMetrics */}
               <LazyExpiredDomainLossAnalysis domains={domains} transactions={transactionsForMetrics} />
-            </LazyWrapper>
-
-            <LazyWrapper>
-              <LazyFinancialReport
-                domains={domains}
-                transactions={transactionsForMetrics}
-              />
             </LazyWrapper>
 
             <LazyWrapper>
