@@ -13,7 +13,6 @@ import {
   holdingPeriodLocalized,
 } from '../../lib/shareImage';
 import { investedTweetText, shareToX } from '../../lib/shareText';
-import { useCelebrationImage } from '../../hooks/useCelebrationImage';
 import ModalShell from './ModalShell';
 
 interface DomainShareModalProps {
@@ -27,7 +26,6 @@ export default function DomainShareModal({ isOpen, onClose, domain, transactions
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const { t } = useI18nContext();
-  const celebrationImage = useCelebrationImage();
 
   const calculateDomainProfit = () => {
     if (!domain.sale_price) return 0;
@@ -49,9 +47,6 @@ export default function DomainShareModal({ isOpen, onClose, domain, transactions
     if (!canvasRef.current) return;
     setIsGenerating(true);
     const profit = calculateDomainProfit();
-    // Profitable sales now reuse the same celebration PNG that SaleSuccessModal
-    // and ShareModal use, so all three entry points render the same winning
-    // card. Losses fall through to the gradient card via isProfit=false.
     drawDomainSaleImage(canvasRef.current, {
       domainName: domain.domain_name,
       salePrice: domain.sale_price ?? 0,
@@ -64,7 +59,6 @@ export default function DomainShareModal({ isOpen, onClose, domain, transactions
         years: t('common.years'),
       }),
       isProfit: profit >= 0,
-      celebrationImage,
     });
     setIsGenerating(false);
   };

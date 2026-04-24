@@ -13,7 +13,6 @@ import {
   holdingPeriodLocalized,
 } from '../../lib/shareImage';
 import { saleTweetText, shareToX } from '../../lib/shareText';
-import { useCelebrationImage } from '../../hooks/useCelebrationImage';
 import ModalShell from './ModalShell';
 
 interface SaleSuccessModalProps {
@@ -33,7 +32,6 @@ export default function SaleSuccessModal({
 }: SaleSuccessModalProps) {
   const { t } = useI18nContext();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const celebrationImage = useCelebrationImage();
   const [imageGenerated, setImageGenerated] = useState(false);
 
   // 出售总价（客户总付款）：分期且已取消/未付清时只算实际已收，否则分期用合同总额或一口价
@@ -99,11 +97,10 @@ export default function SaleSuccessModal({
       holdingShort: holdingPeriodShort(purchaseDate, saleDate),
       holdingLocalized,
       isProfit: profit >= 0,
-      celebrationImage,
     });
     setImageGenerated(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- getSalePriceUSD/calculateProfit/calculateROI are stable given domain+transaction
-  }, [domain, transaction, celebrationImage, holdingLocalized]);
+  }, [domain, transaction, holdingLocalized]);
 
   useEffect(() => {
     if (!isOpen || !domain || !transaction) return;

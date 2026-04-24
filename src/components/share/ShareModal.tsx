@@ -15,7 +15,6 @@ import {
   holdingPeriodLocalized,
 } from '../../lib/shareImage';
 import { investedTweetText, portfolioTweetText, shareToX } from '../../lib/shareText';
-import { useCelebrationImage } from '../../hooks/useCelebrationImage';
 import ModalShell from './ModalShell';
 
 export interface ShareData {
@@ -130,7 +129,6 @@ function computeShareDataFromData(
 export default function ShareModal({ isOpen, onClose, shareData, domains = [], transactions = [] }: ShareModalProps) {
   const { t, locale } = useI18nContext();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const celebrationImage = useCelebrationImage();
   const [shareMode, setShareMode] = useState<'portfolio' | 'single'>('portfolio');
   const [selectedDomainId, setSelectedDomainId] = useState<string>('');
   const [portfolioRange, setPortfolioRange] = useState<PortfolioRange>('all');
@@ -167,7 +165,6 @@ export default function ShareModal({ isOpen, onClose, shareData, domains = [], t
           years: t('common.years'),
         }),
         isProfit: profit >= 0,
-        celebrationImage,
       });
     } else {
       drawPortfolioImage(canvasRef.current, {
@@ -185,7 +182,7 @@ export default function ShareModal({ isOpen, onClose, shareData, domains = [], t
         },
       });
     }
-  }, [shareMode, selectedDomain, effectivePortfolioData, celebrationImage, transactions, t]);
+  }, [shareMode, selectedDomain, effectivePortfolioData, transactions, t]);
 
   useEffect(() => {
     if (!isOpen) return;
