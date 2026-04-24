@@ -110,22 +110,10 @@ const nextConfig: NextConfig = {
             key: 'Strict-Transport-Security',
             value: 'max-age=31536000; includeSubDomains; preload',
           }] : []),
-          // CSP - 内容安全策略
-          {
-            key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
-              "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: https:",
-              "font-src 'self' data:",
-              "connect-src 'self' https://*.supabase.co https://*.supabase.in",
-              "frame-ancestors 'self'",
-              "base-uri 'self'",
-              "form-action 'self'",
-              "object-src 'none'",
-            ].join('; '),
-          },
+          // Content-Security-Policy is now emitted by middleware.ts so that
+          // every HTML response carries a per-request nonce -- see the nonce
+          // recipe in the Next.js CSP docs. Setting it here too would race
+          // with the per-request header.
         ],
       },
     ];
