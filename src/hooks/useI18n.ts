@@ -704,7 +704,29 @@ const translations: Record<Locale, Translations> = {
       noDomainsYet: '暂无域名',
       adjustSearch: '请调整搜索或筛选条件',
       clearFilters: '清除筛选',
-      getStarted: '添加您的第一个域名投资以开始'
+      getStarted: '添加您的第一个域名投资以开始',
+      table: {
+        domainName: '域名',
+        status: '状态',
+        cost: '成本',
+        value: '估值',
+        expiry: '到期',
+        roi: 'ROI',
+        tags: '标签',
+        actions: '操作',
+        sold: '已售',
+        expiredText: '已过期',
+        viewDetails: '查看详情',
+        editDomain: '编辑域名',
+        shareSale: '分享出售',
+        deleteDomain: '删除域名',
+        expandHistory: '展开历史',
+        collapseHistory: '收起历史',
+        clickToChangeStatus: '点击修改状态',
+        clickToUpdateValue: '点击修改估值',
+        sortBy: '排序',
+        estimatedValue: '估值'
+      }
     },
     transactionList: {
       title: '交易记录',
@@ -1896,7 +1918,29 @@ const translations: Record<Locale, Translations> = {
       noDomainsYet: 'No domains yet',
       adjustSearch: 'Try adjusting your search or filter criteria',
       clearFilters: 'Clear filters',
-      getStarted: 'Get started by adding your first domain investment'
+      getStarted: 'Get started by adding your first domain investment',
+      table: {
+        domainName: 'Domain Name',
+        status: 'Status',
+        cost: 'Cost',
+        value: 'Value',
+        expiry: 'Expiry',
+        roi: 'ROI',
+        tags: 'Tags',
+        actions: 'Actions',
+        sold: 'Sold',
+        expiredText: 'Expired',
+        viewDetails: 'View Details',
+        editDomain: 'Edit Domain',
+        shareSale: 'Share Sale',
+        deleteDomain: 'Delete Domain',
+        expandHistory: 'Expand history',
+        collapseHistory: 'Collapse history',
+        clickToChangeStatus: 'Click to change status',
+        clickToUpdateValue: 'Click to update value',
+        sortBy: 'Sort by',
+        estimatedValue: 'Estimated Value'
+      }
     },
     transactionList: {
       title: 'Transaction History',

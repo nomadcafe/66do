@@ -1,13 +1,53 @@
 'use client';
 
 import { useState, useMemo, memo, useEffect, useRef, useCallback, Fragment } from 'react';
-import { Edit, Trash2, Eye, Share2, Calendar, Tag, Globe, ChevronRight, ChevronDown, Plus, RefreshCw, TrendingUp, FileText } from 'lucide-react';
+import { Edit, Trash2, Eye, Share2, Calendar, Tag, Globe, ChevronRight, ChevronDown, Plus, RefreshCw, TrendingUp, FileText, ArrowUp, ArrowDown } from 'lucide-react';
 import DomainShareModal from '../share/DomainShareModal';
 import { DomainWithTags } from '../../types/dashboard';
 import type { TransactionWithRequiredFields } from '../../types/transaction';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { calculateDomainROI } from '../../lib/financialCalculations';
+import { domainStatusLabel as statusLabel } from '../../lib/domainStatusLabel';
 import { ListPagination } from '../ui/ListPagination';
+
+// 共享 sortable header：原本每列各写一份 div + onClick + ↑/↓ 字符，
+// 既不可访问（th 不是 button、缺 aria-sort）又散落 60+ 行重复。
+// 现统一为带 lucide 箭头 + aria-sort 的 button cell。
+function SortableHeader({
+  field,
+  label,
+  sortLabel,
+  sortField,
+  sortDirection,
+  onSort,
+}: {
+  field: string;
+  label: string;
+  sortLabel: string;
+  sortField: string;
+  sortDirection: 'asc' | 'desc';
+  onSort: (field: string) => void;
+}) {
+  const active = sortField === field;
+  return (
+    <th
+      className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider"
+      aria-sort={active ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+    >
+      <button
+        type="button"
+        onClick={() => onSort(field)}
+        aria-label={`${sortLabel} ${label}`}
+        className="inline-flex items-center gap-1 uppercase tracking-wider hover:text-stone-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 rounded"
+      >
+        {label}
+        {active && (sortDirection === 'asc'
+          ? <ArrowUp className="h-3 w-3 text-teal-600" />
+          : <ArrowDown className="h-3 w-3 text-teal-600" />)}
+      </button>
+    </th>
+  );
+}
 
 interface Domain {
   id: string;
@@ -215,7 +255,7 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
     const days = getDaysUntilExpiry(domain.expiry_date);
     if (days === null) return null;
     
-    if (days < 0) return { text: 'Expired', color: 'text-rose-700' };
+    if (days < 0) return { text: t('domainList.table.expiredText'), color: 'text-rose-700' };
     if (days <= 30) return { text: `${days}d`, color: 'text-rose-600' };
     if (days <= 90) return { text: `${days}d`, color: 'text-amber-600' };
     return { text: `${days}d`, color: 'text-emerald-600' };
@@ -229,80 +269,55 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
           <table className="w-full">
             <thead className="bg-stone-50 border-b border-stone-200">
               <tr>
-                <th aria-label="expand" className="w-8 px-2 py-3" />
-                <th
-                  className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider cursor-pointer hover:bg-stone-100"
-                  onClick={() => handleSort('domain_name')}
-                >
-                  <div className="flex items-center gap-1">
-                    Domain Name
-                    {sortField === 'domain_name' && (
-                      <span className="text-teal-600">
-                        {sortDirection === 'asc' ? '↑' : '↓'}
-                      </span>
-                    )}
-                  </div>
-                </th>
-                <th 
-                  className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider cursor-pointer hover:bg-stone-100"
-                  onClick={() => handleSort('status')}
-                >
-                  <div className="flex items-center gap-1">
-                    Status
-                    {sortField === 'status' && (
-                      <span className="text-teal-600">
-                        {sortDirection === 'asc' ? '↑' : '↓'}
-                      </span>
-                    )}
-                  </div>
-                </th>
-                <th 
-                  className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider cursor-pointer hover:bg-stone-100"
-                  onClick={() => handleSort('purchase_cost')}
-                >
-                  <div className="flex items-center gap-1">
-                    Cost
-                    {sortField === 'purchase_cost' && (
-                      <span className="text-teal-600">
-                        {sortDirection === 'asc' ? '↑' : '↓'}
-                      </span>
-                    )}
-                  </div>
-                </th>
-                <th 
-                  className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider cursor-pointer hover:bg-stone-100"
-                  onClick={() => handleSort('estimated_value')}
-                >
-                  <div className="flex items-center gap-1">
-                    Value
-                    {sortField === 'estimated_value' && (
-                      <span className="text-teal-600">
-                        {sortDirection === 'asc' ? '↑' : '↓'}
-                      </span>
-                    )}
-                  </div>
-                </th>
-                <th
-                  className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider cursor-pointer hover:bg-stone-100"
-                  onClick={() => handleSort('expiry_date')}
-                >
-                  <div className="flex items-center gap-1">
-                    Expiry
-                    {sortField === 'expiry_date' && (
-                      <span className="text-teal-600">
-                        {sortDirection === 'asc' ? '↑' : '↓'}
-                      </span>
-                    )}
-                  </div>
+                <th aria-label={t('domainList.table.expandHistory')} className="w-8 px-2 py-3" />
+                <SortableHeader
+                  field="domain_name"
+                  label={t('domainList.table.domainName')}
+                  sortLabel={t('domainList.table.sortBy')}
+                  sortField={sortField}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
+                />
+                <SortableHeader
+                  field="status"
+                  label={t('domainList.table.status')}
+                  sortLabel={t('domainList.table.sortBy')}
+                  sortField={sortField}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
+                />
+                <SortableHeader
+                  field="purchase_cost"
+                  label={t('domainList.table.cost')}
+                  sortLabel={t('domainList.table.sortBy')}
+                  sortField={sortField}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
+                />
+                <SortableHeader
+                  field="estimated_value"
+                  label={t('domainList.table.value')}
+                  sortLabel={t('domainList.table.sortBy')}
+                  sortField={sortField}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
+                />
+                <SortableHeader
+                  field="expiry_date"
+                  label={t('domainList.table.expiry')}
+                  sortLabel={t('domainList.table.sortBy')}
+                  sortField={sortField}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
+                />
+                <th className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
+                  {t('domainList.table.roi')}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                  ROI
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                  Tags
+                  {t('domainList.table.tags')}
                 </th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-stone-500 uppercase tracking-wider">
-                  Actions
+                  {t('domainList.table.actions')}
                 </th>
               </tr>
             </thead>
@@ -323,7 +338,7 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                         type="button"
                         onClick={() => toggleExpand(domain.id)}
                         aria-expanded={isExpanded}
-                        aria-label={isExpanded ? 'Collapse history' : 'Expand history'}
+                        aria-label={isExpanded ? t('domainList.table.collapseHistory') : t('domainList.table.expandHistory')}
                         className="text-stone-400 hover:text-stone-700 p-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1"
                       >
                         {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
@@ -348,20 +363,20 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                           onKeyDown={(e) => { if (e.key === 'Escape') cancelEdit(); }}
                           className="text-xs font-medium rounded-full border border-stone-300 bg-white px-2 py-1 focus:outline-none focus:ring-2 focus:ring-teal-500"
                         >
-                          <option value="active">active</option>
-                          <option value="for_sale">for sale</option>
-                          <option value="sold">sold</option>
-                          <option value="expired">expired</option>
+                          <option value="active">{t('common.active')}</option>
+                          <option value="for_sale">{t('common.forSale')}</option>
+                          <option value="sold">{t('common.sold')}</option>
+                          <option value="expired">{t('common.expired')}</option>
                         </select>
                       ) : (
                         <button
                           type="button"
                           onClick={() => beginEditStatus(domain)}
                           disabled={!onUpdateDomain}
-                          title={onUpdateDomain ? 'Click to change status' : undefined}
+                          title={onUpdateDomain ? t('domainList.table.clickToChangeStatus') : undefined}
                           className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(domain.status)} ${onUpdateDomain ? 'cursor-pointer hover:ring-2 hover:ring-stone-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500' : 'cursor-default'}`}
                         >
-                          {domain.status.replace('_', ' ')}
+                          {statusLabel(domain.status, t)}
                         </button>
                       )}
                     </td>
@@ -377,7 +392,7 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                       {domain.status === 'sold' && domain.sale_price ? (
                         <div>
                           <div className="text-sm font-medium text-emerald-600">{formatCurrency(domain.sale_price)}</div>
-                          <div className="text-xs text-stone-500">Sold</div>
+                          <div className="text-xs text-stone-500">{t('domainList.table.sold')}</div>
                         </div>
                       ) : isEditingValue ? (
                         <input
@@ -399,7 +414,7 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                           type="button"
                           onClick={() => beginEditValue(domain)}
                           disabled={!onUpdateDomain}
-                          title={onUpdateDomain ? 'Click to update value' : undefined}
+                          title={onUpdateDomain ? t('domainList.table.clickToUpdateValue') : undefined}
                           className={`text-sm text-stone-900 ${onUpdateDomain ? 'cursor-pointer hover:bg-stone-100 rounded px-1 -mx-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500' : 'cursor-default'}`}
                         >
                           {formatCurrency(domain.estimated_value || 0)}
@@ -443,14 +458,16 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                         <button
                           onClick={() => onView(domain)}
                           className="p-1 text-stone-400 hover:text-teal-600 transition-colors"
-                          title="View Details"
+                          title={t('domainList.table.viewDetails')}
+                          aria-label={`${t('domainList.table.viewDetails')} ${domain.domain_name}`}
                         >
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => onEdit(domain)}
                           className="p-1 text-stone-400 hover:text-teal-600 transition-colors"
-                          title="Edit Domain"
+                          title={t('domainList.table.editDomain')}
+                          aria-label={`${t('domainList.table.editDomain')} ${domain.domain_name}`}
                         >
                           <Edit className="w-4 h-4" />
                         </button>
@@ -461,7 +478,8 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                               setShowShareModal(true);
                             }}
                             className="p-1 text-stone-400 hover:text-teal-600 transition-colors"
-                            title="Share Sale"
+                            title={t('domainList.table.shareSale')}
+                            aria-label={`${t('domainList.table.shareSale')} ${domain.domain_name}`}
                           >
                             <Share2 className="w-4 h-4" />
                           </button>
@@ -469,7 +487,8 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                         <button
                           onClick={() => onDelete(domain.id)}
                           className="p-1 text-stone-400 hover:text-rose-600 transition-colors"
-                          title="Delete Domain"
+                          title={t('domainList.table.deleteDomain')}
+                          aria-label={`${t('domainList.table.deleteDomain')} ${domain.domain_name}`}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
