@@ -19,11 +19,13 @@ export default function AdvancedRenewalAnalysis({ domains }: AdvancedRenewalAnal
   const [analysis, setAnalysis] = useState<AnnualRenewalCostAnalysis | null>(null);
   const [yearSummaries, setYearSummaries] = useState<RenewalYearSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   useEffect(() => {
     const loadAnalysis = async () => {
       setLoading(true);
+      setLoadError(false);
       try {
         const { analysis: data, yearSummaries: summaries } =
           await RenewalCostService.getAdvancedRenewalPanelData(domains, selectedYear, {
@@ -34,6 +36,11 @@ export default function AdvancedRenewalAnalysis({ domains }: AdvancedRenewalAnal
         setYearSummaries(summaries);
       } catch (error) {
         console.error('Error loading renewal analysis:', error);
+        // 之前失败会静默走 "!analysis" 分支，被当成"暂无续费数据"，用户
+        // 以为自己没数据。换成显式的 loadError 状态再区分。
+        setLoadError(true);
+        setAnalysis(null);
+        setYearSummaries([]);
       } finally {
         setLoading(false);
       }
@@ -65,6 +72,22 @@ export default function AdvancedRenewalAnalysis({ domains }: AdvancedRenewalAnal
           </div>
         </div>
         <p className="text-sm text-stone-500 mt-4">{t('renewal.loadingAnalysis')}</p>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="bg-white rounded-2xl border border-stone-200/80 shadow-sm p-6">
+        <div className="flex items-start gap-3">
+          <div className="p-2 bg-amber-100 rounded-xl">
+            <AlertTriangle className="h-5 w-5 text-amber-600" aria-hidden />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-stone-900">{t('renewal.advancedTitle')}</h3>
+            <p className="text-sm text-stone-600 mt-1">{t('renewal.loadFailed')}</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -164,7 +187,14 @@ export default function AdvancedRenewalAnalysis({ domains }: AdvancedRenewalAnal
             <TrendingUp className="h-8 w-8 text-stone-600" />
             <div>
               <p className="text-sm font-medium text-stone-600">{t('renewal.accuracy')}</p>
-              <p className="text-2xl font-bold text-stone-900">{analysis.cost_accuracy.toFixed(1)}%</p>
+              {/* `cost_accuracy` 的原公式 `(1 - |est-act|/act) * 100` 在
+                  实际值极小但预估偏高时会输出 -300% 之类的负数。UI 层夹到
+                  [0, 100]，当年没有实际续费记录时直接显示"暂无记录"。 */}
+              <p className="text-2xl font-bold text-stone-900">
+                {analysis.total_actual_cost > 0
+                  ? `${Math.max(0, Math.min(100, analysis.cost_accuracy)).toFixed(1)}%`
+                  : t('renewal.accuracyNoData')}
+              </p>
             </div>
           </div>
         </div>
