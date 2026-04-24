@@ -499,7 +499,7 @@ const translations: Record<Locale, Translations> = {
       newFinancialMetrics: '新增财务指标卡片'
     },
     renewal: {
-      analysis: '年度续费分析',
+      analysis: '续费概览',
       thisYearCost: '今年续费成本',
       needRenewal: '需要续费域名',
       noRenewal: '无需续费域名',
@@ -529,7 +529,7 @@ const translations: Record<Locale, Translations> = {
       processing: '处理中...',
       invalidYears: '请选择有效的续费年数',
       renewalFailed: '续费失败',
-      advancedTitle: '高级续费分析',
+      advancedTitle: '年度续费分析',
       estimatedCost: '预估成本',
       domainsToRenew: '待续费域名数',
       accuracy: '预测准确度',
@@ -1709,7 +1709,7 @@ const translations: Record<Locale, Translations> = {
       newFinancialMetrics: 'New Financial Metrics Cards'
     },
     renewal: {
-      analysis: 'Annual Renewal Analysis',
+      analysis: 'Renewal Overview',
       thisYearCost: 'This Year Renewal Cost',
       needRenewal: 'Domains Need Renewal',
       noRenewal: 'No Renewal Needed',
@@ -1723,7 +1723,7 @@ const translations: Record<Locale, Translations> = {
       domains: 'domains',
       cost: 'cost',
       suggestion: 'suggestion',
-      advancedTitle: 'Advanced Renewal Analysis',
+      advancedTitle: 'Annual Renewal Analysis',
       estimatedCost: 'Estimated Cost',
       domainsToRenew: 'Domains to Renew',
       accuracy: 'Accuracy',
