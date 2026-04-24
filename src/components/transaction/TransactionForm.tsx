@@ -62,6 +62,7 @@ export default function TransactionForm({
     // 分期进度跟踪
     paid_periods: 0,
     installment_status: 'active' as 'active' | 'completed' | 'cancelled' | 'paused',
+    installment_first_payment_date: '',
     platform_fee_type: 'standard' as 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment',
     // 用户输入的费用率
     user_input_fee_rate: 0,
@@ -152,6 +153,7 @@ export default function TransactionForm({
         // 分期进度跟踪
         paid_periods: transaction.paid_periods || 0,
         installment_status: transaction.installment_status || 'active',
+        installment_first_payment_date: transaction.installment_first_payment_date || '',
         platform_fee_type: transaction.platform_fee_type || 'standard',
         // 用户输入的费用率
         user_input_fee_rate: transaction.user_input_fee_rate || 0,
@@ -186,6 +188,7 @@ export default function TransactionForm({
         // 分期进度跟踪
         paid_periods: 0,
         installment_status: 'active' as 'active' | 'completed' | 'cancelled' | 'paused',
+        installment_first_payment_date: '',
         platform_fee_type: 'standard' as 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment',
         // 用户输入的费用率
         user_input_fee_rate: 0,
@@ -782,6 +785,23 @@ export default function TransactionForm({
                         <option value="cancelled">{t('transaction.cancelled')}</option>
                         <option value="paused">{t('transaction.paused')}</option>
                       </select>
+                    </div>
+
+                    {/* 首期付款日：可选。填了用作 expandSellToCashReceipts 的
+                        基准（"按月分摊已付款"），没填则回退到 t.date + 1 月。 */}
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-blue-800 mb-2">
+                        {t('transaction.installmentFirstPaymentDate')}
+                      </label>
+                      <input
+                        type="date"
+                        value={formData.installment_first_payment_date}
+                        onChange={(e) => setFormData({ ...formData, installment_first_payment_date: e.target.value })}
+                        className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <p className="text-xs text-blue-600 mt-1">
+                        {t('transaction.installmentFirstPaymentDateHint')}
+                      </p>
                     </div>
 
                     {/* 用户输入费用率：留空 = 按期数阶梯，填数 = 覆盖 */}

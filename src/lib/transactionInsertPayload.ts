@@ -36,6 +36,11 @@ export function buildTransactionInsertPayload(
     total_installment_amount: transaction.total_installment_amount != null ? Number(transaction.total_installment_amount) : null,
     paid_periods: transaction.paid_periods != null ? Number(transaction.paid_periods) : null,
     installment_status: (transaction.installment_status as string) || null,
+    installment_first_payment_date:
+      typeof transaction.installment_first_payment_date === 'string' &&
+      transaction.installment_first_payment_date.trim().length > 0
+        ? transaction.installment_first_payment_date
+        : null,
     platform_fee_type: (transaction.platform_fee_type as string) || null,
     user_input_fee_rate: transaction.user_input_fee_rate != null ? Number(transaction.user_input_fee_rate) : null,
     user_input_surcharge_rate: transaction.user_input_surcharge_rate != null ? Number(transaction.user_input_surcharge_rate) : null,

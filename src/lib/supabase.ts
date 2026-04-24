@@ -134,6 +134,7 @@ export interface Database {
           total_installment_amount: number | null
           paid_periods: number | null
           installment_status: string | null
+          installment_first_payment_date: string | null
           platform_fee_type: string | null
           user_input_fee_rate: number | null
           user_input_surcharge_rate: number | null
@@ -166,6 +167,7 @@ export interface Database {
           total_installment_amount?: number | null
           paid_periods?: number | null
           installment_status?: string | null
+          installment_first_payment_date?: string | null
           platform_fee_type?: string | null
           user_input_fee_rate?: number | null
           user_input_surcharge_rate?: number | null
@@ -198,6 +200,7 @@ export interface Database {
           total_installment_amount?: number | null
           paid_periods?: number | null
           installment_status?: string | null
+          installment_first_payment_date?: string | null
           platform_fee_type?: string | null
           user_input_fee_rate?: number | null
           user_input_surcharge_rate?: number | null

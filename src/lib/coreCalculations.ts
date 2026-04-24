@@ -301,16 +301,16 @@ export interface CashReceiptEvent {
  * - 一次性付款 (lump_sum)：原样返回单条 (t.date, sellNetUSD)
  * - 分期 (installment)：
  *   · 首付计入 t.date 当月（downpayment_amount > 0 时）
- *   · 已付期 i ∈ [1, paid_periods] 各计入 t.date + i 个月
+ *   · 已付期分布在月份上：
+ *       - 若 installment_first_payment_date 已填，第 1 期 = 该日，
+ *         第 2 期 = +1 月，… 以此类推
+ *       - 否则回退到 "t.date + i 个月"（i ∈ [1, paid_periods]）的近似
  *   · 平台费按比例分摊到每条事件，保证 sum(netAmount) === sellNetUSD(t)
  *   · 未付期不展开（还没到账）
  *
  * 用于 Monthly Cash Flow / 累计 Revenue 等"按月"展示，原实现把整笔 sell
  * 都归到 t.date 那一个月，3 个月分期的收入会一起 spike 在销售当月，1-2
  * 月间隔的柱子全是 0。
- *
- * 假设：分期的隐含付款日是 "t.date 同一日 + N 个月"。数据模型没有显式的
- * installment_first_payment_date 字段，这是现有数据下能做的最准确近似。
  */
 export function expandSellToCashReceipts(t: TransactionWithRequiredFields): CashReceiptEvent[] {
   if (t.type !== 'sell') return [];
@@ -345,8 +345,20 @@ export function expandSellToCashReceipts(t: TransactionWithRequiredFields): Cash
       netAmount: down * (1 - feeRate),
     });
   }
-  for (let i = 1; i <= paidPeriods; i++) {
-    const d = new Date(txDate);
+
+  // 第一期付款日：优先用 installment_first_payment_date，没填回退到 t.date + 1 月
+  let firstPayment: Date | null = null;
+  if (t.installment_first_payment_date) {
+    const d = new Date(t.installment_first_payment_date);
+    if (!Number.isNaN(d.getTime())) firstPayment = d;
+  }
+  if (!firstPayment) {
+    firstPayment = new Date(txDate);
+    firstPayment.setMonth(firstPayment.getMonth() + 1);
+  }
+
+  for (let i = 0; i < paidPeriods; i++) {
+    const d = new Date(firstPayment);
     d.setMonth(d.getMonth() + i);
     events.push({
       monthKey: monthKeyOf(d),

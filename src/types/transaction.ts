@@ -33,8 +33,11 @@ export interface Transaction {
   // 分期进度跟踪
   paid_periods?: number;
   installment_status?: 'active' | 'completed' | 'cancelled' | 'paused';
+  /** 首期付款日期（YYYY-MM-DD）。可空：填了用作 expandSellToCashReceipts
+   *  的基准；没填则回退到 "t.date + N 个月" 近似（旧数据兼容）。 */
+  installment_first_payment_date?: string | null;
   platform_fee_type?: 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment';
-  
+
   // 用户输入的费用率
   user_input_fee_rate?: number;
   user_input_surcharge_rate?: number;
@@ -87,8 +90,9 @@ export interface CreateTransactionInput {
   // 分期进度跟踪
   paid_periods?: number;
   installment_status?: 'active' | 'completed' | 'cancelled' | 'paused';
+  installment_first_payment_date?: string | null;
   platform_fee_type?: 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment';
-  
+
   // 用户输入的费用率
   user_input_fee_rate?: number;
   user_input_surcharge_rate?: number;
