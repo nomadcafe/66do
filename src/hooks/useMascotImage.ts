@@ -2,25 +2,37 @@
 
 import { useEffect, useState } from 'react';
 
-/**
- * The celebratory bull-head mascot drawn in the upper-right of the share
- * card when a sale closes profitably. Source file lives at
- * `public/domainfinancialpng.png` (alpha-channel PNG extracted from the
- * original Domain.Financial illustration). Falls through to a 🎉 emoji
- * if the image can't load.
- */
-const MASCOT_URL = '/domainfinancialpng.png';
+export interface MascotImages {
+  /** Celebrating bull for profitable sales / portfolios. */
+  happy: HTMLImageElement | null;
+  /** Dejected bull for losses. Keeps personality without being tone-deaf. */
+  sad: HTMLImageElement | null;
+}
 
-export function useMascotImage(): HTMLImageElement | null {
-  const [image, setImage] = useState<HTMLImageElement | null>(null);
+const HAPPY_URL = '/domainfinancialpng.png';
+const SAD_URL = '/mascot-sad.png';
+
+function load(url: string, onDone: (img: HTMLImageElement | null) => void) {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => onDone(img);
+  img.onerror = () => onDone(null);
+  img.src = url;
+}
+
+/**
+ * Loads both mascot PNGs once on mount and returns them. Callers pick
+ * which one to pass to the canvas based on whether the underlying data
+ * (per-sale or aggregate portfolio) is up or down.
+ */
+export function useMascotImage(): MascotImages {
+  const [happy, setHappy] = useState<HTMLImageElement | null>(null);
+  const [sad, setSad] = useState<HTMLImageElement | null>(null);
 
   useEffect(() => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => setImage(img);
-    img.onerror = () => setImage(null);
-    img.src = MASCOT_URL;
+    load(HAPPY_URL, setHappy);
+    load(SAD_URL, setSad);
   }, []);
 
-  return image;
+  return { happy, sad };
 }

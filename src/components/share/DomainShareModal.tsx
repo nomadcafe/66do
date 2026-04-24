@@ -27,7 +27,7 @@ export default function DomainShareModal({ isOpen, onClose, domain, transactions
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const { t } = useI18nContext();
-  const mascotImage = useMascotImage();
+  const mascots = useMascotImage();
 
   const calculateDomainProfit = () => {
     if (!domain.sale_price) return 0;
@@ -61,7 +61,7 @@ export default function DomainShareModal({ isOpen, onClose, domain, transactions
         years: t('common.years'),
       }),
       isProfit: profit >= 0,
-      mascotImage,
+      mascotImage: profit >= 0 ? mascots.happy : mascots.sad,
     });
     setIsGenerating(false);
   };
