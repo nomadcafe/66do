@@ -10,6 +10,40 @@ function resolveRedirectLocale(request: NextRequest): 'zh' | 'en' {
   return 'en';
 }
 
+function generateNonce(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+
+function buildCspHeader(nonce: string): string {
+  const isProduction = process.env.NODE_ENV === 'production';
+  // Dev build uses eval for HMR. In production Next.js output plus our
+  // deps (supabase-js, recharts, lucide-react, upstash) don't use eval.
+  // strict-dynamic lets scripts loaded by trusted scripts run without
+  // each needing its own nonce -- required for Next.js hydration chunks.
+  const scriptSrc = isProduction
+    ? `'self' 'nonce-${nonce}' 'strict-dynamic'`
+    : `'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-eval'`;
+  return [
+    "default-src 'self'",
+    `script-src ${scriptSrc}`,
+    // style-src keeps unsafe-inline because next/font and styled-jsx emit
+    // inline <style> tags. Inline styles can't execute code, so the risk
+    // is much lower than for scripts.
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: https:",
+    "font-src 'self' data:",
+    "connect-src 'self' https://*.supabase.co https://*.supabase.in",
+    "frame-ancestors 'self'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "object-src 'none'",
+  ].join('; ');
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -27,17 +61,22 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  const nonce = generateNonce();
+  const csp = buildCspHeader(nonce);
+
   const prefixed = pathname.match(/^\/(zh|en)(\/|$)/);
   if (prefixed) {
     const loc = prefixed[1] as 'zh' | 'en';
     const reqHeaders = new Headers(request.headers);
     reqHeaders.set('x-path-locale', loc);
+    reqHeaders.set('x-nonce', nonce);
     const res = NextResponse.next({ request: { headers: reqHeaders } });
     res.cookies.set(LOCALE_COOKIE, loc, {
       path: '/',
       maxAge: 31536000,
       sameSite: 'lax',
     });
+    res.headers.set('Content-Security-Policy', csp);
     return res;
   }
 
@@ -51,7 +90,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL(`/${loc}${pathname}`, request.url));
   }
 
-  return NextResponse.next();
+  const reqHeaders = new Headers(request.headers);
+  reqHeaders.set('x-nonce', nonce);
+  const res = NextResponse.next({ request: { headers: reqHeaders } });
+  res.headers.set('Content-Security-Policy', csp);
+  return res;
 }
 
 export const config = {
