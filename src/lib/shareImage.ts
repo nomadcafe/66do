@@ -186,8 +186,10 @@ function drawUpperRightDecoration(
 ): number {
   const hasMascot = !!(mascot && mascot.complete && mascot.naturalWidth > 0);
   if (hasMascot && mascot) {
-    const maxW = 500;
-    const maxH = 360;
+    // Source PNG is 612x408; drawing up to 600x400 keeps us at near
+    // 1:1 pixel scale (crispest render, no upscale blur).
+    const maxW = 600;
+    const maxH = 400;
     const aspect = mascot.naturalWidth / mascot.naturalHeight;
     let w = maxW;
     let h = w / aspect;
