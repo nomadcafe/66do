@@ -1,15 +1,17 @@
 /**
- * Canvas-drawing helpers for the share modals. All functions operate in
- * an 800x600 logical coordinate space; callers get a retina-crisp PNG
- * because setupDprCanvas scales the backing buffer by devicePixelRatio.
+ * Canvas-drawing helpers for the share modals. All functions operate in a
+ * 1200x630 logical coordinate space (the standard OG / Twitter summary
+ * card aspect). setupDprCanvas scales the backing buffer by
+ * devicePixelRatio so downloads stay crisp on retina and at 2x social
+ * feed sizes.
  */
 
-const CANVAS_W = 800;
-const CANVAS_H = 600;
+const CANVAS_W = 1200;
+const CANVAS_H = 630;
 
 /**
  * Resets transform, sizes the backing buffer to devicePixelRatio, and
- * locks the CSS size to 800x600 so the preview and the downloaded PNG
+ * locks the CSS size to 1200x630 so the preview and the downloaded PNG
  * both reason in the same coordinate system.
  */
 export function setupDprCanvas(canvas: HTMLCanvasElement): CanvasRenderingContext2D | null {
@@ -35,7 +37,18 @@ export function formatUSD(n: number): string {
     : `$${n.toLocaleString()}`;
 }
 
-/** "2y 3m" / "6m" / "14d" — locale-neutral short form for the overlay. */
+/** `18500` -> `+$18.5K`, `1800000` -> `+$1.8M`. For compact metric cells. */
+function formatCompactUSD(n: number): string {
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '-' : '+';
+  let body: string;
+  if (abs >= 1_000_000) body = `$${(abs / 1_000_000).toFixed(1)}M`;
+  else if (abs >= 10_000) body = `$${(abs / 1_000).toFixed(1)}K`;
+  else body = `$${abs.toLocaleString()}`;
+  return `${sign}${body}`;
+}
+
+/** "2y 3m" / "6m" / "14d" — locale-neutral short form. */
 export function holdingPeriodShort(purchase: Date, sale: Date): string {
   const a = purchase.getTime();
   const b = sale.getTime();
@@ -80,160 +93,217 @@ export interface DomainSaleImageParams {
   roi: number;
   holdingShort: string;
   holdingLocalized: string;
-  /**
-   * When false, skips the celebration PNG overlay even if an image is
-   * passed in -- losses get the neutral gradient card instead. A
-   * "Domain Sold!" celebration PNG over `-$500 / ROI -45%` is a social
-   * disaster.
-   */
+  /** Drives colour / copy. When false the card uses a neutral loss palette. */
   isProfit?: boolean;
-  /** When present and loaded AND isProfit, draws the celebration-PNG overlay. */
-  celebrationImage?: HTMLImageElement | null;
 }
 
-const COLOR_PROFIT = '#059669';
-const COLOR_LOSS = '#dc2626';
+const FONT = 'Inter, "PingFang SC", "Microsoft YaHei", Arial, sans-serif';
 
-function drawCelebrationOverlay(
-  ctx: CanvasRenderingContext2D,
-  img: HTMLImageElement,
-  p: DomainSaleImageParams
-): void {
-  ctx.drawImage(img, 0, 0, CANVAS_W, CANVAS_H);
-  ctx.textAlign = 'left';
-  // Text overlay anchored under the PNG's "screen" area; coordinates
-  // are hand-tuned to the current domainfinancial.png. If the PNG is
-  // ever re-exported, these need to move with it.
-  const screenLeftX = 120;
-  const lineGap = 54;
-  let y = 168;
-  ctx.font = 'bold 34px Inter, Arial, sans-serif';
-  ctx.fillStyle = '#ffffff';
-  ctx.fillText(p.domainName, screenLeftX, y);
-  y += lineGap;
-  ctx.font = 'bold 36px Inter, Arial, sans-serif';
-  // Sale price is always positive revenue; the celebration overlay is
-  // only shown for profitable sales so keeping green is correct.
-  ctx.fillStyle = '#22c55e';
-  ctx.fillText(formatUSD(p.salePrice), screenLeftX, y);
-  y += lineGap;
-  ctx.font = 'bold 38px Inter, Arial, sans-serif';
-  ctx.fillText(`ROI: ${p.roi.toFixed(1)}%`, screenLeftX, y);
-  y += lineGap;
-  ctx.font = 'bold 28px Inter, Arial, sans-serif';
-  ctx.fillStyle = 'rgba(255,255,255,0.95)';
-  ctx.fillText(`HT: ${p.holdingShort}`, screenLeftX, y);
-}
+// Palette
+const INK = '#1c1917';          // domain name, primary
+const MUTED = '#57534e';         // badge label
+const LABEL = '#78716c';         // metric labels
+const DIVIDER = '#e7e5e4';       // hairline separators
+const BRAND_TEAL = '#0d9488';    // accent for profit mode
+const BRAND_SLATE = '#64748b';   // accent for loss mode
+const WATERMARK = '#44403c';     // footer text
+const PROFIT = '#16a34a';        // metric green
+const LOSS = '#dc2626';          // metric red
+const HOLDING = '#7c3aed';       // holding value (neutral data)
 
-function drawSaleFallbackCard(
-  ctx: CanvasRenderingContext2D,
-  p: DomainSaleImageParams
-): void {
-  const isProfit = p.isProfit !== false;
-  const pnlColor = isProfit ? COLOR_PROFIT : COLOR_LOSS;
-
-  const gradient = ctx.createLinearGradient(0, 0, CANVAS_W, CANVAS_H);
-  gradient.addColorStop(0, '#f8fafc');
-  gradient.addColorStop(0.5, '#f1f5f9');
-  gradient.addColorStop(1, '#e2e8f0');
-  ctx.fillStyle = gradient;
+function fillGradientBackground(ctx: CanvasRenderingContext2D, isProfit: boolean) {
+  const wash = isProfit ? '#f0fdfa' /* teal-50 */ : '#f8fafc' /* slate-50 */;
+  const base = '#fafaf9'; // stone-50
+  const g = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
+  g.addColorStop(0, wash);
+  g.addColorStop(1, base);
+  ctx.fillStyle = g;
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+}
 
-  ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = '#e2e8f0';
-  ctx.lineWidth = 1;
-  if (typeof ctx.roundRect === 'function') ctx.roundRect(60, 60, 680, 480, 16);
-  else ctx.rect(60, 60, 680, 480);
-  ctx.fill();
-  ctx.stroke();
+/**
+ * Drops font size until `text` fits within `maxWidth` at the given weight.
+ * Returns the font-size actually used so callers can adjust follow-on layout
+ * (not needed yet but cheap to expose).
+ */
+function fitText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  maxPx: number,
+  minPx: number,
+  weight: string
+): number {
+  let size = maxPx;
+  while (size > minPx) {
+    ctx.font = `${weight} ${size}px ${FONT}`;
+    if (ctx.measureText(text).width <= maxWidth) return size;
+    size -= 2;
+  }
+  ctx.font = `${weight} ${minPx}px ${FONT}`;
+  return minPx;
+}
 
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
-  ctx.shadowBlur = 20;
-  ctx.shadowOffsetY = 4;
-  ctx.fillStyle = '#ffffff';
-  if (typeof ctx.roundRect === 'function') ctx.roundRect(60, 60, 680, 480, 16);
-  else ctx.rect(60, 60, 680, 480);
-  ctx.fill();
-  ctx.shadowColor = 'transparent';
-  ctx.shadowBlur = 0;
-  ctx.shadowOffsetY = 0;
-
-  // Title matches the mood -- "Successfully" is cringe on a loss card.
-  ctx.font = 'bold 48px Inter, Arial, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#1e293b';
-  ctx.fillText(isProfit ? 'Domain Sold Successfully' : 'Sale Completed', CANVAS_W / 2, 140);
-
-  ctx.font = 'bold 36px Inter, Arial, sans-serif';
-  ctx.fillStyle = '#3b82f6';
-  ctx.fillText(p.domainName, CANVAS_W / 2, 200);
-
-  // Sale price is always positive revenue, keep neutral-green.
-  ctx.font = 'bold 44px Inter, Arial, sans-serif';
-  ctx.fillStyle = COLOR_PROFIT;
-  ctx.fillText(formatUSD(p.salePrice), CANVAS_W / 2, 260);
-
-  // "SOLD" badge stays the same regardless of P&L -- it states a fact.
-  ctx.fillStyle = COLOR_PROFIT;
-  ctx.fillRect(350, 290, 100, 32);
-  ctx.strokeStyle = '#047857';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(350, 290, 100, 32);
-  ctx.font = 'bold 16px Inter, Arial, sans-serif';
-  ctx.fillStyle = '#ffffff';
-  ctx.fillText('SOLD', CANVAS_W / 2, 310);
-
-  ctx.strokeStyle = '#e2e8f0';
-  ctx.lineWidth = 2;
+function drawBadge(ctx: CanvasRenderingContext2D, x: number, y: number, label: string, accent: string) {
+  // Small dot + uppercase label, letter-spaced.
   ctx.beginPath();
-  ctx.moveTo(100, 340);
-  ctx.lineTo(700, 340);
-  ctx.stroke();
+  ctx.fillStyle = accent;
+  ctx.arc(x + 8, y - 4, 7, 0, Math.PI * 2);
+  ctx.fill();
 
-  // Net Profit label flips to "Net Loss" so the number beneath reads
-  // naturally (otherwise the label says "profit" and the value is -$500).
+  ctx.font = `600 22px ${FONT}`;
+  ctx.fillStyle = MUTED;
   ctx.textAlign = 'left';
-  ctx.font = 'bold 24px Inter, Arial, sans-serif';
-  ctx.fillStyle = '#64748b';
-  ctx.fillText(isProfit ? 'Net Profit' : 'Net Loss', 100, 400);
-  ctx.font = 'bold 32px Inter, Arial, sans-serif';
-  ctx.fillStyle = pnlColor;
-  ctx.fillText(formatUSD(p.profit), 100, 430);
+  ctx.textBaseline = 'alphabetic';
+  // Manual letter-spacing: canvas 2D has no built-in tracking so we
+  // walk the string and offset by measureText each step. Cheap at
+  // this text length.
+  const tracking = 2;
+  let cx = x + 28;
+  for (const ch of label) {
+    ctx.fillText(ch, cx, y);
+    cx += ctx.measureText(ch).width + tracking;
+  }
+}
 
-  ctx.font = 'bold 24px Inter, Arial, sans-serif';
-  ctx.fillStyle = '#64748b';
-  ctx.fillText('ROI', 300, 400);
-  ctx.font = 'bold 32px Inter, Arial, sans-serif';
-  ctx.fillStyle = pnlColor;
-  ctx.fillText(`${p.roi.toFixed(1)}%`, 300, 430);
-
-  ctx.font = 'bold 24px Inter, Arial, sans-serif';
-  ctx.fillStyle = '#64748b';
-  ctx.fillText('Holding Period', 500, 400);
-  ctx.font = 'bold 32px Inter, Arial, sans-serif';
-  ctx.fillStyle = '#7c3aed';
-  ctx.fillText(p.holdingLocalized, 500, 430);
-
-  ctx.font = 'bold 20px Inter, Arial, sans-serif';
-  ctx.fillStyle = '#64748b';
+function drawMetricCell(
+  ctx: CanvasRenderingContext2D,
+  centerX: number,
+  valueY: number,
+  labelY: number,
+  value: string,
+  label: string,
+  valueColor: string
+) {
   ctx.textAlign = 'center';
-  ctx.fillText('Powered by Domain.Financial', CANVAS_W / 2, 500);
-  ctx.font = '14px Inter, Arial, sans-serif';
-  ctx.fillStyle = '#94a3b8';
-  ctx.fillText('Track & Grow Your Domains', CANVAS_W / 2, 520);
+  ctx.textBaseline = 'alphabetic';
+
+  ctx.fillStyle = valueColor;
+  ctx.font = `700 48px ${FONT}`;
+  ctx.fillText(value, centerX, valueY);
+
+  ctx.fillStyle = LABEL;
+  ctx.font = `500 22px ${FONT}`;
+  ctx.fillText(label, centerX, labelY);
 }
 
 export function drawDomainSaleImage(canvas: HTMLCanvasElement, p: DomainSaleImageParams): void {
   const ctx = setupDprCanvas(canvas);
   if (!ctx) return;
-  const img = p.celebrationImage;
   const isProfit = p.isProfit !== false;
-  // Celebration overlay is only appropriate for wins. On a loss the "Domain
-  // Sold!" title + confetti + cheering mascot reads as tone-deaf, so we
-  // fall through to the neutral gradient card even if the PNG loaded.
-  const useCelebration = isProfit && img && img.complete && img.naturalWidth > 0;
-  if (useCelebration) drawCelebrationOverlay(ctx, img, p);
-  else drawSaleFallbackCard(ctx, p);
+  const accent = isProfit ? BRAND_TEAL : BRAND_SLATE;
+  const pnlColor = isProfit ? PROFIT : LOSS;
+
+  // 80px safe margin on all sides; content area is 1040 wide.
+  const margin = 80;
+  const contentRight = CANVAS_W - margin;
+
+  fillGradientBackground(ctx, isProfit);
+
+  // Badge (top)
+  drawBadge(
+    ctx,
+    margin,
+    108,
+    isProfit ? 'DOMAIN SOLD' : 'POSITION CLOSED',
+    accent
+  );
+
+  // Domain name (hero 1)
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = INK;
+  fitText(ctx, p.domainName, CANVAS_W - margin * 2, 72, 40, '800');
+  ctx.fillText(p.domainName, margin, 210);
+
+  // Sale price (hero 2)
+  ctx.fillStyle = accent;
+  const priceStr = formatUSD(p.salePrice);
+  fitText(ctx, priceStr, CANVAS_W - margin * 2, 96, 64, '800');
+  ctx.fillText(priceStr, margin, 340);
+
+  // "Sale Price" label under the hero number
+  ctx.fillStyle = LABEL;
+  ctx.font = `500 26px ${FONT}`;
+  ctx.fillText('Sale Price', margin, 380);
+
+  // Divider
+  ctx.strokeStyle = DIVIDER;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(margin, 435);
+  ctx.lineTo(contentRight, 435);
+  ctx.stroke();
+
+  // Three metric cells: Net Profit / ROI / Held
+  // Evenly spaced columns within the content area.
+  const col1X = margin + 1040 / 6;        // 80 + 173 = 253
+  const col2X = margin + 1040 / 2;        // 80 + 520 = 600
+  const col3X = margin + (1040 / 6) * 5;  // 80 + 867 = 947
+  const metricValueY = 520;
+  const metricLabelY = 560;
+
+  drawMetricCell(
+    ctx,
+    col1X,
+    metricValueY,
+    metricLabelY,
+    formatCompactUSD(p.profit),
+    isProfit ? 'Profit' : 'Loss',
+    pnlColor
+  );
+
+  drawMetricCell(
+    ctx,
+    col2X,
+    metricValueY,
+    metricLabelY,
+    `${p.roi >= 0 ? '+' : ''}${p.roi.toFixed(1)}%`,
+    'ROI',
+    pnlColor
+  );
+
+  drawMetricCell(
+    ctx,
+    col3X,
+    metricValueY,
+    metricLabelY,
+    p.holdingShort,
+    'Held',
+    HOLDING
+  );
+
+  // Column separators — subtle vertical hairlines between the metric cells.
+  ctx.strokeStyle = DIVIDER;
+  ctx.lineWidth = 1;
+  const sep1X = margin + 1040 / 3;
+  const sep2X = margin + (1040 / 3) * 2;
+  [sep1X, sep2X].forEach((x) => {
+    ctx.beginPath();
+    ctx.moveTo(x, 475);
+    ctx.lineTo(x, 580);
+    ctx.stroke();
+  });
+
+  // Footer / watermark
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.beginPath();
+  ctx.fillStyle = accent;
+  ctx.arc(margin + 7, 595, 6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.font = `600 22px ${FONT}`;
+  ctx.fillStyle = WATERMARK;
+  ctx.fillText('Domain.Financial', margin + 24, 601);
+
+  // Localized holding hint on the right of the footer so the loss /
+  // long-hold narrative still has somewhere to land.
+  if (p.holdingLocalized && p.holdingLocalized !== '—') {
+    ctx.font = `400 22px ${FONT}`;
+    ctx.fillStyle = LABEL;
+    ctx.textAlign = 'right';
+    ctx.fillText(p.holdingLocalized, contentRight, 601);
+  }
 }
 
 // ---- Portfolio card -----------------------------------------------------
@@ -259,56 +329,112 @@ export function drawPortfolioImage(canvas: HTMLCanvasElement, p: PortfolioImageP
   const ctx = setupDprCanvas(canvas);
   if (!ctx) return;
 
-  const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
-  gradient.addColorStop(0, '#faf8f5');
-  gradient.addColorStop(0.45, '#f3efe8');
-  gradient.addColorStop(1, '#e8e2d8');
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-
   const profit = Number.isFinite(p.totalProfit) ? p.totalProfit : 0;
   const roiVal = Number.isFinite(p.roi) ? p.roi : 0;
   const investment = Number.isFinite(p.totalInvestment) ? p.totalInvestment : 0;
-  const bestName = p.bestDomain && p.bestDomain !== '—' ? p.bestDomain : '—';
-  const bestTrunc = bestName.length > 32 ? `${bestName.slice(0, 29)}...` : bestName;
-  const ink = '#1c1917';
-  const muted = '#57534e';
-  const soft = '#78716c';
+  const isProfit = profit >= 0;
+  const accent = isProfit ? BRAND_TEAL : BRAND_SLATE;
+  const pnlColor = isProfit ? PROFIT : LOSS;
 
-  ctx.fillStyle = '#92400e';
-  ctx.font = 'bold 38px Inter, Arial, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(p.labels.title, CANVAS_W / 2, 100);
+  const margin = 80;
+  const contentRight = CANVAS_W - margin;
 
-  ctx.fillStyle = muted;
-  ctx.font = '24px Inter, Arial, sans-serif';
-  ctx.fillText(p.labels.totalProfit, CANVAS_W / 2, 180);
-  ctx.fillStyle = '#15803d';
-  ctx.font = 'bold 48px Inter, Arial, sans-serif';
-  ctx.fillText(`$${profit.toLocaleString()}`, CANVAS_W / 2, 240);
+  fillGradientBackground(ctx, isProfit);
 
-  ctx.fillStyle = '#15803d';
-  ctx.font = 'bold 36px Inter, Arial, sans-serif';
-  ctx.fillText(`ROI: ${roiVal.toFixed(1)}%`, CANVAS_W / 2, 300);
+  // Badge
+  drawBadge(ctx, margin, 108, 'PORTFOLIO SUMMARY', accent);
 
-  ctx.fillStyle = ink;
-  ctx.font = '20px Inter, Arial, sans-serif';
-  ctx.fillText(`${p.labels.bestDomain}: ${bestTrunc}`, CANVAS_W / 2, 350);
+  // Title (small, single line under the badge)
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = INK;
+  ctx.font = `700 44px ${FONT}`;
+  ctx.fillText(p.labels.title, margin, 180);
 
-  ctx.fillStyle = soft;
-  ctx.font = '18px Inter, Arial, sans-serif';
-  ctx.fillText(
-    `${p.labels.totalInvestment}: $${investment.toLocaleString()}  ·  ${p.labels.investmentPeriod}: ${p.investmentPeriod}`,
-    CANVAS_W / 2,
-    400
+  // Hero: total profit with localized label
+  ctx.fillStyle = LABEL;
+  ctx.font = `500 26px ${FONT}`;
+  ctx.fillText(p.labels.totalProfit, margin, 240);
+  ctx.fillStyle = accent;
+  const profitStr = formatUSD(profit);
+  fitText(ctx, profitStr, CANVAS_W - margin * 2, 96, 64, '800');
+  ctx.fillText(profitStr, margin, 340);
+
+  // Divider
+  ctx.strokeStyle = DIVIDER;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(margin, 435);
+  ctx.lineTo(contentRight, 435);
+  ctx.stroke();
+
+  // Three metric cells: ROI / Total Investment / Investment Period
+  const col1X = margin + 1040 / 6;
+  const col2X = margin + 1040 / 2;
+  const col3X = margin + (1040 / 6) * 5;
+  const metricValueY = 520;
+  const metricLabelY = 560;
+
+  drawMetricCell(
+    ctx,
+    col1X,
+    metricValueY,
+    metricLabelY,
+    `${roiVal >= 0 ? '+' : ''}${roiVal.toFixed(1)}%`,
+    'ROI',
+    pnlColor
   );
 
-  ctx.fillStyle = '#a8a29e';
-  ctx.font = '16px Inter, Arial, sans-serif';
-  ctx.fillText('powered by', CANVAS_W / 2, 520);
-  ctx.fillStyle = '#166534';
-  ctx.font = 'bold 20px Inter, Arial, sans-serif';
-  ctx.fillText('Domain.financial', CANVAS_W / 2, 550);
+  drawMetricCell(
+    ctx,
+    col2X,
+    metricValueY,
+    metricLabelY,
+    formatCompactUSD(investment),
+    p.labels.totalInvestment,
+    INK
+  );
+
+  drawMetricCell(
+    ctx,
+    col3X,
+    metricValueY,
+    metricLabelY,
+    p.investmentPeriod,
+    p.labels.investmentPeriod,
+    HOLDING
+  );
+
+  ctx.strokeStyle = DIVIDER;
+  ctx.lineWidth = 1;
+  const sep1X = margin + 1040 / 3;
+  const sep2X = margin + (1040 / 3) * 2;
+  [sep1X, sep2X].forEach((x) => {
+    ctx.beginPath();
+    ctx.moveTo(x, 475);
+    ctx.lineTo(x, 580);
+    ctx.stroke();
+  });
+
+  // Footer
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.beginPath();
+  ctx.fillStyle = accent;
+  ctx.arc(margin + 7, 595, 6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.font = `600 22px ${FONT}`;
+  ctx.fillStyle = WATERMARK;
+  ctx.fillText('Domain.Financial', margin + 24, 601);
+
+  const bestName = p.bestDomain && p.bestDomain !== '—' ? p.bestDomain : '';
+  if (bestName) {
+    const bestTrunc = bestName.length > 28 ? `${bestName.slice(0, 25)}...` : bestName;
+    ctx.font = `400 22px ${FONT}`;
+    ctx.fillStyle = LABEL;
+    ctx.textAlign = 'right';
+    ctx.fillText(`${p.labels.bestDomain}: ${bestTrunc}`, contentRight, 601);
+  }
 }
 
 /** Triggers a browser download of the canvas as a PNG. */
