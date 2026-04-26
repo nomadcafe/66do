@@ -9,6 +9,9 @@ import { DomainWithTags } from '../../types/dashboard';
 import DateInput from '../ui/DateInput';
 import { useI18nContext } from '../../contexts/I18nProvider';
 
+const COMMON_RENEWAL_CYCLES = [1, 2, 3, 5, 10] as const;
+const CUSTOM_CYCLE_SENTINEL = 'custom';
+
 // interface Domain {
 //   id: string;
 //   domain_name: string;
@@ -59,6 +62,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [localOpen, setLocalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [useCustomCycle, setUseCustomCycle] = useState(false);
 
   const registrarSuggestions = useMemo(() => {
     if (!existingDomains?.length) return [] as string[];
@@ -103,6 +107,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
         estimated_value: domain.estimated_value || 0,
         tags: tagsArray
       });
+      setUseCustomCycle(!COMMON_RENEWAL_CYCLES.includes(domain.renewal_cycle as 1 | 2 | 3 | 5 | 10));
     } else {
       setFormData({
         domain_name: '',
@@ -119,6 +124,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
         estimated_value: 0,
         tags: []
       });
+      setUseCustomCycle(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅在被编辑域名 id 或弹窗开关变化时同步，不随 domain 引用变化重置
   }, [isOpen, domainId]);
@@ -350,18 +356,48 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
             <Calendar className="h-4 w-4 inline mr-1" />
             {t('dashboard.renewalCycleYears')}
           </label>
-          <select
-            id="domain-form-renewal_cycle"
-            value={formData.renewal_cycle}
-            onChange={(e) => setFormData((prev) => ({ ...prev, renewal_cycle: parseInt(e.target.value) || 1 }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value={1}>{t('dashboard.renewalCycle1Year')}</option>
-            <option value={2}>{t('dashboard.renewalCycle2Years')}</option>
-            <option value={3}>{t('dashboard.renewalCycle3Years')}</option>
-            <option value={5}>{t('dashboard.renewalCycle5Years')}</option>
-            <option value={10}>{t('dashboard.renewalCycle10Years')}</option>
-          </select>
+          {useCustomCycle ? (
+            <input
+              id="domain-form-renewal_cycle"
+              type="number"
+              min={1}
+              max={10}
+              value={formData.renewal_cycle === 0 ? '' : formData.renewal_cycle}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  renewal_cycle: Math.min(10, Math.max(1, parseInt(e.target.value, 10) || 1))
+                }))
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder={t('dashboard.renewalCycleCustomPlaceholder')}
+            />
+          ) : (
+            <select
+              id="domain-form-renewal_cycle"
+              value={formData.renewal_cycle}
+              onChange={(e) => {
+                if (e.target.value === CUSTOM_CYCLE_SENTINEL) {
+                  setUseCustomCycle(true);
+                  setFormData((prev) =>
+                    COMMON_RENEWAL_CYCLES.includes(prev.renewal_cycle as 1 | 2 | 3 | 5 | 10)
+                      ? { ...prev, renewal_cycle: 4 }
+                      : prev
+                  );
+                  return;
+                }
+                setFormData((prev) => ({ ...prev, renewal_cycle: parseInt(e.target.value, 10) || 1 }));
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value={1}>{t('dashboard.renewalCycle1Year')}</option>
+              <option value={2}>{t('dashboard.renewalCycle2Years')}</option>
+              <option value={3}>{t('dashboard.renewalCycle3Years')}</option>
+              <option value={5}>{t('dashboard.renewalCycle5Years')}</option>
+              <option value={10}>{t('dashboard.renewalCycle10Years')}</option>
+              <option value={CUSTOM_CYCLE_SENTINEL}>{t('dashboard.renewalCycleCustom')}</option>
+            </select>
+          )}
           <p className="text-xs text-gray-500 mt-1">
             {t('dashboard.renewalCycleHelp')}
           </p>
