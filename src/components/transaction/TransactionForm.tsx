@@ -106,6 +106,22 @@ export default function TransactionForm({
   }, [isOpen]);
 
   useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        if (domainDropdownOpen) {
+          setDomainDropdownOpen(false);
+          return;
+        }
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, domainDropdownOpen, onClose]);
+
+  useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (domainPickerRef.current && !domainPickerRef.current.contains(e.target as Node)) {
         setDomainDropdownOpen(false);
@@ -348,8 +364,19 @@ export default function TransactionForm({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label={transaction ? t('transaction.editTransaction') : t('transaction.addNewTransaction')}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="bg-white rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-900">
             {transaction ? t('transaction.editTransaction') : t('transaction.addNewTransaction')}
