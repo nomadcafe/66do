@@ -27,8 +27,6 @@ const buildEmptyFormData = ({ preserveDomainId = '' }: { preserveDomainId?: stri
   type: 'buy' as 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising',
   amount: 0,
   currency: 'USD',
-  exchange_rate: 1,
-  base_amount: 0,
   platform_fee: 0,
   platform_fee_percentage: 0,
   net_amount: 0,
@@ -155,8 +153,6 @@ export default function TransactionForm({
         type: transaction.type,
         amount: transaction.amount,
         currency: transaction.currency,
-        exchange_rate: transaction.exchange_rate || 1,
-        base_amount: transaction.base_amount || 0,
         platform_fee: transaction.platform_fee || 0,
         platform_fee_percentage: transaction.platform_fee_percentage || 0,
         net_amount: transaction.net_amount || 0,
@@ -272,7 +268,6 @@ export default function TransactionForm({
       }
     }
 
-    // 仅 USD：base_amount 与 amount 一致
     const calculatedNetAmount = formData.amount - formData.platform_fee;
     const clampRenewalYears = Math.min(
       10,
@@ -281,7 +276,6 @@ export default function TransactionForm({
     const finalFormData = {
       ...formData,
       currency: 'USD',
-      base_amount: formData.amount,
       net_amount: calculatedNetAmount,
       user_id: '',
       created_at: '',

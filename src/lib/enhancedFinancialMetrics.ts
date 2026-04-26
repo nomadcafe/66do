@@ -64,7 +64,6 @@ export function calculateDomainROI(
     domain_id: string;
     type: string;
     amount: number;
-    base_amount?: number | null;
     platform_fee?: number | null;
     net_amount?: number | null;
     date: string;
@@ -154,7 +153,6 @@ export function calculateAllDomainROIs(
     domain_id: string;
     type: string;
     amount: number;
-    base_amount?: number | null;
     platform_fee?: number | null;
     net_amount?: number | null;
     date: string;
@@ -179,7 +177,6 @@ export function calculateEnhancedFinancialMetrics(
     domain_id: string;
     type: string;
     amount: number;
-    base_amount?: number | null;
     platform_fee?: number | null;
     net_amount?: number | null;
     date: string;

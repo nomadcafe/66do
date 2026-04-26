@@ -228,8 +228,6 @@ const MAX_NOTES_LENGTH = 1000;
 const MAX_CATEGORY_LENGTH = 100;
 const MAX_RECEIPT_URL_LENGTH = 500;
 const VALID_CURRENCIES = ['USD'];
-const MAX_EXCHANGE_RATE = 1000;
-const MIN_EXCHANGE_RATE = 0.0001;
 
 /** 将校验结果中的 i18n 键（validation.*）转为当前语言文案；非键字符串原样返回（如域名校验仍为中文）。 */
 export function translateValidationMessages(
@@ -303,16 +301,6 @@ export function validateTransaction(transaction: unknown): ValidationResult {
       errors.push('validation.transaction.dateInvalid');
     } else if (isDateBeyondAllowedFuture(date)) {
       errors.push('validation.transaction.dateBeyondMaxFuture');
-    }
-  }
-
-  // 汇率验证
-  if (transactionObj.exchange_rate !== null && transactionObj.exchange_rate !== undefined) {
-    const rate = Number(transactionObj.exchange_rate);
-    if (isNaN(rate) || !isFinite(rate)) {
-      errors.push('validation.transaction.exchangeRateInvalid');
-    } else if (rate < MIN_EXCHANGE_RATE || rate > MAX_EXCHANGE_RATE) {
-      errors.push('validation.transaction.exchangeRateOutOfRange');
     }
   }
 
@@ -561,14 +549,10 @@ export function sanitizeTransactionData(transaction: unknown): Record<string, un
 
   // 处理金额，确保在合理范围内
   const amount = Math.max(0, Math.min(MAX_TRANSACTION_AMOUNT, Number(transactionObj.amount) || 0));
-  
-  // 仅支持 USD，统一以 base_amount 存 USD 金额
+
+  // 仅支持 USD
   const currency = 'USD';
 
-  // 处理其他金额字段：base_amount 为统一 USD 金额，无则用 amount
-  const baseAmount = transactionObj.base_amount !== null && transactionObj.base_amount !== undefined
-    ? Math.max(0, Math.min(MAX_TRANSACTION_AMOUNT, Number(transactionObj.base_amount) || 0))
-    : amount;
   const platformFee = transactionObj.platform_fee !== null && transactionObj.platform_fee !== undefined
     ? Math.max(0, Math.min(MAX_TRANSACTION_AMOUNT, Number(transactionObj.platform_fee) || 0))
     : null;
@@ -614,8 +598,6 @@ export function sanitizeTransactionData(transaction: unknown): Record<string, un
     ...transactionObj,
     amount,
     currency,
-    exchange_rate: 1,
-    base_amount: baseAmount,
     platform_fee: platformFee,
     platform_fee_percentage: platformFeePercentage,
     net_amount: netAmount,

@@ -72,9 +72,9 @@ export function useDomainStats(
       }));
 
     const validTransactions = transactions
-      .filter(transaction => (transaction.base_amount ?? transaction.amount) != null)
+      .filter(transaction => transaction.amount != null)
       .map(transaction => {
-        const fullAmount = (transaction.base_amount ?? transaction.amount) ?? 0;
+        const fullAmount = transaction.amount ?? 0;
         let amountUSD = fullAmount;
         let platformFee: number | undefined = transaction.platform_fee ?? undefined;
         let netAmount: number | undefined = transaction.net_amount ?? fullAmount;

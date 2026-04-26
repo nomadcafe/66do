@@ -167,8 +167,6 @@ export function useDashboardData(
         type: transaction.type,
         amount: transaction.amount,
         currency: transaction.currency,
-        exchange_rate: transaction.exchange_rate || null,
-        base_amount: transaction.base_amount || null,
         platform_fee: transaction.platform_fee || null,
         platform_fee_percentage: transaction.platform_fee_percentage || null,
         net_amount: transaction.net_amount || null,
@@ -303,7 +301,6 @@ export function useDashboardData(
         const isExisting = transactions.find(t => t.id === transaction.id);
         const transactionPayload = {
           ...transaction,
-          base_amount: transaction.base_amount || null,
           platform_fee: transaction.platform_fee || null,
           platform_fee_percentage: transaction.platform_fee_percentage || null,
           net_amount: transaction.net_amount || null,

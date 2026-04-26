@@ -512,7 +512,7 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                                 tone === 'buy' || tone === 'renew' ? 'bg-stone-100 text-stone-700' :
                                 'bg-amber-50 text-amber-700';
                               const sign = tone === 'sell' ? '+' : '-';
-                              const amount = tx.base_amount ?? tx.amount ?? 0;
+                              const amount = tx.amount ?? 0;
                               const dateStr = tx.date ? formatDateLocale(tx.date) : '';
                               return (
                                 <li key={tx.id} className="flex items-center gap-3 text-sm">

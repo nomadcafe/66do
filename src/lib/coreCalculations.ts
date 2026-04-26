@@ -6,10 +6,9 @@ import { totalHoldingCostForDomain } from './renewalCostBasis';
 export type { SellProceedsFields } from './sellProceeds';
 export { sellGrossUSD, sellNetUSD } from './sellProceeds';
 
-/** 统一以 USD 计价的交易金额（优先 base_amount，用于汇总） */
+/** 年度汇总用的 USD 金额：sell 走 sellNetUSD（与 saleNet 字段语义一致），其他类型走 amount */
 function amountUSD(t: TransactionWithRequiredFields): number {
-  if (t.base_amount != null && t.base_amount !== undefined) return t.base_amount;
-  return t.net_amount != null && t.net_amount !== undefined ? t.net_amount : t.amount;
+  return t.type === 'sell' ? sellNetUSD(t) : t.amount;
 }
 
 // 基础财务计算接口

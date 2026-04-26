@@ -300,7 +300,7 @@ const TransactionList = memo(function TransactionList({
         const v = sellNetUSD(adj);
         if (Number.isFinite(v)) inflow += v;
       } else {
-        const v = Number(adj.base_amount ?? adj.amount ?? 0);
+        const v = Number(adj.amount ?? 0);
         if (Number.isFinite(v)) outflow += v;
       }
     }

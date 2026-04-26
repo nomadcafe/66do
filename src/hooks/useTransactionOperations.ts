@@ -109,7 +109,7 @@ export function useTransactionOperations(
             ...domain,
             status: 'sold' as const,
             sale_date: latest.date ?? domain.sale_date,
-            sale_price: latest.base_amount ?? latest.amount ?? domain.sale_price,
+            sale_price: latest.amount ?? domain.sale_price,
             platform_fee: latest.platform_fee ?? domain.platform_fee,
           };
         });

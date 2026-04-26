@@ -174,9 +174,9 @@ export default function DashboardPage() {
   // 分期未完成时按实际已收折算的交易列表（Overview、Analytics、Share、Reports 统一使用）
   const transactionsForMetrics = useMemo(() => {
     return transactions
-      .filter(transaction => (transaction.base_amount ?? transaction.amount) != null)
+      .filter(transaction => transaction.amount != null)
       .map(transaction => {
-        const fullAmount = (transaction.base_amount ?? transaction.amount) ?? 0;
+        const fullAmount = transaction.amount ?? 0;
         const initialFee = Number(transaction.platform_fee) || 0;
         let amountUSD = fullAmount;
         let platformFee: number | undefined = transaction.platform_fee ?? undefined;
@@ -260,7 +260,6 @@ export default function DashboardPage() {
         }
         return {
           ...transaction,
-          base_amount: amountUSD,
           amount: amountUSD,
           platform_fee: platformFee ?? 0,
           net_amount: netAmount ?? amountUSD
@@ -521,8 +520,8 @@ export default function DashboardPage() {
     const startMonth = new Date(now.getFullYear(), now.getMonth() - (monthCount - 1), 1);
     // 走 expandSellToCashReceipts：分期销售按已付期数摊到对应到账月，每条
     // 事件用 sellNetUSD 口径（已扣平台费，与 IA Monthly Cash Flow 一致）。
-    // 旧实现按 tx.date 把整笔 sell 加到销售月，且用 base_amount/amount（毛额），
-    // 让分期收入"全部 spike 在销售月 + 中间月份全 0 + 数额含平台费"三连错。
+    // 旧实现按 tx.date 把整笔 sell 加到销售月，且用毛额，让分期收入"全部 spike
+    // 在销售月 + 中间月份全 0 + 数额含平台费"三连错。
     for (const tx of transactionsForMetrics) {
       if (tx.type !== 'sell') continue;
       for (const receipt of expandSellToCashReceipts(tx)) {
@@ -1095,7 +1094,7 @@ export default function DashboardPage() {
                       const tx = recentTransactions[0];
                       const dom = domains.find((d) => d.id === tx.domain_id);
                       const sign = tx.type === 'sell' ? '+' : '-';
-                      const txAmount = tx.base_amount ?? tx.amount ?? 0;
+                      const txAmount = tx.amount ?? 0;
                       return {
                         icon: tx.type === 'sell'
                           ? <TrendingUp className="h-4 w-4" />

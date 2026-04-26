@@ -113,20 +113,14 @@ export function ensureDomainWithTags(domain: Domain | unknown): DomainWithTags {
 
 export function ensureTransactionWithRequiredFields(transaction: Transaction | unknown): TransactionWithRequiredFields {
   const t = transaction as Transaction;
-  // 统一把 amount/base_amount 规范为数字，保证新加或从 Supabase 加载的交易都能被 Total Revenue / Total Sales 等指标正确计入
   const amountNum = typeof t.amount === 'number' && !Number.isNaN(t.amount) ? t.amount : Number(t.amount);
-  const baseNum = t.base_amount != null && typeof t.base_amount === 'number' && !Number.isNaN(t.base_amount)
-    ? t.base_amount
-    : (typeof amountNum === 'number' && !Number.isNaN(amountNum) ? amountNum : 0);
-  const amount = typeof amountNum === 'number' && !Number.isNaN(amountNum) ? amountNum : baseNum;
-  const base_amount = typeof baseNum === 'number' && !Number.isNaN(baseNum) ? baseNum : amount;
+  const amount = Number.isFinite(amountNum) ? amountNum : 0;
 
   return {
     ...t,
     domain_id: t.domain_id || '',
     type: (t.type || 'buy') as 'buy' | 'sell' | 'renew' | 'transfer' | 'fee',
     amount,
-    base_amount,
     date: t.date || new Date().toISOString()
   };
 }
