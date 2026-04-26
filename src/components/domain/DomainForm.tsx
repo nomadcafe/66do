@@ -166,6 +166,19 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
     onClose();
   };
 
+  useEffect(() => {
+    if (!localOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        handleClose();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- handleClose 由组件内部引用稳定，依赖 localOpen 已足够
+  }, [localOpen]);
+
   if (!localOpen) return null;
 
   const modalContent = (
@@ -178,8 +191,9 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
     >
       <div
         data-close-domain-form
-        className="absolute inset-0 bg-black/40"
+        className="absolute inset-0 bg-black/40 cursor-pointer"
         aria-hidden
+        onClick={handleClose}
       />
       <div
         className="relative bg-white w-full max-w-xl h-full overflow-y-auto shadow-xl flex flex-col"
