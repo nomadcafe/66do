@@ -211,7 +211,7 @@ const TransactionList = memo(function TransactionList({
     }
   };
 
-  const getTypeLabel = (type: string) => {
+  const getTypeLabel = useCallback((type: string) => {
     switch (type) {
       case 'buy': return t('transaction.buy');
       case 'sell': return t('transaction.sell');
@@ -222,7 +222,7 @@ const TransactionList = memo(function TransactionList({
       case 'advertising': return t('transaction.advertising');
       default: return type;
     }
-  };
+  }, [t]);
 
   const formatCurrency = useCallback((amount: number, currency: string) => {
     return new Intl.NumberFormat(localeTag, {
@@ -249,10 +249,17 @@ const TransactionList = memo(function TransactionList({
   }, [domainById, t]);
 
   const filteredTransactions = useMemo(() => {
+    const q = searchTerm.toLowerCase();
     const filtered = transactions.filter(transaction => {
+      // 搜索覆盖：域名 + notes + type 标签（i18n 后）+ category。原来只匹配
+      // 前两项，搜 "sell" / "投资" 这类常见词全是空结果，用户得手动按 type
+      // 筛再来回切。category 同理——保存进 DB 但搜索完全不见。
       const matchesSearch =
-        getDomainName(transaction.domain_id).toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (transaction.notes || '').toLowerCase().includes(searchTerm.toLowerCase());
+        !q ||
+        getDomainName(transaction.domain_id).toLowerCase().includes(q) ||
+        (transaction.notes || '').toLowerCase().includes(q) ||
+        (transaction.category || '').toLowerCase().includes(q) ||
+        getTypeLabel(transaction.type).toLowerCase().includes(q);
 
       const matchesType = typeFilter === 'all' || transaction.type === typeFilter;
 
@@ -270,7 +277,7 @@ const TransactionList = memo(function TransactionList({
       return sortDir === 'asc' ? cmp : -cmp;
     });
     return sorted;
-  }, [transactions, getDomainName, searchTerm, typeFilter, sortField, sortDir]);
+  }, [transactions, getDomainName, getTypeLabel, searchTerm, typeFilter, sortField, sortDir]);
 
   // Period KPIs reflecting the *visible* (filtered) set, computed from installment-adjusted
   // amounts (when parent supplies metricsTransactions). Inflow uses sellNetUSD — actual cash
@@ -444,7 +451,7 @@ const TransactionList = memo(function TransactionList({
           <div className="p-4">
             <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">{t('transactionList.kpiOutflow')}</p>
             <p className="mt-0.5 text-lg font-bold text-rose-700 tabular-nums">
-              {periodMetrics.outflow > 0 ? '-' : ''}{formatCurrency(periodMetrics.outflow, 'USD')}
+              {periodMetrics.outflow > 0 && '-'}{formatCurrency(periodMetrics.outflow, 'USD')}
             </p>
           </div>
           <div className="p-4">
