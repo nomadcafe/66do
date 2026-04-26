@@ -790,7 +790,8 @@ const translations: Record<Locale, Translations> = {
       virtualPurchaseHint: '来自域名档案的购入日与成本（未单独记购入交易时）',
       noDomains: '请先添加域名',
       noDomainMatch: '没有匹配的域名，请调整搜索',
-      searchHint: '使用上方搜索框按域名名称筛选列表'
+      searchHint: '使用上方搜索框按域名名称筛选列表',
+      sellListedHint: '合同 {amount}'
     },
     analytics: {
       title: '投资分析',
@@ -2019,7 +2020,8 @@ const translations: Record<Locale, Translations> = {
       virtualPurchaseHint: 'From domain profile (purchase date & cost) when no separate purchase transaction exists',
       noDomains: 'Add a domain to get started',
       noDomainMatch: 'No domains match your search',
-      searchHint: 'Use the search box above to filter domains in the list'
+      searchHint: 'Use the search box above to filter domains in the list',
+      sellListedHint: 'of {amount} listed'
     },
     analytics: {
       title: 'Investment Analytics',

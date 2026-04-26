@@ -450,6 +450,7 @@ const TransactionList = memo(function TransactionList({
         <DomainTimelineView
           domains={domains}
           transactions={transactions}
+          metricsTransactions={metricsTransactions}
           onEditTransaction={onEdit}
           domainSearch={searchTerm}
           selectedDomainId={selectedDomainId}
