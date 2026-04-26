@@ -26,6 +26,9 @@ interface DomainTimelineViewProps {
   /** URL-controlled selection（父组件 TransactionList 维护 ?txdomain=）。 */
   selectedDomainId: string;
   onSelectDomain: (id: string) => void;
+  /** 分期按实际已收折算后的交易（与 Insights / Period KPIs 同口径）。
+   *  缺省时退回原始 transactions，sell 事件单行显示合同金额（旧行为）。 */
+  metricsTransactions?: TransactionWithRequiredFields[];
 }
 
 function kindIcon(kind: DomainTimelineKind) {
@@ -66,6 +69,7 @@ export default function DomainTimelineView({
   domainSearch,
   selectedDomainId,
   onSelectDomain,
+  metricsTransactions,
 }: DomainTimelineViewProps) {
   const { t, locale } = useI18nContext();
   const localeTag = locale === 'zh' ? 'zh-CN' : 'en-US';
@@ -75,6 +79,14 @@ export default function DomainTimelineView({
     if (!q) return domains;
     return domains.filter((d) => d.domain_name.toLowerCase().includes(q));
   }, [domains, domainSearch]);
+
+  const metricsById = useMemo(() => {
+    const map = new Map<string, TransactionWithRequiredFields>();
+    if (metricsTransactions) {
+      for (const tx of metricsTransactions) map.set(tx.id, tx);
+    }
+    return map;
+  }, [metricsTransactions]);
 
   // 选中域名的解析：URL 里指定的优先，否则回落到列表第一项。原实现走
   // useState + useEffect，挂载时会闪一下"未选中"再被设上；这里改为
@@ -212,9 +224,35 @@ export default function DomainTimelineView({
                           </span>
                           <span className="text-xs text-stone-500">{formatDate(ev.date)}</span>
                         </div>
-                        <p className="text-base font-medium text-stone-800 mt-1">
-                          {formatMoney(ev.amount, ev.currency)}
-                        </p>
+                        {(() => {
+                          // 仅 sell 事件在分期/已取消/有附加费时与 Insights 口径分歧；
+                          // 其他事件 metrics 与原始相等，直接走原行为。
+                          const adjusted = ev.transaction
+                            ? metricsById.get(ev.transaction.id)
+                            : null;
+                          const realized =
+                            ev.kind === 'sell' && adjusted ? Number(adjusted.amount) : null;
+                          const listed = Number(ev.amount ?? 0);
+                          const showSplit =
+                            realized != null &&
+                            Number.isFinite(realized) &&
+                            Math.abs(realized - listed) > 0.005;
+                          return (
+                            <>
+                              <p className="text-base font-medium text-stone-800 mt-1">
+                                {formatMoney(showSplit ? realized : ev.amount, ev.currency)}
+                              </p>
+                              {showSplit && (
+                                <p className="text-xs text-stone-500 mt-0.5">
+                                  {t('timeline.sellListedHint').replace(
+                                    '{amount}',
+                                    formatMoney(listed, ev.currency)
+                                  )}
+                                </p>
+                              )}
+                            </>
+                          );
+                        })()}
                         {!ev.transaction && ev.kind === 'purchase' && (
                           <p className="text-xs text-stone-500 mt-1">{t('timeline.virtualPurchaseHint')}</p>
                         )}
