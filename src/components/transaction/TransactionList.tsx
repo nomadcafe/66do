@@ -31,14 +31,20 @@ const TRANSACTIONS_PAGE_SIZE = 30;
 // 共享行细节块：移动卡片和桌面表格 cell 之前各写过一遍"金额 + ROI + 平台
 // 费净额 + 分期"逻辑，是漂移源（颜色/字号在两边经常对不齐）。提取后两侧
 // 走 variant：card（金额 + ROI 同行 inline，font 更大）、table（全部竖排）。
+//
+// metricsTransaction：分期 sell 按已收折算后的同 id 副本；用于让行展示的
+// gross / net 与 Period KPI、Insights、Timeline 同口径，避免一行 +$50,000、
+// 上方 KPI +$10,000 这种跨视图打架。
 function TxMetaBlock({
   transaction,
+  metricsTransaction,
   domain,
   formatCurrency,
   t,
   variant,
 }: {
   transaction: TransactionWithRequiredFields;
+  metricsTransaction?: TransactionWithRequiredFields;
   domain: DomainWithTags | undefined;
   formatCurrency: (amount: number, currency: string) => string;
   t: (key: string) => string;
@@ -46,16 +52,28 @@ function TxMetaBlock({
 }) {
   const isSell = transaction.type === 'sell';
   const sign = isSell ? '+' : '-';
-  const grossAmt = sellGrossUSD(transaction);
+  const listedGross = sellGrossUSD(transaction);
+  const adjustedGross = metricsTransaction ? sellGrossUSD(metricsTransaction) : listedGross;
+  // 仅 sell 有 metrics-adjustment 余地；非 sell 时 metrics === transaction，showSplit 为 false。
+  const showSplit = isSell && Math.abs(adjustedGross - listedGross) > 0.005;
+  const displayGross = showSplit ? adjustedGross : listedGross;
+  // 净额走 metrics（如有），保证"主行 + 副行 + 净额"三个数都同口径。
+  const netSource = metricsTransaction ?? transaction;
   const amountColor = isSell ? 'text-emerald-700' : 'text-stone-900';
-  const hasPlatformFee = isSell && transaction.platform_fee != null && transaction.platform_fee > 0;
+  const hasPlatformFee = isSell && netSource.platform_fee != null && netSource.platform_fee > 0;
   const isInstallment = isSell && transaction.payment_plan === 'installment';
   const sellRoi = isSell && domain ? calculateDomainROI(domain, [transaction]) : null;
   const isCard = variant === 'card';
 
   const amountEl = (
     <span className={`tabular-nums ${isCard ? 'text-base font-bold' : 'text-sm font-semibold'} ${amountColor}`}>
-      {sign}{formatCurrency(grossAmt, transaction.currency)}
+      {sign}{formatCurrency(displayGross, transaction.currency)}
+    </span>
+  );
+
+  const listedHintEl = showSplit && (
+    <span className="text-xs text-stone-500 tabular-nums">
+      {t('timeline.sellListedHint').replace('{amount}', formatCurrency(listedGross, transaction.currency))}
     </span>
   );
 
@@ -67,7 +85,7 @@ function TxMetaBlock({
 
   const feeEl = hasPlatformFee && (
     <span className="text-xs text-stone-500 tabular-nums">
-      {t('transaction.netIncome')}: {formatCurrency(sellNetUSD(transaction), transaction.currency)}
+      {t('transaction.netIncome')}: {formatCurrency(sellNetUSD(netSource), transaction.currency)}
     </span>
   );
 
@@ -86,6 +104,7 @@ function TxMetaBlock({
           {amountEl}
           {roiEl}
         </div>
+        {listedHintEl && <div className="mt-0.5">{listedHintEl}</div>}
         {feeEl && <div className="mt-0.5">{feeEl}</div>}
         {installmentEl && <div className="mt-0.5">{installmentEl}</div>}
       </>
@@ -95,6 +114,7 @@ function TxMetaBlock({
   return (
     <div className="flex flex-col gap-0.5">
       {amountEl}
+      {listedHintEl}
       {feeEl}
       {installmentEl}
       {roiEl}
@@ -523,6 +543,7 @@ const TransactionList = memo(function TransactionList({
                 <div className="mt-3">
                   <TxMetaBlock
                     transaction={transaction}
+                    metricsTransaction={metricsById.get(transaction.id)}
                     domain={domainById.get(transaction.domain_id)}
                     formatCurrency={formatCurrency}
                     t={t}
@@ -610,6 +631,7 @@ const TransactionList = memo(function TransactionList({
                     <td className="px-6 py-4 whitespace-nowrap">
                       <TxMetaBlock
                         transaction={transaction}
+                        metricsTransaction={metricsById.get(transaction.id)}
                         domain={domainById.get(transaction.domain_id)}
                         formatCurrency={formatCurrency}
                         t={t}
