@@ -22,6 +22,38 @@ interface TransactionFormProps {
   existingTransactions?: TransactionWithRequiredFields[];
 }
 
+const buildEmptyFormData = ({ preserveDomainId = '' }: { preserveDomainId?: string } = {}) => ({
+  domain_id: preserveDomainId,
+  type: 'buy' as 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising',
+  amount: 0,
+  currency: 'USD',
+  exchange_rate: 1,
+  base_amount: 0,
+  platform_fee: 0,
+  platform_fee_percentage: 0,
+  net_amount: 0,
+  date: '',
+  notes: '',
+  category: '',
+  tax_deductible: false,
+  receipt_url: '',
+  payment_plan: 'lump_sum' as 'lump_sum' | 'installment',
+  installment_period: 1,
+  downpayment_amount: 0,
+  installment_amount: 0,
+  final_payment_amount: 0,
+  total_installment_amount: 0,
+  paid_periods: 0,
+  installment_status: 'active' as 'active' | 'completed' | 'cancelled' | 'paused',
+  installment_first_payment_date: '',
+  platform_fee_type:
+    'standard' as 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment',
+  user_input_fee_rate: 0,
+  user_input_surcharge_rate: 0,
+  renewal_period_years: 1,
+  renewal_years_use_custom: false
+});
+
 export default function TransactionForm({
   transaction,
   domains,
@@ -34,39 +66,7 @@ export default function TransactionForm({
   const { t } = useI18nContext();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    domain_id: '',
-    type: 'buy' as 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising',
-    amount: 0,
-    currency: 'USD',
-    exchange_rate: 1,
-    base_amount: 0,
-    platform_fee: 0,
-    platform_fee_percentage: 0,
-    net_amount: 0,
-    date: '',
-    notes: '',
-    category: '',
-    tax_deductible: false,
-    receipt_url: '',
-    // 分期付款相关字段
-    payment_plan: 'lump_sum' as 'lump_sum' | 'installment',
-    installment_period: 1,
-    downpayment_amount: 0,
-    installment_amount: 0,
-    final_payment_amount: 0,
-    total_installment_amount: 0,
-    // 分期进度跟踪
-    paid_periods: 0,
-    installment_status: 'active' as 'active' | 'completed' | 'cancelled' | 'paused',
-    installment_first_payment_date: '',
-    platform_fee_type: 'standard' as 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment',
-    // 用户输入的费用率
-    user_input_fee_rate: 0,
-    user_input_surcharge_rate: 0,
-    renewal_period_years: 1,
-    renewal_years_use_custom: false
-  });
+  const [formData, setFormData] = useState(() => buildEmptyFormData());
 
   // 续费成本历史状态
   const [renewalCostHistory, setRenewalCostHistory] = useState<Array<{
@@ -184,39 +184,7 @@ export default function TransactionForm({
         renewal_years_use_custom: useCustom
       });
     } else {
-      setFormData({
-        domain_id: '',
-        type: 'buy' as 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' | 'marketing' | 'advertising',
-        amount: 0,
-        currency: 'USD',
-        exchange_rate: 1,
-        base_amount: 0,
-        platform_fee: 0,
-        platform_fee_percentage: 0,
-        net_amount: 0,
-        date: '',
-        notes: '',
-        category: '',
-        tax_deductible: false,
-        receipt_url: '',
-        // 分期付款相关字段
-        payment_plan: 'lump_sum' as 'lump_sum' | 'installment',
-        installment_period: 1,
-        downpayment_amount: 0,
-        installment_amount: 0,
-        final_payment_amount: 0,
-        total_installment_amount: 0,
-        // 分期进度跟踪
-        paid_periods: 0,
-        installment_status: 'active' as 'active' | 'completed' | 'cancelled' | 'paused',
-        installment_first_payment_date: '',
-        platform_fee_type: 'standard' as 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment',
-        // 用户输入的费用率
-        user_input_fee_rate: 0,
-        user_input_surcharge_rate: 0,
-        renewal_period_years: 1,
-        renewal_years_use_custom: false
-      });
+      setFormData(buildEmptyFormData());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅随 transaction 重置；domains 见下方续费周期同步 effect
   }, [transaction]);
@@ -287,8 +255,7 @@ export default function TransactionForm({
     }
   }, [formData.amount, formData.downpayment_amount, formData.final_payment_amount, formData.installment_period, formData.payment_plan, formData.installment_amount]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const performSave = async ({ keepOpen }: { keepOpen: boolean }) => {
     if (isSubmitting) return;
     if (!formData.domain_id) {
       setDomainDropdownOpen(true);
@@ -339,18 +306,28 @@ export default function TransactionForm({
       await Promise.resolve(onSave(finalFormDataClean));
 
       if (finalFormDataClean.type === 'sell' && onSaleComplete) {
-        const selectedDomain = domains.find(d => d.id === finalFormDataClean.domain_id);
-        if (selectedDomain) {
-          onSaleComplete(finalFormDataClean, selectedDomain);
+        const sold = domains.find((d) => d.id === finalFormDataClean.domain_id);
+        if (sold) {
+          onSaleComplete(finalFormDataClean, sold);
         }
       }
 
-      onClose();
+      if (keepOpen) {
+        // 重置表单但保留当前域名，方便连续录入同一域名的多笔交易
+        setFormData(buildEmptyFormData({ preserveDomainId: formData.domain_id }));
+      } else {
+        onClose();
+      }
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Save failed. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    void performSave({ keepOpen: false });
   };
 
   const transactionTypes: Array<{ value: TransactionWithRequiredFields['type']; label: string }> = [
@@ -762,6 +739,16 @@ export default function TransactionForm({
             >
               {t('common.cancel')}
             </button>
+            {!transaction && (
+              <button
+                type="button"
+                onClick={() => void performSave({ keepOpen: true })}
+                disabled={isSubmitting}
+                className="px-4 py-2 border border-blue-600 text-blue-700 rounded-md hover:bg-blue-50 disabled:opacity-50"
+              >
+                {t('transaction.saveAndAddAnother')}
+              </button>
+            )}
             <button
               type="submit"
               disabled={isSubmitting}
