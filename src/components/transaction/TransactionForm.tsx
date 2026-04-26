@@ -23,7 +23,7 @@ interface TransactionFormProps {
   onClose: () => void;
   onSave: (transaction: Omit<TransactionWithRequiredFields, 'id'>) => void | Promise<void>;
   onSaleComplete?: (transaction: Omit<TransactionWithRequiredFields, 'id'>, domain: DomainWithTags) => void;
-  /** 现有交易，用于 platform/category 的 datalist 自动补全 */
+  /** 现有交易，用于 category 的 datalist 自动补全 */
   existingTransactions?: TransactionWithRequiredFields[];
 }
 
@@ -51,7 +51,6 @@ export default function TransactionForm({
     net_amount: 0,
     date: '',
     notes: '',
-    platform: '',
     category: '',
     tax_deductible: false,
     receipt_url: '',
@@ -168,7 +167,6 @@ export default function TransactionForm({
         net_amount: transaction.net_amount || 0,
         date: transaction.date,
         notes: transaction.notes || '',
-        platform: '',
         category: transaction.category || '',
         tax_deductible: transaction.tax_deductible || false,
         receipt_url: transaction.receipt_url || '',
@@ -203,7 +201,6 @@ export default function TransactionForm({
         net_amount: 0,
         date: '',
         notes: '',
-        platform: '',
         category: '',
         tax_deductible: false,
         receipt_url: '',
@@ -338,10 +335,7 @@ export default function TransactionForm({
           })
     };
 
-    // 移除数据库中不存在的字段
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { platform, ...dataWithoutPlatform } = finalFormData;
-    const finalFormDataClean = dataWithoutPlatform;
+    const finalFormDataClean = finalFormData;
 
     setSubmitError(null);
     setIsSubmitting(true);
@@ -617,7 +611,7 @@ export default function TransactionForm({
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="transaction-form-amount" className="block text-sm font-medium text-gray-700 mb-2">
                 <DollarSign className="h-4 w-4 inline mr-1" />
@@ -636,22 +630,6 @@ export default function TransactionForm({
               />
             </div>
 
-            <div>
-              <label htmlFor="transaction-form-platform" className="block text-sm font-medium text-gray-700 mb-2">
-                {t('transaction.platform')}
-              </label>
-              <input
-                id="transaction-form-platform"
-                type="text"
-                value={formData.platform}
-                onChange={(e) => setFormData({ ...formData, platform: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder={t('transaction.platformPlaceholder')}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="transaction-form-platform-fee-pct" className="block text-sm font-medium text-gray-700 mb-2">
                 {t('transaction.platformFeePercentage')}
