@@ -7,7 +7,6 @@ export const LazyFinancialAnalysis = lazy(() => import('./reports/FinancialAnaly
 export const LazyInvestmentAnalytics = lazy(() => import('./analytics/InvestmentAnalytics'));
 export const LazyAdvancedRenewalAnalysis = lazy(() => import('./analytics/AdvancedRenewalAnalysis'));
 export const LazyExpiredDomainLossAnalysis = lazy(() => import('./analytics/ExpiredDomainLossAnalysis'));
-export const LazyHistoricalRatesReport = lazy(() => import('./reports/HistoricalRatesReport'));
 export const LazyDataImportExport = lazy(() => import('./data/DataImportExport'));
 export const LazyUserPreferencesPanel = lazy(() => import('./settings/UserPreferencesPanel'));
 export const LazyDomainExpiryAlert = lazy(() => import('./alerts/DomainExpiryAlert'));

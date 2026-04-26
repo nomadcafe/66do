@@ -6,8 +6,6 @@ import { CONSTANTS } from '../../../src/lib/constants';
 import { checkUserWriteRateLimit } from '../../../src/lib/rateLimit';
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
-const MAX_EXCHANGE_RATE = 1000;
-const MIN_EXCHANGE_RATE = 0.0001;
 
 function clampNumber(value: unknown, max: number, min = 0): number | null {
   if (value === null || value === undefined || value === '') return null;
@@ -27,8 +25,6 @@ type SanitizedRenewalPayload = {
   renewal_date: string;
   renewal_cost: number;
   currency: string;
-  exchange_rate: number;
-  base_amount: number;
   renewal_cycle: number;
   registrar: string | null;
   notes: string | null;
@@ -41,10 +37,6 @@ function sanitizeRenewalCostPayload(body: Record<string, unknown>): SanitizedRen
   const renewalCost = clampNumber(body.renewal_cost, CONSTANTS.VALIDATION.MAX_RENEWAL_COST);
   if (renewalCost === null) return null;
 
-  const exchangeRate =
-    clampNumber(body.exchange_rate, MAX_EXCHANGE_RATE, MIN_EXCHANGE_RATE) ?? 1;
-  const baseAmount =
-    clampNumber(body.base_amount, CONSTANTS.VALIDATION.MAX_RENEWAL_COST) ?? renewalCost;
   const renewalCycle =
     Math.max(1, Math.min(CONSTANTS.VALIDATION.MAX_RENEWAL_CYCLE, Math.floor(Number(body.renewal_cycle) || 1)));
 
@@ -55,8 +47,6 @@ function sanitizeRenewalCostPayload(body: Record<string, unknown>): SanitizedRen
     renewal_date: renewalDate,
     renewal_cost: renewalCost,
     currency,
-    exchange_rate: exchangeRate,
-    base_amount: baseAmount,
     renewal_cycle: renewalCycle,
     registrar: clampString(body.registrar, CONSTANTS.VALIDATION.MAX_REGISTRAR_LENGTH),
     notes: clampString(body.notes, CONSTANTS.VALIDATION.MAX_NOTES_LENGTH),

@@ -9,8 +9,6 @@ export interface RenewalCostHistory {
   renewal_date: string;
   renewal_cost: number;
   currency: string;
-  exchange_rate: number;
-  base_amount: number;
   renewal_cycle: number;
   registrar: string;
   notes?: string;

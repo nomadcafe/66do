@@ -7,8 +7,6 @@ export interface Transaction {
   type: 'buy' | 'sell' | 'renew' | 'transfer' | 'fee' | 'marketing' | 'advertising';
   amount: number;
   currency: string;
-  exchange_rate?: number;
-  base_amount?: number;
   platform_fee?: number;
   platform_fee_percentage?: number;
   net_amount?: number;
@@ -67,8 +65,6 @@ export interface CreateTransactionInput {
   type: 'buy' | 'sell' | 'renew' | 'transfer' | 'fee' | 'marketing' | 'advertising';
   amount: number;
   currency: string;
-  exchange_rate?: number;
-  base_amount?: number;
   platform_fee?: number;
   platform_fee_percentage?: number;
   net_amount?: number;

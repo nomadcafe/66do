@@ -60,8 +60,6 @@ import { holdingCostAsOf } from '../../lib/renewalCostBasis';
 //   date: string;
 //   notes: string;
 //   platform?: string;
-//   exchange_rate?: number;
-//   base_amount?: number;
 //   platform_fee?: number;
 //   platform_fee_percentage?: number;
 //   net_amount?: number;
@@ -248,7 +246,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
           if (t.type !== 'buy' && t.type !== 'renew' && t.type !== 'fee') return false;
           return new Date(t.date).toISOString().slice(0, 7) === monthKey;
         })
-        .reduce((sum, t) => sum + (t.base_amount ?? t.amount), 0);
+        .reduce((sum, t) => sum + t.amount, 0);
       const monthlyCashFlow = revenue - costThisMonth;
 
       cumulativeRevenue += revenue;

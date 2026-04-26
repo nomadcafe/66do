@@ -55,12 +55,12 @@ export default function SaleSuccessModal({
       );
       if (total > 0) return total;
     }
-    return transaction.base_amount ?? transaction.amount;
+    return transaction.amount;
   };
 
   // 卖家净收入（已扣平台费）：分期按实收比例缩放平台费（每笔付款按合同比例扣，断约则少扣）
   const getSellerNetUSD = (): number => {
-    const fullAmount = transaction.base_amount ?? transaction.amount;
+    const fullAmount = transaction.amount;
     const isPartialOrCancelled =
       transaction.payment_plan === 'installment' &&
       (transaction.installment_status === 'cancelled' ||

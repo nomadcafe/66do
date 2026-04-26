@@ -65,7 +65,6 @@ export function analyzeTransactions(transactions: Array<{
   domain_id: string;
   type: string;
   amount: number;
-  base_amount?: number | null;
   platform_fee?: number;
   net_amount?: number;
   date: string;
@@ -119,7 +118,6 @@ export function calculateAnnualMetrics(
     id: string;
     type: string;
     amount: number;
-    base_amount?: number | null;
     platform_fee?: number;
     net_amount?: number;
     date: string;
@@ -174,7 +172,6 @@ export function calculateFinancialMetrics(
     domain_id: string;
     type: string;
     amount: number;
-    base_amount?: number | null;
     platform_fee?: number;
     net_amount?: number;
     date: string;
@@ -316,7 +313,6 @@ export function calculateDomainPerformance(
     domain_id: string;
     type: string;
     amount: number;
-    base_amount?: number | null;
     platform_fee?: number;
     net_amount?: number;
     date: string;
