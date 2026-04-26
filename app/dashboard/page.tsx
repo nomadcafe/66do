@@ -1432,6 +1432,7 @@ export default function DashboardPage() {
         }}
         onSave={handleSaveDomain}
         closeRef={domainFormCloseRef}
+        existingDomains={domains}
       />
 
       {/* Smart Domain Form Modal */}
@@ -1457,6 +1458,7 @@ export default function DashboardPage() {
         }}
         onSave={transactionOps.handleSaveTransaction}
         onSaleComplete={transactionOps.handleSaleComplete}
+        existingTransactions={transactions}
       />
 
       {/* Share Modal */}

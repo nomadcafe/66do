@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Save, Globe, Calendar, DollarSign, Tag, Loader2 } from 'lucide-react';
 import { validateDomain, sanitizeDomainData } from '../../lib/validation';
@@ -32,9 +32,11 @@ interface DomainFormProps {
   onSave: (domain: Omit<DomainWithTags, 'id'>) => void;
   /** 父组件通过 ref 传入最新关闭函数，避免闭包导致关闭无反应 */
   closeRef?: React.MutableRefObject<(() => void) | null>;
+  /** 现有域名列表，用于从用户实际数据中提取 registrar 建议（datalist） */
+  existingDomains?: DomainWithTags[];
 }
 
-export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }: DomainFormProps) {
+export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, existingDomains }: DomainFormProps) {
   const { t } = useI18nContext();
   const [formData, setFormData] = useState({
     domain_name: '',
@@ -57,6 +59,16 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [localOpen, setLocalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const registrarSuggestions = useMemo(() => {
+    if (!existingDomains?.length) return [] as string[];
+    const seen = new Set<string>();
+    for (const d of existingDomains) {
+      const r = (d.registrar || '').trim();
+      if (r) seen.add(r);
+    }
+    return Array.from(seen).sort((a, b) => a.localeCompare(b));
+  }, [existingDomains]);
 
   useEffect(() => {
     setLocalOpen(isOpen);
@@ -266,7 +278,16 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
                 onChange={(e) => setFormData((prev) => ({ ...prev, registrar: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder={t('dashboard.registrarPlaceholder')}
+                list={registrarSuggestions.length > 0 ? 'domain-form-registrar-list' : undefined}
+                autoComplete="off"
               />
+              {registrarSuggestions.length > 0 && (
+                <datalist id="domain-form-registrar-list">
+                  {registrarSuggestions.map((r) => (
+                    <option key={r} value={r} />
+                  ))}
+                </datalist>
+              )}
             </div>
 
             <DateInput

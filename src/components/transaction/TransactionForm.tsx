@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Save, DollarSign, Calendar, FileText, Search, ChevronDown } from 'lucide-react';
 import { formatCurrencyAmount } from '../../lib/exchangeRates';
 import { useI18nContext } from '../../contexts/I18nProvider';
@@ -23,15 +23,18 @@ interface TransactionFormProps {
   onClose: () => void;
   onSave: (transaction: Omit<TransactionWithRequiredFields, 'id'>) => void | Promise<void>;
   onSaleComplete?: (transaction: Omit<TransactionWithRequiredFields, 'id'>, domain: DomainWithTags) => void;
+  /** 现有交易，用于 platform/category 的 datalist 自动补全 */
+  existingTransactions?: TransactionWithRequiredFields[];
 }
 
-export default function TransactionForm({ 
-  transaction, 
-  domains, 
-  isOpen, 
-  onClose, 
+export default function TransactionForm({
+  transaction,
+  domains,
+  isOpen,
+  onClose,
   onSave,
-  onSaleComplete
+  onSaleComplete,
+  existingTransactions
 }: TransactionFormProps) {
   const { t } = useI18nContext();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -87,6 +90,16 @@ export default function TransactionForm({
   const eligibleDomains = domains.filter(
     (d) => d.status === 'active' || d.status === 'for_sale' || d.status === 'sold'
   );
+
+  const categorySuggestions = useMemo(() => {
+    if (!existingTransactions?.length) return [] as string[];
+    const seen = new Set<string>();
+    for (const t of existingTransactions) {
+      const c = (t.category || '').trim();
+      if (c) seen.add(c);
+    }
+    return Array.from(seen).sort((a, b) => a.localeCompare(b));
+  }, [existingTransactions]);
   const filteredDomains = domainSearch.trim()
     ? eligibleDomains.filter(
         (d) =>
@@ -1099,7 +1112,16 @@ export default function TransactionForm({
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder={t('transaction.categoryPlaceholder')}
+                list={categorySuggestions.length > 0 ? 'transaction-form-category-list' : undefined}
+                autoComplete="off"
               />
+              {categorySuggestions.length > 0 && (
+                <datalist id="transaction-form-category-list">
+                  {categorySuggestions.map((c) => (
+                    <option key={c} value={c} />
+                  ))}
+                </datalist>
+              )}
             </div>
 
             <div className="flex items-center">
