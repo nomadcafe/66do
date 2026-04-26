@@ -335,14 +335,14 @@ export default function TransactionForm({
     }
   };
 
-  const transactionTypes = [
-    { value: 'buy', label: 'Purchase' },
-    { value: 'renew', label: 'Renewal' },
-    { value: 'sell', label: 'Sale' },
-    { value: 'transfer', label: 'Transfer' },
-    { value: 'fee', label: 'Fee' },
-    { value: 'marketing', label: 'Marketing' },
-    { value: 'advertising', label: 'Advertising' }
+  const transactionTypes: Array<{ value: TransactionWithRequiredFields['type']; label: string }> = [
+    { value: 'buy', label: t('transaction.buy') },
+    { value: 'renew', label: t('transaction.renew') },
+    { value: 'sell', label: t('transaction.sell') },
+    { value: 'transfer', label: t('transaction.transfer') },
+    { value: 'fee', label: t('transaction.fee') },
+    { value: 'marketing', label: t('transaction.marketing') },
+    { value: 'advertising', label: t('transaction.advertising') }
   ];
 
   if (!isOpen) return null;
@@ -352,11 +352,13 @@ export default function TransactionForm({
       <div className="bg-white rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-900">
-            {transaction ? 'Edit Transaction' : 'Add New Transaction'}
+            {transaction ? t('transaction.editTransaction') : t('transaction.addNewTransaction')}
           </h2>
           <button
+            type="button"
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600"
+            aria-label={t('common.close')}
           >
             <X className="h-6 w-6" />
           </button>
@@ -444,13 +446,14 @@ export default function TransactionForm({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Transaction Type *
+              <label htmlFor="transaction-form-type" className="block text-sm font-medium text-gray-700 mb-2">
+                {t('transaction.type')} *
               </label>
               <select
+                id="transaction-form-type"
                 required
                 value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value as 'buy' | 'renew' | 'sell' | 'transfer' | 'fee' })}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value as TransactionWithRequiredFields['type'] })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {transactionTypes.map((type) => (
@@ -466,27 +469,27 @@ export default function TransactionForm({
               <div className="md:col-span-2">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-sm font-medium text-blue-900">Renewal Cost History</h4>
+                    <h4 className="text-sm font-medium text-blue-900">{t('transaction.renewalCostHistory')}</h4>
                     <button
                       type="button"
                       onClick={() => setShowCostHistory(!showCostHistory)}
                       className="text-blue-600 hover:text-blue-800 text-sm"
                     >
-                      {showCostHistory ? 'Hide' : 'Show'} History
+                      {showCostHistory ? t('transaction.hideHistory') : t('transaction.showHistory')}
                     </button>
                   </div>
-                  
+
                   {suggestedRenewalCost && (
                     <div className="mb-2">
                       <span className="text-sm text-blue-700">
-                        Suggested cost: {formatCurrencyAmount(suggestedRenewalCost, formData.currency)}
+                        {t('transaction.suggestedCost')}: {formatCurrencyAmount(suggestedRenewalCost, formData.currency)}
                       </span>
                       <button
                         type="button"
                         onClick={() => setFormData({ ...formData, amount: suggestedRenewalCost })}
                         className="ml-2 text-blue-600 hover:text-blue-800 text-sm underline"
                       >
-                        Use suggested
+                        {t('transaction.useSuggested')}
                       </button>
                     </div>
                   )}
@@ -503,7 +506,7 @@ export default function TransactionForm({
                           ))}
                         </div>
                       ) : (
-                        <p className="text-xs text-blue-600">No renewal history found</p>
+                        <p className="text-xs text-blue-600">{t('transaction.noRenewalHistory')}</p>
                       )}
                     </div>
                   )}
@@ -565,7 +568,7 @@ export default function TransactionForm({
             )}
 
             <DateInput
-              label="Date"
+              label={t('transaction.date')}
               icon={<Calendar className="h-4 w-4" />}
               value={formData.date}
               onChange={(value) => setFormData({ ...formData, date: value })}
@@ -576,16 +579,17 @@ export default function TransactionForm({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="transaction-form-amount" className="block text-sm font-medium text-gray-700 mb-2">
                 <DollarSign className="h-4 w-4 inline mr-1" />
-                Amount *
+                {t('transaction.amount')} *
               </label>
               <input
+                id="transaction-form-amount"
                 type="number"
                 required
                 min="0"
                 step="0.01"
-                value={formData.amount}
+                value={formData.amount === 0 ? '' : formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="0.00"
@@ -593,36 +597,37 @@ export default function TransactionForm({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Platform
+              <label htmlFor="transaction-form-platform" className="block text-sm font-medium text-gray-700 mb-2">
+                {t('transaction.platform')}
               </label>
               <input
+                id="transaction-form-platform"
                 type="text"
                 value={formData.platform}
                 onChange={(e) => setFormData({ ...formData, platform: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="GoDaddy, Namecheap, etc."
+                placeholder={t('transaction.platformPlaceholder')}
               />
             </div>
           </div>
 
-          {/* 新增财务字段 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Platform Fee (%)
+              <label htmlFor="transaction-form-platform-fee-pct" className="block text-sm font-medium text-gray-700 mb-2">
+                {t('transaction.platformFeePercentage')}
               </label>
               <input
+                id="transaction-form-platform-fee-pct"
                 type="number"
                 min="0"
                 max="100"
                 step="0.01"
-                value={formData.platform_fee_percentage}
+                value={formData.platform_fee_percentage === 0 ? '' : formData.platform_fee_percentage}
                 onChange={(e) => {
                   const percentage = parseFloat(e.target.value) || 0;
                   const calculatedFee = (formData.amount * percentage) / 100;
-                  setFormData({ 
-                    ...formData, 
+                  setFormData({
+                    ...formData,
                     platform_fee_percentage: percentage,
                     platform_fee: calculatedFee
                   });
@@ -678,14 +683,15 @@ export default function TransactionForm({
                 {formData.payment_plan === 'installment' && (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-blue-800 mb-2">
+                      <label htmlFor="transaction-form-installment-period" className="block text-sm font-medium text-blue-800 mb-2">
                         {t('transaction.installmentPeriod')}
                       </label>
                       <input
+                        id="transaction-form-installment-period"
                         type="number"
                         min="1"
                         max="60"
-                        value={formData.installment_period}
+                        value={formData.installment_period === 0 ? '' : formData.installment_period}
                         onChange={(e) => setFormData({ ...formData, installment_period: parseInt(e.target.value) || 1 })}
                         className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="12"
@@ -693,14 +699,15 @@ export default function TransactionForm({
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-blue-800 mb-2">
+                      <label htmlFor="transaction-form-downpayment" className="block text-sm font-medium text-blue-800 mb-2">
                         {t('transaction.downpaymentAmount')}
                       </label>
                       <input
+                        id="transaction-form-downpayment"
                         type="number"
                         step="0.01"
                         min="0"
-                        value={formData.downpayment_amount}
+                        value={formData.downpayment_amount === 0 ? '' : formData.downpayment_amount}
                         onChange={(e) => setFormData({ ...formData, downpayment_amount: parseFloat(e.target.value) || 0 })}
                         className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="0.00"
@@ -708,14 +715,15 @@ export default function TransactionForm({
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-blue-800 mb-2">
+                      <label htmlFor="transaction-form-installment-amount" className="block text-sm font-medium text-blue-800 mb-2">
                         {t('transaction.installmentAmount')}
                       </label>
                       <input
+                        id="transaction-form-installment-amount"
                         type="number"
                         step="0.01"
                         min="0"
-                        value={formData.installment_amount}
+                        value={formData.installment_amount === 0 ? '' : formData.installment_amount}
                         onChange={(e) => setFormData({ ...formData, installment_amount: parseFloat(e.target.value) || 0 })}
                         className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="0.00"
@@ -723,14 +731,15 @@ export default function TransactionForm({
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-blue-800 mb-2">
+                      <label htmlFor="transaction-form-final-payment" className="block text-sm font-medium text-blue-800 mb-2">
                         {t('transaction.finalPaymentAmount')}
                       </label>
                       <input
+                        id="transaction-form-final-payment"
                         type="number"
                         step="0.01"
                         min="0"
-                        value={formData.final_payment_amount}
+                        value={formData.final_payment_amount === 0 ? '' : formData.final_payment_amount}
                         onChange={(e) => setFormData({ ...formData, final_payment_amount: parseFloat(e.target.value) || 0 })}
                         className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="0.00"
@@ -757,14 +766,15 @@ export default function TransactionForm({
 
                     {/* 分期进度跟踪 */}
                     <div>
-                      <label className="block text-sm font-medium text-blue-800 mb-2">
+                      <label htmlFor="transaction-form-paid-periods" className="block text-sm font-medium text-blue-800 mb-2">
                         {t('transaction.paidPeriods')}
                       </label>
                       <input
+                        id="transaction-form-paid-periods"
                         type="number"
                         min="0"
                         max={formData.installment_period}
-                        value={formData.paid_periods}
+                        value={formData.paid_periods === 0 ? '' : formData.paid_periods}
                         onChange={(e) => setFormData({ ...formData, paid_periods: parseInt(e.target.value) || 0 })}
                         className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="0"
@@ -1052,15 +1062,16 @@ export default function TransactionForm({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Category
+              <label htmlFor="transaction-form-category" className="block text-sm font-medium text-gray-700 mb-2">
+                {t('transaction.category')}
               </label>
               <input
+                id="transaction-form-category"
                 type="text"
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Investment, Marketing, etc."
+                placeholder={t('transaction.categoryPlaceholder')}
               />
             </div>
 
@@ -1073,35 +1084,37 @@ export default function TransactionForm({
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
               <label htmlFor="tax_deductible" className="ml-2 block text-sm text-gray-700">
-                Tax Deductible
+                {t('transaction.taxDeductible')}
               </label>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Receipt URL
+            <label htmlFor="transaction-form-receipt-url" className="block text-sm font-medium text-gray-700 mb-2">
+              {t('transaction.receiptUrl')}
             </label>
             <input
+              id="transaction-form-receipt-url"
               type="url"
               value={formData.receipt_url}
               onChange={(e) => setFormData({ ...formData, receipt_url: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="https://example.com/receipt.pdf"
+              placeholder={t('transaction.receiptUrlPlaceholder')}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="transaction-form-notes" className="block text-sm font-medium text-gray-700 mb-2">
               <FileText className="h-4 w-4 inline mr-1" />
-              Notes
+              {t('transaction.notes')}
             </label>
             <textarea
+              id="transaction-form-notes"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Additional notes about this transaction..."
+              placeholder={t('transaction.notesPlaceholder')}
             />
           </div>
 
@@ -1117,7 +1130,7 @@ export default function TransactionForm({
               disabled={isSubmitting}
               className="px-4 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
@@ -1125,7 +1138,7 @@ export default function TransactionForm({
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center space-x-2 disabled:opacity-50"
             >
               <Save className="h-4 w-4" />
-              <span>{isSubmitting ? 'Saving…' : transaction ? 'Update Transaction' : 'Add Transaction'}</span>
+              <span>{isSubmitting ? t('transaction.saving') : transaction ? t('transaction.updateTransaction') : t('transaction.addTransaction')}</span>
             </button>
           </div>
         </form>

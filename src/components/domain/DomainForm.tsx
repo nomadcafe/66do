@@ -276,16 +276,17 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="domain-form-purchase_cost" className="block text-sm font-medium text-gray-700 mb-2">
                 <DollarSign className="h-4 w-4 inline mr-1" />
                 {t('dashboard.purchaseCostLabel')} *
               </label>
               <input
+                id="domain-form-purchase_cost"
                 type="number"
                 required
                 min="0"
                 step="0.01"
-                value={formData.purchase_cost}
+                value={formData.purchase_cost === 0 ? '' : formData.purchase_cost}
                 onChange={(e) => setFormData((prev) => ({ ...prev, purchase_cost: parseFloat(e.target.value) || 0 }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="0.00"
@@ -293,15 +294,16 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="domain-form-renewal_cost" className="block text-sm font-medium text-gray-700 mb-2">
                 <DollarSign className="h-4 w-4 inline mr-1" />
                 {t('dashboard.renewalCostLabel')}
               </label>
               <input
+                id="domain-form-renewal_cost"
                 type="number"
                 min="0"
                 step="0.01"
-                value={formData.renewal_cost}
+                value={formData.renewal_cost === 0 ? '' : formData.renewal_cost}
                 onChange={(e) => setFormData((prev) => ({ ...prev, renewal_cost: parseFloat(e.target.value) || 0 }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="0.00"
@@ -309,11 +311,12 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
             </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="domain-form-renewal_cycle" className="block text-sm font-medium text-gray-700 mb-2">
             <Calendar className="h-4 w-4 inline mr-1" />
             {t('dashboard.renewalCycleYears')}
           </label>
           <select
+            id="domain-form-renewal_cycle"
             value={formData.renewal_cycle}
             onChange={(e) => setFormData((prev) => ({ ...prev, renewal_cycle: parseInt(e.target.value) || 1 }))}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -330,14 +333,15 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="domain-form-renewal_count" className="block text-sm font-medium text-gray-700 mb-2">
             <Calendar className="h-4 w-4 inline mr-1" />
             {t('dashboard.renewalCountLabel')}
           </label>
           <input
+            id="domain-form-renewal_count"
             type="number"
             min="0"
-            value={formData.renewal_count}
+            value={formData.renewal_count === 0 ? '' : formData.renewal_count}
             onChange={(e) => setFormData((prev) => ({ ...prev, renewal_count: parseInt(e.target.value) || 0 }))}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder={t('dashboard.renewalCountPlaceholder')}
@@ -361,15 +365,16 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
             </p>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="domain-form-estimated_value" className="block text-sm font-medium text-gray-700 mb-2">
                 <DollarSign className="h-4 w-4 inline mr-1" />
                 {t('dashboard.estimatedValueLabel')}
               </label>
               <input
+                id="domain-form-estimated_value"
                 type="number"
                 min="0"
                 step="0.01"
-                value={formData.estimated_value}
+                value={formData.estimated_value === 0 ? '' : formData.estimated_value}
                 onChange={(e) => setFormData((prev) => ({ ...prev, estimated_value: parseFloat(e.target.value) || 0 }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="0.00"
@@ -377,10 +382,11 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef }
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="domain-form-status" className="block text-sm font-medium text-gray-700 mb-2">
                 {t('dashboard.statusLabel')}
               </label>
               <select
+                id="domain-form-status"
                 value={formData.status}
                 onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value as 'active' | 'for_sale' | 'sold' | 'expired' }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
