@@ -317,6 +317,8 @@ const translations: Record<Locale, Translations> = {
       renewalCycle3Years: '3 年（如 .tt）',
       renewalCycle5Years: '5 年',
       renewalCycle10Years: '10 年',
+      renewalCycleCustom: '自定义…',
+      renewalCycleCustomPlaceholder: '输入 1–10 的整数',
       addTagPlaceholder: '添加标签'
     },
     validation: {
@@ -1560,6 +1562,8 @@ const translations: Record<Locale, Translations> = {
       renewalCycle3Years: '3 Years (e.g., .tt)',
       renewalCycle5Years: '5 Years',
       renewalCycle10Years: '10 Years',
+      renewalCycleCustom: 'Custom…',
+      renewalCycleCustomPlaceholder: 'Enter an integer 1–10',
       addTagPlaceholder: 'Add a tag'
     },
     validation: {

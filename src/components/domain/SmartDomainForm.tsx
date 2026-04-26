@@ -9,6 +9,9 @@ import { localCalendarDateISO } from '../../lib/localCalendarDate';
 import { Calendar, AlertCircle, Info } from 'lucide-react';
 import DateInput from '../ui/DateInput';
 
+const COMMON_RENEWAL_CYCLES = [1, 2, 3, 5, 10] as const;
+const CUSTOM_CYCLE_SENTINEL = 'custom';
+
 interface SmartDomainFormProps {
   domain?: DomainWithTags;
   isOpen: boolean;
@@ -45,10 +48,12 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
     warnings: string[];
     suggestions: string[];
   } | null>(null);
+  const [useCustomCycle, setUseCustomCycle] = useState(false);
 
   useEffect(() => {
     if (domain) {
       setFormData(domain);
+      setUseCustomCycle(!COMMON_RENEWAL_CYCLES.includes(domain.renewal_cycle as 1 | 2 | 3 | 5 | 10));
     } else {
       setFormData({
         user_id: '',
@@ -71,6 +76,7 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
         created_at: '',
         updated_at: ''
       });
+      setUseCustomCycle(false);
     }
   }, [domain]);
 
@@ -179,17 +185,48 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   续费周期（年）
                 </label>
-                <select
-                  value={formData.renewal_cycle}
-                  onChange={(e) => handleInputChange('renewal_cycle', parseInt(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value={1}>1年</option>
-                  <option value={2}>2年</option>
-                  <option value={3}>3年</option>
-                  <option value={5}>5年</option>
-                  <option value={10}>10年</option>
-                </select>
+                {useCustomCycle ? (
+                  <input
+                    type="number"
+                    min={1}
+                    max={10}
+                    value={formData.renewal_cycle === 0 ? '' : formData.renewal_cycle}
+                    onChange={(e) =>
+                      handleInputChange(
+                        'renewal_cycle',
+                        Math.min(10, Math.max(1, parseInt(e.target.value, 10) || 1))
+                      )
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="输入 1–10 的整数"
+                  />
+                ) : (
+                  <select
+                    value={formData.renewal_cycle}
+                    onChange={(e) => {
+                      if (e.target.value === CUSTOM_CYCLE_SENTINEL) {
+                        setUseCustomCycle(true);
+                        if (
+                          COMMON_RENEWAL_CYCLES.includes(
+                            formData.renewal_cycle as 1 | 2 | 3 | 5 | 10
+                          )
+                        ) {
+                          handleInputChange('renewal_cycle', 4);
+                        }
+                        return;
+                      }
+                      handleInputChange('renewal_cycle', parseInt(e.target.value, 10) || 1);
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value={1}>1年</option>
+                    <option value={2}>2年</option>
+                    <option value={3}>3年</option>
+                    <option value={5}>5年</option>
+                    <option value={10}>10年</option>
+                    <option value={CUSTOM_CYCLE_SENTINEL}>自定义…</option>
+                  </select>
+                )}
               </div>
             </div>
 
