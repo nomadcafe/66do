@@ -114,8 +114,6 @@ export interface Database {
           type: string
           amount: number
           currency: string
-          exchange_rate: number
-          base_amount: number | null
           platform_fee: number | null
           platform_fee_percentage: number | null
           net_amount: number | null
@@ -147,8 +145,6 @@ export interface Database {
           type: string
           amount: number
           currency?: string
-          exchange_rate?: number
-          base_amount?: number | null
           platform_fee?: number | null
           platform_fee_percentage?: number | null
           net_amount?: number | null
@@ -180,8 +176,6 @@ export interface Database {
           type?: string
           amount?: number
           currency?: string
-          exchange_rate?: number
-          base_amount?: number | null
           platform_fee?: number | null
           platform_fee_percentage?: number | null
           net_amount?: number | null
