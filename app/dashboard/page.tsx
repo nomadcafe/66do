@@ -235,7 +235,7 @@ export default function DashboardPage() {
             totalPeriods,
             transaction.platform_fee_type as string,
             customRate,
-            undefined,
+            transaction.escrow_transaction_fee ?? undefined,
             undefined,
             transaction.user_input_fee_rate ?? undefined,
             transaction.user_input_surcharge_rate ?? undefined,
@@ -248,6 +248,7 @@ export default function DashboardPage() {
               atomCommissionTier: transaction.atom_commission_tier ?? undefined,
               atomNoCoin: transaction.atom_no_coin ?? undefined,
               atomCustomCommissionRate: transaction.atom_custom_commission_rate ?? undefined,
+              escrowLeaseType: transaction.escrow_lease_type ?? undefined,
             }
           );
           amountUSD = result.customerTotalAmount;

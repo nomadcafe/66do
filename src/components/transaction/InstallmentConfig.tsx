@@ -30,6 +30,8 @@ export type InstallmentConfigValues = {
   atom_commission_tier: 'standard' | 'plus' | 'premium' | 'byol' | 'custom';
   atom_no_coin: boolean;
   atom_custom_commission_rate: number;
+  escrow_lease_type: 'lease_with_purchase' | 'lease_only';
+  escrow_transaction_fee: number;
 };
 
 interface InstallmentConfigProps {
@@ -336,6 +338,44 @@ export default function InstallmentConfig({
                 </div>
               </>
             )}
+
+            {values.platform_fee_type === 'escrow_installment' && (
+              <>
+                <div>
+                  <label htmlFor="transaction-form-escrow-lease-type" className="block text-sm font-medium text-blue-800 mb-2">
+                    {t('transaction.escrowLeaseType')}
+                  </label>
+                  <select
+                    id="transaction-form-escrow-lease-type"
+                    value={values.escrow_lease_type}
+                    onChange={(e) => onChange({ escrow_lease_type: e.target.value as InstallmentConfigValues['escrow_lease_type'] })}
+                    className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="lease_with_purchase">{t('transaction.escrowLeaseLwp')}</option>
+                    <option value="lease_only">{t('transaction.escrowLeaseLo')}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="transaction-form-escrow-transaction-fee" className="block text-sm font-medium text-blue-800 mb-2">
+                    {t('transaction.escrowTransactionFee')}
+                  </label>
+                  <input
+                    id="transaction-form-escrow-transaction-fee"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={values.escrow_transaction_fee === 0 ? '' : values.escrow_transaction_fee}
+                    onChange={(e) => onChange({ escrow_transaction_fee: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="0.00"
+                  />
+                  <p className="text-xs text-blue-600 mt-1">
+                    {t('transaction.escrowTransactionFeeHint')}
+                  </p>
+                </div>
+              </>
+            )}
           </>
         )}
       </div>
@@ -372,7 +412,7 @@ export default function InstallmentConfig({
                       values.installment_period,
                       values.platform_fee_type || 'standard',
                       installmentFeeRateOverride,
-                      undefined,
+                      values.escrow_transaction_fee,
                       undefined,
                       values.user_input_fee_rate,
                       values.user_input_surcharge_rate,
@@ -385,6 +425,7 @@ export default function InstallmentConfig({
                         atomCommissionTier: values.atom_commission_tier,
                         atomNoCoin: values.atom_no_coin,
                         atomCustomCommissionRate: values.atom_custom_commission_rate,
+                        escrowLeaseType: values.escrow_lease_type,
                       }
                     );
 
@@ -400,6 +441,14 @@ export default function InstallmentConfig({
                             <p><strong>{t('transaction.atomBaseCommission')}:</strong> {formatCurrencyAmount(result.breakdown.atomBaseCommission ?? 0, currency)} ({((result.breakdown.atomBaseCommissionRate ?? 0) * 100).toFixed(2)}%)</p>
                             <p><strong>{t('transaction.surchargeAmount')}:</strong> {formatCurrencyAmount(result.breakdown.surchargeAmount, currency)} ({((result.breakdown.surchargeRate ?? 0) * 100).toFixed(1)}%)</p>
                             <p><strong>{t('transaction.sellerSurchargeShare')}:</strong> {formatCurrencyAmount(result.breakdown.sellerSurchargeShare ?? 0, currency)} (65%)</p>
+                          </div>
+                        )}
+
+                        {values.platform_fee_type === 'escrow_installment' && result.breakdown.escrowHoldingFee !== undefined && (
+                          <div className="mt-2 text-xs text-yellow-700">
+                            <p><strong>{t('transaction.listPrice')}:</strong> {formatCurrencyAmount(result.breakdown.baseAmount, currency)}</p>
+                            <p><strong>{t('transaction.escrowHoldingFee')}:</strong> {formatCurrencyAmount(result.breakdown.escrowHoldingFee, currency)} ({formatCurrencyAmount(result.breakdown.escrowMonthlyHoldingFee ?? 0, currency)}/mo × {values.installment_period})</p>
+                            <p><strong>{t('transaction.escrowTransactionFee')}:</strong> {formatCurrencyAmount(result.breakdown.escrowTransactionFee ?? 0, currency)}</p>
                           </div>
                         )}
 
@@ -448,7 +497,7 @@ export default function InstallmentConfig({
                         values.installment_period,
                         values.platform_fee_type || 'standard',
                         installmentFeeRateOverride,
-                        undefined,
+                        values.escrow_transaction_fee,
                         undefined,
                         values.user_input_fee_rate,
                         values.user_input_surcharge_rate,
@@ -461,6 +510,7 @@ export default function InstallmentConfig({
                           atomCommissionTier: values.atom_commission_tier,
                           atomNoCoin: values.atom_no_coin,
                           atomCustomCommissionRate: values.atom_custom_commission_rate,
+                          escrowLeaseType: values.escrow_lease_type,
                         }
                       );
 
@@ -476,6 +526,14 @@ export default function InstallmentConfig({
                               <p><strong>{t('transaction.atomBaseCommission')}:</strong> {formatCurrencyAmount(result.breakdown.atomBaseCommission ?? 0, currency)} ({((result.breakdown.atomBaseCommissionRate ?? 0) * 100).toFixed(2)}%)</p>
                               <p><strong>{t('transaction.surchargeAmount')}:</strong> {formatCurrencyAmount(result.breakdown.surchargeAmount, currency)} ({((result.breakdown.surchargeRate ?? 0) * 100).toFixed(1)}%)</p>
                               <p><strong>{t('transaction.sellerSurchargeShare')}:</strong> {formatCurrencyAmount(result.breakdown.sellerSurchargeShare ?? 0, currency)} (65%)</p>
+                            </div>
+                          )}
+
+                          {values.platform_fee_type === 'escrow_installment' && result.breakdown.escrowHoldingFee !== undefined && (
+                            <div className="mt-2 text-xs text-green-700">
+                              <p><strong>{t('transaction.listPrice')}:</strong> {formatCurrencyAmount(result.breakdown.baseAmount, currency)}</p>
+                              <p><strong>{t('transaction.escrowHoldingFee')}:</strong> {formatCurrencyAmount(result.breakdown.escrowHoldingFee, currency)}</p>
+                              <p><strong>{t('transaction.escrowTransactionFee')}:</strong> {formatCurrencyAmount(result.breakdown.escrowTransactionFee ?? 0, currency)}</p>
                             </div>
                           )}
 

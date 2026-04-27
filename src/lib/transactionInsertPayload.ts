@@ -51,6 +51,12 @@ export function buildTransactionInsertPayload(
     atom_no_coin: typeof transaction.atom_no_coin === 'boolean' ? transaction.atom_no_coin : null,
     atom_custom_commission_rate:
       transaction.atom_custom_commission_rate != null ? Number(transaction.atom_custom_commission_rate) : null,
+    escrow_lease_type:
+      typeof transaction.escrow_lease_type === 'string' && transaction.escrow_lease_type.length > 0
+        ? transaction.escrow_lease_type
+        : null,
+    escrow_transaction_fee:
+      transaction.escrow_transaction_fee != null ? Number(transaction.escrow_transaction_fee) : null,
     renewal_period_years:
       transaction.type === 'renew' && transaction.renewal_period_years != null
         ? Math.max(1, Math.min(10, Math.floor(Number(transaction.renewal_period_years))))

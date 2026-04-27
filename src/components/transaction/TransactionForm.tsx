@@ -60,6 +60,9 @@ const buildEmptyFormData = ({ preserveDomainId = '' }: { preserveDomainId?: stri
   atom_commission_tier: 'standard' as 'standard' | 'plus' | 'premium' | 'byol' | 'custom',
   atom_no_coin: false,
   atom_custom_commission_rate: 0,
+  // Escrow Installment：默认 lease with purchase + 0 manual transaction fee
+  escrow_lease_type: 'lease_with_purchase' as 'lease_with_purchase' | 'lease_only',
+  escrow_transaction_fee: 0,
   renewal_period_years: 1,
   renewal_years_use_custom: false
 });
@@ -195,6 +198,9 @@ export default function TransactionForm({
         atom_commission_tier: (transaction.atom_commission_tier ?? 'standard') as 'standard' | 'plus' | 'premium' | 'byol' | 'custom',
         atom_no_coin: transaction.atom_no_coin ?? false,
         atom_custom_commission_rate: transaction.atom_custom_commission_rate ?? 0,
+        // Escrow Installment（旧数据缺失视为 lease with purchase + 0 transaction fee）
+        escrow_lease_type: (transaction.escrow_lease_type ?? 'lease_with_purchase') as 'lease_with_purchase' | 'lease_only',
+        escrow_transaction_fee: transaction.escrow_transaction_fee ?? 0,
         renewal_period_years: years,
         renewal_years_use_custom: useCustom
       });

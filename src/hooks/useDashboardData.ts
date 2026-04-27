@@ -192,6 +192,8 @@ export function useDashboardData(
         atom_commission_tier: transaction.atom_commission_tier ?? null,
         atom_no_coin: transaction.atom_no_coin ?? null,
         atom_custom_commission_rate: transaction.atom_custom_commission_rate ?? null,
+        escrow_lease_type: transaction.escrow_lease_type ?? null,
+        escrow_transaction_fee: transaction.escrow_transaction_fee ?? null,
         renewal_period_years: transaction.renewal_period_years ?? null,
         extend_domain_expiry_on_renew: transaction.extend_domain_expiry_on_renew ?? null,
         renewal_years_use_custom: transaction.renewal_years_use_custom ?? null,
