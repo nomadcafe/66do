@@ -244,6 +244,10 @@ export default function DashboardPage() {
               finalPaymentAmount: transaction.final_payment_amount ?? 0,
               afternicNsPointed: transaction.afternic_ns_pointed ?? undefined,
               afternicPremiumAddon: transaction.afternic_premium_addon ?? undefined,
+              grossAmount: transaction.amount,
+              atomCommissionTier: transaction.atom_commission_tier ?? undefined,
+              atomNoCoin: transaction.atom_no_coin ?? undefined,
+              atomCustomCommissionRate: transaction.atom_custom_commission_rate ?? undefined,
             }
           );
           amountUSD = result.customerTotalAmount;

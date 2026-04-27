@@ -138,6 +138,9 @@ export interface Database {
           user_input_surcharge_rate: number | null
           afternic_ns_pointed: boolean | null
           afternic_premium_addon: boolean | null
+          atom_commission_tier: string | null
+          atom_no_coin: boolean | null
+          atom_custom_commission_rate: number | null
           renewal_period_years: number | null
         }
         Insert: {
@@ -171,6 +174,9 @@ export interface Database {
           user_input_surcharge_rate?: number | null
           afternic_ns_pointed?: boolean | null
           afternic_premium_addon?: boolean | null
+          atom_commission_tier?: string | null
+          atom_no_coin?: boolean | null
+          atom_custom_commission_rate?: number | null
           renewal_period_years?: number | null
         }
         Update: {
@@ -204,6 +210,9 @@ export interface Database {
           user_input_surcharge_rate?: number | null
           afternic_ns_pointed?: boolean | null
           afternic_premium_addon?: boolean | null
+          atom_commission_tier?: string | null
+          atom_no_coin?: boolean | null
+          atom_custom_commission_rate?: number | null
           renewal_period_years?: number | null
         }
       }

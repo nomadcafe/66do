@@ -44,6 +44,13 @@ export function buildTransactionInsertPayload(
     user_input_surcharge_rate: transaction.user_input_surcharge_rate != null ? Number(transaction.user_input_surcharge_rate) : null,
     afternic_ns_pointed: typeof transaction.afternic_ns_pointed === 'boolean' ? transaction.afternic_ns_pointed : null,
     afternic_premium_addon: typeof transaction.afternic_premium_addon === 'boolean' ? transaction.afternic_premium_addon : null,
+    atom_commission_tier:
+      typeof transaction.atom_commission_tier === 'string' && transaction.atom_commission_tier.length > 0
+        ? transaction.atom_commission_tier
+        : null,
+    atom_no_coin: typeof transaction.atom_no_coin === 'boolean' ? transaction.atom_no_coin : null,
+    atom_custom_commission_rate:
+      transaction.atom_custom_commission_rate != null ? Number(transaction.atom_custom_commission_rate) : null,
     renewal_period_years:
       transaction.type === 'renew' && transaction.renewal_period_years != null
         ? Math.max(1, Math.min(10, Math.floor(Number(transaction.renewal_period_years))))

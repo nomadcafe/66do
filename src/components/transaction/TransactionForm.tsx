@@ -3,7 +3,12 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Save, DollarSign, Calendar, FileText, Search, ChevronDown } from 'lucide-react';
 import { formatCurrencyAmount } from '../../lib/exchangeRates';
-import { getAfternicEffectiveCommissionRate } from '../../lib/platformFeeCalculator';
+import {
+  getAfternicEffectiveCommissionRate,
+  getAtomBaseCommissionAmount,
+  getAtomSurchargeRate,
+  ATOM_SURCHARGE_SELLER_SHARE,
+} from '../../lib/platformFeeCalculator';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import DateInput from '../ui/DateInput';
@@ -51,6 +56,10 @@ const buildEmptyFormData = ({ preserveDomainId = '' }: { preserveDomainId?: stri
   // Afternic Installment 标准佣金两个开关：默认 NS 指向 + 无 add-on = 15%
   afternic_ns_pointed: true,
   afternic_premium_addon: false,
+  // Atom Installment 卖家级别：默认 standard (7.5%)，向后兼容旧记录
+  atom_commission_tier: 'standard' as 'standard' | 'plus' | 'premium' | 'byol' | 'custom',
+  atom_no_coin: false,
+  atom_custom_commission_rate: 0,
   renewal_period_years: 1,
   renewal_years_use_custom: false
 });
@@ -182,6 +191,10 @@ export default function TransactionForm({
         // Afternic Installment commission flags（旧数据缺失视为 NS 指向 + 无 add-on）
         afternic_ns_pointed: transaction.afternic_ns_pointed ?? true,
         afternic_premium_addon: transaction.afternic_premium_addon ?? false,
+        // Atom Installment tier（旧数据缺失视为 standard 7.5%）
+        atom_commission_tier: (transaction.atom_commission_tier ?? 'standard') as 'standard' | 'plus' | 'premium' | 'byol' | 'custom',
+        atom_no_coin: transaction.atom_no_coin ?? false,
+        atom_custom_commission_rate: transaction.atom_custom_commission_rate ?? 0,
         renewal_period_years: years,
         renewal_years_use_custom: useCustom
       });
@@ -253,6 +266,18 @@ export default function TransactionForm({
           formData.afternic_premium_addon
         );
         sellerProceeds = formData.amount * (1 - effRate);
+      } else if (formData.platform_fee_type === 'atom_installment') {
+        // Atom: sellerNet = listPrice − baseCommission + surcharge × 65%
+        const surchargeRate =
+          formData.user_input_surcharge_rate > 0
+            ? formData.user_input_surcharge_rate
+            : getAtomSurchargeRate(formData.installment_period);
+        const baseCommission = getAtomBaseCommissionAmount(formData.amount, formData.atom_commission_tier, {
+          noCoin: formData.atom_no_coin,
+          customRate: formData.atom_custom_commission_rate,
+        });
+        const surchargeAmount = formData.amount * surchargeRate;
+        sellerProceeds = formData.amount - baseCommission + surchargeAmount * ATOM_SURCHARGE_SELLER_SHARE;
       }
 
       const remainingAmount = sellerProceeds - formData.downpayment_amount - formData.final_payment_amount;
@@ -271,6 +296,10 @@ export default function TransactionForm({
     formData.platform_fee_type,
     formData.afternic_ns_pointed,
     formData.afternic_premium_addon,
+    formData.atom_commission_tier,
+    formData.atom_no_coin,
+    formData.atom_custom_commission_rate,
+    formData.user_input_surcharge_rate,
   ]);
 
   const performSave = async ({ keepOpen }: { keepOpen: boolean }) => {
