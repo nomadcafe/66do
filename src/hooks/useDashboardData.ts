@@ -187,6 +187,8 @@ export function useDashboardData(
         platform_fee_type: transaction.platform_fee_type || null,
         user_input_fee_rate: transaction.user_input_fee_rate || null,
         user_input_surcharge_rate: transaction.user_input_surcharge_rate || null,
+        afternic_ns_pointed: transaction.afternic_ns_pointed ?? null,
+        afternic_premium_addon: transaction.afternic_premium_addon ?? null,
         renewal_period_years: transaction.renewal_period_years ?? null,
         extend_domain_expiry_on_renew: transaction.extend_domain_expiry_on_renew ?? null,
         renewal_years_use_custom: transaction.renewal_years_use_custom ?? null,

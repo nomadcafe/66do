@@ -47,6 +47,9 @@ const buildEmptyFormData = ({ preserveDomainId = '' }: { preserveDomainId?: stri
     'standard' as 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment',
   user_input_fee_rate: 0,
   user_input_surcharge_rate: 0,
+  // Afternic Installment 标准佣金两个开关：默认 NS 指向 + 无 add-on = 15%
+  afternic_ns_pointed: true,
+  afternic_premium_addon: false,
   renewal_period_years: 1,
   renewal_years_use_custom: false
 });
@@ -175,6 +178,9 @@ export default function TransactionForm({
         // 用户输入的费用率
         user_input_fee_rate: transaction.user_input_fee_rate || 0,
         user_input_surcharge_rate: transaction.user_input_surcharge_rate || 0,
+        // Afternic Installment commission flags（旧数据缺失视为 NS 指向 + 无 add-on）
+        afternic_ns_pointed: transaction.afternic_ns_pointed ?? true,
+        afternic_premium_addon: transaction.afternic_premium_addon ?? false,
         renewal_period_years: years,
         renewal_years_use_custom: useCustom
       });

@@ -13,6 +13,9 @@ export interface PlatformFeeConfig {
   // 用户输入的费用率
   userInputFeeRate?: number; // 用户输入的分期费用率（用于afternic等）
   userInputSurchargeRate?: number; // 用户输入的surcharge率（用于atom）
+  // Afternic Installment 专用：标准佣金率受这两个 flag 影响（15% / 20% / 25% / 30%）
+  afternicNsPointed?: boolean; // 域名 NS 是否指向 Afternic（默认 true → 15% 起算；false → 25%）
+  afternicPremiumAddon?: boolean; // 是否开启 Premium add-on（+5%）
 }
 
 export interface PlatformFeeResult {
@@ -37,14 +40,31 @@ export interface PlatformFeeResult {
  * 计算平台费用
  */
 export function calculatePlatformFee(config: PlatformFeeConfig): PlatformFeeResult {
-  const { type, installmentPeriod, sellerAmount, customFeeRate, escrowFee, domainHoldingFee, userInputFeeRate, userInputSurchargeRate } = config;
+  const {
+    type,
+    installmentPeriod,
+    sellerAmount,
+    customFeeRate,
+    escrowFee,
+    domainHoldingFee,
+    userInputFeeRate,
+    userInputSurchargeRate,
+    afternicNsPointed,
+    afternicPremiumAddon,
+  } = config;
 
   switch (type) {
     case 'standard':
       return calculateStandardFee(sellerAmount, customFeeRate || 0.15);
 
     case 'afternic_installment':
-      return calculateAfternicInstallmentFee(sellerAmount, installmentPeriod, userInputFeeRate);
+      return calculateAfternicInstallmentFee(
+        sellerAmount,
+        installmentPeriod,
+        userInputFeeRate,
+        afternicNsPointed,
+        afternicPremiumAddon
+      );
 
     case 'atom_installment':
       return calculateAtomInstallmentFee(sellerAmount, installmentPeriod, userInputSurchargeRate);
@@ -81,13 +101,20 @@ function calculateStandardFee(sellerAmount: number, feeRate: number): PlatformFe
 }
 
 /**
- * Afternic分期费用计算（新版本）
- * 基于Afternic的实际业务模式：
- * 1. 客户服务费（LTO服务费）：2-12月无费用，13-24月10%，25-36月20%，37-60月30%
- * 2. 卖家佣金折扣：2-12月无折扣，13-24月5%折扣，25-36月10%折扣，37-60月15%折扣
- * 3. 三部分结构：标价、服务费、佣金
+ * Afternic分期费用计算
+ * - 客户服务费（LTO 服务费）：2-12 月 0%、13-24 月 10%、25-36 月 20%、37-60 月 30%
+ * - 卖家标准佣金：基础 15%（NS 指向 Afternic）或 25%（未指向），可选 Premium add-on +5%
+ *   → 标准佣金落在 15% / 20% / 25% / 30% 之一
+ * - 卖家佣金折扣（按期数）：0-12 月 0%、13-24 月 5%、25-36 月 10%、37-60 月 15%
+ * - 有效佣金率 = max(0, 标准佣金率 − 折扣)
  */
-function calculateAfternicInstallmentFee(sellerAmount: number, installmentPeriod: number, userInputFeeRate?: number): PlatformFeeResult {
+function calculateAfternicInstallmentFee(
+  sellerAmount: number,
+  installmentPeriod: number,
+  userInputFeeRate?: number,
+  afternicNsPointed?: boolean,
+  afternicPremiumAddon?: boolean
+): PlatformFeeResult {
   // Buyer service fee (added to list price): 2–12 months 0%, 13–24 10%, 25–36 20%, 37–60 30%
   // Only use userInputFeeRate when explicitly set; default 0 from form means "use tier" (so 37–60 gets 30%)
   let serviceFeeRate: number;
@@ -125,8 +152,10 @@ function calculateAfternicInstallmentFee(sellerAmount: number, installmentPeriod
     commissionDiscount = 0.15; // 超过60期按15%折扣计算
   }
 
-  // 假设标准佣金率为15%（Afternic标准）
-  const standardCommissionRate = 0.15;
+  // 标准佣金率：缺省视为「NS 指向 + 无 add-on」= 15%，向后兼容旧数据。
+  const nsPointed = afternicNsPointed ?? true;
+  const premiumAddon = afternicPremiumAddon ?? false;
+  const standardCommissionRate = (nsPointed ? 0.15 : 0.25) + (premiumAddon ? 0.05 : 0);
   const effectiveCommissionRate = Math.max(0, standardCommissionRate - commissionDiscount);
 
   // 重新设计计算逻辑
@@ -330,7 +359,12 @@ export function calculateCustomerTotalFromInstallment(
   domainHoldingFee?: number,
   userInputFeeRate?: number,
   userInputSurchargeRate?: number,
-  options?: { downpaymentAmount?: number; finalPaymentAmount?: number }
+  options?: {
+    downpaymentAmount?: number;
+    finalPaymentAmount?: number;
+    afternicNsPointed?: boolean;
+    afternicPremiumAddon?: boolean;
+  }
 ): PlatformFeeResult {
   const downpayment = options?.downpaymentAmount ?? 0;
   const finalPayment = options?.finalPaymentAmount ?? 0;
@@ -361,7 +395,9 @@ export function calculateCustomerTotalFromInstallment(
     escrowFee,
     domainHoldingFee,
     userInputFeeRate,
-    userInputSurchargeRate
+    userInputSurchargeRate,
+    afternicNsPointed: options?.afternicNsPointed,
+    afternicPremiumAddon: options?.afternicPremiumAddon,
   });
 }
 
@@ -379,7 +415,12 @@ export function calculatePaidAmountFromInstallment(
   domainHoldingFee?: number,
   userInputFeeRate?: number,
   userInputSurchargeRate?: number,
-  options?: { downpaymentAmount?: number; finalPaymentAmount?: number }
+  options?: {
+    downpaymentAmount?: number;
+    finalPaymentAmount?: number;
+    afternicNsPointed?: boolean;
+    afternicPremiumAddon?: boolean;
+  }
 ): PlatformFeeResult {
   const downpayment = options?.downpaymentAmount ?? 0;
   const finalPayment = options?.finalPaymentAmount ?? 0;
@@ -431,7 +472,9 @@ export function calculatePaidAmountFromInstallment(
     escrowFee,
     domainHoldingFee,
     userInputFeeRate,
-    userInputSurchargeRate
+    userInputSurchargeRate,
+    afternicNsPointed: options?.afternicNsPointed,
+    afternicPremiumAddon: options?.afternicPremiumAddon,
   });
 
   const paidRatio = paidPeriods / totalPeriods;

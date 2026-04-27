@@ -136,6 +136,8 @@ export interface Database {
           platform_fee_type: string | null
           user_input_fee_rate: number | null
           user_input_surcharge_rate: number | null
+          afternic_ns_pointed: boolean | null
+          afternic_premium_addon: boolean | null
           renewal_period_years: number | null
         }
         Insert: {
@@ -167,6 +169,8 @@ export interface Database {
           platform_fee_type?: string | null
           user_input_fee_rate?: number | null
           user_input_surcharge_rate?: number | null
+          afternic_ns_pointed?: boolean | null
+          afternic_premium_addon?: boolean | null
           renewal_period_years?: number | null
         }
         Update: {
@@ -198,6 +202,8 @@ export interface Database {
           platform_fee_type?: string | null
           user_input_fee_rate?: number | null
           user_input_surcharge_rate?: number | null
+          afternic_ns_pointed?: boolean | null
+          afternic_premium_addon?: boolean | null
           renewal_period_years?: number | null
         }
       }

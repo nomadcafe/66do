@@ -42,6 +42,8 @@ export function buildTransactionInsertPayload(
     platform_fee_type: (transaction.platform_fee_type as string) || null,
     user_input_fee_rate: transaction.user_input_fee_rate != null ? Number(transaction.user_input_fee_rate) : null,
     user_input_surcharge_rate: transaction.user_input_surcharge_rate != null ? Number(transaction.user_input_surcharge_rate) : null,
+    afternic_ns_pointed: typeof transaction.afternic_ns_pointed === 'boolean' ? transaction.afternic_ns_pointed : null,
+    afternic_premium_addon: typeof transaction.afternic_premium_addon === 'boolean' ? transaction.afternic_premium_addon : null,
     renewal_period_years:
       transaction.type === 'renew' && transaction.renewal_period_years != null
         ? Math.max(1, Math.min(10, Math.floor(Number(transaction.renewal_period_years))))
