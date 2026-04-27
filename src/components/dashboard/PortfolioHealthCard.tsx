@@ -22,7 +22,7 @@ interface PortfolioHealthCardProps {
   nextExpiryDomain?: string | null;
   /** Pre-formatted date label (e.g. "Apr 25") for the soonest expiry. */
   nextExpiryDateLabel?: string | null;
-  formatCurrency: (n: number, c?: 'USD') => string;
+  formatCurrency: (n: number) => string;
   /** Optional trend-window selector. Affects sparkline + headline only; footer stats stay all-time. */
   windowOptions?: { key: string; label: string }[];
   selectedWindow?: string;
@@ -42,7 +42,7 @@ interface PortfolioHealthCardProps {
     expired: string;
     trendWindowAria: string;
     /** Caption above the footer stat row clarifying that those numbers are all-time, regardless of the windowed headline. */
-    allTimeFooter?: string;
+    allTimeFooter: string;
   };
 }
 
@@ -70,9 +70,7 @@ export default function PortfolioHealthCard({
 }: PortfolioHealthCardProps) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
-  // 区分单点 vs 多点。原实现把单点拓成 [0, value] 画线，会让用户看到一条
-  // 从 0 飙到 value 的"假 spike"，但实际上只是没有更早的数据。单点应该
-  // 只渲染一个圆点，不画线 / 面积。
+  // 单点系列只画一个圆点，不画线/面积——避免被误读成从 0 飙升。
   const isSinglePoint = monthlyRevenueSeries.length === 1;
   const series = monthlyRevenueSeries.length >= 1 ? monthlyRevenueSeries : [0];
 
@@ -101,10 +99,8 @@ export default function PortfolioHealthCard({
   }
 
   // SVG sparkline (200×60 viewBox)
-  // y 公式：v = 0 → y = 56（chart 底部），v = max → y = 4（chart 顶部）。
-  // 旧公式 y = 52 - (v/range)*48 在 v = 0 时 y = 52，离底部还有 4 单位 padding，
-  // area 在 0 月份处仍会画出一条 4 单位的薄带，看起来像"该月还有营收"。
-  // 新公式让 0 值的 area 高度恰好为 0，不再误导。
+  // y 映射：v = 0 → y = 56（贴底），v = max → y = 4（贴顶）。
+  // 让 0 值的 area 高度恰好为 0，避免在零月份画出一条"该月还有营收"的薄带。
   const sparkBase = isSinglePoint ? [0, ...series] : series;
   const minV = Math.min(...sparkBase, 0);
   const maxV = Math.max(...sparkBase, 1);
@@ -211,8 +207,7 @@ export default function PortfolioHealthCard({
                 <path d={sparkPath} fill="none" stroke="#0d9488" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </>
             )}
-            {/* 单点：放在画布中心一个圆点（不参与缩放，避免 y 算到顶），
-                避免拼一个 [0, value] 让用户看到从 0 飙升的假象 */}
+            {/* 单点：画布中心一个圆点（固定位置，不参与缩放） */}
             {isSinglePoint && (
               <circle cx={100} cy={30} r={4} fill="#0d9488" />
             )}
@@ -288,15 +283,12 @@ export default function PortfolioHealthCard({
           )}
         </div>
 
-        {/* Compact stats footer (all-time)
-            顶部 headline 跟随窗口（3M/6M/1Y/All）变，footer 三项统计始终是
-            all-time（窗口化对域名计数 / ROI / 下次到期没有意义）。加一个小标
-            注让混合时间口径显式可见，避免用户误以为这些也跟着窗口变。 */}
-        {labels.allTimeFooter && (
-          <p className="mt-5 -mb-3 text-[10px] font-medium uppercase tracking-wider text-stone-400">
-            {labels.allTimeFooter}
-          </p>
-        )}
+        {/* 顶部 headline 跟随窗口变，footer 三项始终是 all-time（窗口化对
+            域名计数/ROI/下次到期没意义）。allTimeFooter 标注这个混合时间
+            口径，避免用户误以为 footer 也随窗口变。 */}
+        <p className="mt-5 -mb-3 text-[10px] font-medium uppercase tracking-wider text-stone-400">
+          {labels.allTimeFooter}
+        </p>
         <div className="mt-5 grid grid-cols-3 gap-3 border-t border-stone-100 pt-4">
           <div className="flex items-center gap-2">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-stone-100 text-stone-600">
@@ -339,8 +331,7 @@ export default function PortfolioHealthCard({
                 <p className="text-sm font-semibold text-stone-500">{labels.none}</p>
               ) : (
                 <>
-                  {/* 优先显示域名 + 日期/天数；旧实现只有"30d"，用户得另外去
-                      Domain 列表查是哪个域名要到期 */}
+                  {/* 显示域名 + 日期/天数，让用户不用回去 Domain 列表查是哪个 */}
                   {nextExpiryDomain && (
                     <p className="text-sm font-semibold text-stone-900 truncate" title={nextExpiryDomain}>
                       {nextExpiryDomain}
