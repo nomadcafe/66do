@@ -121,6 +121,7 @@ export interface Database {
           tax_deductible: boolean
           receipt_url: string | null
           notes: string | null
+          platform: string | null
           date: string
           created_at: string
           updated_at: string
@@ -159,6 +160,7 @@ export interface Database {
           tax_deductible?: boolean
           receipt_url?: string | null
           notes?: string | null
+          platform?: string | null
           date: string
           created_at?: string
           updated_at?: string
@@ -197,6 +199,7 @@ export interface Database {
           tax_deductible?: boolean
           receipt_url?: string | null
           notes?: string | null
+          platform?: string | null
           date?: string
           created_at?: string
           updated_at?: string
