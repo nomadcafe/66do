@@ -1,7 +1,7 @@
 'use client';
 
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
-import { DollarSign, TrendingUp, Target, Wallet, CheckCircle, XCircle, AlertTriangle, Sparkles } from 'lucide-react';
+import { DollarSign, TrendingUp, Target, Wallet, CheckCircle, XCircle } from 'lucide-react';
 import { useComprehensiveFinancialAnalysis } from '../../hooks/useFinancialCalculations';
 import { useI18nContext } from '../../contexts/I18nProvider';
 
@@ -10,32 +10,17 @@ interface FinancialAnalysisProps {
   transactions: TransactionWithRequiredFields[];
 }
 
-// Win Rate 已从顶部 KPI 移除：定义为 "已售域名中盈利的比例"，在常见组合
-// （持有 ≫ 已售）下样本极少（1-3 个），1 单亏损就跳到 0%，1 单盈利又跳到
-// 100%，统计意义弱；且域名投资是低频/单笔大额，"命中率"语义本就不适用
-// （一笔大成功能覆盖很多小亏）。同时 lowWinRate 推荐项也连带删掉。
-//
-// 长持有阈值原为 365 天 (1 年)，对域名投资过短 —— 域名经常持有数年才出手；
-// 改为 1825 天 (5 年) 才提示，避免对正常持有节奏发出错误"过于消极"的建议。
-const LONG_HOLDING_DAYS = 1825;
-
 export default function FinancialAnalysis({ domains, transactions }: FinancialAnalysisProps) {
   const { t } = useI18nContext();
 
   const financialAnalysis = useComprehensiveFinancialAnalysis(domains, transactions);
   const { basic, advanced, domainPerformance } = financialAnalysis;
 
-  const recommendationKeys: Array<'negativeRoi' | 'longHolding' | 'performingWell'> = [];
-  if (basic.roi < 0) recommendationKeys.push('negativeRoi');
-  if (advanced.avgHoldingPeriod > LONG_HOLDING_DAYS) recommendationKeys.push('longHolding');
-  if (recommendationKeys.length === 0) recommendationKeys.push('performingWell');
-
   const activeDomains = domains.filter((d) => d.status === 'active').length;
   const soldDomains = domains.filter((d) => d.status === 'sold').length;
 
-  // 已售域名的表现榜：原来排序的是全部 domains（含持有中），持有中
-  // 域名 profit 永远 ≤ 0（无收入抵成本），会把"未实现亏损"和"已实现盈利"
-  // 混在一张榜里，"Top Performers" 名不副实。
+  // 已售域名的表现榜：原来排序的是全部 domains（含持有中），持有中域名 profit
+  // 永远 ≤ 0（无收入抵成本），会把"未实现亏损"和"已实现盈利"混在一张榜里。
   const soldPerformance = domainPerformance.filter((p) => p.domain.status === 'sold');
   const topPerformers = [...soldPerformance]
     .sort((a, b) => b.profit - a.profit)
@@ -67,17 +52,8 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
     return `${(days / 365).toFixed(1)}${t('reports.yearsUnit')}`;
   };
 
-  const recTone: Record<typeof recommendationKeys[number], { bg: string; border: string; dot: string; text: string }> = {
-    negativeRoi: { bg: 'bg-red-50/70', border: 'border-red-100', dot: 'bg-red-500', text: 'text-red-900' },
-    longHolding: { bg: 'bg-amber-50/70', border: 'border-amber-100', dot: 'bg-amber-500', text: 'text-amber-900' },
-    performingWell: { bg: 'bg-emerald-50/70', border: 'border-emerald-100', dot: 'bg-emerald-500', text: 'text-emerald-900' },
-  };
-
   return (
     <div className="space-y-6">
-      {/* Top KPIs：标题合并到本卡（原独立 Header 卡纯属占空间）。
-          4 列：Investment / Revenue / Net Profit / ROI。
-          Net Profit 替换原 Win Rate，让"盈亏绝对额"在最显眼的位置。 */}
       <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-stone-900 mb-4">{t('reports.financialAnalysis')}</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -106,67 +82,45 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
         </div>
       </div>
 
-      {/* Portfolio snapshot + Recommendations */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
-          <h3 className="text-base font-semibold text-stone-900 mb-4">
-            {t('reports.portfolioSnapshot')}
-          </h3>
-          <div className="space-y-3">
-            <SnapshotRow
-              label={t('reports.averageHoldingPeriod')}
-              value={advanced.avgHoldingPeriod > 0 ? formatHoldingPeriod(advanced.avgHoldingPeriod) : '—'}
-            />
-            <SnapshotRow
-              label={t('reports.activeDomains')}
-              value={String(activeDomains)}
-            />
-            <SnapshotRow
-              label={t('reports.soldDomains')}
-              value={String(soldDomains)}
-            />
-            <SnapshotRow
-              label={t('reports.bestPerforming')}
-              value={
-                bestPerformer
-                  ? `${bestPerformer.domain.domain_name} (${bestPerformer.roi >= 0 ? '+' : ''}${bestPerformer.roi.toFixed(1)}%)`
-                  : '—'
-              }
-              valueClass={`font-medium truncate max-w-[220px] ${bestPerformer ? pnlColor(bestPerformer.roi) : 'text-stone-900'}`}
-            />
-            <SnapshotRow
-              label={t('reports.worstPerforming')}
-              value={
-                worstPerformer
-                  ? `${worstPerformer.domain.domain_name} (${worstPerformer.roi >= 0 ? '+' : ''}${worstPerformer.roi.toFixed(1)}%)`
-                  : '—'
-              }
-              valueClass={`font-medium truncate max-w-[220px] ${worstPerformer ? pnlColor(worstPerformer.roi) : 'text-stone-900'}`}
-            />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
-          <h3 className="text-base font-semibold text-stone-900 mb-4">
-            {t('reports.recommendations')}
-          </h3>
-          <div className="space-y-3">
-            {recommendationKeys.map((key) => {
-              const tone = recTone[key];
-              const Icon = key === 'performingWell' ? Sparkles : key === 'negativeRoi' ? AlertTriangle : Target;
-              return (
-                <div key={key} className={`flex items-start gap-3 p-3 ${tone.bg} border ${tone.border} rounded-xl`}>
-                  <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${tone.dot.replace('bg-', 'text-')}`} />
-                  <p className={`text-sm leading-relaxed ${tone.text}`}>{t(`reports.rec.${key}`)}</p>
-                </div>
-              );
-            })}
-          </div>
+      <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
+        <h3 className="text-base font-semibold text-stone-900 mb-4">
+          {t('reports.portfolioSnapshot')}
+        </h3>
+        <div className="space-y-3">
+          <SnapshotRow
+            label={t('reports.averageHoldingPeriod')}
+            value={advanced.avgHoldingPeriod > 0 ? formatHoldingPeriod(advanced.avgHoldingPeriod) : '—'}
+          />
+          <SnapshotRow
+            label={t('reports.activeDomains')}
+            value={String(activeDomains)}
+          />
+          <SnapshotRow
+            label={t('reports.soldDomains')}
+            value={String(soldDomains)}
+          />
+          <SnapshotRow
+            label={t('reports.bestPerforming')}
+            value={
+              bestPerformer
+                ? `${bestPerformer.domain.domain_name} (${bestPerformer.roi >= 0 ? '+' : ''}${bestPerformer.roi.toFixed(1)}%)`
+                : '—'
+            }
+            valueClass={`font-medium truncate max-w-[220px] ${bestPerformer ? pnlColor(bestPerformer.roi) : 'text-stone-900'}`}
+          />
+          <SnapshotRow
+            label={t('reports.worstPerforming')}
+            value={
+              worstPerformer
+                ? `${worstPerformer.domain.domain_name} (${worstPerformer.roi >= 0 ? '+' : ''}${worstPerformer.roi.toFixed(1)}%)`
+                : '—'
+            }
+            valueClass={`font-medium truncate max-w-[220px] ${worstPerformer ? pnlColor(worstPerformer.roi) : 'text-stone-900'}`}
+          />
         </div>
       </div>
 
-      {/* Top performing domains —— 仅已售域名（持有中 profit ≤ 0 不该混进
-          "表现榜"，会让用户以为持有亏损 = 表现差，但实际只是未变现）。 */}
+      {/* Top performing domains —— 仅已售（持有中 profit ≤ 0 不该混进榜里）。 */}
       <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
         <h3 className="text-base font-semibold text-stone-900 mb-4">
           {t('reports.topPerformers')}
