@@ -14,7 +14,8 @@ export interface AnnualRenewalCostAnalysis {
   cost_trends: {
     average_cost_increase: number;
     most_expensive_domains: string[];
-    cost_optimization_opportunities: string[];
+    /** 结构化数据，由 UI 层自行 i18n 拼装文案 */
+    cost_optimization_opportunities: Array<{ name: string; variance: number }>;
   };
 }
 
@@ -155,7 +156,7 @@ function calculateCostTrends(
 ): {
   average_cost_increase: number;
   most_expensive_domains: string[];
-  cost_optimization_opportunities: string[];
+  cost_optimization_opportunities: Array<{ name: string; variance: number }>;
 } {
   type DomainStat = {
     name: string;
@@ -199,7 +200,7 @@ function calculateCostTrends(
 
   const optimizationOpportunities = stats
     .filter((s) => s.trend === 'increasing' && s.variance > 10)
-    .map((s) => `${s.name} (${s.variance.toFixed(1)}% increase)`);
+    .map((s) => ({ name: s.name, variance: s.variance }));
 
   return {
     average_cost_increase: averageCostIncrease,
