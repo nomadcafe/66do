@@ -6,7 +6,6 @@ import { calculateInvestmentYears, expandSellToCashReceipts } from '../../lib/co
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import {
-  LineChart,
   Line,
   XAxis,
   YAxis,
@@ -33,49 +32,12 @@ import {
 } from 'lucide-react';
 import { holdingCostAsOf } from '../../lib/renewalCostBasis';
 
-// interface Domain {
-//   id: string;
-//   domain_name: string;
-//   registrar: string;
-//   purchase_date: string;
-//   purchase_cost: number;
-//   renewal_cost: number;
-//   renewal_cycle: number;
-//   renewal_count: number;
-//   expiry_date?: string;
-//   status: 'active' | 'for_sale' | 'sold' | 'expired';
-//   estimated_value: number;
-//   sale_date?: string;
-//   sale_price?: number;
-//   platform_fee?: number;
-//   tags: string[];
-// }
-
-// interface Transaction {
-//   id: string;
-//   domain_id: string;
-//   type: 'buy' | 'sell' | 'renew' | 'transfer' | 'fee' | 'marketing' | 'advertising';
-//   amount: number;
-//   currency: string;
-//   date: string;
-//   notes: string;
-//   platform?: string;
-//   platform_fee?: number;
-//   platform_fee_percentage?: number;
-//   net_amount?: number;
-//   category?: string;
-//   tax_deductible?: boolean;
-//   receipt_url?: string;
-// }
-
 interface InvestmentAnalyticsProps {
   domains: DomainWithTags[];
   transactions: TransactionWithRequiredFields[];
 }
 
-// 仅保留 IA 还展示的三个深度指标：Investment / Revenue / ROI / Win Rate
-// 在 FAO 已经显示，best/worst/holdingPeriod 也在 FAO Snapshot 里，
-// max-drawdown/volatility 早被弃用（在稀疏数据上误导）。
+// max-drawdown / volatility 故意不在此列：在域名投资这种稀疏样本上会误导。
 interface PortfolioMetrics {
   totalProfit: number;
   annualizedReturn: number;
@@ -117,12 +79,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
   const { t, locale } = useI18nContext();
   const [selectedTimeframe, setSelectedTimeframe] = useState<'6M' | '1Y' | '2Y' | '3Y' | 'ALL'>('ALL');
 
-  // 根据选择的时间范围筛选数据
-  // N 个月窗口（含当前月）。先前 filter 用 month-6/year-1-same-month 的
-  // 写法：6M 变成 7 个月、1Y/2Y/3Y 都多 1 个月，而图表用 month-5+6 iter
-  // 的写法确实 6 个月，但 1Y/2Y/3Y 又差 1 —— 结果 KPI 用的筛选窗、图
-  // 表展示窗永远不匹配，1Y 模式下用户甚至看不到当前月的柱子/面积。
-  // 统一成 "month - (N-1)"，filter 和 timeSeriesData 共用。
+  // N 个月窗口（含当前月）。filter 与 timeSeriesData 共用此值，确保两边窗口对齐。
   const monthsWindow = useMemo(() => {
     switch (selectedTimeframe) {
       case '6M': return 6;
@@ -166,14 +123,8 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     sharpeRatio: financialAnalysis.advanced.sharpeRatio,
   }), [financialAnalysis]);
 
-  // 计算时间序列数据（基于筛选后的数据和时间范围）。窗口口径与
-  // filteredData 保持一致：`monthsWindow` 非 null 时直接使用；ALL 则
-  // 根据最早数据日期展开。
-  //
-  // 月度入账走 expandSellToCashReceipts：分期销售按 t.date + i 个月展开
-  // 已付期，避免把 36 个月分期里已付的 3 期都堆在销售当月（旧实现按
-  // t.date 月份归类整笔 sell 的 net，柱状图会一蹦到位 + 中间月份全 0，
-  // 累计 Revenue 线终值正确但途中失真）。
+  // 月度入账：分期销售用 expandSellToCashReceipts 按已付期展开到对应月份，
+  // 避免把多期分期一起记到销售当月让中间月柱子全 0。
   const monthlyNetInflowByMonth = useMemo(() => {
     const map = new Map<string, number>();
     for (const t of filteredData.transactions) {
@@ -291,11 +242,6 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       );
     }
 
-    // Total Investment / Total Revenue / Total Return 三张卡已删：FAO 顶部
-    // 4-KPI 已经显示这三个字段（Investment/Revenue/ROI），同屏重复展示让用户
-    // 误以为是不同口径。IA 现在只保留 FAO 没有的三个深度指标：Net Profit、
-    // Annualized Return、Sharpe Ratio，与 FAO 的 4-KPI 形成"摘要 → 细节"的
-    // 互补，而不是平行复读。
     const profitColor = portfolioMetrics.totalProfit >= 0 ? 'text-emerald-700' : 'text-red-600';
     const sharpeColor =
       portfolioMetrics.sharpeRatio >= 1 ? 'text-emerald-700' :
@@ -529,9 +475,6 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     return { data, totalHeld: heldDomains.length };
   }, [filteredData.domains, t]);
 
-  // 月度净现金流：原本在 Trends 子 tab 里，但属于"时间 × 金额"的月度
-  // delta 视角，与 Portfolio 的累计 AreaChart 互补，因此并到主流程紧跟在
-  // Performance Chart 之后展示。
   const renderMonthlyCashFlow = () => (
     <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
       <h3 className="text-lg font-semibold text-stone-900 mb-4">{t('analytics.monthlyCashFlowTrend')}</h3>
@@ -682,9 +625,6 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     </div>
   );
 
-  // 时间范围显示文本。旧代码每个 case 都带 `|| '最近6个月'` 之类的中文
-  // 兜底，但 analytics.timeframe.* 的 i18n key 都存在，fallback 永远不会
-  // 触发，只是把中文硬字串留在了英文代码里。
   const getTimeframeText = () => t(`analytics.timeframe.${selectedTimeframe}`);
 
   return (
@@ -717,17 +657,6 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         </div>
       </div>
 
-      {/* 单页流：原 Portfolio / Trends 子 tab 已合并 ——
-          - Insights tab 内再嵌一层子 tab 是双重导航，反直觉。
-          - 去重后 IA 内容已经很瘦（3 KPI + 1 累计图 + 1 月度图 + 3 个分布
-            视图），垂直堆叠完全可读。
-          - "Trends" 名实不符问题（搬走 Yearly Renewal 表后只剩分布）随子
-            tab 一起消失。
-          先删的有：
-          - Key Insights（Total Return / Sharpe / Win Rate 全部在 FAO）
-          - Best/Worst（与 FAO Portfolio Snapshot 的同名行重复）
-          - Key Metrics 4 格（cecee72：Max Drawdown / Volatility 在稀疏数据
-            上误导，其余 KPI 已被 FAO 覆盖）。 */}
       {renderPortfolioMetrics()}
       {renderPerformanceChart()}
       {renderMonthlyCashFlow()}
