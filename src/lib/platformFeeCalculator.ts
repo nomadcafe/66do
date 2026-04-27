@@ -317,7 +317,8 @@ export function getAtomBaseCommissionAmount(
  * - Platform = base commission + surcharge × 35%
  *
  * surchargeRate：默认按期数推（< 12 月 0%、12 月 10%、24 月 15%、36 月 20%、≥ 48 月 25%）；
- * 用户输入的 userInputSurchargeRate 会覆盖默认值。
+ * 用户输入的 userInputSurchargeRate 会覆盖默认值，但表单留空回传 0 时（以及 < 12 月场景）
+ * 仍按期数自动推 — 与 Afternic 同款约定，避免 12+ 月场景被误判成 0% 没收 surcharge。
  *
  * baseCommission：由 atomCommissionTier 决定（standard/plus/premium/byol/custom），见
  * getAtomBaseCommissionAmount。tier 缺省为 standard，向后兼容旧记录（旧代码默认 0% base，
@@ -332,10 +333,15 @@ function calculateAtomInstallmentFee(
   atomCustomCommissionRate?: number,
 ): PlatformFeeResult {
   const listPrice = sellerAmount;
-  const surchargeRate =
-    userInputSurchargeRate !== undefined && userInputSurchargeRate !== null
-      ? userInputSurchargeRate
-      : getAtomSurchargeRate(installmentPeriod);
+  // 表单的 user_input_surcharge_rate 默认 0 表示"留空 = 按期数自动"。
+  // 只有当 12+ 月仍传 0 时回退到 tier；显式传非 0 值 / < 12 月场景按字面值用。
+  const useTierForSurcharge =
+    userInputSurchargeRate === undefined ||
+    userInputSurchargeRate === null ||
+    (installmentPeriod >= 12 && userInputSurchargeRate === 0);
+  const surchargeRate = useTierForSurcharge
+    ? getAtomSurchargeRate(installmentPeriod)
+    : userInputSurchargeRate!;
 
   const surchargeAmount = listPrice * surchargeRate;
   const sellerSurchargeShare = surchargeAmount * ATOM_SURCHARGE_SELLER_SHARE;
