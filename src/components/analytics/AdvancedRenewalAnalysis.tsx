@@ -198,12 +198,10 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
             <TrendingUp className="h-8 w-8 text-stone-600" />
             <div>
               <p className="text-sm font-medium text-stone-600">{t('renewal.accuracy')}</p>
-              {/* `cost_accuracy` 的原公式 `(1 - |est-act|/act) * 100` 在
-                  实际值极小但预估偏高时会输出 -300% 之类的负数。UI 层夹到
-                  [0, 100]，当年没有实际续费记录时直接显示"暂无记录"。 */}
+              {/* cost_accuracy 已在 service 层夹到 [0, 100]；当年没有实际续费记录时显示"暂无记录"。 */}
               <p className="text-2xl font-bold text-stone-900">
                 {analysis.total_actual_cost > 0
-                  ? `${Math.max(0, Math.min(100, analysis.cost_accuracy)).toFixed(1)}%`
+                  ? `${analysis.cost_accuracy.toFixed(1)}%`
                   : t('renewal.accuracyNoData')}
               </p>
             </div>
