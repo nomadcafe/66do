@@ -318,6 +318,11 @@ export function useDashboardData(
           });
           if (!response.ok) {
             // 交易在本地存在但远端缺失（例如历史保存中断）时，回退为创建，避免持续 404/403 卡死。
+            // 已知风险：若 PUT 的 404/403 是误报（行其实存在，但 RLS 在 token 刷新瞬间误返），
+            // 这里的 INSERT 可能造成同 (domain_id, date, type, amount) 的重复行。下面的 duplicate-key
+            // 兜底只对主键冲突生效，对"逻辑重复但 UUID 不同"无能为力。drop_renewal_cost_history
+            // migration（commit 3bd5888）清理掉的两条孤儿即疑似经此路径产生。如再出现，考虑
+            // 在 INSERT 前先按 (domain_id, date, type, amount) 查一遍。
             if (response.status === 404 || response.status === 403) {
               const payload = buildTransactionInsertPayload(
                 transactionPayload as Record<string, unknown>,
