@@ -47,6 +47,14 @@ export interface Transaction {
   /** Afternic Installment 专用：是否开启 Premium add-on（+5% 标准佣金）。 */
   afternic_premium_addon?: boolean | null;
 
+  /** Atom Installment 专用：卖家 listing tier，决定 base commission。
+   *  null/undefined → 视为 'standard'（7.5%），向后兼容旧记录。 */
+  atom_commission_tier?: 'standard' | 'plus' | 'premium' | 'byol' | 'custom' | null;
+  /** Atom Premium 且 listPrice ≤ $4,998 时把 30% 顶到 35%；其它档位无效。 */
+  atom_no_coin?: boolean | null;
+  /** tier='custom' 时使用的佣金率（小数，如 0.0135 = 1.35%）。 */
+  atom_custom_commission_rate?: number | null;
+
   /** renew：延长到期的年数（写入 domain_transactions.renewal_period_years） */
   renewal_period_years?: number | null;
   /** renew：仅当为 false 时不延长到期（旧数据/导入）；表单已移除该选项，保存 renew 默认始终延长 */
@@ -103,6 +111,11 @@ export interface CreateTransactionInput {
   // Afternic Installment 专用 commission flags
   afternic_ns_pointed?: boolean | null;
   afternic_premium_addon?: boolean | null;
+
+  // Atom Installment 专用 commission tier
+  atom_commission_tier?: 'standard' | 'plus' | 'premium' | 'byol' | 'custom' | null;
+  atom_no_coin?: boolean | null;
+  atom_custom_commission_rate?: number | null;
 }
 
 // Transaction更新时的输入类型

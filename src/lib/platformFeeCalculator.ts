@@ -3,6 +3,8 @@
  * 支持不同平台的分期费用规则
  */
 
+export type AtomCommissionTier = 'standard' | 'plus' | 'premium' | 'byol' | 'custom';
+
 export interface PlatformFeeConfig {
   type: 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment';
   installmentPeriod: number;
@@ -16,6 +18,10 @@ export interface PlatformFeeConfig {
   // Afternic Installment 专用：标准佣金率受这两个 flag 影响（15% / 20% / 25% / 30%）
   afternicNsPointed?: boolean; // 域名 NS 是否指向 Afternic（默认 true → 15% 起算；false → 25%）
   afternicPremiumAddon?: boolean; // 是否开启 Premium add-on（+5%）
+  // Atom Installment 专用：决定卖家 base commission 的档位
+  atomCommissionTier?: AtomCommissionTier;
+  atomNoCoin?: boolean; // 仅在 Premium 且 listPrice ≤ $4,998 时把 30% 顶到 35%
+  atomCustomCommissionRate?: number; // tier='custom' 时使用；其它 tier 也可作为覆盖
 }
 
 export interface PlatformFeeResult {
@@ -33,6 +39,12 @@ export interface PlatformFeeResult {
     commissionRate?: number; // 有效佣金率
     commissionDiscount?: number; // 佣金折扣
     serviceFeeRate?: number; // 服务费率
+    // Atom 专用细分
+    surchargeRate?: number; // 期数对应的 surcharge 率
+    sellerSurchargeShare?: number; // 卖家从 surcharge 拿到的金额（65% 部分）
+    atomBaseCommission?: number; // 卖家 base 佣金金额
+    atomBaseCommissionRate?: number; // 卖家 base 佣金率
+    atomCommissionTier?: AtomCommissionTier;
   };
 }
 
@@ -51,6 +63,9 @@ export function calculatePlatformFee(config: PlatformFeeConfig): PlatformFeeResu
     userInputSurchargeRate,
     afternicNsPointed,
     afternicPremiumAddon,
+    atomCommissionTier,
+    atomNoCoin,
+    atomCustomCommissionRate,
   } = config;
 
   switch (type) {
@@ -67,7 +82,14 @@ export function calculatePlatformFee(config: PlatformFeeConfig): PlatformFeeResu
       );
 
     case 'atom_installment':
-      return calculateAtomInstallmentFee(sellerAmount, installmentPeriod, userInputSurchargeRate);
+      return calculateAtomInstallmentFee(
+        sellerAmount,
+        installmentPeriod,
+        userInputSurchargeRate,
+        atomCommissionTier,
+        atomNoCoin,
+        atomCustomCommissionRate,
+      );
 
     case 'spaceship_installment':
       return calculateSpaceshipInstallmentFee(sellerAmount);
@@ -214,53 +236,123 @@ function calculateAfternicInstallmentFee(
   };
 }
 
+/** Atom 分期 surcharge：12 月 10% / 24 月 15% / 36 月 20% / 48 月 25%；< 12 月没有；> 48 月按 25%。 */
+export function getAtomSurchargeRate(installmentPeriod: number): number {
+  if (installmentPeriod < 12) return 0;
+  if (installmentPeriod <= 12) return 0.10;
+  if (installmentPeriod <= 24) return 0.15;
+  if (installmentPeriod <= 36) return 0.20;
+  return 0.25;
+}
+
+/** 卖家从 surcharge 拿到的份额；剩下 35% 归 Atom。 */
+export const ATOM_SURCHARGE_SELLER_SHARE = 0.65;
+
+/**
+ * Atom 卖家 base commission（按 listing tier 决定）。
+ * - standard: 7.5%
+ * - plus:     15%
+ * - premium:  按售价阶梯（≤4998: 30% / ≤49999: 25% / ≤74999: 20% / ≥75000: 15%；
+ *             noCoin 仅把 ≤4998 这档顶到 35%）
+ * - byol:     按售价阶梯，含 ≤4999 档的 min $25
+ * - custom:   使用 customRate（默认 0）
+ *
+ * 返回的是「金额」（USD），不是 rate；BYOL 的 min $25 规则会让 effective rate 大于阶梯值。
+ */
+export function getAtomBaseCommissionAmount(
+  listPrice: number,
+  tier: AtomCommissionTier = 'standard',
+  options?: { noCoin?: boolean; customRate?: number }
+): number {
+  if (listPrice <= 0) return 0;
+  const customRate = options?.customRate;
+
+  if (tier === 'custom') {
+    return listPrice * (customRate ?? 0);
+  }
+  if (tier === 'standard') return listPrice * 0.075;
+  if (tier === 'plus') return listPrice * 0.15;
+  if (tier === 'premium') {
+    if (listPrice <= 4998) return listPrice * (options?.noCoin ? 0.35 : 0.30);
+    if (listPrice <= 49999) return listPrice * 0.25;
+    if (listPrice <= 74999) return listPrice * 0.20;
+    return listPrice * 0.15;
+  }
+  // byol：1.35–4.5%，但 ≤$4,999 这档佣金不低于 $25
+  if (tier === 'byol') {
+    let rate: number;
+    if (listPrice < 50000) rate = 0.045;
+    else if (listPrice < 200000) rate = 0.0375;
+    else if (listPrice < 500000) rate = 0.029;
+    else if (listPrice < 1000000) rate = 0.0225;
+    else if (listPrice < 3000000) rate = 0.019;
+    else if (listPrice < 10000000) rate = 0.0175;
+    else rate = 0.0135;
+    const raw = listPrice * rate;
+    return listPrice < 5000 ? Math.max(25, raw) : raw;
+  }
+  return 0;
+}
+
 /**
  * Atom分期费用计算
- * 如果用户输入了surcharge率，使用用户输入的值
- * 否则根据期数自动计算：
- * 12期: 10% surcharge
- * 24期: 15% surcharge
- * 36期: 20% surcharge
- * 48期: 25% surcharge
- * 卖家获得65%的surcharge，平台获得35%
+ *
+ * 入参 sellerAmount 在此处的语义是「listPrice / baseAmount」（与表单 amount 对齐），不再反推。
+ * - Buyer 总付 = listPrice + surchargeAmount
+ * - Seller 净 = (listPrice − base commission) + surcharge × 65%
+ * - Platform = base commission + surcharge × 35%
+ *
+ * surchargeRate：默认按期数推（< 12 月 0%、12 月 10%、24 月 15%、36 月 20%、≥ 48 月 25%）；
+ * 用户输入的 userInputSurchargeRate 会覆盖默认值。
+ *
+ * baseCommission：由 atomCommissionTier 决定（standard/plus/premium/byol/custom），见
+ * getAtomBaseCommissionAmount。tier 缺省为 standard，向后兼容旧记录（旧代码默认 0% base，
+ * 升级后会从 7.5% 起算 — 这是修正行为，不是回归）。
  */
-function calculateAtomInstallmentFee(sellerAmount: number, installmentPeriod: number, userInputSurchargeRate?: number): PlatformFeeResult {
-  let surchargeRate: number;
+function calculateAtomInstallmentFee(
+  sellerAmount: number,
+  installmentPeriod: number,
+  userInputSurchargeRate?: number,
+  atomCommissionTier?: AtomCommissionTier,
+  atomNoCoin?: boolean,
+  atomCustomCommissionRate?: number,
+): PlatformFeeResult {
+  const listPrice = sellerAmount;
+  const surchargeRate =
+    userInputSurchargeRate !== undefined && userInputSurchargeRate !== null
+      ? userInputSurchargeRate
+      : getAtomSurchargeRate(installmentPeriod);
 
-  if (userInputSurchargeRate !== undefined) {
-    // 使用用户输入的surcharge率
-    surchargeRate = userInputSurchargeRate;
-  } else {
-    // 根据期数自动计算surcharge率
-    if (installmentPeriod <= 12) {
-      surchargeRate = 0.10;
-    } else if (installmentPeriod <= 24) {
-      surchargeRate = 0.15;
-    } else if (installmentPeriod <= 36) {
-      surchargeRate = 0.20;
-    } else if (installmentPeriod <= 48) {
-      surchargeRate = 0.25;
-    } else {
-      surchargeRate = 0.25; // 超过48期按25%计算
-    }
-  }
+  const surchargeAmount = listPrice * surchargeRate;
+  const sellerSurchargeShare = surchargeAmount * ATOM_SURCHARGE_SELLER_SHARE;
+  const platformSurchargeShare = surchargeAmount - sellerSurchargeShare;
 
-  // 反推基础金额（不包含surcharge）
-  const baseAmount = sellerAmount / (1 + surchargeRate * 0.65); // 卖家获得65%的surcharge
-  const surchargeAmount = baseAmount * surchargeRate;
-  const customerTotalAmount = baseAmount + surchargeAmount;
-  const platformFee = surchargeAmount * 0.35; // 平台获得35%的surcharge
-  const platformFeeRate = platformFee / customerTotalAmount;
+  const tier: AtomCommissionTier = atomCommissionTier ?? 'standard';
+  const baseCommission = getAtomBaseCommissionAmount(listPrice, tier, {
+    noCoin: atomNoCoin,
+    customRate: atomCustomCommissionRate,
+  });
+  const baseCommissionRate = listPrice > 0 ? baseCommission / listPrice : 0;
+
+  const customerTotalAmount = listPrice + surchargeAmount;
+  const sellerNetAmount = listPrice - baseCommission + sellerSurchargeShare;
+  const platformFee = baseCommission + platformSurchargeShare;
+  const platformFeeRate = customerTotalAmount > 0 ? platformFee / customerTotalAmount : 0;
 
   return {
     customerTotalAmount,
     platformFee,
     platformFeeRate,
-    sellerNetAmount: sellerAmount,
+    sellerNetAmount,
     breakdown: {
-      baseAmount,
+      baseAmount: listPrice,
       feeAmount: platformFee,
       surchargeAmount,
+      surchargeRate,
+      sellerSurchargeShare,
+      atomBaseCommission: baseCommission,
+      atomBaseCommissionRate: baseCommissionRate,
+      atomCommissionTier: tier,
     }
   };
 }
@@ -382,6 +474,10 @@ export function calculateCustomerTotalFromInstallment(
     finalPaymentAmount?: number;
     afternicNsPointed?: boolean;
     afternicPremiumAddon?: boolean;
+    grossAmount?: number; // form 上的 amount = listPrice；Atom 算法以此为基。
+    atomCommissionTier?: AtomCommissionTier;
+    atomNoCoin?: boolean;
+    atomCustomCommissionRate?: number;
   }
 ): PlatformFeeResult {
   const downpayment = options?.downpaymentAmount ?? 0;
@@ -404,7 +500,12 @@ export function calculateCustomerTotalFromInstallment(
     }
   }
 
-  const sellerAmount = installmentAmount * installmentPeriod;
+  // Atom: 算法以 listPrice 为基，优先用 form 的 grossAmount；否则回退到 installment*period（旧调用兼容）。
+  const sellerAmount =
+    platformFeeType === 'atom_installment' && options?.grossAmount && options.grossAmount > 0
+      ? options.grossAmount
+      : installmentAmount * installmentPeriod;
+
   return calculatePlatformFee({
     type: platformFeeType as 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment',
     installmentPeriod,
@@ -416,6 +517,9 @@ export function calculateCustomerTotalFromInstallment(
     userInputSurchargeRate,
     afternicNsPointed: options?.afternicNsPointed,
     afternicPremiumAddon: options?.afternicPremiumAddon,
+    atomCommissionTier: options?.atomCommissionTier,
+    atomNoCoin: options?.atomNoCoin,
+    atomCustomCommissionRate: options?.atomCustomCommissionRate,
   });
 }
 
@@ -438,6 +542,10 @@ export function calculatePaidAmountFromInstallment(
     finalPaymentAmount?: number;
     afternicNsPointed?: boolean;
     afternicPremiumAddon?: boolean;
+    grossAmount?: number;
+    atomCommissionTier?: AtomCommissionTier;
+    atomNoCoin?: boolean;
+    atomCustomCommissionRate?: number;
   }
 ): PlatformFeeResult {
   const downpayment = options?.downpaymentAmount ?? 0;
@@ -481,7 +589,10 @@ export function calculatePaidAmountFromInstallment(
     };
   }
 
-  const totalSellerAmount = installmentAmount * totalPeriods;
+  const totalSellerAmount =
+    platformFeeType === 'atom_installment' && options?.grossAmount && options.grossAmount > 0
+      ? options.grossAmount
+      : installmentAmount * totalPeriods;
   const totalResult = calculatePlatformFee({
     type: platformFeeType as 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment',
     installmentPeriod: totalPeriods,
@@ -493,19 +604,27 @@ export function calculatePaidAmountFromInstallment(
     userInputSurchargeRate,
     afternicNsPointed: options?.afternicNsPointed,
     afternicPremiumAddon: options?.afternicPremiumAddon,
+    atomCommissionTier: options?.atomCommissionTier,
+    atomNoCoin: options?.atomNoCoin,
+    atomCustomCommissionRate: options?.atomCustomCommissionRate,
   });
 
   const paidRatio = paidPeriods / totalPeriods;
-  const sellerAmount = installmentAmount * paidPeriods;
   const customerTotalAmount = totalResult.customerTotalAmount * paidRatio;
   const platformFee = totalResult.platformFee * paidRatio;
   const platformFeeRate = totalResult.platformFeeRate;
+  // Atom 已用 listPrice 计算总 sellerNet；按已付期数比例缩放，与 customer/platform 同口径。
+  // 其它走旧路径（sellerAmount = sellerNet）仍按 installment*paidPeriods 表达卖家已收。
+  const sellerNetAmount =
+    platformFeeType === 'atom_installment'
+      ? totalResult.sellerNetAmount * paidRatio
+      : installmentAmount * paidPeriods;
 
   return {
     customerTotalAmount,
     platformFee,
     platformFeeRate,
-    sellerNetAmount: sellerAmount,
+    sellerNetAmount,
     breakdown: {
       baseAmount: totalResult.breakdown.baseAmount * paidRatio,
       feeAmount: platformFee,
@@ -515,6 +634,17 @@ export function calculatePaidAmountFromInstallment(
       commissionRate: totalResult.breakdown.commissionRate,
       commissionDiscount: totalResult.breakdown.commissionDiscount,
       serviceFeeRate: totalResult.breakdown.serviceFeeRate,
+      surchargeRate: totalResult.breakdown.surchargeRate,
+      sellerSurchargeShare:
+        totalResult.breakdown.sellerSurchargeShare !== undefined
+          ? totalResult.breakdown.sellerSurchargeShare * paidRatio
+          : undefined,
+      atomBaseCommission:
+        totalResult.breakdown.atomBaseCommission !== undefined
+          ? totalResult.breakdown.atomBaseCommission * paidRatio
+          : undefined,
+      atomBaseCommissionRate: totalResult.breakdown.atomBaseCommissionRate,
+      atomCommissionTier: totalResult.breakdown.atomCommissionTier,
     }
   };
 }

@@ -27,6 +27,9 @@ export type InstallmentConfigValues = {
   user_input_surcharge_rate: number;
   afternic_ns_pointed: boolean;
   afternic_premium_addon: boolean;
+  atom_commission_tier: 'standard' | 'plus' | 'premium' | 'byol' | 'custom';
+  atom_no_coin: boolean;
+  atom_custom_commission_rate: number;
 };
 
 interface InstallmentConfigProps {
@@ -257,27 +260,81 @@ export default function InstallmentConfig({
             )}
 
             {values.platform_fee_type === 'atom_installment' && (
-              <div>
-                <label htmlFor="transaction-form-surcharge-rate" className="block text-sm font-medium text-blue-800 mb-2">
-                  {t('transaction.userInputSurchargeRate')}
-                </label>
-                <div className="flex items-center space-x-2">
+              <>
+                <div>
+                  <label htmlFor="transaction-form-atom-tier" className="block text-sm font-medium text-blue-800 mb-2">
+                    {t('transaction.atomCommissionTier')}
+                  </label>
+                  <select
+                    id="transaction-form-atom-tier"
+                    value={values.atom_commission_tier}
+                    onChange={(e) => onChange({ atom_commission_tier: e.target.value as InstallmentConfigValues['atom_commission_tier'] })}
+                    className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="standard">{t('transaction.atomTierStandard')}</option>
+                    <option value="plus">{t('transaction.atomTierPlus')}</option>
+                    <option value="premium">{t('transaction.atomTierPremium')}</option>
+                    <option value="byol">{t('transaction.atomTierByol')}</option>
+                    <option value="custom">{t('transaction.atomTierCustom')}</option>
+                  </select>
+                </div>
+
+                {values.atom_commission_tier === 'premium' && (
+                  <div className="md:col-span-2">
+                    <label className="flex items-start gap-2 text-sm text-blue-800 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={values.atom_no_coin}
+                        onChange={(e) => onChange({ atom_no_coin: e.target.checked })}
+                        className="mt-0.5"
+                      />
+                      <span>
+                        <span className="font-medium">{t('transaction.atomNoCoin')}</span>
+                        <span className="block text-xs text-blue-600">{t('transaction.atomNoCoinHint')}</span>
+                      </span>
+                    </label>
+                  </div>
+                )}
+
+                {values.atom_commission_tier === 'custom' && (
+                  <div>
+                    <label htmlFor="transaction-form-atom-custom-rate" className="block text-sm font-medium text-blue-800 mb-2">
+                      {t('transaction.atomCustomCommissionRate')}
+                    </label>
+                    <input
+                      id="transaction-form-atom-custom-rate"
+                      type="number"
+                      step="0.0001"
+                      min="0"
+                      max="1"
+                      value={values.atom_custom_commission_rate === 0 ? '' : values.atom_custom_commission_rate}
+                      onChange={(e) => onChange({ atom_custom_commission_rate: parseFloat(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="0.075"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label htmlFor="transaction-form-surcharge-rate" className="block text-sm font-medium text-blue-800 mb-2">
+                    {t('transaction.userInputSurchargeRate')}
+                  </label>
                   <input
                     id="transaction-form-surcharge-rate"
                     type="number"
                     step="0.01"
                     min="0"
                     max="1"
-                    value={values.user_input_surcharge_rate}
+                    value={values.user_input_surcharge_rate === 0 ? '' : values.user_input_surcharge_rate}
                     onChange={(e) => onChange({ user_input_surcharge_rate: parseFloat(e.target.value) || 0 })}
-                    className="flex-1 px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="0.20"
                   />
+                  <p className="text-xs text-blue-600 mt-1">
+                    {t('transaction.userInputSurchargeRateDesc')}
+                  </p>
                 </div>
-                <p className="text-xs text-blue-600 mt-1">
-                  {t('transaction.userInputSurchargeRateDesc')}
-                </p>
-              </div>
+              </>
             )}
           </>
         )}
@@ -324,6 +381,10 @@ export default function InstallmentConfig({
                         finalPaymentAmount: values.final_payment_amount,
                         afternicNsPointed: values.afternic_ns_pointed,
                         afternicPremiumAddon: values.afternic_premium_addon,
+                        grossAmount: amount,
+                        atomCommissionTier: values.atom_commission_tier,
+                        atomNoCoin: values.atom_no_coin,
+                        atomCustomCommissionRate: values.atom_custom_commission_rate,
                       }
                     );
 
@@ -333,10 +394,12 @@ export default function InstallmentConfig({
                         <p><strong>{t('transaction.platformFee')}:</strong> {formatCurrencyAmount(result.platformFee, currency)} ({(result.platformFeeRate * 100).toFixed(1)}%)</p>
                         <p><strong>{t('transaction.sellerNetAmount')}:</strong> {formatCurrencyAmount(result.sellerNetAmount, currency)}</p>
 
-                        {result.breakdown.surchargeAmount && (
+                        {values.platform_fee_type === 'atom_installment' && result.breakdown.surchargeAmount !== undefined && (
                           <div className="mt-2 text-xs text-yellow-700">
-                            <p>{t('transaction.baseAmount')}: {formatCurrencyAmount(result.breakdown.baseAmount, currency)}</p>
-                            <p>{t('transaction.surchargeAmount')}: {formatCurrencyAmount(result.breakdown.surchargeAmount, currency)}</p>
+                            <p><strong>{t('transaction.listPrice')}:</strong> {formatCurrencyAmount(result.breakdown.baseAmount, currency)}</p>
+                            <p><strong>{t('transaction.atomBaseCommission')}:</strong> {formatCurrencyAmount(result.breakdown.atomBaseCommission ?? 0, currency)} ({((result.breakdown.atomBaseCommissionRate ?? 0) * 100).toFixed(2)}%)</p>
+                            <p><strong>{t('transaction.surchargeAmount')}:</strong> {formatCurrencyAmount(result.breakdown.surchargeAmount, currency)} ({((result.breakdown.surchargeRate ?? 0) * 100).toFixed(1)}%)</p>
+                            <p><strong>{t('transaction.sellerSurchargeShare')}:</strong> {formatCurrencyAmount(result.breakdown.sellerSurchargeShare ?? 0, currency)} (65%)</p>
                           </div>
                         )}
 
@@ -394,6 +457,10 @@ export default function InstallmentConfig({
                           finalPaymentAmount: values.final_payment_amount,
                           afternicNsPointed: values.afternic_ns_pointed,
                           afternicPremiumAddon: values.afternic_premium_addon,
+                          grossAmount: amount,
+                          atomCommissionTier: values.atom_commission_tier,
+                          atomNoCoin: values.atom_no_coin,
+                          atomCustomCommissionRate: values.atom_custom_commission_rate,
                         }
                       );
 
@@ -403,10 +470,12 @@ export default function InstallmentConfig({
                           <p><strong>{t('transaction.customerPaidTotal')}:</strong> {formatCurrencyAmount(result.customerTotalAmount, currency)}</p>
                           <p><strong>{t('transaction.platformFeePaid')}:</strong> {formatCurrencyAmount(result.platformFee, currency)} ({(result.platformFeeRate * 100).toFixed(1)}%)</p>
 
-                          {result.breakdown.surchargeAmount && (
+                          {values.platform_fee_type === 'atom_installment' && result.breakdown.surchargeAmount !== undefined && (
                             <div className="mt-2 text-xs text-green-700">
-                              <p>{t('transaction.baseAmount')}: {formatCurrencyAmount(result.breakdown.baseAmount, currency)}</p>
-                              <p>{t('transaction.surchargeAmount')}: {formatCurrencyAmount(result.breakdown.surchargeAmount, currency)}</p>
+                              <p><strong>{t('transaction.listPrice')}:</strong> {formatCurrencyAmount(result.breakdown.baseAmount, currency)}</p>
+                              <p><strong>{t('transaction.atomBaseCommission')}:</strong> {formatCurrencyAmount(result.breakdown.atomBaseCommission ?? 0, currency)} ({((result.breakdown.atomBaseCommissionRate ?? 0) * 100).toFixed(2)}%)</p>
+                              <p><strong>{t('transaction.surchargeAmount')}:</strong> {formatCurrencyAmount(result.breakdown.surchargeAmount, currency)} ({((result.breakdown.surchargeRate ?? 0) * 100).toFixed(1)}%)</p>
+                              <p><strong>{t('transaction.sellerSurchargeShare')}:</strong> {formatCurrencyAmount(result.breakdown.sellerSurchargeShare ?? 0, currency)} (65%)</p>
                             </div>
                           )}
 
