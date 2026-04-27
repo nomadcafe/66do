@@ -9,8 +9,6 @@ export const LazyAdvancedRenewalAnalysis = lazy(() => import('./analytics/Advanc
 export const LazyExpiredDomainLossAnalysis = lazy(() => import('./analytics/ExpiredDomainLossAnalysis'));
 export const LazyDataImportExport = lazy(() => import('./data/DataImportExport'));
 export const LazyUserPreferencesPanel = lazy(() => import('./settings/UserPreferencesPanel'));
-export const LazyDomainExpiryAlert = lazy(() => import('./alerts/DomainExpiryAlert'));
-export const LazyAutoDomainMonitor = lazy(() => import('./monitoring/AutoDomainMonitor'));
 
 // 加载中组件
 const LoadingSpinner = () => (

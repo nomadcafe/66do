@@ -1,4 +1,4 @@
-import { DomainExpiryManager } from './domainExpiryManager';
+import { handleDomainRenewal } from './domainExpiryManager';
 import type { Domain } from '../types/domain';
 import type { DomainWithTags } from '../types/dashboard';
 import type { TransactionWithRequiredFields } from '../types/transaction';
@@ -27,7 +27,7 @@ function toDomainForExpiry(d: DomainWithTags): Domain {
 }
 
 /**
- * 对「本次保存中应生效的 renew 交易」依次应用到期延长与 renewal_count+1（与 DomainExpiryManager 一致）。
+ * 对「本次保存中应生效的 renew 交易」依次应用到期延长与 renewal_count+1。
  * 跳过：已存在且类型仍为 renew 的同 id 交易（编辑续费金额/日期时不重复延长）；从其他类型改为 renew 的会应用一次。
  */
 export function mergeRenewTransactionDomainUpdates(
@@ -36,7 +36,6 @@ export function mergeRenewTransactionDomainUpdates(
   existingTransactions: TransactionWithRequiredFields[]
 ): DomainWithTags[] {
   const byId = new Map(domains.map((d) => [d.id, { ...d }]));
-  const mgr = new DomainExpiryManager();
 
   for (const tx of newTransactions) {
     if (tx.type !== 'renew') continue;
@@ -51,7 +50,7 @@ export function mergeRenewTransactionDomainUpdates(
     if (!cur) continue;
 
     const years = tx.renewal_period_years ?? cur.renewal_cycle ?? 1;
-    const renewed = mgr.handleDomainRenewal(toDomainForExpiry(cur), years);
+    const renewed = handleDomainRenewal(toDomainForExpiry(cur), years);
     byId.set(cur.id, {
       ...cur,
       expiry_date: renewed.expiry_date ?? cur.expiry_date,

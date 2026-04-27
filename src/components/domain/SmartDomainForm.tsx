@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Domain } from '../../types/domain';
 import { DomainWithTags } from '../../types/dashboard';
-import { domainExpiryManager } from '../../lib/domainExpiryManager';
+import { validateExpiryDate } from '../../lib/domainExpiryManager';
 import { localCalendarDateISO } from '../../lib/localCalendarDate';
 // import { useI18nContext } from '../../contexts/I18nProvider';
 import { Calendar, AlertCircle, Info } from 'lucide-react';
@@ -84,7 +84,7 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
   // 验证到期日期
   useEffect(() => {
     if (formData.expiry_date) {
-      const validation = domainExpiryManager.validateExpiryDate({
+      const validation = validateExpiryDate({
         ...formData,
         id: 'temp'
       } as Domain, formData.expiry_date);
