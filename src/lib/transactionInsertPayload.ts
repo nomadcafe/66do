@@ -26,6 +26,7 @@ export function buildTransactionInsertPayload(
     tax_deductible: Boolean(transaction.tax_deductible),
     receipt_url: (transaction.receipt_url as string) || null,
     notes: (transaction.notes as string) || null,
+    platform: (transaction.platform as string) || null,
     payment_plan: (transaction.payment_plan as string) || null,
     installment_period: transaction.installment_period != null ? Number(transaction.installment_period) : null,
     downpayment_amount: transaction.downpayment_amount != null ? Number(transaction.downpayment_amount) : null,

@@ -37,6 +37,7 @@ const buildEmptyFormData = ({ preserveDomainId = '' }: { preserveDomainId?: stri
   net_amount: 0,
   date: '',
   notes: '',
+  platform: '',
   category: '',
   tax_deductible: false,
   receipt_url: '',
@@ -107,6 +108,20 @@ export default function TransactionForm({
     }
     return Array.from(seen).sort((a, b) => a.localeCompare(b));
   }, [existingTransactions]);
+  const platformSuggestions = useMemo(() => {
+    const seen = new Set<string>();
+    // 把常见交易平台作为种子，让首次填写也有可选项；用户填过的会自动加进来。
+    for (const seed of ['Afternic', 'Atom', 'Sedo', 'Dan', 'Escrow.com', 'Spaceship', 'GoDaddy', 'Namecheap', 'NameSilo']) {
+      seen.add(seed);
+    }
+    if (existingTransactions?.length) {
+      for (const t of existingTransactions) {
+        const p = (t.platform || '').trim();
+        if (p) seen.add(p);
+      }
+    }
+    return Array.from(seen).sort((a, b) => a.localeCompare(b));
+  }, [existingTransactions]);
   const filteredDomains = domainSearch.trim()
     ? eligibleDomains.filter(
         (d) =>
@@ -173,6 +188,7 @@ export default function TransactionForm({
         net_amount: transaction.net_amount || 0,
         date: transaction.date,
         notes: transaction.notes || '',
+        platform: transaction.platform || '',
         category: transaction.category || '',
         tax_deductible: transaction.tax_deductible || false,
         receipt_url: transaction.receipt_url || '',
@@ -711,6 +727,27 @@ export default function TransactionForm({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
+              <label htmlFor="transaction-form-platform" className="block text-sm font-medium text-gray-700 mb-2">
+                {t('transaction.platform')}
+              </label>
+              <input
+                id="transaction-form-platform"
+                type="text"
+                value={formData.platform}
+                onChange={(e) => setFormData({ ...formData, platform: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder={t('transaction.platformPlaceholder')}
+                list="transaction-form-platform-list"
+                autoComplete="off"
+              />
+              <datalist id="transaction-form-platform-list">
+                {platformSuggestions.map((p) => (
+                  <option key={p} value={p} />
+                ))}
+              </datalist>
+            </div>
+
+            <div>
               <label htmlFor="transaction-form-category" className="block text-sm font-medium text-gray-700 mb-2">
                 {t('transaction.category')}
               </label>
@@ -732,19 +769,19 @@ export default function TransactionForm({
                 </datalist>
               )}
             </div>
+          </div>
 
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="tax_deductible"
-                checked={formData.tax_deductible}
-                onChange={(e) => setFormData({ ...formData, tax_deductible: e.target.checked })}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label htmlFor="tax_deductible" className="ml-2 block text-sm text-gray-700">
-                {t('transaction.taxDeductible')}
-              </label>
-            </div>
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="tax_deductible"
+              checked={formData.tax_deductible}
+              onChange={(e) => setFormData({ ...formData, tax_deductible: e.target.checked })}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label htmlFor="tax_deductible" className="ml-2 block text-sm text-gray-700">
+              {t('transaction.taxDeductible')}
+            </label>
           </div>
 
           <div>
