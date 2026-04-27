@@ -25,6 +25,8 @@ export type InstallmentConfigValues = {
   installment_first_payment_date: string;
   user_input_fee_rate: number;
   user_input_surcharge_rate: number;
+  afternic_ns_pointed: boolean;
+  afternic_premium_addon: boolean;
 };
 
 interface InstallmentConfigProps {
@@ -227,6 +229,33 @@ export default function InstallmentConfig({
               </div>
             )}
 
+            {/* Afternic 标准佣金两个开关：决定 15% / 20% / 25% / 30% 中的哪一档 */}
+            {values.platform_fee_type === 'afternic_installment' && (
+              <div className="md:col-span-2 flex flex-col gap-2">
+                <label className="flex items-start gap-2 text-sm text-blue-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={values.afternic_ns_pointed}
+                    onChange={(e) => onChange({ afternic_ns_pointed: e.target.checked })}
+                    className="mt-0.5"
+                  />
+                  <span>
+                    <span className="font-medium">{t('transaction.afternicNsPointed')}</span>
+                    <span className="block text-xs text-blue-600">{t('transaction.afternicNsPointedHint')}</span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-2 text-sm text-blue-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={values.afternic_premium_addon}
+                    onChange={(e) => onChange({ afternic_premium_addon: e.target.checked })}
+                    className="mt-0.5"
+                  />
+                  <span className="font-medium">{t('transaction.afternicPremiumAddon')}</span>
+                </label>
+              </div>
+            )}
+
             {values.platform_fee_type === 'atom_installment' && (
               <div>
                 <label htmlFor="transaction-form-surcharge-rate" className="block text-sm font-medium text-blue-800 mb-2">
@@ -292,7 +321,9 @@ export default function InstallmentConfig({
                       values.user_input_surcharge_rate,
                       {
                         downpaymentAmount: values.downpayment_amount,
-                        finalPaymentAmount: values.final_payment_amount
+                        finalPaymentAmount: values.final_payment_amount,
+                        afternicNsPointed: values.afternic_ns_pointed,
+                        afternicPremiumAddon: values.afternic_premium_addon,
                       }
                     );
 
@@ -360,7 +391,9 @@ export default function InstallmentConfig({
                         values.user_input_surcharge_rate,
                         {
                           downpaymentAmount: values.downpayment_amount,
-                          finalPaymentAmount: values.final_payment_amount
+                          finalPaymentAmount: values.final_payment_amount,
+                          afternicNsPointed: values.afternic_ns_pointed,
+                          afternicPremiumAddon: values.afternic_premium_addon,
                         }
                       );
 

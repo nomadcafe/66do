@@ -239,7 +239,12 @@ export default function DashboardPage() {
             undefined,
             transaction.user_input_fee_rate ?? undefined,
             transaction.user_input_surcharge_rate ?? undefined,
-            { downpaymentAmount: down, finalPaymentAmount: transaction.final_payment_amount ?? 0 }
+            {
+              downpaymentAmount: down,
+              finalPaymentAmount: transaction.final_payment_amount ?? 0,
+              afternicNsPointed: transaction.afternic_ns_pointed ?? undefined,
+              afternicPremiumAddon: transaction.afternic_premium_addon ?? undefined,
+            }
           );
           amountUSD = result.customerTotalAmount;
           platformFee = result.platformFee;
