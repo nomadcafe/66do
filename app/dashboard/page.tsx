@@ -19,7 +19,7 @@ import PortfolioHealthCard from '../../src/components/dashboard/PortfolioHealthC
 import WeeklyBriefing, { type BriefingCard } from '../../src/components/dashboard/WeeklyBriefing';
 import SettingsDrawer from '../../src/components/dashboard/SettingsDrawer';
 import { calculateAnnualRenewalCost, formatRenewalCycleDistributionLabel } from '../../src/lib/renewalCalculations';
-import { formatCurrency as formatCurrencyEnhanced } from '../../src/lib/enhancedFinancialMetrics';
+import { formatCurrency as formatCurrencyEnhanced } from '../../src/lib/financialCalculations';
 // 懒加载组件
 import {
   LazyFinancialAnalysis,

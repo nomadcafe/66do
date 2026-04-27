@@ -1,7 +1,7 @@
 // 增强的财务指标计算工具
 import { sellGrossUSD, sellNetUSD } from './coreCalculations';
 import { totalRenewalCostForHolding } from './renewalCostBasis';
-export interface EnhancedFinancialMetrics {
+interface EnhancedFinancialMetrics {
   // 收入相关（更清晰的命名）
   totalSales: number;           // 总销售额（未扣除任何费用）
   totalNetRevenue: number;      // 净收入（扣除手续费后）
@@ -34,7 +34,7 @@ export interface EnhancedFinancialMetrics {
   avgPurchasePrice: number;
 }
 
-export interface DomainROI {
+interface DomainROI {
   domainId: string;
   domainName: string;
   totalInvestment: number;      // 总投资（购买+续费）
@@ -134,31 +134,6 @@ export function calculateDomainROI(
     status: domain.status,
     saleDate
   };
-}
-
-// 计算所有域名的ROI
-export function calculateAllDomainROIs(
-  domains: Array<{
-    id: string;
-    domain_name: string;
-    purchase_cost: number;
-    renewal_cost: number;
-    renewal_count: number;
-    baseline_renewal_as_of?: string | null;
-    purchase_date: string;
-    status: string;
-    expiry_date?: string | null;
-  }>,
-  transactions: Array<{
-    domain_id: string;
-    type: string;
-    amount: number;
-    platform_fee?: number | null;
-    net_amount?: number | null;
-    date: string;
-  }>
-): DomainROI[] {
-  return domains.map(domain => calculateDomainROI(domain, transactions));
 }
 
 // 计算增强的财务指标
@@ -310,31 +285,7 @@ export function calculateEnhancedFinancialMetrics(
   };
 }
 
-// 格式化货币
-export function formatCurrency(amount: number, currency: string = 'USD'): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency
-  }).format(amount);
-}
-
 // 格式化百分比
 export function formatPercentage(value: number, decimals: number = 2): string {
   return `${value.toFixed(decimals)}%`;
-}
-
-// 获取ROI颜色
-export function getROIColor(roi: number): string {
-  if (roi > 50) return 'text-green-600';
-  if (roi > 0) return 'text-blue-600';
-  if (roi > -20) return 'text-yellow-600';
-  return 'text-red-600';
-}
-
-// 获取ROI背景色
-export function getROIBgColor(roi: number): string {
-  if (roi > 50) return 'bg-green-100';
-  if (roi > 0) return 'bg-blue-100';
-  if (roi > -20) return 'bg-yellow-100';
-  return 'bg-red-100';
 }
