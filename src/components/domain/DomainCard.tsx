@@ -164,10 +164,12 @@ const DomainCard = memo(function DomainCard({ domain, transactions = [], onEdit,
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(domain.status)}`}>
             {statusLabel(domain.status, t)}
           </span>
-          <div className="text-right">
-            <p className="text-xs text-stone-500">{t('domainList.table.estimatedValue')}</p>
-            <p className="text-sm font-semibold text-stone-900">{formatCurrency(domain.estimated_value || 0)}</p>
-          </div>
+          {domain.status !== 'sold' && (domain.estimated_value || 0) > 0 && (
+            <div className="text-right">
+              <p className="text-xs text-stone-500">{t('domainList.table.estimatedValue')}</p>
+              <p className="text-sm font-semibold text-stone-900">{formatCurrency(domain.estimated_value!)}</p>
+            </div>
+          )}
         </div>
       </div>
 
