@@ -349,29 +349,18 @@ export function calculateExpiredDomainLoss(
   }>,
   transactions?: Array<{ domain_id: string; type: string; date: string; amount: number }>
 ): ExpiredDomainLoss {
-  const now = new Date();
   const expiredDomains: ExpiredDomainLoss['expiredDomains'] = [];
   const annualLoss: { [year: string]: number } = {};
   let totalLoss = 0;
 
   domains.forEach(domain => {
-    // 检查域名是否过期
-    let isExpired = false;
-    let expiryDate: Date | null = null;
+    // 损失只算用户明确标 expired 的域名（= 主动放弃续费）。
+    // 仅 expiry_date < now 但状态仍是 active/for_sale 的，是"逾期催办"信号，
+    // 属于到期监控范畴，不在损失分析里归账，避免与 dashboard 的 next-expiry 提示重复。
+    if (domain.status !== 'expired') return;
+
     const expiryDateStr: string | null = domain.expiry_date ?? null;
-
-    if (domain.status === 'expired') {
-      isExpired = true;
-      if (domain.expiry_date) {
-        expiryDate = new Date(domain.expiry_date);
-      }
-    } else if (domain.expiry_date) {
-      expiryDate = new Date(domain.expiry_date);
-      isExpired = expiryDate < now && domain.status !== 'sold';
-    }
-
-    // 无 expiry_date 但已标记 expired：仍计入（损失按持有成本全额计）
-    if (!isExpired) return;
+    const expiryDate: Date | null = domain.expiry_date ? new Date(domain.expiry_date) : null;
 
     const purchaseCost = domain.purchase_cost || 0;
     const renewalCost = transactions
