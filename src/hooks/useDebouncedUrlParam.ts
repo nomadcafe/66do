@@ -25,17 +25,30 @@ export function useDebouncedUrlParam(
   const writeRef = useRef(write);
   writeRef.current = write;
 
-  // Back/forward, deep links, or any other caller that mutates the URL
-  // should win over stale local state.
+  // Track the value we most recently wrote to the URL ourselves so we can
+  // tell "URL changed because we just synced it" apart from "URL changed
+  // externally (back/forward / deep link)". Without this, a keystroke
+  // landing in the same render as the post-sync urlValue update was being
+  // overwritten by the URL→local effect — fast typing/deleting would
+  // visibly drop characters once the first debounce had fired.
+  const lastWrittenRef = useRef(urlValue);
+
+  // External URL change → adopt it. Skip when the new urlValue matches
+  // what we just wrote, since local already reflects that value.
   useEffect(() => {
-    setLocal((prev) => (prev === urlValue ? prev : urlValue));
+    if (urlValue === lastWrittenRef.current) return;
+    setLocal(urlValue);
+    lastWrittenRef.current = urlValue;
   }, [urlValue]);
 
-  // Debounced local -> URL sync. Skipped when already in sync so the
+  // Debounced local → URL sync. Skipped when already in sync so the
   // debounced write immediately after a back-button restore is a no-op.
   useEffect(() => {
     if (local === urlValue) return;
-    const id = setTimeout(() => writeRef.current(local ? local : null), debounceMs);
+    const id = setTimeout(() => {
+      lastWrittenRef.current = local;
+      writeRef.current(local ? local : null);
+    }, debounceMs);
     return () => clearTimeout(id);
   }, [local, urlValue, debounceMs]);
 
