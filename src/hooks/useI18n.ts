@@ -545,6 +545,7 @@ const translations: Record<Locale, Translations> = {
       averageCostIncrease: '平均成本涨幅',
       mostExpensiveDomains: '续费最贵域名',
       optimizationOpportunities: '优化建议',
+      opportunityItem: '{name}（成本上涨 {percent}%）',
       noRenewalData: '暂无续费数据',
       noRenewalDataDesc: '当前年份无待续费域名，或没有活跃域名',
       accuracyNoData: '暂无记录'
@@ -1765,6 +1766,7 @@ const translations: Record<Locale, Translations> = {
       averageCostIncrease: 'Average Cost Increase',
       mostExpensiveDomains: 'Most Expensive Domains',
       optimizationOpportunities: 'Optimization Opportunities',
+      opportunityItem: '{name} ({percent}% increase)',
       noRenewalData: 'No renewal data',
       noRenewalDataDesc: 'No domains due for renewal this year, or no active domains',
       accuracyNoData: 'No records yet'

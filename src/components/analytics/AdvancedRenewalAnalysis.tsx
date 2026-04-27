@@ -279,11 +279,15 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
             <ul className="space-y-2">
               {analysis.cost_trends.cost_optimization_opportunities.map((opportunity, index) => (
                 <li
-                  key={`${index}-${opportunity.slice(0, 30)}`}
+                  key={`${index}-${opportunity.name}`}
                   className="text-sm text-amber-900 flex items-start gap-2"
                 >
                   <span className="text-amber-600 shrink-0">•</span>
-                  <span>{opportunity}</span>
+                  <span>
+                    {t('renewal.opportunityItem')
+                      .replace('{name}', opportunity.name)
+                      .replace('{percent}', opportunity.variance.toFixed(1))}
+                  </span>
                 </li>
               ))}
             </ul>
