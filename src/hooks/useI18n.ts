@@ -547,8 +547,6 @@ const translations: Record<Locale, Translations> = {
       optimizationOpportunities: '优化建议',
       noRenewalData: '暂无续费数据',
       noRenewalDataDesc: '当前年份无待续费域名，或没有活跃域名',
-      loadingAnalysis: '正在加载分析…',
-      loadFailed: '续费分析加载失败，请稍后刷新重试',
       accuracyNoData: '暂无记录'
     },
     transaction: {
@@ -1769,8 +1767,6 @@ const translations: Record<Locale, Translations> = {
       optimizationOpportunities: 'Optimization Opportunities',
       noRenewalData: 'No renewal data',
       noRenewalDataDesc: 'No domains due for renewal this year, or no active domains',
-      loadingAnalysis: 'Loading analysis…',
-      loadFailed: 'Could not load renewal analysis. Please try refreshing.',
       accuracyNoData: 'No records yet'
     },
     transaction: {
