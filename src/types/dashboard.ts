@@ -64,19 +64,6 @@ export interface TransactionFormProps {
   onSaleComplete: (domain: DomainWithTags, transaction: TransactionWithRequiredFields) => void;
 }
 
-export interface AutoDomainMonitorProps {
-  domains: DomainWithTags[];
-  autoStart: boolean;
-  showNotifications: boolean;
-  onDomainExpiry: (expiryInfo: unknown) => void;
-  onBulkExpiry: (expiryInfos: unknown[]) => void;
-}
-
-export interface DomainExpiryAlertProps {
-  domains: DomainWithTags[];
-  onRenewDomain: (domainId: string) => void;
-}
-
 export interface ShareModalProps {
   isOpen: boolean;
   onClose: () => void;

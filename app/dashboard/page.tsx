@@ -19,7 +19,6 @@ import PortfolioHealthCard from '../../src/components/dashboard/PortfolioHealthC
 import WeeklyBriefing, { type BriefingCard } from '../../src/components/dashboard/WeeklyBriefing';
 import SettingsDrawer from '../../src/components/dashboard/SettingsDrawer';
 import { calculateAnnualRenewalCost, formatRenewalCycleDistributionLabel } from '../../src/lib/renewalCalculations';
-// import { domainExpiryManager } from '../../src/lib/domainExpiryManager';
 import { formatCurrency as formatCurrencyEnhanced } from '../../src/lib/enhancedFinancialMetrics';
 // 懒加载组件
 import {
@@ -29,7 +28,6 @@ import {
   LazyExpiredDomainLossAnalysis,
   LazyDataImportExport,
   LazyUserPreferencesPanel,
-  LazyAutoDomainMonitor,
   LazyWrapper,
   useSmartPreload
 } from '../../src/components/LazyComponents';
@@ -1176,10 +1174,6 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* Background expiry monitor (sends notifications) */}
-            <LazyWrapper>
-              <LazyAutoDomainMonitor domains={domains} showNotifications={true} />
-            </LazyWrapper>
           </div>
         )}
 
