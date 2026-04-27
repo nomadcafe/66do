@@ -100,6 +100,37 @@ function calculateStandardFee(sellerAmount: number, feeRate: number): PlatformFe
   };
 }
 
+/** 卖家佣金折扣（按期数）：0-12 月 0%、13-24 月 5%、25-36 月 10%、37-60 月 15% */
+export function getAfternicCommissionDiscount(installmentPeriod: number): number {
+  if (installmentPeriod <= 12) return 0;
+  if (installmentPeriod <= 24) return 0.05;
+  if (installmentPeriod <= 36) return 0.10;
+  return 0.15;
+}
+
+/** 卖家标准佣金：基础 15%（NS 指向 Afternic）或 25%（未指向），可选 Premium add-on +5% */
+export function getAfternicStandardCommissionRate(
+  afternicNsPointed?: boolean,
+  afternicPremiumAddon?: boolean
+): number {
+  const nsPointed = afternicNsPointed ?? true;
+  const premiumAddon = afternicPremiumAddon ?? false;
+  return (nsPointed ? 0.15 : 0.25) + (premiumAddon ? 0.05 : 0);
+}
+
+/** 有效佣金率 = max(0, 标准佣金率 − 折扣) */
+export function getAfternicEffectiveCommissionRate(
+  installmentPeriod: number,
+  afternicNsPointed?: boolean,
+  afternicPremiumAddon?: boolean
+): number {
+  return Math.max(
+    0,
+    getAfternicStandardCommissionRate(afternicNsPointed, afternicPremiumAddon)
+      - getAfternicCommissionDiscount(installmentPeriod)
+  );
+}
+
 /**
  * Afternic分期费用计算
  * - 客户服务费（LTO 服务费）：2-12 月 0%、13-24 月 10%、25-36 月 20%、37-60 月 30%
@@ -138,25 +169,12 @@ function calculateAfternicInstallmentFee(
     }
   }
 
-  // 计算卖家佣金折扣
-  let commissionDiscount: number;
-  if (installmentPeriod <= 12) {
-    commissionDiscount = 0; // no commission discount
-  } else if (installmentPeriod <= 24) {
-    commissionDiscount = 0.05; // 5% discount
-  } else if (installmentPeriod <= 36) {
-    commissionDiscount = 0.10; // 10% discount
-  } else if (installmentPeriod <= 60) {
-    commissionDiscount = 0.15; // 15% discount
-  } else {
-    commissionDiscount = 0.15; // 超过60期按15%折扣计算
-  }
-
-  // 标准佣金率：缺省视为「NS 指向 + 无 add-on」= 15%，向后兼容旧数据。
-  const nsPointed = afternicNsPointed ?? true;
-  const premiumAddon = afternicPremiumAddon ?? false;
-  const standardCommissionRate = (nsPointed ? 0.15 : 0.25) + (premiumAddon ? 0.05 : 0);
-  const effectiveCommissionRate = Math.max(0, standardCommissionRate - commissionDiscount);
+  const commissionDiscount = getAfternicCommissionDiscount(installmentPeriod);
+  const effectiveCommissionRate = getAfternicEffectiveCommissionRate(
+    installmentPeriod,
+    afternicNsPointed,
+    afternicPremiumAddon
+  );
 
   // 重新设计计算逻辑
   // 当佣金为0时，卖家净收入 = 标价

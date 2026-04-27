@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Save, DollarSign, Calendar, FileText, Search, ChevronDown } from 'lucide-react';
 import { formatCurrencyAmount } from '../../lib/exchangeRates';
+import { getAfternicEffectiveCommissionRate } from '../../lib/platformFeeCalculator';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import DateInput from '../ui/DateInput';
@@ -237,19 +238,40 @@ export default function TransactionForm({
   }, [formData.domain_id, formData.type, existingTransactions, transaction?.id]);
 
   // 自动计算分期付款金额
+  // installment_amount 的口径在所有平台下都是「卖家每月到手」。amount 是出售毛额（标价/listPrice），
+  // 对 Afternic 还要先扣掉有效佣金率才得到卖家净收入，再分摊到每期。
   useEffect(() => {
     if (formData.payment_plan === 'installment' && formData.amount > 0 && formData.installment_period > 0) {
-      const remainingAmount = formData.amount - formData.downpayment_amount - formData.final_payment_amount;
       const regularPeriods = formData.installment_period - (formData.final_payment_amount > 0 ? 1 : 0);
-      
-      if (regularPeriods > 0) {
-        const calculatedInstallmentAmount = remainingAmount / regularPeriods;
-        if (Math.abs(formData.installment_amount - calculatedInstallmentAmount) > 0.01) {
-          setFormData(prev => ({ ...prev, installment_amount: calculatedInstallmentAmount }));
-        }
+      if (regularPeriods <= 0) return;
+
+      let sellerProceeds = formData.amount;
+      if (formData.platform_fee_type === 'afternic_installment') {
+        const effRate = getAfternicEffectiveCommissionRate(
+          formData.installment_period,
+          formData.afternic_ns_pointed,
+          formData.afternic_premium_addon
+        );
+        sellerProceeds = formData.amount * (1 - effRate);
+      }
+
+      const remainingAmount = sellerProceeds - formData.downpayment_amount - formData.final_payment_amount;
+      const calculatedInstallmentAmount = remainingAmount / regularPeriods;
+      if (Math.abs(formData.installment_amount - calculatedInstallmentAmount) > 0.01) {
+        setFormData(prev => ({ ...prev, installment_amount: calculatedInstallmentAmount }));
       }
     }
-  }, [formData.amount, formData.downpayment_amount, formData.final_payment_amount, formData.installment_period, formData.payment_plan, formData.installment_amount]);
+  }, [
+    formData.amount,
+    formData.downpayment_amount,
+    formData.final_payment_amount,
+    formData.installment_period,
+    formData.payment_plan,
+    formData.installment_amount,
+    formData.platform_fee_type,
+    formData.afternic_ns_pointed,
+    formData.afternic_premium_addon,
+  ]);
 
   const performSave = async ({ keepOpen }: { keepOpen: boolean }) => {
     if (isSubmitting) return;
