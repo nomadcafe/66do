@@ -55,6 +55,13 @@ export interface Transaction {
   /** tier='custom' 时使用的佣金率（小数，如 0.0135 = 1.35%）。 */
   atom_custom_commission_rate?: number | null;
 
+  /** Escrow Installment 专用：lease 类型，决定 monthly holding fee 公式。
+   *  null/undefined → 视为 'lease_with_purchase'。 */
+  escrow_lease_type?: 'lease_with_purchase' | 'lease_only' | null;
+  /** Escrow Installment 专用：手填的标准交易费（含可选的 $250 schedule change /
+   *  $85 DNS admin 等一次性费用）。 */
+  escrow_transaction_fee?: number | null;
+
   /** renew：延长到期的年数（写入 domain_transactions.renewal_period_years） */
   renewal_period_years?: number | null;
   /** renew：仅当为 false 时不延长到期（旧数据/导入）；表单已移除该选项，保存 renew 默认始终延长 */
@@ -116,6 +123,10 @@ export interface CreateTransactionInput {
   atom_commission_tier?: 'standard' | 'plus' | 'premium' | 'byol' | 'custom' | null;
   atom_no_coin?: boolean | null;
   atom_custom_commission_rate?: number | null;
+
+  // Escrow Installment 专用
+  escrow_lease_type?: 'lease_with_purchase' | 'lease_only' | null;
+  escrow_transaction_fee?: number | null;
 }
 
 // Transaction更新时的输入类型

@@ -4,14 +4,16 @@
  */
 
 export type AtomCommissionTier = 'standard' | 'plus' | 'premium' | 'byol' | 'custom';
+export type EscrowLeaseType = 'lease_with_purchase' | 'lease_only';
 
 export interface PlatformFeeConfig {
   type: 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment';
   installmentPeriod: number;
   sellerAmount: number; // 卖家收到的金额
   customFeeRate?: number; // 自定义费率（用于standard类型）
-  escrowFee?: number; // Escrow费用（用于escrow_installment类型）
-  domainHoldingFee?: number; // 域名持有费（用于escrow_installment类型）
+  escrowFee?: number; // Escrow 标准交易费 + 可选的一次性事件费（手填，用于 escrow_installment）
+  domainHoldingFee?: number; // 域名持有费（手填覆盖；不填则按 escrowLeaseType + amount + period 自动算）
+  escrowLeaseType?: EscrowLeaseType; // 'lease_with_purchase' = LWP / 'lease_only' = LO
   // 用户输入的费用率
   userInputFeeRate?: number; // 用户输入的分期费用率（用于afternic等）
   userInputSurchargeRate?: number; // 用户输入的surcharge率（用于atom）
@@ -45,6 +47,11 @@ export interface PlatformFeeResult {
     atomBaseCommission?: number; // 卖家 base 佣金金额
     atomBaseCommissionRate?: number; // 卖家 base 佣金率
     atomCommissionTier?: AtomCommissionTier;
+    // Escrow 专用细分
+    escrowHoldingFee?: number; // 域名持有费总额（自动或手填）
+    escrowMonthlyHoldingFee?: number; // 每月持有费
+    escrowTransactionFee?: number; // Escrow 标准交易费（含可选一次性事件费）
+    escrowLeaseType?: EscrowLeaseType;
   };
 }
 
@@ -66,6 +73,7 @@ export function calculatePlatformFee(config: PlatformFeeConfig): PlatformFeeResu
     atomCommissionTier,
     atomNoCoin,
     atomCustomCommissionRate,
+    escrowLeaseType,
   } = config;
 
   switch (type) {
@@ -95,7 +103,13 @@ export function calculatePlatformFee(config: PlatformFeeConfig): PlatformFeeResu
       return calculateSpaceshipInstallmentFee(sellerAmount);
 
     case 'escrow_installment':
-      return calculateEscrowInstallmentFee(sellerAmount, escrowFee || 0, domainHoldingFee || 0);
+      return calculateEscrowInstallmentFee(
+        sellerAmount,
+        installmentPeriod,
+        escrowFee,
+        domainHoldingFee,
+        escrowLeaseType,
+      );
 
     default:
       throw new Error(`Unsupported platform fee type: ${type}`);
@@ -419,26 +433,66 @@ function calculateSpaceshipInstallmentFee(sellerAmount: number): PlatformFeeResu
 }
 
 /**
- * Escrow分期费用计算
- * 域名持有费 + Escrow费用
+ * Escrow.com 域名持有费的「每月」金额。
+ * - Lease with Purchase: max($100, listPrice × 0.0001)
+ * - Lease Only:          max($200, listPrice × 0.0002)
+ * 即 0.01% / 0.02% 的字面解读（一万分之一 / 一万分之二），minimum 在小金额域名上常占主导。
+ */
+export function getEscrowMonthlyHoldingFee(listPrice: number, leaseType: EscrowLeaseType): number {
+  if (listPrice <= 0) return 0;
+  if (leaseType === 'lease_only') return Math.max(200, listPrice * 0.0002);
+  return Math.max(100, listPrice * 0.0001);
+}
+
+/** 持有期总金额 = 每月 × 月数。 */
+export function getEscrowHoldingFee(listPrice: number, months: number, leaseType: EscrowLeaseType): number {
+  if (months <= 0) return 0;
+  return getEscrowMonthlyHoldingFee(listPrice, leaseType) * months;
+}
+
+/**
+ * Escrow.com 分期费用计算
+ *
+ * sellerAmount 在此处的语义是 listPrice / Subtotal（与表单 amount 对齐）。
+ * - Holding Fee：未传入 domainHoldingFee 时按 escrowLeaseType + listPrice + period 自动算；
+ *   传入 domainHoldingFee 时尊重手填值。
+ * - Escrow Transaction Fee：完全手填（escrowFee 入参）；含 schedule change ($250) /
+ *   DNS admin ($85) 这类一次性费用时由用户合并加入。
+ * - 现金流默认按"buyer 付一切、seller 拿全额"建模（与现实最常见情形对齐，与原算法一致）；
+ *   实际谁付/对半付由用户自行解读，不在这层硬编码。
  */
 function calculateEscrowInstallmentFee(
-  sellerAmount: number, 
-  escrowFee: number, 
-  domainHoldingFee: number
+  sellerAmount: number,
+  installmentPeriod: number,
+  escrowFee?: number,
+  domainHoldingFee?: number,
+  escrowLeaseType?: EscrowLeaseType,
 ): PlatformFeeResult {
-  const totalFees = escrowFee + domainHoldingFee;
-  const customerTotalAmount = sellerAmount + totalFees;
-  const platformFeeRate = totalFees / customerTotalAmount;
+  const listPrice = sellerAmount;
+  const transactionFee = escrowFee ?? 0;
+  const leaseType: EscrowLeaseType = escrowLeaseType ?? 'lease_with_purchase';
+  const monthlyHolding = getEscrowMonthlyHoldingFee(listPrice, leaseType);
+  const holdingFee =
+    domainHoldingFee != null && domainHoldingFee > 0
+      ? domainHoldingFee
+      : getEscrowHoldingFee(listPrice, installmentPeriod, leaseType);
+
+  const totalFees = holdingFee + transactionFee;
+  const customerTotalAmount = listPrice + totalFees;
+  const platformFeeRate = customerTotalAmount > 0 ? totalFees / customerTotalAmount : 0;
 
   return {
     customerTotalAmount,
     platformFee: totalFees,
     platformFeeRate,
-    sellerNetAmount: sellerAmount,
+    sellerNetAmount: listPrice,
     breakdown: {
-      baseAmount: sellerAmount,
+      baseAmount: listPrice,
       feeAmount: totalFees,
+      escrowHoldingFee: holdingFee,
+      escrowMonthlyHoldingFee: monthlyHolding,
+      escrowTransactionFee: transactionFee,
+      escrowLeaseType: leaseType,
     }
   };
 }
@@ -474,10 +528,11 @@ export function calculateCustomerTotalFromInstallment(
     finalPaymentAmount?: number;
     afternicNsPointed?: boolean;
     afternicPremiumAddon?: boolean;
-    grossAmount?: number; // form 上的 amount = listPrice；Atom 算法以此为基。
+    grossAmount?: number; // form 上的 amount = listPrice；Atom / Escrow 算法以此为基。
     atomCommissionTier?: AtomCommissionTier;
     atomNoCoin?: boolean;
     atomCustomCommissionRate?: number;
+    escrowLeaseType?: EscrowLeaseType;
   }
 ): PlatformFeeResult {
   const downpayment = options?.downpaymentAmount ?? 0;
@@ -500,9 +555,11 @@ export function calculateCustomerTotalFromInstallment(
     }
   }
 
-  // Atom: 算法以 listPrice 为基，优先用 form 的 grossAmount；否则回退到 installment*period（旧调用兼容）。
+  // Atom / Escrow：算法以 listPrice 为基，优先用 form 的 grossAmount；否则回退到 installment*period（旧调用兼容）。
+  const usesGrossAmount =
+    platformFeeType === 'atom_installment' || platformFeeType === 'escrow_installment';
   const sellerAmount =
-    platformFeeType === 'atom_installment' && options?.grossAmount && options.grossAmount > 0
+    usesGrossAmount && options?.grossAmount && options.grossAmount > 0
       ? options.grossAmount
       : installmentAmount * installmentPeriod;
 
@@ -520,6 +577,7 @@ export function calculateCustomerTotalFromInstallment(
     atomCommissionTier: options?.atomCommissionTier,
     atomNoCoin: options?.atomNoCoin,
     atomCustomCommissionRate: options?.atomCustomCommissionRate,
+    escrowLeaseType: options?.escrowLeaseType,
   });
 }
 
@@ -546,6 +604,7 @@ export function calculatePaidAmountFromInstallment(
     atomCommissionTier?: AtomCommissionTier;
     atomNoCoin?: boolean;
     atomCustomCommissionRate?: number;
+    escrowLeaseType?: EscrowLeaseType;
   }
 ): PlatformFeeResult {
   const downpayment = options?.downpaymentAmount ?? 0;
@@ -589,8 +648,10 @@ export function calculatePaidAmountFromInstallment(
     };
   }
 
+  const usesGrossAmount =
+    platformFeeType === 'atom_installment' || platformFeeType === 'escrow_installment';
   const totalSellerAmount =
-    platformFeeType === 'atom_installment' && options?.grossAmount && options.grossAmount > 0
+    usesGrossAmount && options?.grossAmount && options.grossAmount > 0
       ? options.grossAmount
       : installmentAmount * totalPeriods;
   const totalResult = calculatePlatformFee({
@@ -607,18 +668,18 @@ export function calculatePaidAmountFromInstallment(
     atomCommissionTier: options?.atomCommissionTier,
     atomNoCoin: options?.atomNoCoin,
     atomCustomCommissionRate: options?.atomCustomCommissionRate,
+    escrowLeaseType: options?.escrowLeaseType,
   });
 
   const paidRatio = paidPeriods / totalPeriods;
   const customerTotalAmount = totalResult.customerTotalAmount * paidRatio;
   const platformFee = totalResult.platformFee * paidRatio;
   const platformFeeRate = totalResult.platformFeeRate;
-  // Atom 已用 listPrice 计算总 sellerNet；按已付期数比例缩放，与 customer/platform 同口径。
+  // Atom / Escrow 已用 listPrice 计算总 sellerNet；按已付期数比例缩放，与 customer/platform 同口径。
   // 其它走旧路径（sellerAmount = sellerNet）仍按 installment*paidPeriods 表达卖家已收。
-  const sellerNetAmount =
-    platformFeeType === 'atom_installment'
-      ? totalResult.sellerNetAmount * paidRatio
-      : installmentAmount * paidPeriods;
+  const sellerNetAmount = usesGrossAmount
+    ? totalResult.sellerNetAmount * paidRatio
+    : installmentAmount * paidPeriods;
 
   return {
     customerTotalAmount,
@@ -645,6 +706,16 @@ export function calculatePaidAmountFromInstallment(
           : undefined,
       atomBaseCommissionRate: totalResult.breakdown.atomBaseCommissionRate,
       atomCommissionTier: totalResult.breakdown.atomCommissionTier,
+      escrowHoldingFee:
+        totalResult.breakdown.escrowHoldingFee !== undefined
+          ? totalResult.breakdown.escrowHoldingFee * paidRatio
+          : undefined,
+      escrowMonthlyHoldingFee: totalResult.breakdown.escrowMonthlyHoldingFee,
+      escrowTransactionFee:
+        totalResult.breakdown.escrowTransactionFee !== undefined
+          ? totalResult.breakdown.escrowTransactionFee * paidRatio
+          : undefined,
+      escrowLeaseType: totalResult.breakdown.escrowLeaseType,
     }
   };
 }

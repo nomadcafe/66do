@@ -141,6 +141,8 @@ export interface Database {
           atom_commission_tier: string | null
           atom_no_coin: boolean | null
           atom_custom_commission_rate: number | null
+          escrow_lease_type: string | null
+          escrow_transaction_fee: number | null
           renewal_period_years: number | null
         }
         Insert: {
@@ -177,6 +179,8 @@ export interface Database {
           atom_commission_tier?: string | null
           atom_no_coin?: boolean | null
           atom_custom_commission_rate?: number | null
+          escrow_lease_type?: string | null
+          escrow_transaction_fee?: number | null
           renewal_period_years?: number | null
         }
         Update: {
@@ -213,6 +217,8 @@ export interface Database {
           atom_commission_tier?: string | null
           atom_no_coin?: boolean | null
           atom_custom_commission_rate?: number | null
+          escrow_lease_type?: string | null
+          escrow_transaction_fee?: number | null
           renewal_period_years?: number | null
         }
       }
