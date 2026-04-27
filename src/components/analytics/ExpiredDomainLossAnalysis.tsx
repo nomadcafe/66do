@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
-import { calculateExpiredDomainLoss, formatCurrency } from '../../lib/financialCalculations';
+import React, { useMemo } from 'react';
+import { calculateExpiredDomainLoss } from '../../lib/financialCalculations';
 import { useI18nContext } from '../../contexts/I18nProvider';
-import { TrendingDown, Calendar, DollarSign, AlertTriangle } from 'lucide-react';
+import { TrendingDown, Calendar, DollarSign, AlertTriangle, CheckCircle } from 'lucide-react';
 import type { TransactionWithRequiredFields } from '../../types/transaction';
 
 interface ExpiredDomainLossAnalysisProps {
@@ -21,22 +21,60 @@ interface ExpiredDomainLossAnalysisProps {
   transactions?: TransactionWithRequiredFields[];
 }
 
+const STATUS_I18N_KEY: Record<string, string> = {
+  active: 'common.active',
+  for_sale: 'common.forSale',
+  sold: 'common.sold',
+  expired: 'common.expired',
+};
+
 export default function ExpiredDomainLossAnalysis({ domains, transactions = [] }: ExpiredDomainLossAnalysisProps) {
-  const { t } = useI18nContext();
-  const lossAnalysis = calculateExpiredDomainLoss(domains, transactions);
+  const { t, locale } = useI18nContext();
 
-  const currentYear = new Date().getFullYear().toString();
-  const thisYearLoss = lossAnalysis.annualLoss[currentYear] || 0;
-  const thisYearCount = lossAnalysis.expiredDomains.filter((d) => d.lossYear === currentYear).length;
-  const averageLossPerDomain =
-    lossAnalysis.expiredDomains.length > 0
-      ? lossAnalysis.totalLoss / lossAnalysis.expiredDomains.length
-      : 0;
+  const lossAnalysis = useMemo(
+    () => calculateExpiredDomainLoss(domains, transactions),
+    [domains, transactions]
+  );
 
-  const statusCounts = domains.reduce((acc, domain) => {
-    acc[domain.status] = (acc[domain.status] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const currencyFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat(locale === 'zh' ? 'zh-CN' : 'en-US', {
+        style: 'currency',
+        currency: 'USD',
+      }),
+    [locale]
+  );
+  const formatCurrency = (amount: number) => currencyFormatter.format(amount);
+
+  const statusLabel = (status: string) => {
+    const key = STATUS_I18N_KEY[status];
+    return key ? t(key) : status;
+  };
+
+  const dateFormatter = useMemo(
+    () => new Intl.DateTimeFormat(locale === 'zh' ? 'zh-CN' : 'en-US'),
+    [locale]
+  );
+
+  const { thisYearLoss, thisYearCount, averageLossPerDomain } = useMemo(() => {
+    const currentYear = new Date().getFullYear().toString();
+    const tyLoss = lossAnalysis.annualLoss[currentYear] || 0;
+    const tyCount = lossAnalysis.expiredDomains.filter((d) => d.lossYear === currentYear).length;
+    const avg =
+      lossAnalysis.expiredDomains.length > 0
+        ? lossAnalysis.totalLoss / lossAnalysis.expiredDomains.length
+        : 0;
+    return { thisYearLoss: tyLoss, thisYearCount: tyCount, averageLossPerDomain: avg };
+  }, [lossAnalysis]);
+
+  const statusCounts = useMemo(
+    () =>
+      domains.reduce((acc, domain) => {
+        acc[domain.status] = (acc[domain.status] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>),
+    [domains]
+  );
 
   if (lossAnalysis.expiredDomains.length === 0) {
     return (
@@ -44,7 +82,7 @@ export default function ExpiredDomainLossAnalysis({ domains, transactions = [] }
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-emerald-100 rounded-xl">
-              <AlertTriangle className="h-6 w-6 text-emerald-600" />
+              <CheckCircle className="h-6 w-6 text-emerald-600" />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-stone-900">
@@ -57,7 +95,7 @@ export default function ExpiredDomainLossAnalysis({ domains, transactions = [] }
 
         <div className="text-center py-8">
           <div className="inline-flex rounded-2xl bg-emerald-50 p-4 mb-4">
-            <AlertTriangle className="h-14 w-14 text-emerald-500" aria-hidden />
+            <CheckCircle className="h-14 w-14 text-emerald-500" aria-hidden />
           </div>
           <h4 className="text-xl font-semibold text-stone-900 mb-2">{t('analytics.noExpiredDomains')}</h4>
           <p className="text-stone-600 mb-6">{t('analytics.noExpiredDomainsDesc')}</p>
@@ -67,7 +105,7 @@ export default function ExpiredDomainLossAnalysis({ domains, transactions = [] }
             <div className="grid grid-cols-2 gap-2 text-sm">
               {Object.entries(statusCounts).map(([status, count]) => (
                 <div key={status} className="flex justify-between">
-                  <span className="text-stone-600">{status}:</span>
+                  <span className="text-stone-600">{statusLabel(status)}:</span>
                   <span className="font-medium text-stone-900">{count}</span>
                 </div>
               ))}
@@ -175,7 +213,7 @@ export default function ExpiredDomainLossAnalysis({ domains, transactions = [] }
                 <span className="font-medium text-stone-900 truncate">{domain.domain_name}</span>
                 <span className="text-sm text-stone-500 shrink-0">
                   {domain.expiryDate
-                    ? new Date(domain.expiryDate).toLocaleDateString()
+                    ? dateFormatter.format(new Date(domain.expiryDate))
                     : t('analytics.expiryDateMissing')}
                 </span>
               </div>
