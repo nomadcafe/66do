@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { TrendingUp, TrendingDown, Calendar, DollarSign, BarChart3, AlertTriangle } from 'lucide-react';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
-import { RenewalCostService, AnnualRenewalCostAnalysis, RenewalYearSummary } from '../../lib/renewalCostService';
+import { computeAdvancedRenewalPanelData } from '../../lib/renewalCostService';
 import { formatCurrency } from '../../lib/financialCalculations';
 import { calculateYearlyRenewalVsProfit } from '../../lib/coreCalculations';
 import { useI18nContext } from '../../contexts/I18nProvider';
@@ -18,38 +18,17 @@ const FUTURE_YEARS = 3;
 
 export default function AdvancedRenewalAnalysis({ domains, transactions }: AdvancedRenewalAnalysisProps) {
   const { t } = useI18nContext();
-  const [analysis, setAnalysis] = useState<AnnualRenewalCostAnalysis | null>(null);
-  const [yearSummaries, setYearSummaries] = useState<RenewalYearSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-  useEffect(() => {
-    const loadAnalysis = async () => {
-      setLoading(true);
-      setLoadError(false);
-      try {
-        const { analysis: data, yearSummaries: summaries } =
-          await RenewalCostService.getAdvancedRenewalPanelData(domains, selectedYear, {
-            pastYears: PAST_YEARS,
-            futureYears: FUTURE_YEARS,
-          });
-        setAnalysis(data);
-        setYearSummaries(summaries);
-      } catch (error) {
-        console.error('Error loading renewal analysis:', error);
-        // 之前失败会静默走 "!analysis" 分支，被当成"暂无续费数据"，用户
-        // 以为自己没数据。换成显式的 loadError 状态再区分。
-        setLoadError(true);
-        setAnalysis(null);
-        setYearSummaries([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadAnalysis();
-  }, [selectedYear, domains]);
+  // 数据派生：纯内存计算，切年份瞬秒，不再有 loading 态。
+  const { analysis, yearSummaries } = useMemo(
+    () =>
+      computeAdvancedRenewalPanelData(domains, transactions, selectedYear, {
+        pastYears: PAST_YEARS,
+        futureYears: FUTURE_YEARS,
+      }),
+    [domains, transactions, selectedYear]
+  );
 
   const yearOptions = useMemo(() => {
     if (yearSummaries.length > 0) return yearSummaries.map((s) => s.year);
@@ -57,10 +36,8 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
     return Array.from({ length: PAST_YEARS + FUTURE_YEARS + 1 }, (_, i) => y - PAST_YEARS + i);
   }, [yearSummaries]);
 
-  // 续费 vs 利润：跨所有有数据的年份做现金流总览。原来挂在
-  // InvestmentAnalytics 的 Trends tab 里，但内容主体是按年的续费支出/卖出
-  // 净额对比，主题上属于续费维度而不是组合分析；移到本块，与上方的年度
-  // 预估前瞻并列，让用户一处看清多年现金流走向。
+  // 续费 vs 利润：跨所有有数据的年份做现金流总览，与上方 actual/trends
+  // 同源（皆来自 transactions），口径一致。
   const yearlyRenewalProfitRows = useMemo(
     () => calculateYearlyRenewalVsProfit(transactions, domains),
     [transactions, domains]
@@ -70,46 +47,6 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
     () => Math.max(1, ...yearSummaries.map((s) => s.total_estimated_cost)),
     [yearSummaries]
   );
-
-  if (loading) {
-    return (
-      <div className="bg-white rounded-2xl border border-stone-200/80 shadow-sm p-6">
-        <div className="animate-pulse">
-          <div className="h-4 bg-stone-200 rounded w-1/4 mb-4" />
-          <div className="space-y-3">
-            <div className="h-3 bg-stone-200 rounded" />
-            <div className="h-3 bg-stone-200 rounded w-5/6" />
-            <div className="h-3 bg-stone-200 rounded w-4/6" />
-          </div>
-        </div>
-        <p className="text-sm text-stone-500 mt-4">{t('renewal.loadingAnalysis')}</p>
-      </div>
-    );
-  }
-
-  if (loadError) {
-    return (
-      <div className="bg-white rounded-2xl border border-stone-200/80 shadow-sm p-6">
-        <div className="flex items-start gap-3">
-          <div className="p-2 bg-amber-100 rounded-xl">
-            <AlertTriangle className="h-5 w-5 text-amber-600" aria-hidden />
-          </div>
-          <div>
-            <h3 className="text-base font-semibold text-stone-900">{t('renewal.advancedTitle')}</h3>
-            <p className="text-sm text-stone-600 mt-1">{t('renewal.loadFailed')}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!analysis) {
-    return (
-      <div className="bg-white rounded-2xl border border-stone-200/80 shadow-sm p-6">
-        <p className="text-stone-500">{t('renewal.noRenewalData')}</p>
-      </div>
-    );
-  }
 
   const hasData =
     analysis.domains_needing_renewal > 0 ||
