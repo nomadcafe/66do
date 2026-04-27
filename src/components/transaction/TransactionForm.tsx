@@ -6,7 +6,6 @@ import { formatCurrencyAmount } from '../../lib/exchangeRates';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import DateInput from '../ui/DateInput';
-import { supabase } from '../../lib/supabase';
 import InstallmentConfig from './InstallmentConfig';
 
 // 使用统一的类型定义，从 supabaseService 导入
@@ -196,45 +195,40 @@ export default function TransactionForm({
     });
   }, [formData.type, formData.domain_id, formData.renewal_years_use_custom, domains]);
 
-  // 加载续费成本历史
+  // 续费成本历史 + 建议金额：从已有的 renew 交易派生（同一份用户填的数据，
+  // 也就是 dashboard 续费分析的数据源）。编辑模式下排除正在编辑的那笔本身，
+  // 避免它喂给自己当作建议的依据。
   useEffect(() => {
-    const loadRenewalCostHistory = async () => {
-      if (formData.domain_id && formData.type === 'renew') {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          const headers: HeadersInit = {};
-          if (session?.access_token) {
-            headers['Authorization'] = `Bearer ${session.access_token}`;
-          }
-          if (session?.refresh_token) {
-            headers['X-Refresh-Token'] = session.refresh_token;
-          }
-          const response = await fetch(`/api/renewal-cost-history?domain_id=${formData.domain_id}`, {
-            headers,
-            credentials: 'include'
-          });
-          if (response.ok) {
-            const history = await response.json();
-            setRenewalCostHistory(history.data || []);
-            
-            // 计算建议的续费成本
-            if (history.data && history.data.length > 0) {
-              const costs = history.data.map((item: { renewal_cost: number }) => item.renewal_cost);
-              const averageCost = costs.reduce((sum: number, cost: number) => sum + cost, 0) / costs.length;
-              setSuggestedRenewalCost(averageCost);
-            }
-          }
-        } catch (error) {
-          console.error('Error loading renewal cost history:', error);
-        }
-      } else {
-        setRenewalCostHistory([]);
-        setSuggestedRenewalCost(null);
-      }
-    };
+    if (!formData.domain_id || formData.type !== 'renew') {
+      setRenewalCostHistory([]);
+      setSuggestedRenewalCost(null);
+      return;
+    }
 
-    loadRenewalCostHistory();
-  }, [formData.domain_id, formData.type]);
+    const editingId = transaction?.id;
+    const history = (existingTransactions || [])
+      .filter(
+        (t) =>
+          t.type === 'renew' &&
+          t.domain_id === formData.domain_id &&
+          (!editingId || t.id !== editingId)
+      )
+      .map((t) => ({
+        date: String(t.date).slice(0, 10),
+        cost: Number(t.amount) || 0,
+        currency: t.currency || 'USD',
+      }))
+      .sort((a, b) => b.date.localeCompare(a.date));
+
+    setRenewalCostHistory(history);
+
+    if (history.length > 0) {
+      const avg = history.reduce((sum, r) => sum + r.cost, 0) / history.length;
+      setSuggestedRenewalCost(avg);
+    } else {
+      setSuggestedRenewalCost(null);
+    }
+  }, [formData.domain_id, formData.type, existingTransactions, transaction?.id]);
 
   // 自动计算分期付款金额
   useEffect(() => {
