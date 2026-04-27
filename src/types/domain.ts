@@ -24,15 +24,5 @@ export interface Domain {
 // 重新导出统一的Transaction类型
 export type { Transaction as DomainTransaction } from './transaction';
 
-export interface DomainStats {
-  totalDomains: number;
-  totalCost: number;
-  totalRevenue: number;
-  totalProfit: number;
-  roi: number;
-  expiringSoon: number;
-  forSale: number;
-}
-
 // 重新导出统一的InstallmentSchedule类型
 export type { InstallmentSchedule } from './transaction';
