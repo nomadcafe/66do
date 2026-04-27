@@ -69,8 +69,8 @@ export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
       date: '2026-04-27',
       items: [
         '系统升级：多个分析模块的数据源、缓存与计算口径统一重构，仪表板更轻、切换面板与年份更顺。',
-        'UI 升级：移除若干内容空泛、与顶部 KPI 重复、或对多数用户长期为空白的卡片；图表与文案精简，信息密度更合理。',
-        '修复大量 bug：投资组合表现图的「组合价值」曲线现按真实净资产（已实收 + 持仓 fair value）计算（之前实际是累计收入挂着假名字）；过期域名损失定义收紧到只算用户主动标 expired 的域名，避免与「下次到期」提醒重复警告；续费分析的「实际成本 / 准确度 / 趋势」过去对多数用户都为空白，现在基于真实续费交易显示；续费录入的「建议金额」也改为基于你的真实交易历史。',
+        'UI 升级：精简了若干重复或冗余的卡片，调整图表与文案，信息密度更合理。',
+        '修复大量 bug：优化了投资组合表现图的「组合价值」曲线，现按真实净资产（已实收 + 持仓 fair value）计算；优化了续费分析的计算公式；收紧了过期域名损失定义到只算用户主动标 expired 的域名，避免与「下次到期」提醒重复警告；续费录入的「建议金额」改为基于你的真实交易历史。',
         '国际化与底层清理：货币格式与多处提示按中英文 locale 显示；删除一张已废弃的内部数据库表与对应触发器。',
       ],
     },
@@ -127,8 +127,8 @@ export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
       date: '2026-04-27',
       items: [
         'System upgrades: data sources, caching, and calculation conventions across several analytics modules were unified and refactored — the dashboard is lighter and panel / year switches feel snappier.',
-        'UI upgrades: removed several vacuous, KPI-duplicating, or long-blank-for-most-users cards; trimmed charts and copy so information density makes more sense.',
-        'Many bug fixes — notably: the investment chart’s "Portfolio Value" line now reflects an actual net asset value (realized cash + fair value of held domains), where it previously was just cumulative revenue under a different label; expired-domain losses are tightened to only count domains you explicitly mark expired, no longer double-warning with the "next expiry" reminder; the renewal analysis panel’s actual-cost / accuracy / trends sections that used to be blank for most users now show real data from your renewal transactions; the "suggested renewal cost" hint in the transaction form now derives from your real transactions.',
+        'UI updates: streamlined several duplicated or redundant cards; refreshed chart layouts and copy for cleaner information density.',
+        'Many bug fixes — notably: improved the investment chart’s "Portfolio Value" line to compute actual net asset value (realized cash + fair value of held domains); improved the renewal analysis formulas; tightened the expired-domain loss definition to only count domains you explicitly mark expired, no longer double-warning with the "next expiry" reminder; the "suggested renewal cost" hint in the transaction form now derives from your real transactions.',
         'Localization & cleanup: currency formatting and several hint strings now follow your Chinese / English locale; an obsolete internal database table and its trigger were removed.',
       ],
     },
