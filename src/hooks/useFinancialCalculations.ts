@@ -10,12 +10,12 @@ export function useComprehensiveFinancialAnalysis(
   domains: DomainWithTags[],
   transactions: TransactionWithRequiredFields[]
 ) {
-  return useMemo(
-    () => ({
-      basic: calculateBasicFinancialMetrics(domains, transactions),
-      advanced: calculateAdvancedFinancialMetrics(domains, transactions),
+  return useMemo(() => {
+    const basic = calculateBasicFinancialMetrics(domains, transactions);
+    return {
+      basic,
+      advanced: calculateAdvancedFinancialMetrics(domains, transactions, basic),
       domainPerformance: calculateDomainPerformance(domains, transactions),
-    }),
-    [domains, transactions]
-  );
+    };
+  }, [domains, transactions]);
 }

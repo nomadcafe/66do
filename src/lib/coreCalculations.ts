@@ -32,16 +32,11 @@ export interface DomainPerformance {
   revenue: number;
 }
 
-// 高级财务指标接口
-export interface AdvancedFinancialMetrics extends BasicFinancialMetrics {
+// 高级财务指标接口（三块：年化收益 / 风险调整收益 / 平均持有期）
+export interface AdvancedFinancialMetrics {
   annualizedReturn: number;
   sharpeRatio: number;
-  maxDrawdown: number;
-  volatility: number;
-  winRate: number;
   avgHoldingPeriod: number;
-  bestPerformingDomain: string;
-  worstPerformingDomain: string;
 }
 
 /**
@@ -179,21 +174,6 @@ export function calculateVolatility(returns: number[]): number {
   return Math.sqrt(variance);
 }
 
-/** 最大回撤（小数）：基于月度收益率序列的累计净值，从高点到低点的最大相对回撤 */
-export function calculateMaxDrawdown(returns: number[]): number {
-  if (returns.length === 0) return 0;
-  let wealth = 1;
-  let peak = 1;
-  let maxDrawdown = 0;
-  for (let i = 0; i < returns.length; i++) {
-    wealth *= 1 + returns[i] / 100;
-    if (wealth > peak) peak = wealth;
-    const drawdown = peak > 0 ? (peak - wealth) / peak : 0;
-    if (drawdown > maxDrawdown) maxDrawdown = drawdown;
-  }
-  return maxDrawdown;
-}
-
 /** 夏普比率：年化收益率与年化波动率均为小数（如 0.05, 0.12） */
 export function calculateSharpeRatio(
   annualizedReturnDecimal: number,
@@ -202,22 +182,6 @@ export function calculateSharpeRatio(
 ): number {
   if (annualizedVolatilityDecimal <= 0) return 0;
   return (annualizedReturnDecimal - riskFreeRate) / annualizedVolatilityDecimal;
-}
-
-// 计算胜率
-export function calculateWinRate(
-  domains: DomainWithTags[],
-  transactions: TransactionWithRequiredFields[] = []
-): number {
-  const soldDomains = domains.filter(d => d.status === 'sold');
-  if (soldDomains.length === 0) return 0;
-  
-  const profitableDomains = soldDomains.filter(d => {
-    const totalCost = totalHoldingCostForDomain(d, transactions);
-    return (d.sale_price || 0) > totalCost;
-  });
-  
-  return (profitableDomains.length / soldDomains.length) * 100;
 }
 
 // 计算平均持有期
@@ -234,59 +198,31 @@ export function calculateAvgHoldingPeriod(domains: DomainWithTags[]): number {
   return totalDays / soldDomains.length;
 }
 
-// 计算高级财务指标
+// 计算高级财务指标。basic 由调用方传入，避免与 useComprehensiveFinancialAnalysis
+// 重复跑一次 calculateBasicFinancialMetrics。
 export function calculateAdvancedFinancialMetrics(
   domains: DomainWithTags[],
-  transactions: TransactionWithRequiredFields[]
+  transactions: TransactionWithRequiredFields[],
+  basic: BasicFinancialMetrics
 ): AdvancedFinancialMetrics {
-  const basicMetrics = calculateBasicFinancialMetrics(domains, transactions);
   const years = calculateInvestmentYears(domains);
   const annualizedReturn = calculateAnnualizedReturn(
-    basicMetrics.totalInvestment,
-    basicMetrics.totalRevenue,
+    basic.totalInvestment,
+    basic.totalRevenue,
     years
   );
-  
+
+  // sharpeRatio 需要年化波动率（基于月度收益率序列）。
   const monthlyReturnPct = calculateMonthlyReturns(domains, transactions);
   const volMonthlyPct = calculateVolatility(monthlyReturnPct);
   const volAnnualDecimal = (volMonthlyPct / 100) * Math.sqrt(12);
-  const maxDrawdown = calculateMaxDrawdown(monthlyReturnPct);
   const sharpeRatio = calculateSharpeRatio(annualizedReturn, 0.02, volAnnualDecimal);
-  
-  const winRate = calculateWinRate(domains, transactions);
-  const avgHoldingPeriod = calculateAvgHoldingPeriod(domains);
-  
-  const domainPerformance = calculateDomainPerformance(domains, transactions);
-  const soldPerformance = domainPerformance.filter(p => p.domain.status === 'sold');
-  const fallback = { domain: { domain_name: 'N/A' }, roi: 0 };
-  const bestDomain = soldPerformance.length > 0
-    ? soldPerformance.reduce((best, current) => (current.roi > best.roi ? current : best), soldPerformance[0])
-    : fallback;
-  const worstDomain = soldPerformance.length > 0
-    ? soldPerformance.reduce((worst, current) => (current.roi < worst.roi ? current : worst), soldPerformance[0])
-    : fallback;
 
   return {
-    ...basicMetrics,
     annualizedReturn: annualizedReturn * 100,
     sharpeRatio,
-    maxDrawdown: maxDrawdown * 100,
-    volatility: volAnnualDecimal * 100,
-    winRate,
-    avgHoldingPeriod,
-    bestPerformingDomain: bestDomain.domain.domain_name,
-    worstPerformingDomain: worstDomain.domain.domain_name
+    avgHoldingPeriod: calculateAvgHoldingPeriod(domains),
   };
-}
-
-/** 风险等级：volatility 为年化波动率（小数），maxDrawdown 为小数 */
-export function calculateRiskLevel(
-  volatilityDecimal: number,
-  maxDrawdownDecimal: number
-): 'Low' | 'Medium' | 'High' {
-  if (volatilityDecimal > 0.3 || maxDrawdownDecimal > 0.5) return 'High';
-  if (volatilityDecimal > 0.15 || maxDrawdownDecimal > 0.2) return 'Medium';
-  return 'Low';
 }
 
 /** 单笔现金到账事件，用于把分期销售按时间维度展开。 */
@@ -533,8 +469,3 @@ export function calculateYearlyRenewalVsProfit(
     );
 }
 
-// 计算成功率
-export function calculateSuccessRate(domains: DomainWithTags[]): number {
-  const soldDomains = domains.filter(d => d.status === 'sold');
-  return domains.length > 0 ? (soldDomains.length / domains.length) * 100 : 0;
-}

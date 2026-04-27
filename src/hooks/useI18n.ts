@@ -788,10 +788,6 @@ const translations: Record<Locale, Translations> = {
       annualizedReturnShortTerm: '持有期不足一年，暂不显示年化',
       sharpeRatio: '夏普比率',
       sharpeRatioDesc: '基于月度收益率与年化波动率计算的风险调整收益指标。',
-      volatilityRevenueLabel: '月度收入波动',
-      volatilityRevenueDesc: '过去12个月月度销售收入的标准差（金额），非收益率波动',
-      maxDrawdownRevenueLabel: '月度收入回撤',
-      maxDrawdownRevenueDesc: '过去12个月月度销售收入从高点到低点的最大相对下降',
       liquidityRatio: '可售占比',
       liquidityRatioDesc: '可售域名（活跃+在售）占比，越高流动性越好',
       portfolioPerformance: '投资组合表现',
@@ -823,12 +819,6 @@ const translations: Record<Locale, Translations> = {
         average: '风险调整后表现一般',
         needsOptimization: '需要优化风险控制'
       },
-      winRateRating: {
-        good: '胜率良好',
-        average: '胜率一般',
-        needsImprovement: '需要提高成功交易比例'
-      },
-      winRate: '胜率',
       timeframe: {
         '6M': '最近6个月',
         '1Y': '最近1年',
@@ -889,10 +879,6 @@ const translations: Record<Locale, Translations> = {
       bestPerformance: '最佳表现',
       worstPerformance: '最差表现',
       avgHoldingPeriodLabel: '平均持有期',
-      maxDrawdownLabel: '最大回撤',
-      maxDrawdownDesc: '基于月度收益率序列的累计净值，从高点到低点的最大相对回撤。',
-      volatilityLabel: '波动率',
-      volatilityDesc: '基于月度收益率计算的年化波动率（标准差）。',
       daysUnit: '天',
       countUnit: '个',
       lowRisk: '低风险',
@@ -900,7 +886,6 @@ const translations: Record<Locale, Translations> = {
       highRisk: '高风险',
       veryHighRisk: '极高风险',
       considerDiversification: '考虑分散投资，降低单一域名占比',
-      highVolatility: '投资组合波动性较高，建议增加稳定收益域名',
       lowLiquidity: '流动性不足，建议增加待售域名数量',
       lowDiversity: '域名数量较少，建议增加投资组合多样性',
       // 过期域名损失分析
@@ -2001,10 +1986,6 @@ const translations: Record<Locale, Translations> = {
       annualizedReturnShortTerm: 'Hold period < 1 year, annualized return not shown',
       sharpeRatio: 'Sharpe Ratio',
       sharpeRatioDesc: 'Risk-adjusted return based on annualized return and annualized volatility (return-based).',
-      volatilityRevenueLabel: 'Monthly revenue volatility',
-      volatilityRevenueDesc: 'Std dev of monthly sale revenue (amount), not return-based',
-      maxDrawdownRevenueLabel: 'Monthly revenue drawdown',
-      maxDrawdownRevenueDesc: 'Max decline from peak in monthly sale revenue',
       liquidityRatio: 'Liquidity ratio',
       liquidityRatioDesc: 'Share of domains that are active or for sale; higher is better',
       portfolioPerformance: 'Portfolio Performance',
@@ -2036,12 +2017,6 @@ const translations: Record<Locale, Translations> = {
         average: 'Average Risk-Adjusted Performance',
         needsOptimization: 'Needs Risk Control Optimization'
       },
-      winRateRating: {
-        good: 'Good Win Rate',
-        average: 'Average Win Rate',
-        needsImprovement: 'Need to Improve Success Rate'
-      },
-      winRate: 'Win Rate',
       timeframe: {
         '6M': 'Last 6 Months',
         '1Y': 'Last 1 Year',
@@ -2102,10 +2077,6 @@ const translations: Record<Locale, Translations> = {
       bestPerformance: 'Best Performance',
       worstPerformance: 'Worst Performance',
       avgHoldingPeriodLabel: 'Avg Holding Period',
-      maxDrawdownLabel: 'Max Drawdown',
-      maxDrawdownDesc: 'Max decline from peak in cumulative wealth, based on monthly return series.',
-      volatilityLabel: 'Volatility',
-      volatilityDesc: 'Annualized volatility (std dev) of monthly returns.',
       daysUnit: ' days',
       countUnit: '',
       lowRisk: 'Low Risk',
@@ -2113,7 +2084,6 @@ const translations: Record<Locale, Translations> = {
       highRisk: 'High Risk',
       veryHighRisk: 'Very High Risk',
       considerDiversification: 'Consider diversifying investments to reduce single domain concentration',
-      highVolatility: 'Portfolio volatility is high, consider adding stable income domains',
       lowLiquidity: 'Insufficient liquidity, consider increasing the number of domains for sale',
       lowDiversity: 'Few domains, consider increasing portfolio diversity',
       // Expired Domain Loss Analysis
