@@ -86,7 +86,6 @@ interface TimeSeriesData {
   date: string;
   investment: number;
   revenue: number;
-  profit: number;
   portfolioValue: number;
   monthlyCashFlow: number;
 }
@@ -224,8 +223,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
 
       // 用 holdingCostAsOf 按月结存算：已发生的购买/续费才计入，避免
-      // 把之后才发生的续费算进历史月份。旧逻辑用 totalHoldingCostForDomain
-      // 对当前状态计数，会把 2 年后才发生的续费算进 1 年前的那个点。
+      // 把之后才发生的续费算进历史月份。
       const investment = filteredData.domains.reduce(
         (sum, domain) => sum + holdingCostAsOf(domain, filteredData.transactions, monthEnd),
         0
@@ -235,12 +233,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       const revenue = monthlyNetInflowByMonth.get(monthKey) ?? 0;
 
       // 月度净现金流 = 本月实收 - 本月花出（买入/续费/平台费）。
-      // 旧字段 monthlyReturn = revenue / new-investment 语义错位：分子分母
-      // 落在两组不同域名上（本月卖出的域名很少是本月买入的），会在某个月
-      // 卖出大额旧域名时算出 5000% 的虚高回报率，完全误导。净现金流是
-      // 这个语境下能准确反映"本月发生了什么"的指标。
-      // 流出仍按 t.date 月份归类：buy/renew/fee 都是一次性付款，不存在
-      // 分期到账问题。
+      // 流出按 t.date 月份归类：buy/renew/fee 都是一次性付款，不存在分期到账问题。
       const costThisMonth = filteredData.transactions
         .filter((t) => {
           if (t.type !== 'buy' && t.type !== 'renew' && t.type !== 'fee') return false;
@@ -250,14 +243,31 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       const monthlyCashFlow = revenue - costThisMonth;
 
       cumulativeRevenue += revenue;
-      const profit = cumulativeRevenue - investment;
-      const portfolioValue = investment + profit;
+
+      // Portfolio value = 已实收 + 持仓 fair value（按月 mark-to-market）。
+      // 持仓判定：截至 monthEnd 已购入、未售出、未过期。
+      // Fair value：优先 estimated_value；缺失时回退到截至 monthEnd 的 cost basis
+      // （永远算得出的保守口径）。已售域名的现金已计入 cumulativeRevenue；
+      // 已过期域名按 0（损失沉没，不再贡献价值）。
+      const heldValue = filteredData.domains.reduce((sum, d) => {
+        if (!d.purchase_date) return sum;
+        if (new Date(d.purchase_date) > monthEnd) return sum;
+        if (d.status === 'sold' && d.sale_date && new Date(d.sale_date) <= monthEnd) return sum;
+        if (d.status === 'expired' && d.expiry_date && new Date(d.expiry_date) <= monthEnd) return sum;
+
+        const fairValue =
+          d.estimated_value != null && d.estimated_value > 0
+            ? d.estimated_value
+            : holdingCostAsOf(d, filteredData.transactions, monthEnd);
+        return sum + fairValue;
+      }, 0);
+
+      const portfolioValue = cumulativeRevenue + heldValue;
 
       data.push({
         date: monthKey,
         investment,
         revenue,
-        profit,
         portfolioValue,
         monthlyCashFlow
       });
@@ -420,8 +430,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
               formatter={(value, name) => [
                 `$${Number(value).toLocaleString()}`,
                 name === 'investment' ? t('analytics.investment') :
-                name === 'revenue' ? t('analytics.revenue') :
-                name === 'profit' ? t('analytics.profit') : t('analytics.portfolioValue')
+                name === 'revenue' ? t('analytics.revenue') : t('analytics.portfolioValue')
               ]}
               labelFormatter={(value) => {
                 const date = new Date(value);
