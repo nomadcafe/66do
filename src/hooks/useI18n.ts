@@ -801,23 +801,8 @@ const translations: Record<Locale, Translations> = {
       transactionsCount: '笔交易',
       salesCount: '笔出售',
       performanceRating: {
-        excellent: '优秀',
-        good: '良好',
-        normal: '正常',
-        needsImprovement: '需改进',
         profitable: '✓ 盈利',
         loss: '✗ 亏损'
-      },
-      returnRating: {
-        excellent: '表现优秀',
-        good: '表现良好',
-        slightlyProfitable: '略有盈利',
-        loss: '出现亏损'
-      },
-      sharpeRating: {
-        excellent: '风险调整后表现优秀',
-        average: '风险调整后表现一般',
-        needsOptimization: '需要优化风险控制'
       },
       timeframe: {
         '6M': '最近6个月',
@@ -881,13 +866,6 @@ const translations: Record<Locale, Translations> = {
       avgHoldingPeriodLabel: '平均持有期',
       daysUnit: '天',
       countUnit: '个',
-      lowRisk: '低风险',
-      mediumRisk: '中风险',
-      highRisk: '高风险',
-      veryHighRisk: '极高风险',
-      considerDiversification: '考虑分散投资，降低单一域名占比',
-      lowLiquidity: '流动性不足，建议增加待售域名数量',
-      lowDiversity: '域名数量较少，建议增加投资组合多样性',
       // 过期域名损失分析
       expiredDomainLoss: '过期域名损失分析',
       expiredDomainLossDesc: '因域名过期不续费造成的投资损失',
@@ -1999,23 +1977,8 @@ const translations: Record<Locale, Translations> = {
       transactionsCount: 'transactions',
       salesCount: 'sales',
       performanceRating: {
-        excellent: 'Excellent',
-        good: 'Good',
-        normal: 'Normal',
-        needsImprovement: 'Needs Improvement',
         profitable: '✓ Profitable',
         loss: '✗ Loss'
-      },
-      returnRating: {
-        excellent: 'Excellent Performance',
-        good: 'Good Performance',
-        slightlyProfitable: 'Slightly Profitable',
-        loss: 'Incurred Loss'
-      },
-      sharpeRating: {
-        excellent: 'Excellent Risk-Adjusted Performance',
-        average: 'Average Risk-Adjusted Performance',
-        needsOptimization: 'Needs Risk Control Optimization'
       },
       timeframe: {
         '6M': 'Last 6 Months',
@@ -2079,13 +2042,6 @@ const translations: Record<Locale, Translations> = {
       avgHoldingPeriodLabel: 'Avg Holding Period',
       daysUnit: ' days',
       countUnit: '',
-      lowRisk: 'Low Risk',
-      mediumRisk: 'Medium Risk',
-      highRisk: 'High Risk',
-      veryHighRisk: 'Very High Risk',
-      considerDiversification: 'Consider diversifying investments to reduce single domain concentration',
-      lowLiquidity: 'Insufficient liquidity, consider increasing the number of domains for sale',
-      lowDiversity: 'Few domains, consider increasing portfolio diversity',
       // Expired Domain Loss Analysis
       expiredDomainLoss: 'Expired Domain Loss Analysis',
       expiredDomainLossDesc: 'Investment losses due to domain expiration without renewal',
