@@ -364,8 +364,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
               cursor={{ stroke: '#6366f1', strokeWidth: 2 }}
               formatter={(value, name) => [
                 `$${Number(value).toLocaleString()}`,
-                name === 'investment' ? t('analytics.investment') :
-                name === 'revenue' ? t('analytics.revenue') : t('analytics.cumulativeNetProfit')
+                name,
               ]}
               labelFormatter={(value) => {
                 const date = new Date(value);
