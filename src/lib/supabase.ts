@@ -20,6 +20,7 @@ export interface Database {
           id: string
           email: string
           email_verified: boolean
+          ical_token: string | null
           created_at: string
           updated_at: string
         }
@@ -27,6 +28,7 @@ export interface Database {
           id: string
           email: string
           email_verified?: boolean
+          ical_token?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -34,6 +36,7 @@ export interface Database {
           id?: string
           email?: string
           email_verified?: boolean
+          ical_token?: string | null
           created_at?: string
           updated_at?: string
         }
