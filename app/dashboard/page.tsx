@@ -119,10 +119,6 @@ export default function DashboardPage() {
   const [pendingDeleteDomainId, setPendingDeleteDomainId] = useState<string | null>(null);
   const [pendingDeleteTransactionId, setPendingDeleteTransactionId] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
-  const deleteCancelRef = useRef<HTMLButtonElement>(null);
-  const deleteConfirmRef = useRef<HTMLButtonElement>(null);
-  const txDeleteCancelRef = useRef<HTMLButtonElement>(null);
-  const txDeleteConfirmRef = useRef<HTMLButtonElement>(null);
   
   // 使用自定义Hooks管理数据和操作
   const {
@@ -301,80 +297,6 @@ export default function DashboardPage() {
     return () => document.removeEventListener('click', handler, true);
   }, [domainOps.showDomainForm]);
 
-  // Delete-confirm dialog: focus mgmt, Esc to close, Enter to confirm (via natural focus on confirm), Tab trap, scroll lock
-  useEffect(() => {
-    if (!pendingDeleteDomainId) return;
-    const previouslyFocused = document.activeElement as HTMLElement | null;
-    // Focus the destructive button so Enter naturally confirms; pair with focus-visible ring for clarity
-    const focusTimer = window.setTimeout(() => deleteConfirmRef.current?.focus(), 0);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        setPendingDeleteDomainId(null);
-        return;
-      }
-      if (e.key === 'Tab') {
-        const cancel = deleteCancelRef.current;
-        const confirm = deleteConfirmRef.current;
-        if (!cancel || !confirm) return;
-        const active = document.activeElement;
-        if (e.shiftKey && active === cancel) {
-          e.preventDefault();
-          confirm.focus();
-        } else if (!e.shiftKey && active === confirm) {
-          e.preventDefault();
-          cancel.focus();
-        }
-      }
-    };
-    document.addEventListener('keydown', handleKey);
-    return () => {
-      window.clearTimeout(focusTimer);
-      document.removeEventListener('keydown', handleKey);
-      document.body.style.overflow = prevOverflow;
-      previouslyFocused?.focus?.();
-    };
-  }, [pendingDeleteDomainId]);
-
-  // Same a11y treatment for the transaction-delete dialog
-  useEffect(() => {
-    if (!pendingDeleteTransactionId) return;
-    const previouslyFocused = document.activeElement as HTMLElement | null;
-    const focusTimer = window.setTimeout(() => txDeleteConfirmRef.current?.focus(), 0);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        setPendingDeleteTransactionId(null);
-        return;
-      }
-      if (e.key === 'Tab') {
-        const cancel = txDeleteCancelRef.current;
-        const confirm = txDeleteConfirmRef.current;
-        if (!cancel || !confirm) return;
-        const active = document.activeElement;
-        if (e.shiftKey && active === cancel) {
-          e.preventDefault();
-          confirm.focus();
-        } else if (!e.shiftKey && active === confirm) {
-          e.preventDefault();
-          cancel.focus();
-        }
-      }
-    };
-    document.addEventListener('keydown', handleKey);
-    return () => {
-      window.clearTimeout(focusTimer);
-      document.removeEventListener('keydown', handleKey);
-      document.body.style.overflow = prevOverflow;
-      previouslyFocused?.focus?.();
-    };
-  }, [pendingDeleteTransactionId]);
-
-  
   const transactionOps = useTransactionOperations(
     transactions,
     domains,
@@ -912,8 +834,6 @@ export default function DashboardPage() {
         cancelLabel={t('common.cancel')}
         titleId="confirm-delete-title"
         descriptionId="confirm-delete-desc"
-        cancelRef={deleteCancelRef}
-        confirmRef={deleteConfirmRef}
         onCancel={() => setPendingDeleteDomainId(null)}
         onConfirm={async () => {
           const id = pendingDeleteDomainId;
@@ -931,8 +851,6 @@ export default function DashboardPage() {
         cancelLabel={t('common.cancel')}
         titleId="confirm-delete-tx-title"
         descriptionId="confirm-delete-tx-desc"
-        cancelRef={txDeleteCancelRef}
-        confirmRef={txDeleteConfirmRef}
         onCancel={() => setPendingDeleteTransactionId(null)}
         onConfirm={async () => {
           const id = pendingDeleteTransactionId;
