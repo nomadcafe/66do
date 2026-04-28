@@ -20,14 +20,12 @@ import SettingsDrawer from '../../src/components/dashboard/SettingsDrawer';
 import DashboardHeader from '../../src/components/dashboard/DashboardHeader';
 import DashboardLoadingSkeleton from '../../src/components/dashboard/DashboardLoadingSkeleton';
 import DeleteConfirmDialog from '../../src/components/dashboard/DeleteConfirmDialog';
-import { calculateAnnualRenewalCost, formatRenewalCycleDistributionLabel } from '../../src/lib/renewalCalculations';
+import DashboardTabsNav from '../../src/components/dashboard/DashboardTabsNav';
+import InsightsTab from '../../src/components/dashboard/InsightsTab';
+import { calculateAnnualRenewalCost } from '../../src/lib/renewalCalculations';
 import { formatCurrency as formatCurrencyEnhanced } from '../../src/lib/financialCalculations';
 // 懒加载组件
 import {
-  LazyFinancialAnalysis,
-  LazyInvestmentAnalytics,
-  LazyAdvancedRenewalAnalysis,
-  LazyExpiredDomainLossAnalysis,
   LazyDataImportExport,
   LazyUserPreferencesPanel,
   LazyWrapper,
@@ -49,14 +47,12 @@ import { calculateBasicFinancialMetrics, sellNetUSD, expandSellToCashReceipts } 
 import { calculatePaidAmountFromInstallment } from '../../src/lib/platformFeeCalculator';
 import { totalHoldingCostForDomain } from '../../src/lib/renewalCostBasis';
 import {
-  Globe,
   Plus,
   TrendingUp,
   FileText,
   AlertTriangle,
   Calendar,
   Award,
-  PieChart,
   RefreshCw,
   X,
 } from 'lucide-react';
@@ -786,48 +782,16 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Tabs — 3-tab structure: Portfolio (was overview/domains/alerts), Activity, Insights */}
-        <div className="relative bg-white rounded-2xl border border-stone-200/80 shadow-sm mb-6 overflow-hidden">
-          <nav className="flex gap-1 p-1.5 overflow-x-auto bg-stone-50/50 border-b border-stone-100" aria-label="Tabs">
-            <button
-              onClick={() => setActiveTab('portfolio')}
-              className={`rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap flex items-center gap-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 ${
-                activeTab === 'portfolio' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
-              }`}
-            >
-              <Globe className="h-4 w-4" />
-              {t('dashboard.portfolio')}
-              {expiringDomains.length > 0 && (
-                <span className={`ml-1 rounded-full px-2 py-0.5 text-xs ${
-                  activeTab === 'portfolio' ? 'bg-red-400 text-white' : 'bg-red-500 text-white'
-                }`}>{expiringDomains.length}</span>
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab('activity')}
-              className={`rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap flex items-center gap-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 ${
-                activeTab === 'activity' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
-              }`}
-            >
-              <FileText className="h-4 w-4" />
-              {t('dashboard.activity')}
-            </button>
-            <button
-              onClick={() => setActiveTab('insights')}
-              className={`rounded-lg px-3.5 py-2 text-sm font-medium whitespace-nowrap flex items-center gap-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 ${
-                activeTab === 'insights' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
-              }`}
-            >
-              <PieChart className="h-4 w-4" />
-              {t('dashboard.insights')}
-            </button>
-          </nav>
-          {/* Right-edge fade to hint horizontal overflow on narrow screens */}
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute right-0 top-0 bottom-px w-10 bg-gradient-to-l from-stone-50 via-stone-50/70 to-transparent lg:hidden"
-          />
-        </div>
+        <DashboardTabsNav
+          active={activeTab}
+          onChange={setActiveTab}
+          expiringCount={expiringDomains.length}
+          labels={{
+            portfolio: t('dashboard.portfolio'),
+            activity: t('dashboard.activity'),
+            insights: t('dashboard.insights'),
+          }}
+        />
 
         {/* Tab Content */}
         {activeTab === 'portfolio' && (
@@ -994,73 +958,14 @@ export default function DashboardPage() {
         )}
 
         {activeTab === 'insights' && (
-          <div className="space-y-6">
-            {/* 顺序按"概览 → 细节 → 主题分组"排列：
-                1) Financial Analysis：综合摘要（4 KPI + Snapshot + 推荐），用户进
-                   Insights 第一眼看整体健康。
-                2) Investment Analytics：放大镜，看图表/分布/趋势。
-                3) Renewal Overview（light）+ 4) Advanced Renewal Analysis（deep）：
-                   续费两块相邻，让用户一眼从 light counts 钻到 annual forecast。
-                5) Expired Domain Loss Analysis：失败案例放最末。
-                旧顺序把 light renewal 放最顶 + 把两个 renewal 块用 IA 隔开，违反
-                "概览→细节"和"主题相邻"两条原则，故调整。 */}
-            <LazyWrapper>
-              <LazyFinancialAnalysis
-                domains={domains}
-                transactions={transactionsForMetrics}
-              />
-            </LazyWrapper>
-
-            <LazyWrapper>
-              <LazyInvestmentAnalytics
-                domains={domains}
-                transactions={transactionsForMetrics}
-              />
-            </LazyWrapper>
-
-            {/* 续费分析 —— 即时轻 KPI：本块专注静态计数（需/不需续费）+
-                按周期分布。"今年预估成本"/"平均每域名成本"已拿掉，
-                前者与下方 Advanced Renewal Analysis 的线性回归预估值
-                口径不同会冲突，后者的 label 和实际公式（分母只算需续费域名）
-                不吻合，容易误导。 */}
-            <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
-              <h3 className="text-base font-semibold text-stone-900 mb-4">{t('renewal.analysis')}</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-xl bg-stone-50 p-4 border border-stone-100">
-                  <p className="text-xs font-medium text-stone-500">{t('renewal.needRenewal')}</p>
-                  <p className="text-xl font-bold text-teal-700 mt-1">{renewalAnalysis.domainsNeedingRenewal.length}</p>
-                </div>
-                <div className="rounded-xl bg-stone-50 p-4 border border-stone-100">
-                  <p className="text-xs font-medium text-stone-500">{t('renewal.noRenewal')}</p>
-                  <p className="text-xl font-bold text-stone-900 mt-1">{renewalAnalysis.domainsNotNeedingRenewal.length}</p>
-                </div>
-              </div>
-              {Object.keys(renewalAnalysis.costByCycle).length > 0 && (
-                <div className="mt-5 pt-4 border-t border-stone-100">
-                  <h4 className="text-sm font-medium text-stone-700 mb-3">{t('renewal.cycleDistribution')}</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {Object.entries(renewalAnalysis.costByCycle).map(([cycle, cost]) => (
-                      <div key={cycle} className="bg-stone-50 rounded-lg p-3">
-                        <p className="text-xs text-stone-500">
-                          {formatRenewalCycleDistributionLabel(cycle, locale, t)}
-                        </p>
-                        <p className="text-base font-semibold text-stone-900">{formatCurrencyEnhanced(cost, 'USD')}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <LazyWrapper>
-              <LazyAdvancedRenewalAnalysis domains={domains} transactions={transactionsForMetrics} />
-            </LazyWrapper>
-
-            <LazyWrapper>
-              {/* 对齐项目数据源约定（见第 172 行注释）：所有指标/图表都用 transactionsForMetrics */}
-              <LazyExpiredDomainLossAnalysis domains={domains} transactions={transactionsForMetrics} />
-            </LazyWrapper>
-          </div>
+          <InsightsTab
+            domains={domains}
+            transactionsForMetrics={transactionsForMetrics}
+            renewalAnalysis={renewalAnalysis}
+            locale={locale}
+            t={t}
+            formatCurrency={formatCurrencyEnhanced}
+          />
         )}
 
 
