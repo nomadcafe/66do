@@ -49,6 +49,7 @@ import { calculateBasicFinancialMetrics, sellNetUSD, expandSellToCashReceipts } 
 import { calculatePaidAmountFromInstallment } from '../../src/lib/platformFeeCalculator';
 import { totalHoldingCostForDomain } from '../../src/lib/renewalCostBasis';
 import { getEffectiveExpiry } from '../../src/lib/effectiveExpiry';
+import { expandRenewalEvents } from '../../src/lib/expandRenewalEvents';
 import {
   Plus,
   AlertTriangle,
@@ -472,33 +473,41 @@ export default function DashboardPage() {
     return monthlyRevenueSeries.reduce((sum, v) => sum + v, 0);
   }, [trendWindow, stats.totalRevenue, monthlyRevenueSeries]);
 
-  // 本年续费支出 — 同时算两个口径：
-  //   cash:       严格按交易日期落在本年的 amount 求和（"今年实际付了多少"）
-  //   amortized:  把每笔 renew 的 amount 摊到它覆盖的 N 个日历年（amount / N），
-  //               currentYear ∈ [txYear, txYear + N − 1] 时本年得一份。
-  // 用例：去年一次性续 5 年的开销，cash 在去年那一年炸一笔大数字，但摊销
-  // 后这 5 年里每年都看得到那笔的 1/5，"运营节奏"才稳得下来。
+  // 本年续费支出 — 三个口径：
+  //   cash:       本年实际发生的续费现金流（archive 摊在估算月 + tx 按日期；
+  //               不含 projected——预测的还没真付）
+  //   amortized:  把每笔续费按其覆盖年数摊开，currentYear 落在覆盖期内就得一份
+  //   amortizedWithForecast: amortized + 预测的还没发生但本年内会发生的续费
+  //
+  // 全部跑过 expandRenewalEvents 而不是只读 transactions：旧版只看显式 renew
+  // 交易，对那些 renewal_count 填了但没记 tx 的存量域名（导入老数据 / 一次性
+  // 录入的常见情形）会把 archive 续费完全漏掉。
   const currentYear = new Date().getFullYear();
   const ytdRenewalSpend = useMemo(() => {
     const yearStart = new Date(currentYear, 0, 1).getTime();
     const yearEnd = new Date(currentYear + 1, 0, 1).getTime();
+    const forecastUntil = new Date(currentYear, 11, 31, 23, 59, 59, 999);
     let cash = 0;
     let amortized = 0;
-    for (const t of transactionsForMetrics) {
-      if (t.type !== 'renew') continue;
-      const txDate = new Date(t.date);
-      const txTime = txDate.getTime();
-      if (Number.isNaN(txTime)) continue;
-      const amount = Number(t.amount) || 0;
-      if (txTime >= yearStart && txTime < yearEnd) cash += amount;
-      const txYear = txDate.getFullYear();
-      const years = Math.max(1, Math.floor(t.renewal_period_years ?? 1));
-      if (currentYear >= txYear && currentYear < txYear + years) {
-        amortized += amount / years;
+    for (const d of domains) {
+      for (const ev of expandRenewalEvents(d, transactionsForMetrics, { forecastUntil })) {
+        const evTime = ev.date.getTime();
+        if (Number.isNaN(evTime)) continue;
+        // Cash basis: real money in current year. Skip projected (didn't happen yet).
+        if (ev.source !== 'projected' && evTime >= yearStart && evTime < yearEnd) {
+          cash += ev.amount;
+        }
+        // Amortized: spread amount across coverage years (currentYear ∈ [evYear, evYear + years − 1]).
+        // Includes projected so users see the full annual cost picture.
+        const evYear = ev.date.getFullYear();
+        const years = Math.max(1, ev.years);
+        if (currentYear >= evYear && currentYear < evYear + years) {
+          amortized += ev.amount / years;
+        }
       }
     }
     return { cash, amortized };
-  }, [transactionsForMetrics, currentYear]);
+  }, [domains, transactionsForMetrics, currentYear]);
 
   // "Stuck" = active/for_sale, held > 12 months, never sold. Investor signal to consider listing.
   const stuckDomains = useMemo(() => {

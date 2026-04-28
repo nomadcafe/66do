@@ -35,20 +35,34 @@
 
 import type { TransactionWithRequiredFields } from '../types/transaction';
 
+export type RenewalEventSource = 'archive' | 'transaction' | 'projected';
+
 export interface RenewalEvent {
   date: Date;
   amount: number;
-  source: 'archive' | 'transaction';
+  /** Number of years this renewal extends the registration. Used for
+   *  amortization across calendar years on the dashboard YTD tile. */
+  years: number;
+  source: RenewalEventSource;
 }
 
 interface DomainLike {
   id: string;
+  status?: string | null;
   purchase_date?: string | null;
   expiry_date?: string | null;
   renewal_count?: number | null;
   renewal_cycle?: number | null;
   renewal_cost?: number | null;
   baseline_renewal_as_of?: string | null;
+}
+
+export interface ExpandRenewalEventsOptions {
+  /** When set, also emit forecasted renewals for still-active / for-sale
+   *  domains, starting at current expiry_date and stepping by `cycle` years
+   *  until > forecastUntil. Sold or expired domains never get projections.
+   *  Without expiry_date, no projection is possible (we have no anchor). */
+  forecastUntil?: Date;
 }
 
 function parseLocalDate(s: string | null | undefined): Date | null {
@@ -60,6 +74,7 @@ function parseLocalDate(s: string | null | undefined): Date | null {
 export function expandRenewalEvents(
   domain: DomainLike,
   transactions: TransactionWithRequiredFields[],
+  options?: ExpandRenewalEventsOptions,
 ): RenewalEvent[] {
   const events: RenewalEvent[] = [];
   const purchase = parseLocalDate(domain.purchase_date);
@@ -106,7 +121,7 @@ export function expandRenewalEvents(
         const d = new Date(expiry);
         const yearsBack = postBaselineTotalYears + (archiveCount - i + 1) * cycle;
         d.setFullYear(d.getFullYear() - yearsBack);
-        events.push({ date: d, amount: perRenewal, source: 'archive' });
+        events.push({ date: d, amount: perRenewal, years: cycle, source: 'archive' });
       }
     } else if (purchase) {
       // Fallback when expiry_date is missing: assume initial registration
@@ -114,7 +129,7 @@ export function expandRenewalEvents(
       for (let i = 1; i <= archiveCount; i++) {
         const d = new Date(purchase);
         d.setFullYear(d.getFullYear() + i * cycle);
-        events.push({ date: d, amount: perRenewal, source: 'archive' });
+        events.push({ date: d, amount: perRenewal, years: cycle, source: 'archive' });
       }
     }
   }
@@ -131,11 +146,38 @@ export function expandRenewalEvents(
       if (d.length < 10 || d < baseline) continue;
       const txDate = parseLocalDate(t.date);
       if (!txDate) continue;
+      const txYears = Math.max(1, Math.floor(t.renewal_period_years ?? cycle) || cycle);
       events.push({
         date: txDate,
         amount: Number(t.amount) || 0,
+        years: txYears,
         source: 'transaction',
       });
+    }
+  }
+
+  // Forecasted future renewals.
+  // Only for active / for_sale domains (sold and expired ones aren't being kept
+  // alive). Anchor is current expiry: the next renewal happens AT expiry, the
+  // one after at expiry + cycle, etc. Step forward until past forecastUntil.
+  // Without expiry_date there's no anchor, so we don't try to forecast.
+  if (options?.forecastUntil && expiry && perRenewal > 0) {
+    const status = domain.status ?? 'active';
+    if (status === 'active' || status === 'for_sale') {
+      const horizonMs = options.forecastUntil.getTime();
+      // Bump forward step by step from expiry. Cap iterations as a defensive
+      // measure against pathological cycle/horizon combos.
+      const next = new Date(expiry);
+      let safety = 100;
+      while (next.getTime() <= horizonMs && safety-- > 0) {
+        events.push({
+          date: new Date(next),
+          amount: perRenewal,
+          years: cycle,
+          source: 'projected',
+        });
+        next.setFullYear(next.getFullYear() + cycle);
+      }
     }
   }
 
