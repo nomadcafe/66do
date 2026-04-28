@@ -1179,7 +1179,10 @@ const en = {
       salePrice: 'Sale Price',
       saleDate: 'Sale Date',
       netProfit: 'Net Profit',
-      sold: 'Sold'
+      sold: 'Sold',
+      staleExpiryTitle: 'Expired {days} days ago but still active',
+      staleExpiryHint: 'You may have renewed at the registrar but forgotten to update the expiry here, or actually let it expire. Review and fix.',
+      staleExpiryAction: 'Edit domain'
     },
     mobile: {
       menu: 'Menu',
