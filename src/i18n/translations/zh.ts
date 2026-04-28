@@ -235,10 +235,10 @@ const zh = {
       allTimeAnchor: '总计',
       monthlyRenewalCost: '月度续费成本',
       portfolioCardActiveSold: '{active} 在持 · {sold} 已售',
-      portfolioCardNextExpiry: '下次到期',
-      portfolioCardNoExpiry: '—',
-      portfolioCardExpired: '已过期',
-      portfolioCardAllTimeFooter: '总计',
+      portfolioCardYtdRenewalSpend: '本年续费支出',
+      // 旧的 "总计" 标签：底部三项里 totalDomains/ROI 仍是 all-time，但
+      // ytdRenewalSpend 是本年累计。"概览"作为更宽口的措辞两边都说得过去。
+      portfolioCardFooterCaption: '概览',
       settingsDrawerTitle: '设置',
       settingsClose: '关闭',
       userSettings: '用户设置',

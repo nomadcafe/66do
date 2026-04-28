@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { TrendingUp, TrendingDown, Globe, Award, Calendar } from 'lucide-react';
+import { TrendingUp, TrendingDown, Globe, Award, RefreshCw } from 'lucide-react';
 
 interface PortfolioHealthCardProps {
   totalDomains: number;
@@ -16,12 +16,10 @@ interface PortfolioHealthCardProps {
   monthlyRevenueSeries: number[];
   /** Optional month labels (same length as series) for hover tooltip + axis context. */
   monthlyRevenueLabels?: string[];
-  /** Days until the next domain expiry; null if none upcoming */
-  nextExpiryDays: number | null;
-  /** Domain name of the soonest-expiring domain, for context. */
-  nextExpiryDomain?: string | null;
-  /** Pre-formatted date label (e.g. "Apr 25") for the soonest expiry. */
-  nextExpiryDateLabel?: string | null;
+  /** Sum of all renew-type transactions whose date falls in the current calendar year. */
+  ytdRenewalSpend: number;
+  /** Current calendar year, displayed as a subtitle on the YTD spend tile (e.g. "2026"). */
+  currentYear: number;
   formatCurrency: (n: number) => string;
   /** Optional trend-window selector. Affects sparkline + headline only; footer stats stay all-time. */
   windowOptions?: { key: string; label: string }[];
@@ -36,12 +34,12 @@ interface PortfolioHealthCardProps {
     domains: string;
     activeSold: (active: number, sold: number) => string;
     roi: string;
-    nextExpiry: string;
-    days: string;
-    none: string;
-    expired: string;
+    ytdRenewalSpend: string;
     trendWindowAria: string;
-    /** Caption above the footer stat row clarifying that those numbers are all-time, regardless of the windowed headline. */
+    /** Caption above the footer stat row. Note: total domains + ROI are
+     *  all-time, but ytdRenewalSpend is current calendar year only — the
+     *  caption is intentionally vague ("This year" works fine in either
+     *  reading) so we don't have to split the row in two. */
     allTimeFooter: string;
   };
 }
@@ -59,9 +57,8 @@ export default function PortfolioHealthCard({
   roi,
   monthlyRevenueSeries,
   monthlyRevenueLabels,
-  nextExpiryDays,
-  nextExpiryDomain,
-  nextExpiryDateLabel,
+  ytdRenewalSpend,
+  currentYear,
   formatCurrency,
   windowOptions,
   selectedWindow,
@@ -318,33 +315,17 @@ export default function PortfolioHealthCard({
           </div>
 
           <div className="flex items-center gap-2">
-            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-              nextExpiryDays !== null && nextExpiryDays <= 7
-                ? 'bg-rose-50 text-rose-600'
-                : 'bg-stone-100 text-stone-600'
-            }`}>
-              <Calendar className="h-4 w-4" />
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-stone-100 text-stone-600">
+              <RefreshCw className="h-4 w-4" />
             </span>
             <div className="min-w-0">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">{labels.nextExpiry}</p>
-              {nextExpiryDays === null ? (
-                <p className="text-sm font-semibold text-stone-500">{labels.none}</p>
-              ) : (
-                <>
-                  {/* 显示域名 + 日期/天数，让用户不用回去 Domain 列表查是哪个 */}
-                  {nextExpiryDomain && (
-                    <p className="text-sm font-semibold text-stone-900 truncate" title={nextExpiryDomain}>
-                      {nextExpiryDomain}
-                    </p>
-                  )}
-                  <p className={`text-xs ${nextExpiryDays < 0 ? 'text-rose-600 font-semibold' : nextExpiryDays <= 7 ? 'text-rose-600' : 'text-stone-500'} tabular-nums`}>
-                    {nextExpiryDays < 0 ? labels.expired : `${nextExpiryDays}${labels.days}`}
-                    {nextExpiryDateLabel && nextExpiryDays >= 0 && (
-                      <span className="ml-1 text-stone-400">· {nextExpiryDateLabel}</span>
-                    )}
-                  </p>
-                </>
-              )}
+              <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">
+                {labels.ytdRenewalSpend}
+              </p>
+              <p className="text-sm font-semibold text-stone-900 tabular-nums">
+                {formatCurrency(ytdRenewalSpend)}
+              </p>
+              <p className="text-xs text-stone-400 tabular-nums">{currentYear}</p>
             </div>
           </div>
         </div>
