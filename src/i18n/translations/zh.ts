@@ -235,7 +235,10 @@ const zh = {
       allTimeAnchor: '总计',
       monthlyRenewalCost: '月度续费成本',
       portfolioCardActiveSold: '{active} 在持 · {sold} 已售',
-      portfolioCardYtdRenewalSpend: '本年续费支出',
+      // tile 标签：摊销口径——把多年期续费按每年均摊后的"运营年成本"。
+      portfolioCardYtdRenewalSpend: '本年续费成本（摊销）',
+      // 副线：现金口径——今年实际付出去的现金。{amount}/{year} 由组件填充。
+      portfolioCardYtdRenewalCashPaid: '实付 {amount} · {year}',
       // 旧的 "总计" 标签：底部三项里 totalDomains/ROI 仍是 all-time，但
       // ytdRenewalSpend 是本年累计。"概览"作为更宽口的措辞两边都说得过去。
       portfolioCardFooterCaption: '概览',
