@@ -236,10 +236,11 @@ const en = {
       allTimeAnchor: 'all-time',
       monthlyRenewalCost: 'Monthly renewal cost',
       portfolioCardActiveSold: '{active} active · {sold} sold',
-      portfolioCardNextExpiry: 'Next expiry',
-      portfolioCardNoExpiry: '—',
-      portfolioCardExpired: 'Expired',
-      portfolioCardAllTimeFooter: 'All-time',
+      portfolioCardYtdRenewalSpend: 'YTD renewal spend',
+      // Was "All-time" — but two of the three footer tiles still are
+      // (totalDomains, ROI) while ytdRenewalSpend is current-year only.
+      // "Snapshot" works for either reading without splitting the row.
+      portfolioCardFooterCaption: 'Snapshot',
       settingsDrawerTitle: 'Settings',
       settingsClose: 'Close',
       userSettings: 'User Settings',

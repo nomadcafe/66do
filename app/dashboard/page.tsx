@@ -472,29 +472,17 @@ export default function DashboardPage() {
     return monthlyRevenueSeries.reduce((sum, v) => sum + v, 0);
   }, [trendWindow, stats.totalRevenue, monthlyRevenueSeries]);
 
-  // Days until the next non-sold domain expires (negative = already expired but not yet marked).
-  // 也走 getEffectiveExpiry 兜底：没填 expiry_date 时用 next_renewal_date / 推算。
-  const nextExpiry = useMemo(() => {
-    const now = Date.now();
-    const candidates = domains.flatMap((d) => {
-      if (d.status === 'sold') return [];
-      const eff = getEffectiveExpiry(d);
-      if (!eff.date) return [];
-      return [{
-        domainName: d.domain_name,
-        expiryDate: eff.date.toISOString(),
-        days: Math.ceil((eff.date.getTime() - now) / (1000 * 60 * 60 * 24)),
-      }];
-    }).sort((a, b) => a.days - b.days);
-    return candidates.length > 0 ? candidates[0] : null;
-  }, [domains]);
-  const nextExpiryDays = nextExpiry?.days ?? null;
-  const nextExpiryDomain = nextExpiry?.domainName ?? null;
-  const nextExpiryDateLabel = nextExpiry
-    ? new Intl.DateTimeFormat(locale === 'zh' ? 'zh-CN' : 'en-US', { month: 'short', day: 'numeric' }).format(
-        new Date(nextExpiry.expiryDate)
-      )
-    : null;
+  // 本年累计续费支出（YTD）：从 transactionsForMetrics（去重后）里取当年所有 renew 类型的金额求和。
+  // 用 t.date 当年判定：Jan 1 当地零点 → 今天，避免跨时区时把元旦那笔交易划到上一年。
+  const ytdRenewalSpend = useMemo(() => {
+    const yearStart = new Date(new Date().getFullYear(), 0, 1).getTime();
+    return transactionsForMetrics.reduce((sum, t) => {
+      if (t.type !== 'renew') return sum;
+      const ts = new Date(t.date).getTime();
+      if (Number.isNaN(ts) || ts < yearStart) return sum;
+      return sum + (Number(t.amount) || 0);
+    }, 0);
+  }, [transactionsForMetrics]);
 
   // "Stuck" = active/for_sale, held > 12 months, never sold. Investor signal to consider listing.
   const stuckDomains = useMemo(() => {
@@ -731,9 +719,8 @@ export default function DashboardPage() {
               roi={stats.roi}
               monthlyRevenueSeries={monthlyRevenueSeries}
               monthlyRevenueLabels={monthlyRevenueLabels}
-              nextExpiryDays={nextExpiryDays}
-              nextExpiryDomain={nextExpiryDomain}
-              nextExpiryDateLabel={nextExpiryDateLabel}
+              ytdRenewalSpend={ytdRenewalSpend}
+              currentYear={new Date().getFullYear()}
               formatCurrency={(n) => formatCurrencyEnhanced(n)}
               windowOptions={trendWindowOptions}
               selectedWindow={trendWindow}
@@ -747,12 +734,9 @@ export default function DashboardPage() {
                   .replace('{active}', String(a))
                   .replace('{sold}', String(s)),
                 roi: t('dashboard.roi'),
-                nextExpiry: t('dashboard.portfolioCardNextExpiry'),
-                days: 'd',
-                none: t('dashboard.portfolioCardNoExpiry'),
-                expired: t('dashboard.portfolioCardExpired'),
+                ytdRenewalSpend: t('dashboard.portfolioCardYtdRenewalSpend'),
                 trendWindowAria: t('dashboard.trendWindow'),
-                allTimeFooter: t('dashboard.portfolioCardAllTimeFooter'),
+                allTimeFooter: t('dashboard.portfolioCardFooterCaption'),
               }}
             />
 
