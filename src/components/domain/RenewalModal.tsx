@@ -55,6 +55,27 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
     return amount / renewalYears;
   }, [amount, renewalYears]);
 
+  // Esc-to-close + body scroll lock while open. (Backdrop-click is handled
+  // inline on the overlay's onClick.) Mirrors the DeleteConfirmDialog
+  // a11y treatment so the rest of the page can't scroll behind the modal
+  // and keyboard users have a way out.
+  useEffect(() => {
+    if (!isOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isProcessing) {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('keydown', handleKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isOpen, isProcessing, onClose]);
+
   if (!isOpen) return null;
 
   // 直接计算续费后的信息，避免类型转换问题
@@ -132,25 +153,43 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded-xl shadow-2xl max-w-xl w-full mx-4 transform transition-all">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="renewal-modal-title"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
+      onClick={(e) => {
+        // Click on the backdrop (not bubbled up from inside the panel) closes the modal,
+        // but we still respect isProcessing so an in-flight save can't be aborted by a stray click.
+        if (e.target === e.currentTarget && !isProcessing) onClose();
+      }}
+    >
+      <div className="bg-white rounded-xl shadow-2xl max-w-xl w-full transform transition-all max-h-[calc(100vh-2rem)] overflow-y-auto">
+        {/* Header. Domain name promoted to a chip-style highlight so the user can
+            tell at a glance which domain this dialog is for; the previous
+            text-gray-500 subtitle was too easy to miss next to the title. */}
+        <div className="flex items-start justify-between gap-3 p-6 border-b border-gray-200 bg-gradient-to-b from-green-50/40 to-white">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center shrink-0">
               <Calendar className="h-5 w-5 text-green-600" />
             </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">
+            <div className="min-w-0 flex-1">
+              <h3 id="renewal-modal-title" className="text-lg font-semibold text-gray-900">
                 {t('renewal.renewDomain') || 'Renew Domain'}
               </h3>
-              <p className="text-sm text-gray-500">{domain.domain_name}</p>
+              <p className="mt-0.5 text-base font-medium text-gray-900 break-all">
+                {domain.domain_name}
+              </p>
+              {domain.registrar && (
+                <p className="text-xs text-gray-500 mt-0.5">{domain.registrar}</p>
+              )}
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            aria-label={t('common.close') || 'Close'}
             disabled={isProcessing}
+            className="shrink-0 -mr-2 -mt-2 p-2 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-1"
           >
             <X className="h-5 w-5" />
           </button>
