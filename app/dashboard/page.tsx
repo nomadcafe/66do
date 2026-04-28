@@ -472,17 +472,33 @@ export default function DashboardPage() {
     return monthlyRevenueSeries.reduce((sum, v) => sum + v, 0);
   }, [trendWindow, stats.totalRevenue, monthlyRevenueSeries]);
 
-  // 本年累计续费支出（YTD）：从 transactionsForMetrics（去重后）里取当年所有 renew 类型的金额求和。
-  // 用 t.date 当年判定：Jan 1 当地零点 → 今天，避免跨时区时把元旦那笔交易划到上一年。
+  // 本年续费支出 — 同时算两个口径：
+  //   cash:       严格按交易日期落在本年的 amount 求和（"今年实际付了多少"）
+  //   amortized:  把每笔 renew 的 amount 摊到它覆盖的 N 个日历年（amount / N），
+  //               currentYear ∈ [txYear, txYear + N − 1] 时本年得一份。
+  // 用例：去年一次性续 5 年的开销，cash 在去年那一年炸一笔大数字，但摊销
+  // 后这 5 年里每年都看得到那笔的 1/5，"运营节奏"才稳得下来。
+  const currentYear = new Date().getFullYear();
   const ytdRenewalSpend = useMemo(() => {
-    const yearStart = new Date(new Date().getFullYear(), 0, 1).getTime();
-    return transactionsForMetrics.reduce((sum, t) => {
-      if (t.type !== 'renew') return sum;
-      const ts = new Date(t.date).getTime();
-      if (Number.isNaN(ts) || ts < yearStart) return sum;
-      return sum + (Number(t.amount) || 0);
-    }, 0);
-  }, [transactionsForMetrics]);
+    const yearStart = new Date(currentYear, 0, 1).getTime();
+    const yearEnd = new Date(currentYear + 1, 0, 1).getTime();
+    let cash = 0;
+    let amortized = 0;
+    for (const t of transactionsForMetrics) {
+      if (t.type !== 'renew') continue;
+      const txDate = new Date(t.date);
+      const txTime = txDate.getTime();
+      if (Number.isNaN(txTime)) continue;
+      const amount = Number(t.amount) || 0;
+      if (txTime >= yearStart && txTime < yearEnd) cash += amount;
+      const txYear = txDate.getFullYear();
+      const years = Math.max(1, Math.floor(t.renewal_period_years ?? 1));
+      if (currentYear >= txYear && currentYear < txYear + years) {
+        amortized += amount / years;
+      }
+    }
+    return { cash, amortized };
+  }, [transactionsForMetrics, currentYear]);
 
   // "Stuck" = active/for_sale, held > 12 months, never sold. Investor signal to consider listing.
   const stuckDomains = useMemo(() => {
@@ -719,8 +735,9 @@ export default function DashboardPage() {
               roi={stats.roi}
               monthlyRevenueSeries={monthlyRevenueSeries}
               monthlyRevenueLabels={monthlyRevenueLabels}
-              ytdRenewalSpend={ytdRenewalSpend}
-              currentYear={new Date().getFullYear()}
+              ytdRenewalSpendAmortized={ytdRenewalSpend.amortized}
+              ytdRenewalSpendCash={ytdRenewalSpend.cash}
+              currentYear={currentYear}
               formatCurrency={(n) => formatCurrencyEnhanced(n)}
               windowOptions={trendWindowOptions}
               selectedWindow={trendWindow}
@@ -735,6 +752,7 @@ export default function DashboardPage() {
                   .replace('{sold}', String(s)),
                 roi: t('dashboard.roi'),
                 ytdRenewalSpend: t('dashboard.portfolioCardYtdRenewalSpend'),
+                ytdRenewalCashPaid: t('dashboard.portfolioCardYtdRenewalCashPaid'),
                 trendWindowAria: t('dashboard.trendWindow'),
                 allTimeFooter: t('dashboard.portfolioCardFooterCaption'),
               }}

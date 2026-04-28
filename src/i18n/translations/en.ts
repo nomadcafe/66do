@@ -236,7 +236,13 @@ const en = {
       allTimeAnchor: 'all-time',
       monthlyRenewalCost: 'Monthly renewal cost',
       portfolioCardActiveSold: '{active} active · {sold} sold',
-      portfolioCardYtdRenewalSpend: 'YTD renewal spend',
+      // Tile label: amortized basis — multi-year renewals split per-year so
+      // this number is the steady-state "annual operating cost" rather than
+      // a spiky "what I happened to write a check for this year".
+      portfolioCardYtdRenewalSpend: 'YTD renewal cost (amortized)',
+      // Subtitle: cash basis — what actually left the bank this year.
+      // {amount} / {year} are substituted by the component.
+      portfolioCardYtdRenewalCashPaid: 'paid {amount} · {year}',
       // Was "All-time" — but two of the three footer tiles still are
       // (totalDomains, ROI) while ytdRenewalSpend is current-year only.
       // "Snapshot" works for either reading without splitting the row.

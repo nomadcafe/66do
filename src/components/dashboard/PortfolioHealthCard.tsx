@@ -16,8 +16,14 @@ interface PortfolioHealthCardProps {
   monthlyRevenueSeries: number[];
   /** Optional month labels (same length as series) for hover tooltip + axis context. */
   monthlyRevenueLabels?: string[];
-  /** Sum of all renew-type transactions whose date falls in the current calendar year. */
-  ytdRenewalSpend: number;
+  /** Amortized renewal cost: each renew tx's amount split across the years
+   *  it covers (amount / renewal_period_years), summed for the current year.
+   *  This is the "operational annual cost" — the headline number on the tile. */
+  ytdRenewalSpendAmortized: number;
+  /** Cash-basis renewal spend: sum of renew tx amounts whose date is in the
+   *  current calendar year. Shown as the subtitle so the user can compare
+   *  against their bank statement. */
+  ytdRenewalSpendCash: number;
   /** Current calendar year, displayed as a subtitle on the YTD spend tile (e.g. "2026"). */
   currentYear: number;
   formatCurrency: (n: number) => string;
@@ -34,7 +40,12 @@ interface PortfolioHealthCardProps {
     domains: string;
     activeSold: (active: number, sold: number) => string;
     roi: string;
+    /** Label for the renewal-spend tile, e.g. "YTD renewal cost". */
     ytdRenewalSpend: string;
+    /** Subtitle phrase used to introduce the cash-basis figure, e.g.
+     *  "paid {amount} · {year}" / "实付 {amount} · {year}". The component
+     *  substitutes {amount} and {year}. */
+    ytdRenewalCashPaid: string;
     trendWindowAria: string;
     /** Caption above the footer stat row. Note: total domains + ROI are
      *  all-time, but ytdRenewalSpend is current calendar year only — the
@@ -57,7 +68,8 @@ export default function PortfolioHealthCard({
   roi,
   monthlyRevenueSeries,
   monthlyRevenueLabels,
-  ytdRenewalSpend,
+  ytdRenewalSpendAmortized,
+  ytdRenewalSpendCash,
   currentYear,
   formatCurrency,
   windowOptions,
@@ -322,10 +334,20 @@ export default function PortfolioHealthCard({
               <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">
                 {labels.ytdRenewalSpend}
               </p>
-              <p className="text-sm font-semibold text-stone-900 tabular-nums">
-                {formatCurrency(ytdRenewalSpend)}
+              {/* Headline: amortized — the steady-state "operational" annual cost.
+                  Subtitle: the actual cash paid this year, so a multi-year
+                  lump payment is still visible somewhere on the card. */}
+              <p
+                className="text-sm font-semibold text-stone-900 tabular-nums"
+                title={labels.ytdRenewalSpend}
+              >
+                {formatCurrency(ytdRenewalSpendAmortized)}
               </p>
-              <p className="text-xs text-stone-400 tabular-nums">{currentYear}</p>
+              <p className="text-xs text-stone-400 tabular-nums">
+                {labels.ytdRenewalCashPaid
+                  .replace('{amount}', formatCurrency(ytdRenewalSpendCash))
+                  .replace('{year}', String(currentYear))}
+              </p>
             </div>
           </div>
         </div>
