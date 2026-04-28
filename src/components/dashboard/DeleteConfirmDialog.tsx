@@ -1,6 +1,6 @@
 'use client';
 
-import { type RefObject } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface DeleteConfirmDialogProps {
   open: boolean;
@@ -16,18 +16,17 @@ interface DeleteConfirmDialogProps {
   titleId: string;
   /** id used for aria-describedby */
   descriptionId: string;
-  cancelRef?: RefObject<HTMLButtonElement | null>;
-  confirmRef?: RefObject<HTMLButtonElement | null>;
   onCancel: () => void;
   onConfirm: () => void | Promise<void>;
 }
 
 /**
  * Generic destructive-action confirm dialog used by the dashboard for
- * both "delete domain" and "delete transaction". Pulled out of
- * dashboard/page.tsx as part of the P0 refactor — the two prior
- * inline copies were identical apart from the title/body strings and
- * the ref pair.
+ * both "delete domain" and "delete transaction". Owns its own a11y
+ * plumbing: scroll lock while open, Escape closes, Tab traps between
+ * the two buttons, the destructive button auto-focuses on open (so
+ * Enter naturally confirms — pair with focus-visible ring), focus
+ * restores on close.
  */
 export default function DeleteConfirmDialog({
   open,
@@ -37,11 +36,48 @@ export default function DeleteConfirmDialog({
   cancelLabel,
   titleId,
   descriptionId,
-  cancelRef,
-  confirmRef,
   onCancel,
   onConfirm,
 }: DeleteConfirmDialogProps) {
+  const cancelRef = useRef<HTMLButtonElement | null>(null);
+  const confirmRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const focusTimer = window.setTimeout(() => confirmRef.current?.focus(), 0);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onCancel();
+        return;
+      }
+      if (e.key === 'Tab') {
+        const cancel = cancelRef.current;
+        const confirm = confirmRef.current;
+        if (!cancel || !confirm) return;
+        const active = document.activeElement;
+        if (e.shiftKey && active === cancel) {
+          e.preventDefault();
+          confirm.focus();
+        } else if (!e.shiftKey && active === confirm) {
+          e.preventDefault();
+          cancel.focus();
+        }
+      }
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener('keydown', handleKey);
+      document.body.style.overflow = prevOverflow;
+      previouslyFocused?.focus?.();
+    };
+  }, [open, onCancel]);
+
   if (!open) return null;
   return (
     <div
