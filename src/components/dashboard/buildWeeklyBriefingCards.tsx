@@ -43,14 +43,31 @@ export function buildWeeklyBriefingCards({
         icon: <AlertTriangle className="h-4 w-4" />,
         iconBg: 'bg-rose-50 text-rose-600',
         title: t('dashboard.briefingExpiringTitle'),
-        primary: t('dashboard.briefingExpiringPrimary').replace('{count}', String(expiringThisWeek.length)),
+        // When there's only one expiring domain, name it directly so the
+        // "Renew" action isn't ambiguous. With multiple, fall back to the
+        // count phrase and let the user disambiguate via the list anchor.
+        primary: expiringThisWeek.length === 1
+          ? expiringThisWeek[0].domain_name
+          : t('dashboard.briefingExpiringPrimary').replace('{count}', String(expiringThisWeek.length)),
         secondary: expiringThisWeekCost > 0
           ? t('dashboard.briefingExpiringSecondary').replace('{cost}', formatCurrency(expiringThisWeekCost))
           : undefined,
-        action: {
-          label: t('common.renew'),
-          onClick: () => expiringThisWeek[0] && onRenew(expiringThisWeek[0]),
-        },
+        // Single domain → renew action goes straight to that one's modal.
+        // Multiple domains → "Review" instead, scrolling to the list so the
+        // user can pick which one to renew. We never auto-pick "the first".
+        action: expiringThisWeek.length === 1
+          ? {
+              label: t('common.renew'),
+              onClick: () => onRenew(expiringThisWeek[0]),
+            }
+          : {
+              label: t('dashboard.briefingReview'),
+              onClick: () => {
+                document
+                  .getElementById(domainListAnchorId)
+                  ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              },
+            },
       }
     : {
         icon: <Calendar className="h-4 w-4" />,
