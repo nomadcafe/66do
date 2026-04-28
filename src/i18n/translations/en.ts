@@ -155,7 +155,20 @@ const en = {
     showAdvancedStats: 'Show Advanced Statistics',
     showAdvancedStatsDesc: 'Display detailed investment analysis data',
     compactMode: 'Compact Mode',
-    compactModeDesc: 'Reduce interface spacing to show more content'
+    compactModeDesc: 'Reduce interface spacing to show more content',
+    icalTitle: 'Renewal calendar subscription',
+    icalSubtitle: 'Sync all your domain renewal dates to your calendar app — Google Calendar / Apple Calendar will fire native reminders so you never miss one.',
+    icalSubscribeUrl: 'Subscribe URL (webcal://)',
+    icalSubscribe: 'Subscribe',
+    icalHttpUrl: 'HTTPS URL',
+    icalHttpHint: 'Google Calendar / outlook.com don\'t support webcal://, use this URL to add the calendar subscription instead.',
+    icalCopy: 'Copy',
+    icalRegenerate: 'Regenerate subscription URL',
+    icalRegenerateHint: 'Regenerating immediately invalidates the old URL (use if you suspect a leak). Calendar clients will need to resubscribe.',
+    icalRegenerateConfirm: 'Are you sure? The existing subscription URL will be invalidated immediately and you\'ll need to resubscribe in your calendar app.',
+    icalLoadFailed: 'Failed to load subscription URL',
+    icalCopyFailed: 'Copy failed',
+    icalRegenerateFailed: 'Regenerate failed'
   },
     dashboard: {
       title: 'Domain Investment Dashboard',

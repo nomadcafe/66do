@@ -154,7 +154,20 @@ const zh = {
     showAdvancedStats: '显示高级统计',
     showAdvancedStatsDesc: '显示详细的投资分析数据',
     compactMode: '紧凑模式',
-    compactModeDesc: '减少界面间距，显示更多内容'
+    compactModeDesc: '减少界面间距，显示更多内容',
+    icalTitle: '续费日历订阅',
+    icalSubtitle: '把所有域名的续费日同步到你的日历应用，让 Google Calendar / Apple Calendar 直接给你提醒。',
+    icalSubscribeUrl: '订阅链接（webcal://）',
+    icalSubscribe: '一键订阅',
+    icalHttpUrl: 'HTTPS 链接',
+    icalHttpHint: 'Google Calendar / outlook.com 不支持 webcal://，请用这个 URL 添加日历订阅。',
+    icalCopy: '复制',
+    icalRegenerate: '重新生成订阅链接',
+    icalRegenerateHint: '重新生成会立即失效旧链接（如果你怀疑链接被泄露）。日历客户端需要重新订阅。',
+    icalRegenerateConfirm: '确定要重新生成吗？现有的订阅链接将立即失效，需要重新在日历应用里订阅新链接。',
+    icalLoadFailed: '加载订阅链接失败',
+    icalCopyFailed: '复制失败',
+    icalRegenerateFailed: '重新生成失败'
   },
     dashboard: {
       title: '域名投资仪表板',
