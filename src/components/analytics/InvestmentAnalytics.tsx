@@ -46,8 +46,9 @@ interface PortfolioMetrics {
 
 interface TimeSeriesData {
   date: string;
-  investment: number;        // 单月新增 cost basis（buy + renew 在这个月发生的部分）
-  renewalCost: number;       // 单月里 investment 中归属于「续费」的部分（含 baseline 一次性 archive 记账）
+  investment: number;        // 单月新增 cost basis（buy + 实际续费 archive/tx）
+  renewalCost: number;       // investment 里归属于「实际续费」的部分（archive + tx，不含 projected）
+  renewalCostProjected: number; // 假设域名继续保留时，本月预计的续费支出（不并入 investment）
   revenue: number;           // 单月净入账（分期销售按到账月展开）
   cumulativeNetProfit: number; // 累计净利润 = Σ(revenue − investment)；纯交易数字、无估值
   monthlyCashFlow: number;   // 给月度净现金流图用，本图不画
@@ -169,12 +170,18 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     // 一天砸一笔历史续费 lump 让图上看起来"突然支出 $30 后再无支出"。
     // Investment = 当月购买事件 + 当月续费事件，两者来自相同的事件流，
     // 所以 Investment 总能 ≥ Renewal cost，永远不会出现"续费 > 投资"的怪图。
-    const renewalEventsByMonth = new Map<string, number>();
+    // Renewal events split by source: archive/tx events count as "actual" cost
+    // basis impact, projected events only feed the dotted forecast line on the
+    // chart. Projected forecastUntil = today so we never project visible months
+    // beyond what the chart covers anyway.
+    const renewalActualByMonth = new Map<string, number>();
+    const renewalProjectedByMonth = new Map<string, number>();
     for (const d of filteredData.domains) {
-      for (const ev of expandRenewalEvents(d, filteredData.transactions)) {
+      for (const ev of expandRenewalEvents(d, filteredData.transactions, { forecastUntil: now })) {
         if (ev.date > now) continue;
         const key = ev.date.toISOString().slice(0, 7);
-        renewalEventsByMonth.set(key, (renewalEventsByMonth.get(key) ?? 0) + ev.amount);
+        const target = ev.source === 'projected' ? renewalProjectedByMonth : renewalActualByMonth;
+        target.set(key, (target.get(key) ?? 0) + ev.amount);
       }
     }
     const purchaseEventsByMonth = new Map<string, number>();
@@ -197,7 +204,11 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       if (date > now) break;
 
       const purchaseThisMonth = purchaseEventsByMonth.get(monthKey) ?? 0;
-      const renewalCost = renewalEventsByMonth.get(monthKey) ?? 0;
+      const renewalCost = renewalActualByMonth.get(monthKey) ?? 0;
+      const renewalCostProjected = renewalProjectedByMonth.get(monthKey) ?? 0;
+      // Investment counts only realised events; projected stays as a separate
+      // forecast line so cumulativeNetProfit doesn't go more negative just
+      // because a renewal is anticipated.
       const investment = purchaseThisMonth + renewalCost;
 
       // 入账：从 monthlyNetInflowByMonth 直接取（已按到账月聚合）。
@@ -223,6 +234,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         date: monthKey,
         investment,
         renewalCost,
+        renewalCostProjected,
         revenue,
         cumulativeNetProfit,
         monthlyCashFlow
@@ -331,6 +343,10 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
               <span>{t('analytics.renewalCost')}</span>
             </div>
             <div className="flex items-center gap-2">
+              <div className="w-3 h-1 bg-purple-300 rounded"></div>
+              <span>{t('analytics.renewalCostProjected')}</span>
+            </div>
+            <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-emerald-500 rounded"></div>
               <span>{t('analytics.revenue')}</span>
             </div>
@@ -409,6 +425,16 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
               dot={false}
               name={t('analytics.renewalCost')}
               activeDot={{ r: 5, fill: '#a855f7' }}
+            />
+            <Line
+              type="monotone"
+              dataKey="renewalCostProjected"
+              stroke="#c4b5fd"
+              strokeWidth={2}
+              strokeDasharray="2 4"
+              dot={false}
+              name={t('analytics.renewalCostProjected')}
+              activeDot={{ r: 5, fill: '#c4b5fd' }}
             />
             <Area
               type="monotone"

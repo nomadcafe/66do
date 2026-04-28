@@ -35,6 +35,7 @@ describe('expandRenewalEvents', () => {
     ]);
     expect(events.every(e => e.amount === 10)).toBe(true);
     expect(events.every(e => e.source === 'archive')).toBe(true);
+    expect(events.every(e => e.years === 1)).toBe(true);
   });
 
   it("user's tricky case: bought 2022-01-15 but expires 2022-02-15 (short initial term)", () => {
@@ -57,6 +58,7 @@ describe('expandRenewalEvents', () => {
       '2022-02-15', '2023-02-15', '2024-02-15',
     ]);
     expect(events.every(e => e.source === 'archive')).toBe(true);
+    expect(events.every(e => e.years === 1)).toBe(true);
   });
 
   it('multi-year cycle (.ai 2yr) with expiry_date set: renewals walked back from current expiry', () => {
@@ -133,6 +135,7 @@ describe('expandRenewalEvents', () => {
     // renewal_count, so we mirror that here. Tx is ignored.
     expect(events).toHaveLength(2);
     expect(events.every(e => e.source === 'archive')).toBe(true);
+    expect(events.every(e => e.years === 1)).toBe(true);
   });
 
   it('zero renewal_count → no archive events even with cost set', () => {
@@ -181,6 +184,133 @@ describe('expandRenewalEvents', () => {
     }, []);
     expect(events).toHaveLength(1);
     expect(events[0].date.toISOString().slice(0, 10)).toBe('2025-01-01');
+  });
+
+  // ────────────── Forecast / projection cases ──────────────
+
+  it("forecast: user's case (expiry past today) → projected event at expiry, not next cycle", () => {
+    // 2020-02 purchase, 3 archive renewals, expiry 2025-10. Today is 2026-04
+    // (per the user's example) — expiry is 6 months past. Projecting through
+    // today should emit ONE event right at expiry (2025-10) and stop, since
+    // the next would be 2026-10 which is in the future.
+    const events = expandRenewalEvents({
+      id: 'd-forecast-1',
+      status: 'active',
+      purchase_date: '2020-02-15',
+      expiry_date: '2025-10-15',
+      renewal_count: 3,
+      renewal_cycle: 1,
+      renewal_cost: 10,
+      baseline_renewal_as_of: '2026-04-28',
+    }, [], { forecastUntil: new Date('2026-04-28T12:00:00Z') });
+    const projected = events.filter(e => e.source === 'projected');
+    expect(projected).toHaveLength(1);
+    expect(projected[0].date.toISOString().slice(0, 10)).toBe('2025-10-15');
+    expect(projected[0].amount).toBe(10);
+    expect(projected[0].years).toBe(1);
+    // archive part still present
+    expect(events.filter(e => e.source === 'archive')).toHaveLength(3);
+  });
+
+  it('forecast through end of year captures multiple future renewals', () => {
+    // expiry 2025-10, horizon end-of-2026 → projects 2025-10 AND 2026-10.
+    const events = expandRenewalEvents({
+      id: 'd-forecast-2',
+      status: 'active',
+      purchase_date: '2020-02-15',
+      expiry_date: '2025-10-15',
+      renewal_count: 3,
+      renewal_cycle: 1,
+      renewal_cost: 10,
+      baseline_renewal_as_of: '2026-04-28',
+    }, [], { forecastUntil: new Date('2026-12-31T23:59:59Z') });
+    const projected = events.filter(e => e.source === 'projected');
+    expect(projected.map(e => e.date.toISOString().slice(0, 10))).toEqual([
+      '2025-10-15', '2026-10-15',
+    ]);
+  });
+
+  it('forecast respects status: sold and expired domains get NO projections', () => {
+    for (const status of ['sold', 'expired'] as const) {
+      const events = expandRenewalEvents({
+        id: `d-forecast-${status}`,
+        status,
+        purchase_date: '2020-01-01',
+        expiry_date: '2025-01-01',
+        renewal_count: 3,
+        renewal_cycle: 1,
+        renewal_cost: 10,
+        baseline_renewal_as_of: '2026-01-01',
+      }, [], { forecastUntil: new Date('2030-01-01T00:00:00Z') });
+      expect(events.filter(e => e.source === 'projected')).toHaveLength(0);
+    }
+  });
+
+  it('forecast: missing forecastUntil option → no projections emitted', () => {
+    const events = expandRenewalEvents({
+      id: 'd-forecast-no-opt',
+      status: 'active',
+      purchase_date: '2020-01-01',
+      expiry_date: '2025-01-01',
+      renewal_count: 3,
+      renewal_cycle: 1,
+      renewal_cost: 10,
+      baseline_renewal_as_of: '2026-01-01',
+    }, []);
+    expect(events.filter(e => e.source === 'projected')).toHaveLength(0);
+  });
+
+  it('forecast: missing expiry_date → no projections emitted (no anchor)', () => {
+    // Even with forecastUntil set, can't project without an expiry to start from.
+    const events = expandRenewalEvents({
+      id: 'd-forecast-no-expiry',
+      status: 'active',
+      purchase_date: '2020-01-01',
+      renewal_count: 3,
+      renewal_cycle: 1,
+      renewal_cost: 10,
+      baseline_renewal_as_of: '2026-01-01',
+    }, [], { forecastUntil: new Date('2030-01-01T00:00:00Z') });
+    expect(events.filter(e => e.source === 'projected')).toHaveLength(0);
+  });
+
+  it('forecast: multi-year cycle steps forward by `cycle` years per projected event', () => {
+    const events = expandRenewalEvents({
+      id: 'd-forecast-2y',
+      status: 'active',
+      purchase_date: '2020-01-01',
+      expiry_date: '2024-01-01',
+      renewal_count: 2,
+      renewal_cycle: 2,
+      renewal_cost: 100,
+      baseline_renewal_as_of: '2025-01-01',
+    }, [], { forecastUntil: new Date('2030-06-30T00:00:00Z') });
+    const projected = events.filter(e => e.source === 'projected');
+    // Steps: 2024-01-01, 2026-01-01, 2028-01-01, 2030-01-01 (≤ 2030-06-30 ✓)
+    expect(projected.map(e => e.date.toISOString().slice(0, 10))).toEqual([
+      '2024-01-01', '2026-01-01', '2028-01-01', '2030-01-01',
+    ]);
+    expect(projected.every(e => e.years === 2)).toBe(true);
+  });
+
+  it('post-baseline tx renewal_period_years is preserved on the event (used for amortization)', () => {
+    const events = expandRenewalEvents({
+      id: 'd-tx-years',
+      status: 'active',
+      purchase_date: '2020-01-01',
+      expiry_date: '2030-01-01',
+      renewal_count: 1,
+      renewal_cycle: 1,
+      renewal_cost: 10,
+      baseline_renewal_as_of: '2025-01-01',
+    }, [{
+      ...tx('d-tx-years', '2025-01-15', 50),
+      renewal_period_years: 5,
+    }]);
+    const txs = events.filter(e => e.source === 'transaction');
+    expect(txs).toHaveLength(1);
+    expect(txs[0].years).toBe(5);
+    expect(txs[0].amount).toBe(50);
   });
 
   it('post-baseline tx for a different domain is not picked up', () => {
