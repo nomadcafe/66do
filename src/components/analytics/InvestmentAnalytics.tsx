@@ -47,6 +47,7 @@ interface PortfolioMetrics {
 interface TimeSeriesData {
   date: string;
   investment: number;        // 单月新增 cost basis（buy + renew 在这个月发生的部分）
+  renewalCost: number;       // 单月里 investment 中归属于「续费」的部分（含 baseline 一次性 archive 记账）
   revenue: number;           // 单月净入账（分期销售按到账月展开）
   cumulativeNetProfit: number; // 累计净利润 = Σ(revenue − investment)；纯交易数字、无估值
   monthlyCashFlow: number;   // 给月度净现金流图用，本图不画
@@ -165,7 +166,13 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     // Investment 改为「单月新增 cost basis」：用截至本月末与上月末的累计 cost basis 作差。
     // 这样 buy/renew 落在哪个月、baseline_renewal_as_of 那段历史续费一次性记账等情形都自然
     // 归到对应月份，且 Σ investment_i 仍然 = 当前累计 cost basis，与原 cumulative 口径一致。
+    //
+    // 续费成本（renewalCost）= investment 中扣掉「初次购买」那部分。purchaseCost 累计只看
+    // domain.purchase_date 落在 ≤ monthEnd 的 domain.purchase_cost 求和，剩下 holdingCostAsOf
+    // 给出的就一定是续费来的（archive baseline lump + post-baseline renew tx）。这样图上
+    // Investment 折线 ≈ Renewal 折线 + 当月购买，能一眼看出某月支出是买入还是续费驱动。
     let prevCumulativeCost = 0;
+    let prevCumulativePurchase = 0;
     let cumulativeRevenue = 0;
     let cumulativeInvestment = 0;
     for (let i = 0; i < monthsToShow; i++) {
@@ -184,6 +191,15 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       );
       const investment = Math.max(0, cumulativeCost - prevCumulativeCost);
       prevCumulativeCost = cumulativeCost;
+
+      const cumulativePurchase = filteredData.domains.reduce((sum, domain) => {
+        if (!domain.purchase_date) return sum;
+        if (new Date(domain.purchase_date) > monthEnd) return sum;
+        return sum + (Number(domain.purchase_cost) || 0);
+      }, 0);
+      const purchaseThisMonth = Math.max(0, cumulativePurchase - prevCumulativePurchase);
+      prevCumulativePurchase = cumulativePurchase;
+      const renewalCost = Math.max(0, investment - purchaseThisMonth);
 
       // 入账：从 monthlyNetInflowByMonth 直接取（已按到账月聚合）。
       const revenue = monthlyNetInflowByMonth.get(monthKey) ?? 0;
@@ -207,6 +223,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       data.push({
         date: monthKey,
         investment,
+        renewalCost,
         revenue,
         cumulativeNetProfit,
         monthlyCashFlow
@@ -311,6 +328,10 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
               <span>{t('analytics.investment')}</span>
             </div>
             <div className="flex items-center gap-2">
+              <div className="w-3 h-1 bg-purple-500 rounded"></div>
+              <span>{t('analytics.renewalCost')}</span>
+            </div>
+            <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-emerald-500 rounded"></div>
               <span>{t('analytics.revenue')}</span>
             </div>
@@ -379,6 +400,16 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
               strokeWidth={2}
               name={t('analytics.investment')}
               activeDot={{ r: 6, fill: '#6366f1' }}
+            />
+            <Line
+              type="monotone"
+              dataKey="renewalCost"
+              stroke="#a855f7"
+              strokeWidth={2}
+              strokeDasharray="4 3"
+              dot={false}
+              name={t('analytics.renewalCost')}
+              activeDot={{ r: 5, fill: '#a855f7' }}
             />
             <Area
               type="monotone"

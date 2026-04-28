@@ -840,6 +840,7 @@ const zh = {
         'ALL': '全部时间'
       },
       investment: '投资',
+      renewalCost: '续费成本',
       revenue: '收益',
       cumulativeNetProfit: '累计净利润',
       riskMetrics: '风险指标',
