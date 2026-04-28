@@ -1,14 +1,20 @@
 'use client';
 
 import { useState, useMemo, memo } from 'react';
-import { Globe, Calendar, DollarSign, Tag, Edit, Trash2, Eye, Share2 } from 'lucide-react';
+import { Globe, Calendar, DollarSign, Tag, Edit, Trash2, Eye, Share2, AlertTriangle } from 'lucide-react';
 import DomainShareModal from '../share/DomainShareModal';
 import { DomainWithTags } from '../../types/dashboard';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { calculateDomainROI } from '../../lib/financialCalculations';
 import { totalHoldingCostForDomain } from '../../lib/renewalCostBasis';
 import { domainStatusLabel as statusLabel } from '../../lib/domainStatusLabel';
+import { daysUntilEffectiveExpiry } from '../../lib/effectiveExpiry';
 import type { TransactionWithRequiredFields } from '../../types/transaction';
+
+/** Days past effective expiry after which a still-active domain is "stale".
+ *  Picked to avoid noise on weekend/timezone slop and to give the user a
+ *  reasonable grace window before yelling at them. */
+const STALE_GRACE_DAYS = 14;
 
 interface DomainCardProps {
   domain: DomainWithTags;
@@ -29,6 +35,17 @@ const DomainCard = memo(function DomainCard({ domain, transactions = [], onEdit,
     () => totalHoldingCostForDomain(domain, transactions),
     [domain, transactions]
   );
+
+  // "Stale": still-listed domain whose effective expiry is well past today.
+  // Most likely the user renewed at the registrar without recording the
+  // renew transaction here — we can't know which way to fix it, so prompt.
+  const staleDaysPastExpiry = useMemo(() => {
+    if (domain.status !== 'active' && domain.status !== 'for_sale') return null;
+    const days = daysUntilEffectiveExpiry(domain);
+    if (days === null) return null;
+    if (days >= -STALE_GRACE_DAYS) return null;
+    return -days; // positive number of days past expiry
+  }, [domain]);
 
   // 与 InvestmentAnalytics 状态饼图 + DomainTable 对齐：3 段语义色
   // (active emerald / for_sale amber / sold teal / expired rose)，统一
@@ -117,6 +134,30 @@ const DomainCard = memo(function DomainCard({ domain, transactions = [], onEdit,
           </div>
         </div>
       </div>
+
+      {staleDaysPastExpiry !== null && (
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200/80 rounded-xl">
+          <div className="flex items-start gap-2 text-amber-800">
+            <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium">
+                {t('domain.staleExpiryTitle')
+                  .replace('{days}', String(staleDaysPastExpiry))}
+              </p>
+              <p className="text-xs text-amber-700 mt-1">
+                {t('domain.staleExpiryHint')}
+              </p>
+              <button
+                onClick={() => onEdit(domain)}
+                className="mt-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-100 text-amber-800 hover:bg-amber-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+              >
+                <Edit className="h-3 w-3" />
+                {t('domain.staleExpiryAction')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {domain.status === 'sold' && domain.sale_date && domain.sale_price && (
         <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200/80 rounded-xl">
