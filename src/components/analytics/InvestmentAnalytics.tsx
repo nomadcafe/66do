@@ -46,10 +46,10 @@ interface PortfolioMetrics {
 
 interface TimeSeriesData {
   date: string;
-  investment: number;
-  revenue: number;
-  portfolioValue: number;
-  monthlyCashFlow: number;
+  investment: number;        // 单月新增 cost basis（buy + renew 在这个月发生的部分）
+  revenue: number;           // 单月净入账（分期销售按到账月展开）
+  cumulativeNetProfit: number; // 累计净利润 = Σ(revenue − investment)；纯交易数字、无估值
+  monthlyCashFlow: number;   // 给月度净现金流图用，本图不画
 }
 
 const InfoTooltip = ({ text }: { text: string }) => (
@@ -162,7 +162,12 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       }
     }
 
+    // Investment 改为「单月新增 cost basis」：用截至本月末与上月末的累计 cost basis 作差。
+    // 这样 buy/renew 落在哪个月、baseline_renewal_as_of 那段历史续费一次性记账等情形都自然
+    // 归到对应月份，且 Σ investment_i 仍然 = 当前累计 cost basis，与原 cumulative 口径一致。
+    let prevCumulativeCost = 0;
     let cumulativeRevenue = 0;
+    let cumulativeInvestment = 0;
     for (let i = 0; i < monthsToShow; i++) {
       const date = new Date(startDate);
       date.setMonth(date.getMonth() + i);
@@ -173,12 +178,12 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       // 月末时点（月最后一刻），用于 "截至该月" 的累计计算
       const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
 
-      // 用 holdingCostAsOf 按月结存算：已发生的购买/续费才计入，避免
-      // 把之后才发生的续费算进历史月份。
-      const investment = filteredData.domains.reduce(
+      const cumulativeCost = filteredData.domains.reduce(
         (sum, domain) => sum + holdingCostAsOf(domain, filteredData.transactions, monthEnd),
         0
       );
+      const investment = Math.max(0, cumulativeCost - prevCumulativeCost);
+      prevCumulativeCost = cumulativeCost;
 
       // 入账：从 monthlyNetInflowByMonth 直接取（已按到账月聚合）。
       const revenue = monthlyNetInflowByMonth.get(monthKey) ?? 0;
@@ -194,32 +199,16 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       const monthlyCashFlow = revenue - costThisMonth;
 
       cumulativeRevenue += revenue;
-
-      // Portfolio value = 已实收 + 持仓 fair value（按月 mark-to-market）。
-      // 持仓判定：截至 monthEnd 已购入、未售出、未过期。
-      // Fair value：优先 estimated_value；缺失时回退到截至 monthEnd 的 cost basis
-      // （永远算得出的保守口径）。已售域名的现金已计入 cumulativeRevenue；
-      // 已过期域名按 0（损失沉没，不再贡献价值）。
-      const heldValue = filteredData.domains.reduce((sum, d) => {
-        if (!d.purchase_date) return sum;
-        if (new Date(d.purchase_date) > monthEnd) return sum;
-        if (d.status === 'sold' && d.sale_date && new Date(d.sale_date) <= monthEnd) return sum;
-        if (d.status === 'expired' && d.expiry_date && new Date(d.expiry_date) <= monthEnd) return sum;
-
-        const fairValue =
-          d.estimated_value != null && d.estimated_value > 0
-            ? d.estimated_value
-            : holdingCostAsOf(d, filteredData.transactions, monthEnd);
-        return sum + fairValue;
-      }, 0);
-
-      const portfolioValue = cumulativeRevenue + heldValue;
+      cumulativeInvestment += investment;
+      // 累计净利润 = 累计实收 − 累计 cost basis（buy + renew）。
+      // 与 Portfolio Value 不同，这里完全基于真实交易，不引入 estimated_value 这类估值。
+      const cumulativeNetProfit = cumulativeRevenue - cumulativeInvestment;
 
       data.push({
         date: monthKey,
         investment,
         revenue,
-        portfolioValue,
+        cumulativeNetProfit,
         monthlyCashFlow
       });
     }
@@ -327,7 +316,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-amber-500 rounded"></div>
-              <span>{t('analytics.portfolioValue')}</span>
+              <span>{t('analytics.cumulativeNetProfit')}</span>
             </div>
           </div>
         </div>
@@ -376,7 +365,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
               formatter={(value, name) => [
                 `$${Number(value).toLocaleString()}`,
                 name === 'investment' ? t('analytics.investment') :
-                name === 'revenue' ? t('analytics.revenue') : t('analytics.portfolioValue')
+                name === 'revenue' ? t('analytics.revenue') : t('analytics.cumulativeNetProfit')
               ]}
               labelFormatter={(value) => {
                 const date = new Date(value);
@@ -386,7 +375,6 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
             <Area
               type="monotone"
               dataKey="investment"
-              stackId="1"
               stroke="#6366f1"
               fill="url(#colorInvestment)"
               strokeWidth={2}
@@ -396,7 +384,6 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
             <Area
               type="monotone"
               dataKey="revenue"
-              stackId="2"
               stroke="#10b981"
               fill="url(#colorRevenue)"
               strokeWidth={2}
@@ -405,11 +392,11 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
             />
             <Line
               type="monotone"
-              dataKey="portfolioValue"
+              dataKey="cumulativeNetProfit"
               stroke="#f59e0b"
               fill="url(#colorPortfolio)"
               strokeWidth={3}
-              name={t('analytics.portfolioValue')}
+              name={t('analytics.cumulativeNetProfit')}
               dot={{ r: 4, fill: '#f59e0b' }}
               activeDot={{ r: 8, fill: '#f59e0b' }}
             />
