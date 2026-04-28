@@ -208,6 +208,7 @@ const zh = {
       portfolio: '组合',
       activity: '动态',
       insights: '洞察',
+      portfolioBadgeTitle: '{count} 个域名需要关注（30 天内到期，或最近 7 天已过期但还没标记）',
       thisWeek: '本周该做什么',
       thisWeekHint: '决策驱动的提醒,而非堆砌数字',
       briefingExpiringTitle: '即将到期',

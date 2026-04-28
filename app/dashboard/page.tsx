@@ -715,6 +715,7 @@ export default function DashboardPage() {
             portfolio: t('dashboard.portfolio'),
             activity: t('dashboard.activity'),
             insights: t('dashboard.insights'),
+            expiringBadgeTitle: t('dashboard.portfolioBadgeTitle'),
           }}
         />
 

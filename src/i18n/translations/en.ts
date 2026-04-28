@@ -209,6 +209,7 @@ const en = {
       portfolio: 'Portfolio',
       activity: 'Activity',
       insights: 'Insights',
+      portfolioBadgeTitle: '{count} domain(s) need attention (expiring within 30 days, or expired in the last 7 days)',
       thisWeek: 'This week',
       thisWeekHint: 'Decision-driven prompts — not just numbers',
       briefingExpiringTitle: 'Expiring soon',

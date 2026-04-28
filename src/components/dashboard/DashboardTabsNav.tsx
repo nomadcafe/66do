@@ -13,6 +13,8 @@ interface DashboardTabsNavProps {
     portfolio: string;
     activity: string;
     insights: string;
+    /** Tooltip / aria-label explaining what the red Portfolio badge counts. */
+    expiringBadgeTitle: string;
   };
 }
 
@@ -46,6 +48,8 @@ export default function DashboardTabsNav({
           {labels.portfolio}
           {expiringCount > 0 && (
             <span
+              title={labels.expiringBadgeTitle.replace('{count}', String(expiringCount))}
+              aria-label={labels.expiringBadgeTitle.replace('{count}', String(expiringCount))}
               className={`ml-1 rounded-full px-2 py-0.5 text-xs ${
                 active === 'portfolio' ? 'bg-red-400 text-white' : 'bg-red-500 text-white'
               }`}
