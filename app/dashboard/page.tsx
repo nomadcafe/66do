@@ -47,6 +47,7 @@ import { useDomainStats } from '../../src/hooks/useDomainStats';
 import { calculateBasicFinancialMetrics, sellNetUSD, expandSellToCashReceipts } from '../../src/lib/coreCalculations';
 import { calculatePaidAmountFromInstallment } from '../../src/lib/platformFeeCalculator';
 import { totalHoldingCostForDomain } from '../../src/lib/renewalCostBasis';
+import { getEffectiveExpiry } from '../../src/lib/effectiveExpiry';
 import {
   Plus,
   AlertTriangle,
@@ -343,17 +344,20 @@ export default function DashboardPage() {
     return calculateAnnualRenewalCost(validDomains);
   }, [domains]);
 
-  // 即将到期 + 刚过期（7 天内）：30 天内到期或已过期 7 天内，便于续费/标记已售
+  // 即将到期 + 刚过期（7 天内）：30 天内到期或已过期 7 天内，便于续费/标记已售。
+  // 用 getEffectiveExpiry 兜底链：没填 expiry_date 也用 next_renewal_date 或者
+  // purchase + (renewal_count+1)×cycle 推算，否则数据没填全的用户会被静默忽略。
   const EXPIRING_WINDOW_DAYS = 30;
   const RECENTLY_EXPIRED_DAYS = 7;
   const expiringDomains = useMemo(() => {
-    return domains.filter(domain => {
-      if (domain.status === 'sold') return false;
-      if (!domain.expiry_date) return false;
-      const daysUntilExpiry = Math.ceil((new Date(domain.expiry_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-      return daysUntilExpiry <= EXPIRING_WINDOW_DAYS && daysUntilExpiry >= -RECENTLY_EXPIRED_DAYS;
-    }).map(domain => {
-      const daysUntilExpiry = Math.ceil((new Date(domain.expiry_date!).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    const now = Date.now();
+    return domains.flatMap(domain => {
+      if (domain.status === 'sold') return [];
+      const eff = getEffectiveExpiry(domain);
+      if (!eff.date) return [];
+      const daysUntilExpiry = Math.ceil((eff.date.getTime() - now) / (1000 * 60 * 60 * 24));
+      if (daysUntilExpiry > EXPIRING_WINDOW_DAYS) return [];
+      if (daysUntilExpiry < -RECENTLY_EXPIRED_DAYS) return [];
       const urgency = daysUntilExpiry < 0
         ? 'expired'
         : daysUntilExpiry <= 7
@@ -361,7 +365,7 @@ export default function DashboardPage() {
           : daysUntilExpiry <= 14
             ? 'urgent'
             : 'normal';
-      return { ...domain, daysUntilExpiry, urgency };
+      return [{ ...domain, daysUntilExpiry, urgency, expirySource: eff.source }];
     }).sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
   }, [domains]);
 
@@ -467,18 +471,20 @@ export default function DashboardPage() {
     return monthlyRevenueSeries.reduce((sum, v) => sum + v, 0);
   }, [trendWindow, stats.totalRevenue, monthlyRevenueSeries]);
 
-  // Days until the next non-sold domain expires (negative = already expired but not yet marked)
-  // 同时返回域名名 / 到期日 / 剩余天数，让 PortfolioHealthCard 的"Next Expiry"
-  // 不再只是一个孤零零的天数（用户根本不知道是哪个域名）。
+  // Days until the next non-sold domain expires (negative = already expired but not yet marked).
+  // 也走 getEffectiveExpiry 兜底：没填 expiry_date 时用 next_renewal_date / 推算。
   const nextExpiry = useMemo(() => {
-    const candidates = domains
-      .filter((d) => d.status !== 'sold' && d.expiry_date)
-      .map((d) => ({
+    const now = Date.now();
+    const candidates = domains.flatMap((d) => {
+      if (d.status === 'sold') return [];
+      const eff = getEffectiveExpiry(d);
+      if (!eff.date) return [];
+      return [{
         domainName: d.domain_name,
-        expiryDate: d.expiry_date!,
-        days: Math.ceil((new Date(d.expiry_date!).getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
-      }))
-      .sort((a, b) => a.days - b.days);
+        expiryDate: eff.date.toISOString(),
+        days: Math.ceil((eff.date.getTime() - now) / (1000 * 60 * 60 * 24)),
+      }];
+    }).sort((a, b) => a.days - b.days);
     return candidates.length > 0 ? candidates[0] : null;
   }, [domains]);
   const nextExpiryDays = nextExpiry?.days ?? null;
