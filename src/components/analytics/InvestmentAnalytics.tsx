@@ -30,7 +30,7 @@ import {
   Scale,
   Building2,
 } from 'lucide-react';
-import { holdingCostAsOf } from '../../lib/renewalCostBasis';
+import { expandRenewalEvents } from '../../lib/expandRenewalEvents';
 
 interface InvestmentAnalyticsProps {
   domains: DomainWithTags[];
@@ -163,16 +163,30 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       }
     }
 
-    // Investment 改为「单月新增 cost basis」：用截至本月末与上月末的累计 cost basis 作差。
-    // 这样 buy/renew 落在哪个月、baseline_renewal_as_of 那段历史续费一次性记账等情形都自然
-    // 归到对应月份，且 Σ investment_i 仍然 = 当前累计 cost basis，与原 cumulative 口径一致。
-    //
-    // 续费成本（renewalCost）= investment 中扣掉「初次购买」那部分。purchaseCost 累计只看
-    // domain.purchase_date 落在 ≤ monthEnd 的 domain.purchase_cost 求和，剩下 holdingCostAsOf
-    // 给出的就一定是续费来的（archive baseline lump + post-baseline renew tx）。这样图上
-    // Investment 折线 ≈ Renewal 折线 + 当月购买，能一眼看出某月支出是买入还是续费驱动。
-    let prevCumulativeCost = 0;
-    let prevCumulativePurchase = 0;
+    // 事件口径：把每笔购买 / 每次续费当成一个 (date, amount) 事件，按月聚合。
+    // 续费走 expandRenewalEvents：archive renewal_count × renewal_cost 的总额按
+    // `purchase + i × cycle` 估算到每一年，避免老 holdingCostAsOf 在 baseline 那
+    // 一天砸一笔历史续费 lump 让图上看起来"突然支出 $30 后再无支出"。
+    // Investment = 当月购买事件 + 当月续费事件，两者来自相同的事件流，
+    // 所以 Investment 总能 ≥ Renewal cost，永远不会出现"续费 > 投资"的怪图。
+    const renewalEventsByMonth = new Map<string, number>();
+    for (const d of filteredData.domains) {
+      for (const ev of expandRenewalEvents(d, filteredData.transactions)) {
+        if (ev.date > now) continue;
+        const key = ev.date.toISOString().slice(0, 7);
+        renewalEventsByMonth.set(key, (renewalEventsByMonth.get(key) ?? 0) + ev.amount);
+      }
+    }
+    const purchaseEventsByMonth = new Map<string, number>();
+    for (const d of filteredData.domains) {
+      if (!d.purchase_date) continue;
+      const pd = new Date(d.purchase_date);
+      if (Number.isNaN(pd.getTime()) || pd > now) continue;
+      const key = pd.toISOString().slice(0, 7);
+      const cost = Number(d.purchase_cost) || 0;
+      purchaseEventsByMonth.set(key, (purchaseEventsByMonth.get(key) ?? 0) + cost);
+    }
+
     let cumulativeRevenue = 0;
     let cumulativeInvestment = 0;
     for (let i = 0; i < monthsToShow; i++) {
@@ -182,24 +196,9 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
 
       if (date > now) break;
 
-      // 月末时点（月最后一刻），用于 "截至该月" 的累计计算
-      const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
-
-      const cumulativeCost = filteredData.domains.reduce(
-        (sum, domain) => sum + holdingCostAsOf(domain, filteredData.transactions, monthEnd),
-        0
-      );
-      const investment = Math.max(0, cumulativeCost - prevCumulativeCost);
-      prevCumulativeCost = cumulativeCost;
-
-      const cumulativePurchase = filteredData.domains.reduce((sum, domain) => {
-        if (!domain.purchase_date) return sum;
-        if (new Date(domain.purchase_date) > monthEnd) return sum;
-        return sum + (Number(domain.purchase_cost) || 0);
-      }, 0);
-      const purchaseThisMonth = Math.max(0, cumulativePurchase - prevCumulativePurchase);
-      prevCumulativePurchase = cumulativePurchase;
-      const renewalCost = Math.max(0, investment - purchaseThisMonth);
+      const purchaseThisMonth = purchaseEventsByMonth.get(monthKey) ?? 0;
+      const renewalCost = renewalEventsByMonth.get(monthKey) ?? 0;
+      const investment = purchaseThisMonth + renewalCost;
 
       // 入账：从 monthlyNetInflowByMonth 直接取（已按到账月聚合）。
       const revenue = monthlyNetInflowByMonth.get(monthKey) ?? 0;
