@@ -15,13 +15,14 @@ import ShareModal from '../../src/components/share/ShareModal';
 import SaleSuccessModal from '../../src/components/share/SaleSuccessModal';
 import RenewalModal from '../../src/components/domain/RenewalModal';
 import PortfolioHealthCard from '../../src/components/dashboard/PortfolioHealthCard';
-import WeeklyBriefing, { type BriefingCard } from '../../src/components/dashboard/WeeklyBriefing';
+import WeeklyBriefing from '../../src/components/dashboard/WeeklyBriefing';
 import SettingsDrawer from '../../src/components/dashboard/SettingsDrawer';
 import DashboardHeader from '../../src/components/dashboard/DashboardHeader';
 import DashboardLoadingSkeleton from '../../src/components/dashboard/DashboardLoadingSkeleton';
 import DeleteConfirmDialog from '../../src/components/dashboard/DeleteConfirmDialog';
 import DashboardTabsNav from '../../src/components/dashboard/DashboardTabsNav';
 import InsightsTab from '../../src/components/dashboard/InsightsTab';
+import { buildWeeklyBriefingCards } from '../../src/components/dashboard/buildWeeklyBriefingCards';
 import { calculateAnnualRenewalCost } from '../../src/lib/renewalCalculations';
 import { formatCurrency as formatCurrencyEnhanced } from '../../src/lib/financialCalculations';
 // 懒加载组件
@@ -48,12 +49,7 @@ import { calculatePaidAmountFromInstallment } from '../../src/lib/platformFeeCal
 import { totalHoldingCostForDomain } from '../../src/lib/renewalCostBasis';
 import {
   Plus,
-  TrendingUp,
-  FileText,
   AlertTriangle,
-  Calendar,
-  Award,
-  RefreshCw,
   X,
 } from 'lucide-react';
 
@@ -833,89 +829,19 @@ export default function DashboardPage() {
             <WeeklyBriefing
               title={t('dashboard.thisWeek')}
               subtitle={t('dashboard.thisWeekHint')}
-              cards={[
-                expiringThisWeek.length > 0
-                  ? {
-                      icon: <AlertTriangle className="h-4 w-4" />,
-                      iconBg: 'bg-rose-50 text-rose-600',
-                      title: t('dashboard.briefingExpiringTitle'),
-                      primary: t('dashboard.briefingExpiringPrimary').replace('{count}', String(expiringThisWeek.length)),
-                      secondary: expiringThisWeekCost > 0
-                        ? t('dashboard.briefingExpiringSecondary').replace('{cost}', formatCurrencyEnhanced(expiringThisWeekCost))
-                        : undefined,
-                      action: {
-                        label: t('common.renew'),
-                        onClick: () => expiringThisWeek[0] && domainOps.handleRenewDomain(expiringThisWeek[0]),
-                      },
-                    }
-                  : {
-                      icon: <Calendar className="h-4 w-4" />,
-                      iconBg: 'bg-stone-100 text-stone-500',
-                      title: t('dashboard.briefingExpiringTitle'),
-                      primary: t('dashboard.briefingExpiringNone'),
-                      secondary: t('dashboard.briefingExpiringNoneHint'),
-                      empty: true,
-                    },
-                recentTransactions[0]
-                  ? (() => {
-                      const tx = recentTransactions[0];
-                      const dom = domains.find((d) => d.id === tx.domain_id);
-                      const sign = tx.type === 'sell' ? '+' : '-';
-                      const txAmount = tx.amount ?? 0;
-                      return {
-                        icon: tx.type === 'sell'
-                          ? <TrendingUp className="h-4 w-4" />
-                          : tx.type === 'renew'
-                            ? <RefreshCw className="h-4 w-4" />
-                            : <Plus className="h-4 w-4" />,
-                        iconBg: tx.type === 'sell'
-                          ? 'bg-emerald-50 text-emerald-600'
-                          : tx.type === 'renew'
-                            ? 'bg-amber-50 text-amber-600'
-                            : 'bg-teal-50 text-teal-600',
-                        title: t('dashboard.briefingActivityTitle'),
-                        primary: t('dashboard.briefingActivityPrimary')
-                          .replace('{type}', t(`transaction.${tx.type}`))
-                          .replace('{amount}', sign + formatCurrencyEnhanced(txAmount))
-                          .replace('{domain}', dom?.domain_name ?? t('common.unknownDomain')),
-                        secondary: formatTransactionDate(tx.date),
-                        action: {
-                          label: t('dashboard.briefingViewActivity'),
-                          onClick: () => setActiveTab('activity'),
-                        },
-                      };
-                    })()
-                  : {
-                      icon: <FileText className="h-4 w-4" />,
-                      iconBg: 'bg-stone-100 text-stone-500',
-                      title: t('dashboard.briefingActivityTitle'),
-                      primary: t('dashboard.briefingActivityNone'),
-                      secondary: t('dashboard.briefingActivityNoneHint'),
-                      empty: true,
-                    },
-                stuckDomains.length > 0
-                  ? {
-                      icon: <Award className="h-4 w-4" />,
-                      iconBg: 'bg-amber-50 text-amber-600',
-                      title: t('dashboard.briefingStuckTitle'),
-                      primary: t('dashboard.briefingStuckPrimary').replace('{count}', String(stuckDomains.length)),
-                      secondary: t('dashboard.briefingStuckSecondary'),
-                      action: {
-                        label: t('dashboard.briefingReview'),
-                        onClick: () => {
-                          document.getElementById('dashboard-domain-list-anchor')
-                            ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        },
-                      },
-                    }
-                  : {
-                      icon: <Award className="h-4 w-4" />,
-                      iconBg: 'bg-stone-100 text-stone-500',
-                      title: t('dashboard.briefingStuckTitle'),
-                      primary: t('dashboard.briefingStuckNone'),
-                      empty: true,
-                    },
-              ] as BriefingCard[]}
+              cards={buildWeeklyBriefingCards({
+                expiringThisWeek,
+                expiringThisWeekCost,
+                recentTransactions,
+                stuckDomains,
+                domains,
+                t,
+                formatCurrency: formatCurrencyEnhanced,
+                formatTransactionDate,
+                onRenew: domainOps.handleRenewDomain,
+                onViewActivity: () => setActiveTab('activity'),
+                domainListAnchorId: 'dashboard-domain-list-anchor',
+              })}
             />
 
             {domains.length === 0 ? (
