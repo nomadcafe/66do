@@ -4,28 +4,33 @@
  * months they actually happened in (or our best estimate thereof) rather
  * than lumped on a single baseline date.
  *
- * Two kinds of events come out:
+ * Estimation strategy for archive renewals (count × cost summarised on
+ * the domain record, no individual transaction rows):
  *
- *   1. Archive renewals — the count×cost summary on the domain record.
- *      Each one estimated at `purchase_date + i × renewal_cycle (years)`
- *      for i = 1..archiveCount. archiveCount is renewal_count minus the
- *      number of explicit post-baseline renew transactions for this
- *      domain (if a baseline is set), so we never double-count.
+ *   - If we have current expiry_date, walk BACKWARDS from there, by
+ *     (post-baseline tx years) + (archiveCount − i + 1) × cycle years.
+ *     Each renew adds `cycle` years to expiry, so this reconstructs each
+ *     archive renewal's date from the latest known expiry. Handles the
+ *     "bought in Jan, expires in Feb" case correctly: a 2022-01 purchase
+ *     with current expiry 2025-02 and 3 archive renewals lands at
+ *     2022-02 / 2023-02 / 2024-02 — not 2023-01 / 2024-01 / 2025-01,
+ *     which is what a naive `purchase + i × cycle` would say (and what
+ *     this function used to do).
  *
- *   2. Explicit renew transactions — used verbatim. When baseline is set,
- *      only the post-baseline ones are emitted; pre-baseline ones (if any
- *      somehow exist) are assumed to be folded into archiveCount and
- *      skipped to avoid double-counting. When no baseline is set, the
- *      cost-basis path in holdingCostAsOf doesn't read transactions at
- *      all, so we mirror that here and trust renewal_count alone.
+ *   - Without expiry_date we fall back to `purchase + i × cycle`, which
+ *     implicitly assumes the initial registration term equalled one
+ *     cycle. That's the typical default-1yr .com case but wrong when
+ *     the user bought a domain mid-term or registered for fewer/more
+ *     years up front. There's no way to recover the truth without
+ *     more data — fill expiry_date for accuracy.
  *
- * Why not just use holdingCostAsOf deltas like the rest of the chart's
- * Investment line? Because holdingCostAsOf books the entire archive lump
- * on `baseline_renewal_as_of` (which now defaults to "today" for newly
- * added domains). That's correct for bookkeeping but visually wrong on a
- * monthly chart — every freshly-imported domain looks like it had a one-
- * time renewal spike on the day you added it, instead of the actual
- * yearly renewal cadence the user lived through.
+ * archiveCount = renewal_count − count of post-baseline renew transactions,
+ * so we never double-count when a domain has both archive history and
+ * explicit transactions.
+ *
+ * Without baseline, holdingCostAsOf reads only renewal_count and ignores
+ * renew transactions; we mirror that here so cost basis and chart never
+ * disagree on the *total* renewal spend.
  */
 
 import type { TransactionWithRequiredFields } from '../types/transaction';
@@ -39,6 +44,7 @@ export interface RenewalEvent {
 interface DomainLike {
   id: string;
   purchase_date?: string | null;
+  expiry_date?: string | null;
   renewal_count?: number | null;
   renewal_cycle?: number | null;
   renewal_cost?: number | null;
@@ -57,6 +63,7 @@ export function expandRenewalEvents(
 ): RenewalEvent[] {
   const events: RenewalEvent[] = [];
   const purchase = parseLocalDate(domain.purchase_date);
+  const expiry = parseLocalDate(domain.expiry_date);
   const renewalCount = Math.max(0, Math.floor(domain.renewal_count ?? 0));
   const cycle = Math.max(1, Math.floor(domain.renewal_cycle ?? 1) || 1);
   const perRenewal = Number(domain.renewal_cost) || 0;
@@ -69,12 +76,18 @@ export function expandRenewalEvents(
   // We treat dates as YYYY-MM-DD lexicographic for the boundary check, matching
   // holdingCostAsOf's behaviour in renewalCostBasis.ts.
   let postBaselineTxCount = 0;
+  let postBaselineTotalYears = 0;
   if (baseline) {
     for (const t of transactions) {
       if (t.domain_id !== domain.id || t.type !== 'renew') continue;
       const d = String(t.date).slice(0, 10);
       if (d.length < 10) continue;
-      if (d >= baseline) postBaselineTxCount++;
+      if (d >= baseline) {
+        postBaselineTxCount++;
+        // tx.renewal_period_years is the years that tx added to expiry.
+        // Falls back to domain.renewal_cycle if missing/null.
+        postBaselineTotalYears += Math.max(1, Math.floor(t.renewal_period_years ?? cycle) || cycle);
+      }
     }
   }
 
@@ -84,11 +97,25 @@ export function expandRenewalEvents(
     ? Math.max(0, renewalCount - postBaselineTxCount)
     : renewalCount;
 
-  if (purchase && archiveCount > 0 && perRenewal > 0) {
-    for (let i = 1; i <= archiveCount; i++) {
-      const d = new Date(purchase);
-      d.setFullYear(d.getFullYear() + i * cycle);
-      events.push({ date: d, amount: perRenewal, source: 'archive' });
+  if (archiveCount > 0 && perRenewal > 0) {
+    if (expiry) {
+      // Preferred: walk backwards from current expiry. Each archive renewal i
+      // (i=1..archiveCount) happened at `original_expiry + (i-1) × cycle`,
+      // which equals `current_expiry − postBaselineTotalYears − (archiveCount − i + 1) × cycle`.
+      for (let i = 1; i <= archiveCount; i++) {
+        const d = new Date(expiry);
+        const yearsBack = postBaselineTotalYears + (archiveCount - i + 1) * cycle;
+        d.setFullYear(d.getFullYear() - yearsBack);
+        events.push({ date: d, amount: perRenewal, source: 'archive' });
+      }
+    } else if (purchase) {
+      // Fallback when expiry_date is missing: assume initial registration
+      // covered one cycle, so first renewal happens at purchase + cycle.
+      for (let i = 1; i <= archiveCount; i++) {
+        const d = new Date(purchase);
+        d.setFullYear(d.getFullYear() + i * cycle);
+        events.push({ date: d, amount: perRenewal, source: 'archive' });
+      }
     }
   }
 
