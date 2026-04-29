@@ -194,8 +194,15 @@ export default function PortfolioHealthCard({
       <div className="pointer-events-none absolute -bottom-24 -left-24 h-56 w-56 rounded-full bg-gradient-to-tr from-amber-100/30 to-transparent blur-3xl" />
 
       <div className="relative p-6 sm:p-8">
-        {/* ────── Hero row: two big numbers + composition donut ────── */}
-        <div className="grid gap-6 sm:gap-10 lg:grid-cols-[1.5fr_1fr_auto] lg:items-start">
+        {/* ────── Hero row: two big numbers + composition donut ──────
+            Layout breakpoints:
+              < md: single column, everything stacks (mobile)
+              md  : 2-column grid, P&L | Cost side-by-side, donut full-width below
+              lg+ : 3-column grid [1.5fr 1fr auto], donut tucks into right column
+            Without the md tier, 768-1023px viewports (very common laptop /
+            tablet sizes) got a tall single-stack hero with the donut taking
+            an entire row by itself — wasted horizontal space + awkward density. */}
+        <div className="grid gap-6 sm:gap-10 md:grid-cols-2 lg:grid-cols-[1.5fr_1fr_auto] lg:items-start">
           {/* Left: Realized P&L */}
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
@@ -231,8 +238,10 @@ export default function PortfolioHealthCard({
             </div>
           </div>
 
-          {/* Middle: Portfolio at Cost (slightly subdued vs P&L) */}
-          <div className="min-w-0 lg:border-l lg:border-stone-200/70 lg:pl-6 xl:pl-8">
+          {/* Middle: Portfolio at Cost (slightly subdued vs P&L). Border-left
+              shows at md+ so the two metrics get a visible divider once they
+              sit side-by-side. */}
+          <div className="min-w-0 md:border-l md:border-stone-200/70 md:pl-6 xl:pl-8">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
               {labels.portfolioAtCost}
             </p>
@@ -246,9 +255,11 @@ export default function PortfolioHealthCard({
             </p>
           </div>
 
-          {/* Right: Composition donut */}
+          {/* Right: Composition donut. At md spans both columns as a
+              horizontal strip below the metrics; at lg+ tucks into its own
+              auto-width column on the right with a vertical legend. */}
           {compTotal > 0 && (
-            <div className="flex items-start gap-3 sm:gap-4 lg:flex-col lg:items-end lg:gap-2">
+            <div className="flex items-start gap-3 sm:gap-4 md:col-span-2 md:border-t md:border-stone-200/60 md:pt-4 lg:col-span-1 lg:border-t-0 lg:pt-0 lg:flex-col lg:items-end lg:gap-2">
               <svg viewBox="0 0 100 100" className="h-20 w-20 shrink-0 -rotate-90">
                 <circle
                   cx="50"
