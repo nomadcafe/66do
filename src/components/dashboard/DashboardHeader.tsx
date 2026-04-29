@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
-  AtSign, FileText, Plus, Share2, Settings, LogOut, User, MoreVertical,
+  AtSign, FileText, Plus, Share2, Settings, LogOut, User, MoreVertical, ChevronDown,
 } from 'lucide-react';
 
 interface DashboardHeaderProps {
@@ -48,6 +48,8 @@ export default function DashboardHeader({
 }: DashboardHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement | null>(null);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement | null>(null);
 
   // Click-outside / Escape closes the mobile overflow menu.
   useEffect(() => {
@@ -68,9 +70,29 @@ export default function DashboardHeader({
     };
   }, [mobileMenuOpen]);
 
+  // Click-outside / Escape for the desktop avatar dropdown.
+  useEffect(() => {
+    if (!accountMenuOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (accountMenuRef.current && !accountMenuRef.current.contains(e.target as Node)) {
+        setAccountMenuOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setAccountMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [accountMenuOpen]);
+
   const initial = email ? email.charAt(0).toUpperCase() : null;
   const handleSignOut = async () => {
     setMobileMenuOpen(false);
+    setAccountMenuOpen(false);
     await onSignOut();
   };
 
@@ -116,15 +138,6 @@ export default function DashboardHeader({
                   {labels.english}
                 </button>
               </div>
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-stone-200/80 bg-stone-50/80">
-                <div className="w-8 h-8 bg-stone-700 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                  {initial ?? <User className="h-4 w-4" />}
-                </div>
-                <div className="hidden xl:block">
-                  <span className="text-sm font-medium text-stone-900 block leading-tight">{email?.split('@')[0] || 'User'}</span>
-                  <span className="text-xs text-stone-500 block leading-tight truncate max-w-[140px]">{email || ''}</span>
-                </div>
-              </div>
               <button
                 onClick={onAddTransaction}
                 className="border border-stone-300 text-stone-700 px-4 py-2.5 rounded-xl hover:bg-stone-100 flex items-center gap-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
@@ -139,29 +152,77 @@ export default function DashboardHeader({
                 <Plus size={18} />
                 <span>{labels.addInvestment}</span>
               </button>
-              <button
-                onClick={onShare}
-                aria-label={labels.shareResults}
-                title={labels.shareResults}
-                className="text-stone-500 hover:text-stone-800 p-2.5 rounded-xl hover:bg-stone-100 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
-              >
-                <Share2 size={18} />
-              </button>
-              <button
-                onClick={onOpenSettings}
-                aria-label={labels.settings}
-                title={labels.settings}
-                className="text-stone-500 hover:text-stone-800 p-2.5 rounded-xl hover:bg-stone-100 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
-              >
-                <Settings size={18} />
-              </button>
-              <button
-                onClick={onSignOut}
-                className="text-stone-500 hover:text-stone-800 flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-stone-100 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
-              >
-                <LogOut size={18} />
-                <span>{labels.signOut}</span>
-              </button>
+
+              {/* Account dropdown — collapses Share / Settings / Sign Out
+                  into the avatar trigger, mirroring the modern SaaS header
+                  pattern (Stripe / Linear / Vercel). Cuts header from 8
+                  visible elements down to 5 and keeps utility actions one
+                  click away under the user identity. */}
+              <div ref={accountMenuRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setAccountMenuOpen((v) => !v)}
+                  aria-haspopup="menu"
+                  aria-expanded={accountMenuOpen}
+                  aria-label={labels.more}
+                  className="flex items-center gap-1.5 rounded-xl border border-stone-200/80 bg-stone-50/80 p-1 pl-1 pr-2 transition hover:bg-stone-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-stone-700 text-sm font-medium text-white">
+                    {initial ?? <User className="h-4 w-4" />}
+                  </span>
+                  <ChevronDown
+                    className={`h-4 w-4 text-stone-500 transition-transform ${
+                      accountMenuOpen ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+                {accountMenuOpen && (
+                  <div
+                    role="menu"
+                    className="absolute right-0 mt-2 w-64 rounded-xl border border-stone-200 bg-white shadow-lg overflow-hidden z-50"
+                  >
+                    {email && (
+                      <div className="px-3.5 py-3 border-b border-stone-100">
+                        <p className="text-sm font-medium text-stone-900 truncate">
+                          {email.split('@')[0]}
+                        </p>
+                        <p className="text-xs text-stone-500 truncate">{email}</p>
+                      </div>
+                    )}
+                    <button
+                      role="menuitem"
+                      onClick={() => {
+                        setAccountMenuOpen(false);
+                        onShare();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-stone-700 hover:bg-stone-50 focus:outline-none focus-visible:bg-stone-100"
+                    >
+                      <Share2 size={16} className="text-stone-500" />
+                      {labels.shareResults}
+                    </button>
+                    <button
+                      role="menuitem"
+                      onClick={() => {
+                        setAccountMenuOpen(false);
+                        onOpenSettings();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-stone-700 hover:bg-stone-50 focus:outline-none focus-visible:bg-stone-100"
+                    >
+                      <Settings size={16} className="text-stone-500" />
+                      {labels.settings}
+                    </button>
+                    <div className="h-px bg-stone-100" />
+                    <button
+                      role="menuitem"
+                      onClick={handleSignOut}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-stone-700 hover:bg-stone-50 focus:outline-none focus-visible:bg-stone-100"
+                    >
+                      <LogOut size={16} className="text-stone-500" />
+                      {labels.signOut}
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
