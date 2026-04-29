@@ -7,67 +7,85 @@ interface PortfolioHealthCardProps {
   totalDomains: number;
   activeDomains: number;
   soldDomains: number;
-  /** The headline number — sum for the active window (or all-time if window = All). */
-  displayRevenue: number;
-  /** All-time total, shown as secondary when different from displayRevenue. */
-  allTimeRevenue: number;
+  /** All-time cumulative Realized P&L (sellNet − cost basis at sale, summed). */
+  realizedPnLAllTime: number;
+  /** Realized P&L within the active trend window — used for the period delta caption. */
+  realizedPnLInWindow: number;
+  /** Per-month realized P&L for the sparkline (oldest → newest). */
+  realizedPnLSeries: number[];
+  /** Optional month labels (same length as series) for hover tooltip. */
+  realizedPnLLabels?: string[];
+  /** Number of completed sales feeding into Realized P&L. */
+  completedSalesCount: number;
+  /** Sum of holdingCostAsOf for active + for_sale domains (current "inventory at cost"). */
+  portfolioAtCost: number;
   roi: number;
-  /** Monthly revenue points, oldest → newest. Length is parent's choice and reflects the active window. */
-  monthlyRevenueSeries: number[];
-  /** Optional month labels (same length as series) for hover tooltip + axis context. */
-  monthlyRevenueLabels?: string[];
-  /** Amortized renewal cost: each renew tx's amount split across the years
-   *  it covers (amount / renewal_period_years), summed for the current year.
-   *  This is the "operational annual cost" — the headline number on the tile. */
+  /** Status composition counts for the mini donut. */
+  composition: { active: number; forSale: number; sold: number; expired: number };
+  /** Amortized YTD renewal cost — the steady-state operational annual cost. */
   ytdRenewalSpendAmortized: number;
-  /** Cash-basis renewal spend: sum of renew tx amounts whose date is in the
-   *  current calendar year. Shown as the subtitle so the user can compare
-   *  against their bank statement. */
+  /** Cash YTD renewal — what actually left the bank this calendar year. */
   ytdRenewalSpendCash: number;
-  /** Current calendar year, displayed as a subtitle on the YTD spend tile (e.g. "2026"). */
   currentYear: number;
   formatCurrency: (n: number) => string;
-  /** Optional trend-window selector. Affects sparkline + headline only; footer stats stay all-time. */
   windowOptions?: { key: string; label: string }[];
   selectedWindow?: string;
   onWindowChange?: (key: string) => void;
   labels: {
-    portfolioRevenue: string;
-    /** Short label of the active window (e.g. "Last 3 months", "All time") */
+    realizedPnL: string;
+    portfolioAtCost: string;
+    /** "{n} sales" / "{n} 笔出售". Component substitutes {n}. */
+    fromSales: string;
+    fromOneSale: string;
+    noSales: string;
+    /** "{active} held · {forSale} listed". Component substitutes both. */
+    heldListed: (active: number, forSale: number) => string;
+    /** "{sold} sold · {expired} lost". Component substitutes both. */
+    lifecycle: (sold: number, expired: number) => string;
+    /** "All-time {amount}". Component substitutes {amount}. */
+    allTime: (amount: string) => string;
+    /** "{sign}{amount} this period". Component substitutes both. */
+    windowDelta: (signedAmount: string) => string;
     windowCaption: string;
-    /** Prefix for the all-time anchor (e.g. "all-time"); only shown when window != All */
-    allTimeAnchor: string;
     domains: string;
     activeSold: (active: number, sold: number) => string;
     roi: string;
-    /** Label for the renewal-spend tile, e.g. "YTD renewal cost". */
     ytdRenewalSpend: string;
-    /** Subtitle phrase used to introduce the cash-basis figure, e.g.
-     *  "paid {amount} · {year}" / "实付 {amount} · {year}". The component
-     *  substitutes {amount} and {year}. */
     ytdRenewalCashPaid: string;
     trendWindowAria: string;
-    /** Caption above the footer stat row. Note: total domains + ROI are
-     *  all-time, but ytdRenewalSpend is current calendar year only — the
-     *  caption is intentionally vague ("This year" works fine in either
-     *  reading) so we don't have to split the row in two. */
+    /** Caption above the footer stat row. */
     allTimeFooter: string;
   };
 }
 
 /**
- * Hero "portfolio health" card — replaces the four-tile KPI row.
- * One number + sparkline + compact stats. Communicates change, not just totals.
+ * Hero "portfolio command center" — replaces the single-revenue card with a
+ * dual-metric layout that answers two questions simultaneously:
+ *
+ *   1. "How am I doing?"  → Realized P&L (gains/losses from completed trades)
+ *   2. "How big is my operation?" → Portfolio at Cost (held domains, at cost basis)
+ *
+ * Design rationale:
+ * - Two big numbers, not one. A buy-and-hold investor with $0 realized P&L
+ *   still has a meaningful "Portfolio at Cost" growing over time, so the card
+ *   never reads as "you've done nothing".
+ * - Realized P&L colored by sign (emerald / rose) so the performance is
+ *   readable at a glance.
+ * - Right-side composition donut surfaces inventory shape (active / for_sale /
+ *   sold / expired) — previously this only showed up deep inside InvestmentAnalytics.
+ * - Light gradient background + saturated number colors deliberately move
+ *   away from the previous all-stone palette without going dark/heavy.
  */
 export default function PortfolioHealthCard({
   totalDomains,
-  activeDomains,
-  soldDomains,
-  displayRevenue,
-  allTimeRevenue,
+  realizedPnLAllTime,
+  realizedPnLInWindow,
+  realizedPnLSeries,
+  realizedPnLLabels,
+  completedSalesCount,
+  portfolioAtCost,
   roi,
-  monthlyRevenueSeries,
-  monthlyRevenueLabels,
+  composition,
   ytdRenewalSpendAmortized,
   ytdRenewalSpendCash,
   currentYear,
@@ -79,41 +97,29 @@ export default function PortfolioHealthCard({
 }: PortfolioHealthCardProps) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
-  // 单点系列只画一个圆点，不画线/面积——避免被误读成从 0 飙升。
-  const isSinglePoint = monthlyRevenueSeries.length === 1;
-  const series = monthlyRevenueSeries.length >= 1 ? monthlyRevenueSeries : [0];
+  // ── Realized P&L hero number color ─────────────────────────────────────
+  const pnlPositive = realizedPnLAllTime > 0;
+  const pnlNegative = realizedPnLAllTime < 0;
+  const pnlColorClass = pnlPositive
+    ? 'text-emerald-600'
+    : pnlNegative
+      ? 'text-rose-600'
+      : 'text-stone-900';
+  const pnlSign = pnlPositive ? '+' : pnlNegative ? '−' : '';
+  const pnlAbsFormatted = formatCurrency(Math.abs(realizedPnLAllTime));
 
-  // delta 徽章的 4 种状态：
-  //   - 都是 0：不显示
-  //   - 上月 0、本月 > 0：首次进账，只显示上箭头（无 %，避免 ÷0）
-  //   - 上月 > 0、本月 0：清零，只显示下箭头（不是 -100% 的硬数值，更克制）
-  //   - 都 > 0：百分比，绝对值 > 999 时夹到上限，避免出现 +99900% 这种小基数失真
-  const lastMonth = series[series.length - 1] ?? 0;
-  const prevMonth = series.length >= 2 ? (series[series.length - 2] ?? 0) : 0;
-  type DeltaBadge = { trendUp: boolean; text: string | null };
-  let deltaBadge: DeltaBadge | null = null;
-  if (lastMonth > 0 && prevMonth === 0) {
-    deltaBadge = { trendUp: true, text: null };
-  } else if (lastMonth === 0 && prevMonth > 0) {
-    deltaBadge = { trendUp: false, text: null };
-  } else if (prevMonth > 0) {
-    const pct = ((lastMonth - prevMonth) / prevMonth) * 100;
-    const capped = Math.abs(pct) > 999;
-    deltaBadge = {
-      trendUp: pct >= 0,
-      text: capped
-        ? (pct > 0 ? '>+999%' : '<-99%')
-        : `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`,
-    };
-  }
+  // ── Window delta badge (period contribution to Realized P&L) ───────────
+  const windowDeltaSign = realizedPnLInWindow > 0 ? '+' : realizedPnLInWindow < 0 ? '−' : '';
+  const windowDeltaAbs = formatCurrency(Math.abs(realizedPnLInWindow));
+  const windowDeltaCaption = labels.windowDelta(`${windowDeltaSign}${windowDeltaAbs}`);
 
-  // SVG sparkline (200×60 viewBox)
-  // y 映射：v = 0 → y = 56（贴底），v = max → y = 4（贴顶）。
-  // 让 0 值的 area 高度恰好为 0，避免在零月份画出一条"该月还有营收"的薄带。
-  const sparkBase = isSinglePoint ? [0, ...series] : series;
-  const minV = Math.min(...sparkBase, 0);
-  const maxV = Math.max(...sparkBase, 1);
+  // ── Sparkline geometry (200×60 viewBox) ────────────────────────────────
+  const series = realizedPnLSeries.length > 0 ? realizedPnLSeries : [0];
+  const isSinglePoint = series.length === 1;
+  const minV = Math.min(...series, 0);
+  const maxV = Math.max(...series, 0);
   const range = Math.max(maxV - minV, 1);
+  const zeroY = 56 - ((0 - minV) / range) * 52;
   const pointXY = (i: number, v: number) => {
     const denom = Math.max(series.length - 1, 1);
     const x = isSinglePoint ? 100 : 4 + (i / denom) * 192;
@@ -128,150 +134,316 @@ export default function PortfolioHealthCard({
           return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
         })
         .join(' ');
-  const sparkArea = isSinglePoint ? '' : `${sparkPath} L196,56 L4,56 Z`;
 
-  // 轴标签：取首 / 末两个月，序列长度 ≥ 6 时再补一个中点；少于 2 个月时不显示
+  // 区分正/负盈亏的填充：正为 emerald 渐变，负为 rose 渐变。
+  // 简化处理：单色填充按累计 P&L 走向决定。
+  const sparkAccent = pnlPositive ? '#10b981' : pnlNegative ? '#f43f5e' : '#0d9488';
+
+  // 轴标签
   const axisTicks: { idx: number; label: string }[] = [];
-  if (monthlyRevenueLabels && monthlyRevenueLabels.length >= 2) {
-    axisTicks.push({ idx: 0, label: monthlyRevenueLabels[0] });
-    if (monthlyRevenueLabels.length >= 6) {
-      const mid = Math.floor((monthlyRevenueLabels.length - 1) / 2);
-      axisTicks.push({ idx: mid, label: monthlyRevenueLabels[mid] });
+  if (realizedPnLLabels && realizedPnLLabels.length >= 2) {
+    axisTicks.push({ idx: 0, label: realizedPnLLabels[0] });
+    if (realizedPnLLabels.length >= 6) {
+      const mid = Math.floor((realizedPnLLabels.length - 1) / 2);
+      axisTicks.push({ idx: mid, label: realizedPnLLabels[mid] });
     }
     axisTicks.push({
-      idx: monthlyRevenueLabels.length - 1,
-      label: monthlyRevenueLabels[monthlyRevenueLabels.length - 1],
+      idx: realizedPnLLabels.length - 1,
+      label: realizedPnLLabels[realizedPnLLabels.length - 1],
     });
   }
 
-  const showAllTimeAnchor = displayRevenue !== allTimeRevenue;
-  const hoveredLabel = hoverIdx !== null && monthlyRevenueLabels?.[hoverIdx];
+  const hoveredLabel = hoverIdx !== null && realizedPnLLabels?.[hoverIdx];
   const hoveredValue = hoverIdx !== null ? series[hoverIdx] : null;
 
-  return (
-    <div className="relative overflow-hidden rounded-2xl border border-stone-200/80 bg-white p-6 shadow-sm">
-      <div className="absolute -top-12 -right-12 -z-0 h-48 w-48 rounded-full bg-gradient-to-br from-teal-100/60 via-emerald-100/30 to-transparent blur-3xl" />
+  // ── Composition donut geometry ─────────────────────────────────────────
+  // Donut on right side. 100×100 viewBox, radius 40, stroke 14 → outer 47, inner 33.
+  const compTotal =
+    composition.active + composition.forSale + composition.sold + composition.expired;
+  const compSlices = [
+    { value: composition.active, color: '#0d9488', key: 'active' }, // teal-600
+    { value: composition.forSale, color: '#f59e0b', key: 'forSale' }, // amber-500
+    { value: composition.sold, color: '#10b981', key: 'sold' }, // emerald-500
+    { value: composition.expired, color: '#fb7185', key: 'expired' }, // rose-400
+  ];
+  // SVG arc helper — circumference of r=40 is 2πr ≈ 251.3
+  const C = 2 * Math.PI * 40;
+  let cumulativeOffset = 0;
+  const donutPaths = compSlices.map((s) => {
+    if (compTotal === 0 || s.value === 0) return null;
+    const fraction = s.value / compTotal;
+    const dash = fraction * C;
+    const dashArray = `${dash} ${C - dash}`;
+    const dashOffset = -cumulativeOffset;
+    cumulativeOffset += dash;
+    return { ...s, dashArray, dashOffset };
+  });
 
-      <div className="relative">
-        {/* Top: label + delta */}
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-medium uppercase tracking-wider text-stone-500">
-            {labels.portfolioRevenue}
-          </p>
-          {deltaBadge && (
-            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-              deltaBadge.trendUp ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
-            }`}>
-              {deltaBadge.trendUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-              {deltaBadge.text}
-            </span>
+  // Sales count caption
+  const salesCaption =
+    completedSalesCount === 0
+      ? labels.noSales
+      : completedSalesCount === 1
+        ? labels.fromOneSale
+        : labels.fromSales.replace('{n}', String(completedSalesCount));
+
+  return (
+    <div className="relative overflow-hidden rounded-3xl border border-stone-200/60 bg-gradient-to-br from-teal-50/50 via-white to-amber-50/40 shadow-md">
+      {/* Decorative corner glow */}
+      <div className="pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-gradient-to-br from-teal-200/40 via-emerald-100/30 to-transparent blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -left-24 h-56 w-56 rounded-full bg-gradient-to-tr from-amber-100/30 to-transparent blur-3xl" />
+
+      <div className="relative p-6 sm:p-8">
+        {/* ────── Hero row: two big numbers + composition donut ────── */}
+        <div className="grid gap-6 sm:gap-10 lg:grid-cols-[1.5fr_1fr_auto] lg:items-start">
+          {/* Left: Realized P&L */}
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+              {labels.realizedPnL}
+            </p>
+            <p
+              className={`mt-2 text-4xl font-bold tracking-tight tabular-nums sm:text-5xl ${pnlColorClass}`}
+            >
+              {pnlSign}
+              {pnlAbsFormatted}
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-stone-500">
+              <span className="font-medium text-stone-600">{salesCaption}</span>
+              {realizedPnLInWindow !== 0 && (
+                <>
+                  <span className="text-stone-300">·</span>
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                      realizedPnLInWindow > 0
+                        ? 'bg-emerald-50 text-emerald-700'
+                        : 'bg-rose-50 text-rose-700'
+                    }`}
+                  >
+                    {realizedPnLInWindow > 0 ? (
+                      <TrendingUp className="h-3 w-3" />
+                    ) : (
+                      <TrendingDown className="h-3 w-3" />
+                    )}
+                    {windowDeltaCaption}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Middle: Portfolio at Cost (slightly subdued vs P&L) */}
+          <div className="min-w-0 lg:border-l lg:border-stone-200/70 lg:pl-6 xl:pl-8">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+              {labels.portfolioAtCost}
+            </p>
+            <p className="mt-2 text-3xl font-bold tracking-tight tabular-nums text-stone-900 sm:text-4xl">
+              {formatCurrency(portfolioAtCost)}
+            </p>
+            <p className="mt-2 text-sm text-stone-500">
+              <span className="font-medium text-stone-700">
+                {labels.heldListed(composition.active, composition.forSale)}
+              </span>
+            </p>
+          </div>
+
+          {/* Right: Composition donut */}
+          {compTotal > 0 && (
+            <div className="flex items-start gap-3 sm:gap-4 lg:flex-col lg:items-end lg:gap-2">
+              <svg viewBox="0 0 100 100" className="h-20 w-20 shrink-0 -rotate-90">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  fill="none"
+                  stroke="#f5f5f4"
+                  strokeWidth="14"
+                />
+                {donutPaths.map(
+                  (p) =>
+                    p && (
+                      <circle
+                        key={p.key}
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="none"
+                        stroke={p.color}
+                        strokeWidth="14"
+                        strokeDasharray={p.dashArray}
+                        strokeDashoffset={p.dashOffset}
+                        strokeLinecap="butt"
+                      />
+                    )
+                )}
+              </svg>
+              <div className="min-w-0 space-y-1.5 text-xs lg:text-right">
+                <div className="flex items-center gap-1.5 lg:justify-end">
+                  <span className="h-2 w-2 rounded-full bg-teal-600" />
+                  <span className="text-stone-600">
+                    {composition.active} <span className="text-stone-400">active</span>
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 lg:justify-end">
+                  <span className="h-2 w-2 rounded-full bg-amber-500" />
+                  <span className="text-stone-600">
+                    {composition.forSale} <span className="text-stone-400">listed</span>
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 lg:justify-end">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                  <span className="text-stone-600">
+                    {composition.sold} <span className="text-stone-400">sold</span>
+                  </span>
+                </div>
+                {composition.expired > 0 && (
+                  <div className="flex items-center gap-1.5 lg:justify-end">
+                    <span className="h-2 w-2 rounded-full bg-rose-400" />
+                    <span className="text-stone-600">
+                      {composition.expired} <span className="text-stone-400">lost</span>
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </div>
 
-        {/* Big number — reflects the active window */}
-        <p className="mt-2 text-4xl font-bold tracking-tight text-stone-900 sm:text-5xl">
-          {formatCurrency(displayRevenue)}
-        </p>
-        {/* h-5 锁高度避免 hover 切换时下方布局抖动 */}
-        <p className="mt-1 text-sm text-stone-500 h-5">
-          {hoveredLabel && hoveredValue !== null ? (
-            <>
-              <span className="font-medium text-stone-700">{hoveredLabel}</span>
-              {' · '}
-              <span className="font-semibold text-teal-700 tabular-nums">{formatCurrency(hoveredValue)}</span>
-            </>
-          ) : (
-            <>
-              <span className="font-medium text-stone-600">{labels.windowCaption}</span>
-              {showAllTimeAnchor && (
+        {/* ────── Sparkline + window selector ────── */}
+        <div className="mt-7 flex items-end justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <svg
+              viewBox="0 0 200 60"
+              className="h-16 w-full"
+              preserveAspectRatio="none"
+              role="img"
+              aria-label={labels.windowCaption}
+              onMouseLeave={() => setHoverIdx(null)}
+            >
+              <defs>
+                <linearGradient id="phc-sparkfill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={sparkAccent} stopOpacity="0.22" />
+                  <stop offset="100%" stopColor={sparkAccent} stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              {/* Zero line — only show when the series crosses zero */}
+              {minV < 0 && maxV > 0 && (
+                <line
+                  x1={4}
+                  x2={196}
+                  y1={zeroY}
+                  y2={zeroY}
+                  stroke="#e7e5e4"
+                  strokeWidth="1"
+                  strokeDasharray="2 3"
+                />
+              )}
+              {!isSinglePoint && (
                 <>
-                  {' · '}
-                  <span>{labels.allTimeAnchor} {formatCurrency(allTimeRevenue)}</span>
+                  <path
+                    d={`${sparkPath} L196,${zeroY.toFixed(1)} L4,${zeroY.toFixed(1)} Z`}
+                    fill="url(#phc-sparkfill)"
+                  />
+                  <path
+                    d={sparkPath}
+                    fill="none"
+                    stroke={sparkAccent}
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </>
               )}
-            </>
-          )}
-        </p>
-
-        {/* Sparkline + optional window selector */}
-        <div className="mt-5 flex items-end justify-between gap-3">
-          <div className="flex-1 min-w-0">
-          <svg
-            viewBox="0 0 200 60"
-            className="h-16 w-full"
-            preserveAspectRatio="none"
-            role="img"
-            aria-label={labels.windowCaption}
-            onMouseLeave={() => setHoverIdx(null)}
-          >
-            <defs>
-              <linearGradient id="phc-spark-grad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#14b8a6" stopOpacity="0.25" />
-                <stop offset="100%" stopColor="#14b8a6" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            {!isSinglePoint && (
-              <>
-                <path d={sparkArea} fill="url(#phc-spark-grad)" />
-                <path d={sparkPath} fill="none" stroke="#0d9488" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </>
-            )}
-            {/* 单点：画布中心一个圆点（固定位置，不参与缩放） */}
-            {isSinglePoint && (
-              <circle cx={100} cy={30} r={4} fill="#0d9488" />
-            )}
-            {/* hover 指示线 + 实心圆点 */}
-            {hoverIdx !== null && (() => {
-              const { x, y } = pointXY(hoverIdx, series[hoverIdx]);
-              return (
-                <g pointerEvents="none">
-                  <line x1={x} y1={4} x2={x} y2={56} stroke="#a8a29e" strokeDasharray="2 2" strokeWidth={1} />
-                  <circle cx={x} cy={y} r={3.5} fill="#0d9488" stroke="#fff" strokeWidth={1.5} />
-                </g>
-              );
-            })()}
-            {/* 隐形 hit area：每个点占 1/n 宽度，覆盖整列方便鼠标对位 */}
-            {series.length > 1 && series.map((_, i) => {
-              const denom = Math.max(series.length - 1, 1);
-              const cx = 4 + (i / denom) * 192;
-              const half = 192 / Math.max(series.length, 1) / 2;
-              return (
-                <rect
-                  key={i}
-                  x={Math.max(0, cx - half)}
-                  y={0}
-                  width={Math.min(200, half * 2)}
-                  height={60}
-                  fill="transparent"
-                  onMouseEnter={() => setHoverIdx(i)}
-                  style={{ cursor: 'crosshair' }}
-                />
-              );
-            })}
-          </svg>
-          {/* x 轴月份 ticks：触摸用户/不 hover 用户也能看到时间起止上下文。
-              首/末 + 序列 ≥ 6 时再补一个中点。绝对定位避免被 sparkline 撑变形 */}
-          {axisTicks.length >= 2 && (
-            <div className="relative mt-1.5 h-3 text-[10px] text-stone-400 tabular-nums">
-              {axisTicks.map((t, i) => {
-                const isFirst = i === 0;
-                const isLast = i === axisTicks.length - 1;
-                const style: React.CSSProperties = isFirst
-                  ? { left: 0 }
-                  : isLast
-                    ? { right: 0 }
-                    : { left: '50%', transform: 'translateX(-50%)' };
-                return (
-                  <span key={t.idx} className="absolute top-0" style={style}>
-                    {t.label}
+              {isSinglePoint && (
+                <circle cx={100} cy={zeroY} r={4} fill={sparkAccent} />
+              )}
+              {hoverIdx !== null &&
+                (() => {
+                  const { x, y } = pointXY(hoverIdx, series[hoverIdx]);
+                  return (
+                    <g pointerEvents="none">
+                      <line
+                        x1={x}
+                        y1={4}
+                        x2={x}
+                        y2={56}
+                        stroke="#a8a29e"
+                        strokeDasharray="2 2"
+                        strokeWidth={1}
+                      />
+                      <circle
+                        cx={x}
+                        cy={y}
+                        r={3.5}
+                        fill={sparkAccent}
+                        stroke="#fff"
+                        strokeWidth={1.5}
+                      />
+                    </g>
+                  );
+                })()}
+              {/* Hit areas */}
+              {series.length > 1 &&
+                series.map((_, i) => {
+                  const denom = Math.max(series.length - 1, 1);
+                  const cx = 4 + (i / denom) * 192;
+                  const half = 192 / Math.max(series.length, 1) / 2;
+                  return (
+                    <rect
+                      key={i}
+                      x={Math.max(0, cx - half)}
+                      y={0}
+                      width={Math.min(200, half * 2)}
+                      height={60}
+                      fill="transparent"
+                      onMouseEnter={() => setHoverIdx(i)}
+                      style={{ cursor: 'crosshair' }}
+                    />
+                  );
+                })}
+            </svg>
+            {/* Hover readout / window caption */}
+            <div className="mt-1.5 flex items-center justify-between gap-3">
+              <p className="truncate text-xs text-stone-500">
+                {hoveredLabel && hoveredValue !== null ? (
+                  <>
+                    <span className="font-medium text-stone-700">{hoveredLabel}</span>
+                    {' · '}
+                    <span
+                      className={`font-semibold tabular-nums ${
+                        hoveredValue > 0
+                          ? 'text-emerald-600'
+                          : hoveredValue < 0
+                            ? 'text-rose-600'
+                            : 'text-stone-700'
+                      }`}
+                    >
+                      {hoveredValue >= 0 ? '+' : '−'}
+                      {formatCurrency(Math.abs(hoveredValue))}
+                    </span>
+                  </>
+                ) : (
+                  <span className="font-medium text-stone-600">
+                    {labels.windowCaption}
+                    {' · '}
+                    <span className="text-stone-400">{labels.allTime(formatCurrency(realizedPnLAllTime))}</span>
                   </span>
-                );
-              })}
+                )}
+              </p>
+              {axisTicks.length >= 2 && (
+                <p className="hidden shrink-0 text-[10px] tabular-nums text-stone-400 sm:block">
+                  {axisTicks[0].label}
+                  {' → '}
+                  {axisTicks[axisTicks.length - 1].label}
+                </p>
+              )}
             </div>
-          )}
           </div>
           {windowOptions && windowOptions.length > 0 && onWindowChange && (
-            <div role="group" aria-label={labels.trendWindowAria} className="flex shrink-0 items-center gap-0.5 p-0.5 rounded-lg border border-stone-200 bg-stone-50">
+            <div
+              role="group"
+              aria-label={labels.trendWindowAria}
+              className="flex shrink-0 items-center gap-0.5 rounded-lg border border-stone-200 bg-white/80 p-0.5 backdrop-blur-sm"
+            >
               {windowOptions.map((opt) => {
                 const active = opt.key === selectedWindow;
                 return (
@@ -280,8 +452,10 @@ export default function PortfolioHealthCard({
                     type="button"
                     onClick={() => onWindowChange(opt.key)}
                     aria-pressed={active}
-                    className={`px-2 py-1 rounded-md text-[11px] font-medium tabular-nums transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 ${
-                      active ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-900'
+                    className={`rounded-md px-2 py-1 text-[11px] font-medium tabular-nums transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 ${
+                      active
+                        ? 'bg-stone-900 text-white shadow-sm'
+                        : 'text-stone-500 hover:text-stone-900'
                     }`}
                   >
                     {opt.label}
@@ -292,51 +466,59 @@ export default function PortfolioHealthCard({
           )}
         </div>
 
-        {/* 顶部 headline 跟随窗口变，footer 三项始终是 all-time（窗口化对
-            域名计数/ROI/下次到期没意义）。allTimeFooter 标注这个混合时间
-            口径，避免用户误以为 footer 也随窗口变。 */}
-        <p className="mt-5 -mb-3 text-[10px] font-medium uppercase tracking-wider text-stone-400">
+        {/* ────── Footer chips: secondary metrics ────── */}
+        <p className="mt-7 -mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-400">
           {labels.allTimeFooter}
         </p>
-        <div className="mt-5 grid grid-cols-3 gap-3 border-t border-stone-100 pt-4">
-          <div className="flex items-center gap-2">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-stone-100 text-stone-600">
+        <div className="mt-5 grid grid-cols-3 gap-3 border-t border-stone-200/70 pt-4">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-stone-700">
               <Globe className="h-4 w-4" />
             </span>
             <div className="min-w-0">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">{labels.domains}</p>
-              <p className="truncate text-sm font-semibold text-stone-900">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">
+                {labels.domains}
+              </p>
+              <p className="truncate text-sm font-semibold text-stone-900 tabular-nums">
                 {totalDomains}
                 <span className="ml-1 text-xs font-normal text-stone-500">
-                  {labels.activeSold(activeDomains, soldDomains)}
+                  {labels.activeSold(composition.active, composition.sold)}
                 </span>
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+          <div className="flex items-center gap-2.5">
+            <span
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                roi >= 0 ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700'
+              }`}
+            >
               <Award className="h-4 w-4" />
             </span>
             <div className="min-w-0">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">{labels.roi}</p>
-              <p className={`text-sm font-semibold ${roi >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                {roi >= 0 ? '+' : ''}{roi.toFixed(1)}%
+              <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">
+                {labels.roi}
+              </p>
+              <p
+                className={`text-sm font-semibold tabular-nums ${
+                  roi >= 0 ? 'text-emerald-700' : 'text-rose-600'
+                }`}
+              >
+                {roi >= 0 ? '+' : ''}
+                {roi.toFixed(1)}%
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-stone-100 text-stone-600">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
               <RefreshCw className="h-4 w-4" />
             </span>
             <div className="min-w-0">
               <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">
                 {labels.ytdRenewalSpend}
               </p>
-              {/* Headline: amortized — the steady-state "operational" annual cost.
-                  Subtitle: the actual cash paid this year, so a multi-year
-                  lump payment is still visible somewhere on the card. */}
               <p
                 className="text-sm font-semibold text-stone-900 tabular-nums"
                 title={labels.ytdRenewalSpend}

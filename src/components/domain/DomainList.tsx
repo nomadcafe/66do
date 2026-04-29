@@ -120,6 +120,47 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
     { value: 'expired', labelKey: 'common.expired' as const }
   ];
 
+  // Per-status counts for the chip strip — drives the filter UI directly so the
+  // user can scan portfolio composition + filter in one gesture (replaces the
+  // previous dropdown select that hid both the counts and the saturation).
+  const statusCounts = useMemo(() => {
+    let active = 0, forSale = 0, sold = 0, expired = 0;
+    for (const d of domains) {
+      if (d.status === 'active') active++;
+      else if (d.status === 'for_sale') forSale++;
+      else if (d.status === 'sold') sold++;
+      else if (d.status === 'expired') expired++;
+    }
+    return { all: domains.length, active, for_sale: forSale, sold, expired };
+  }, [domains]);
+
+  // Chip palette — keep saturation tied to status semantics:
+  // - active = teal (positive ongoing), for_sale = amber (action / attention),
+  // - sold = emerald (success / done), expired = rose (loss / alert),
+  // - all = stone (neutral).
+  const chipPalette: Record<string, { active: string; idle: string }> = {
+    all: {
+      active: 'bg-stone-900 text-white border-stone-900',
+      idle: 'bg-white text-stone-700 border-stone-200 hover:border-stone-300',
+    },
+    active: {
+      active: 'bg-teal-600 text-white border-teal-600',
+      idle: 'bg-teal-50 text-teal-700 border-teal-100 hover:border-teal-200',
+    },
+    for_sale: {
+      active: 'bg-amber-500 text-white border-amber-500',
+      idle: 'bg-amber-50 text-amber-700 border-amber-100 hover:border-amber-200',
+    },
+    sold: {
+      active: 'bg-emerald-600 text-white border-emerald-600',
+      idle: 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:border-emerald-200',
+    },
+    expired: {
+      active: 'bg-rose-500 text-white border-rose-500',
+      idle: 'bg-rose-50 text-rose-700 border-rose-100 hover:border-rose-200',
+    },
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -127,7 +168,46 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
         <p className="text-sm text-stone-500 mt-0.5">{t('domainList.subtitle')}</p>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+      {/* Status chip strip — primary filter, replaces the old dropdown.
+          Each chip shows count and is colored by status semantics; brings
+          saturated color onto the homepage and surfaces composition at a glance. */}
+      <div
+        role="tablist"
+        aria-label={t('domainList.allStatus')}
+        className="flex flex-wrap items-center gap-2"
+      >
+        {statusOptions.map((option) => {
+          const isActive = statusFilter === option.value;
+          const palette = chipPalette[option.value] ?? chipPalette.all;
+          const count = statusCounts[option.value as keyof typeof statusCounts] ?? 0;
+          const showCount = option.value === 'all' || count > 0;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => setStatusFilter(option.value)}
+              className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 ${
+                isActive ? palette.active : palette.idle
+              }`}
+            >
+              <span>{t(option.labelKey)}</span>
+              {showCount && (
+                <span
+                  className={`tabular-nums text-xs ${
+                    isActive ? 'opacity-90' : 'opacity-70'
+                  }`}
+                >
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="flex-1">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
@@ -142,31 +222,23 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Filter className="h-4 w-4 text-stone-400" />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            aria-label={t('domainList.allStatus')}
-            className="px-3 py-2.5 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-          >
-            {statusOptions.map(option => (
-              <option key={option.value} value={option.value}>
-                {t(option.labelKey)}
-              </option>
-            ))}
-          </select>
           {allTags.length > 0 && (
-            <select
-              value={tagFilter}
-              onChange={(e) => setTagFilter(e.target.value)}
-              aria-label={t('domainList.allTags')}
-              className="px-3 py-2.5 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-            >
-              <option value="all">{t('domainList.allTags')}</option>
-              {allTags.map(tag => (
-                <option key={tag} value={tag}>{tag}</option>
-              ))}
-            </select>
+            <>
+              <Filter className="h-4 w-4 text-stone-400" />
+              <select
+                value={tagFilter}
+                onChange={(e) => setTagFilter(e.target.value)}
+                aria-label={t('domainList.allTags')}
+                className="px-3 py-2.5 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              >
+                <option value="all">{t('domainList.allTags')}</option>
+                {allTags.map((tag) => (
+                  <option key={tag} value={tag}>
+                    {tag}
+                  </option>
+                ))}
+              </select>
+            </>
           )}
           {/* Toggle hidden on mobile — cards are always used there */}
           <div className="hidden lg:flex items-center border border-stone-200 rounded-xl overflow-hidden">
