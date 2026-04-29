@@ -93,6 +93,14 @@ export interface TradeOutcome {
   domainName: string | null | undefined;
   /** sellNet − holdingCostAsOf(domain, ..., t.date) */
   profit: number;
+  /** 出售净额（已扣平台费 / 已折算分期已收部分） */
+  sellNet: number;
+  /** 出售日截止的 cost basis（purchase + 已发生续费） */
+  costBasisAtSale: number;
+  /** 单笔 ROI = profit / costBasisAtSale × 100。
+   *  costBasisAtSale === 0（免费域名）时为 null——避免 div-by-0 / 误显 0%。
+   *  调用方应处理 null：免费域名通常按 profit 排序而非 ROI。 */
+  roi: number | null;
   /** 该 sell tx 的日期 */
   saleDate: string;
   /** 持有天数（purchase_date 缺失 / 异常时为 null） */
@@ -134,6 +142,9 @@ export function tradeOutcomes(
       domainId: domain.id,
       domainName: domain.domain_name,
       profit,
+      sellNet,
+      costBasisAtSale: costBasis,
+      roi: costBasis > 0 ? (profit / costBasis) * 100 : null,
       saleDate: t.date,
       holdingDays,
     });
