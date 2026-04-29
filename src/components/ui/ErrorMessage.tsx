@@ -29,7 +29,7 @@ export default function ErrorMessage({
       case 'info':
         return 'bg-blue-50 border-blue-200 text-blue-800';
       default:
-        return 'bg-gray-50 border-gray-200 text-gray-800';
+        return 'bg-stone-50 border-stone-200 text-stone-800';
     }
   };
 
@@ -42,7 +42,7 @@ export default function ErrorMessage({
       case 'info':
         return 'text-blue-600';
       default:
-        return 'text-gray-600';
+        return 'text-stone-600';
     }
   };
 
@@ -71,7 +71,7 @@ export default function ErrorMessage({
               {onDismiss && (
                 <button
                   onClick={onDismiss}
-                  className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="inline-flex items-center px-3 py-1 border border-stone-300 text-sm font-medium rounded-md text-stone-700 bg-white hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   <X className="h-4 w-4 mr-1" />
                   关闭

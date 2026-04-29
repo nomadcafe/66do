@@ -60,11 +60,11 @@ export default function ModalShell({
       >
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
           {headerLeading ?? (
-            <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+            <h2 className="text-xl font-semibold text-stone-900">{title}</h2>
           )}
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-stone-400 hover:text-stone-600"
             aria-label={closeLabel ?? 'Close'}
           >
             <X className="h-6 w-6" />

@@ -137,14 +137,14 @@ export default function SaleSuccessModal({
       ariaLabel={t('common.saleSuccess')}
       headerLeading={
         <div className="flex items-center space-x-3">
-          <div className="flex items-center justify-center w-10 h-10 bg-green-100 rounded-full">
-            <CheckCircle className="h-6 w-6 text-green-600" />
+          <div className="flex items-center justify-center w-10 h-10 bg-emerald-100 rounded-full">
+            <CheckCircle className="h-6 w-6 text-emerald-600" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-xl font-semibold text-stone-900">
               {t('common.saleSuccess')}
             </h2>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-stone-500">
               {domain.domain_name} {t('common.domainSoldSuccessfully')}
             </p>
           </div>
@@ -154,16 +154,16 @@ export default function SaleSuccessModal({
     >
       <div className="p-6">
         {/* 成功统计 */}
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center">
-              <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mx-auto mb-2">
-                <DollarSign className="h-6 w-6 text-green-600" />
+              <div className="flex items-center justify-center w-12 h-12 bg-emerald-100 rounded-full mx-auto mb-2">
+                <DollarSign className="h-6 w-6 text-emerald-600" />
               </div>
-              <p className="text-2xl font-bold text-green-600">
+              <p className="text-2xl font-bold text-emerald-600">
                 ${calculateProfit().toLocaleString()}
               </p>
-              <p className="text-sm text-gray-600">{t('common.netProfit')}</p>
+              <p className="text-sm text-stone-600">{t('common.netProfit')}</p>
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full mx-auto mb-2">
@@ -172,7 +172,7 @@ export default function SaleSuccessModal({
               <p className="text-2xl font-bold text-blue-600">
                 {calculateROI().toFixed(1)}%
               </p>
-              <p className="text-sm text-gray-600">{t('common.returnOnInvestment')}</p>
+              <p className="text-sm text-stone-600">{t('common.returnOnInvestment')}</p>
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-full mx-auto mb-2">
@@ -181,15 +181,15 @@ export default function SaleSuccessModal({
               <p className="text-2xl font-bold text-purple-600">
                 {holdingLocalized}
               </p>
-              <p className="text-sm text-gray-600">{t('common.holdingPeriod')}</p>
+              <p className="text-sm text-stone-600">{t('common.holdingPeriod')}</p>
             </div>
           </div>
         </div>
 
         {/* 分享图片预览 */}
         <div className="mb-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">{t('common.shareImagePreview')}</h3>
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50">
+          <h3 className="text-lg font-medium text-stone-900 mb-4">{t('common.shareImagePreview')}</h3>
+          <div className="border-2 border-dashed border-stone-300 rounded-lg p-4 bg-stone-50">
             <canvas
               ref={canvasRef}
               className="max-w-full h-auto mx-auto block"
@@ -200,7 +200,7 @@ export default function SaleSuccessModal({
             <button
               type="button"
               onClick={drawShareImage}
-              className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 flex items-center space-x-2"
+              className="bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 flex items-center space-x-2"
             >
               <Share2 className="h-4 w-4" />
               <span>{t('common.refreshImage')}</span>
@@ -213,7 +213,7 @@ export default function SaleSuccessModal({
             X carries our P&L numbers via its text intent. */}
         {imageGenerated && (
           <div className="space-y-4">
-            <h3 className="text-lg font-medium text-gray-900">{t('common.shareToSocialMedia')}</h3>
+            <h3 className="text-lg font-medium text-stone-900">{t('common.shareToSocialMedia')}</h3>
 
             <button
               onClick={onShareX}
@@ -226,7 +226,7 @@ export default function SaleSuccessModal({
             <div className="flex justify-center">
               <button
                 onClick={onDownload}
-                className="flex items-center space-x-2 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700"
+                className="flex items-center space-x-2 bg-stone-600 text-white px-6 py-3 rounded-lg hover:bg-stone-700"
               >
                 <Download className="h-5 w-5" />
                 <span>{t('common.downloadImage')}</span>

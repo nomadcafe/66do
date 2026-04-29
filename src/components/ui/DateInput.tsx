@@ -125,7 +125,7 @@ export default function DateInput({
   return (
     <div className={className}>
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-stone-700 mb-2">
           {icon && <span className="inline-flex items-center mr-1">{icon}</span>}
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
@@ -142,9 +142,9 @@ export default function DateInput({
           onKeyDown={(e) => handleKeyDown(e, monthRef)}
           placeholder="YYYY"
           maxLength={4}
-          className="w-16 px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
+          className="w-16 px-2 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
         />
-        <span className="text-gray-500">-</span>
+        <span className="text-stone-500">-</span>
         <input
           ref={monthRef}
           type="text"
@@ -155,9 +155,9 @@ export default function DateInput({
           onKeyDown={(e) => handleKeyDown(e, dayRef)}
           placeholder="MM"
           maxLength={2}
-          className="w-12 px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
+          className="w-12 px-2 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
         />
-        <span className="text-gray-500">-</span>
+        <span className="text-stone-500">-</span>
         <input
           ref={dayRef}
           type="text"
@@ -168,7 +168,7 @@ export default function DateInput({
           onKeyDown={(e) => handleKeyDown(e, dayRef)}
           placeholder="DD"
           maxLength={2}
-          className="w-12 px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
+          className="w-12 px-2 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
         />
       </div>
     </div>
