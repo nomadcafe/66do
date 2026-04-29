@@ -24,15 +24,6 @@ export interface BasicFinancialMetrics {
   profitMargin: number;
 }
 
-// 域名表现接口
-export interface DomainPerformance {
-  domain: DomainWithTags;
-  profit: number;
-  roi: number;
-  totalCost: number;
-  revenue: number;
-}
-
 // 高级财务指标接口（三块：年化收益 / 风险调整收益 / 平均持有期）
 export interface AdvancedFinancialMetrics {
   annualizedReturn: number;
@@ -78,34 +69,6 @@ export function calculateBasicFinancialMetrics(
     roi,
     profitMargin
   };
-}
-
-// 计算域名表现
-export function calculateDomainPerformance(
-  domains: DomainWithTags[],
-  transactions: TransactionWithRequiredFields[]
-): DomainPerformance[] {
-  return domains.map(domain => {
-    const totalCost = totalHoldingCostForDomain(domain, transactions);
-    
-    const domainTransactions = transactions.filter(t => t.domain_id === domain.id);
-    
-    const totalEarned = domainTransactions
-      .filter(t => t.type === 'sell')
-      .reduce((sum, t) => sum + sellNetUSD(t), 0);
-    
-    const revenue = domain.sale_price || domain.estimated_value || totalEarned;
-    const profit = revenue - totalCost;
-    const roi = totalCost > 0 ? (profit / totalCost) * 100 : 0;
-
-    return {
-      domain,
-      profit,
-      roi,
-      totalCost,
-      revenue
-    };
-  });
 }
 
 // 计算年化收益率

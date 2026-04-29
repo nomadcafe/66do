@@ -3,7 +3,6 @@ import { DomainWithTags, TransactionWithRequiredFields } from '../types/dashboar
 import {
   calculateBasicFinancialMetrics,
   calculateAdvancedFinancialMetrics,
-  calculateDomainPerformance,
 } from '../lib/coreCalculations';
 
 export function useComprehensiveFinancialAnalysis(
@@ -15,7 +14,6 @@ export function useComprehensiveFinancialAnalysis(
     return {
       basic,
       advanced: calculateAdvancedFinancialMetrics(domains, transactions, basic),
-      domainPerformance: calculateDomainPerformance(domains, transactions),
     };
   }, [domains, transactions]);
 }
