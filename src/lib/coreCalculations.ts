@@ -1,7 +1,7 @@
 // import { Domain, DomainTransaction as Transaction } from '../types/domain';
 import { DomainWithTags, TransactionWithRequiredFields } from '../types/dashboard';
 import { sellGrossUSD, sellNetUSD } from './sellProceeds';
-import { totalHoldingCostForDomain } from './renewalCostBasis';
+import { totalHoldingCostForDomain, holdingCostAsOf } from './renewalCostBasis';
 import { expandRenewalEvents } from './expandRenewalEvents';
 
 export type { SellProceedsFields } from './sellProceeds';
@@ -71,15 +71,29 @@ export function calculateBasicFinancialMetrics(
   };
 }
 
-// 计算年化收益率
+/**
+ * CAGR (compound annual growth rate) — 把累计收益按年化展平。
+ *
+ * 输入：
+ *   totalReturn = realizedPnL / costBasisOfSold（小数，如 0.5 = 50%）
+ *   years       = 投资活动跨度（年）
+ *
+ * 旧版直接用 (totalRevenue − totalInvestment) / totalInvestment，分母是
+ * 全量 cost basis（含未卖），把"未变现库存"当作"亏损"一起年化，跟 Hero
+ * 的 Realized P&L 体系不一致，会出现"已实现盈利但年化收益 -75%"的怪现
+ * 象。新版只看已变现交易，跟 Realized ROI / Realized P&L 同一口径。
+ *
+ * 边界：totalReturn ≤ -1 时（理论上不会发生，realized loss 上限 = sold
+ * cost basis 全亏完 → totalReturn = -1）返回 -1（年化 -100%），避免
+ * Math.pow(0, ...) 后续 - 1 数值不稳。years ≤ 0 或 totalReturn === 0
+ * 时返回 0。
+ */
 export function calculateAnnualizedReturn(
-  totalInvestment: number,
-  totalRevenue: number,
+  totalReturn: number,
   years: number
 ): number {
-  if (years <= 0 || totalInvestment <= 0) return 0;
-  
-  const totalReturn = (totalRevenue - totalInvestment) / totalInvestment;
+  if (years <= 0) return 0;
+  if (totalReturn <= -1) return -1;
   return Math.pow(1 + totalReturn, 1 / years) - 1;
 }
 
@@ -163,20 +177,38 @@ export function calculateAvgHoldingPeriod(domains: DomainWithTags[]): number {
 }
 
 // 计算高级财务指标。basic 由调用方传入，避免与 useComprehensiveFinancialAnalysis
-// 重复跑一次 calculateBasicFinancialMetrics。
+// 重复跑一次 calculateBasicFinancialMetrics。basic 仍保留——其他地方读它。
 export function calculateAdvancedFinancialMetrics(
   domains: DomainWithTags[],
   transactions: TransactionWithRequiredFields[],
-  basic: BasicFinancialMetrics
+  _basic: BasicFinancialMetrics
 ): AdvancedFinancialMetrics {
   const years = calculateInvestmentYears(domains);
-  const annualizedReturn = calculateAnnualizedReturn(
-    basic.totalInvestment,
-    basic.totalRevenue,
-    years
-  );
 
-  // sharpeRatio 需要年化波动率（基于月度收益率序列）。
+  // 年化收益走 realized 口径：分子 = 已实现盈亏，分母 = 已售域名的 cost
+  // basis 总和。跟 Hero / Realized P&L / Realized ROI 同一套口径，未卖出
+  // 的库存不参与计算。inline 计算避免 realizedPnL.ts 反向依赖 coreCalculations
+  // 形成循环依赖。
+  const domainsById = new Map(domains.map((d) => [d.id, d]));
+  let realizedPnL = 0;
+  let soldCostBasis = 0;
+  for (const t of transactions) {
+    if (t.type !== 'sell') continue;
+    const domain = domainsById.get(t.domain_id);
+    if (!domain) continue;
+    const sellNet = sellNetUSD(t);
+    if (sellNet <= 0) continue;
+    const cb = holdingCostAsOf(domain, transactions, new Date(t.date));
+    realizedPnL += sellNet - cb;
+    soldCostBasis += cb;
+  }
+  const totalReturn = soldCostBasis > 0 ? realizedPnL / soldCostBasis : 0;
+  const annualizedReturn = calculateAnnualizedReturn(totalReturn, years);
+
+  // sharpeRatio 需要年化波动率（基于月度收益率序列）。月度收益率本身仍走
+  // 旧的 totalRevenue / totalInvestment 口径——月度数据本来就稀疏，再加
+  // realized 口径只让月份大多为零，意义不大。Sharpe 已经被 sample-size
+  // gating（IA 组件层面 SHARPE_MIN_SAMPLE = 10）保护，不强求精确。
   const monthlyReturnPct = calculateMonthlyReturns(domains, transactions);
   const volMonthlyPct = calculateVolatility(monthlyReturnPct);
   const volAnnualDecimal = (volMonthlyPct / 100) * Math.sqrt(12);
