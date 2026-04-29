@@ -2,6 +2,7 @@
 import { DomainWithTags, TransactionWithRequiredFields } from '../types/dashboard';
 import { sellGrossUSD, sellNetUSD } from './sellProceeds';
 import { totalHoldingCostForDomain } from './renewalCostBasis';
+import { expandRenewalEvents } from './expandRenewalEvents';
 
 export type { SellProceedsFields } from './sellProceeds';
 export { sellGrossUSD, sellNetUSD } from './sellProceeds';
@@ -345,9 +346,14 @@ function calendarYearFromIso(dateStr: string | null | undefined, fallback: numbe
 
 /**
  * 按自然年汇总续费、购入类流出与售出净收入。
- * - 优先使用交易记录（renew / buy / sell 等）。
- * - 若某域名在购入年无任何 buy 交易，则将档案中的 purchase_cost 计入该年「购入与费用」。
- * - 若某次续费年份无 renew 交易，则按 renewal_count、renewal_cost、renewal_cycle 从购入日起推算并计入续费（避免与已有 renew 同年重复）。
+ *
+ * 续费走 expandRenewalEvents（archive + transaction 两类，不含 projected）：
+ * 与 Portfolio Performance 紫线、YTD tile、Annual Outlook 共享同一事件流。
+ * archiveCount 在事件流内部已经做了 `renewal_count − postBaselineTxCount`
+ * 的去重，所以 archive 与显式 renew tx 不会重复计入。
+ *
+ * buy / fee / 等流出仍然按交易日落到自然年；某域名的购入年若无 buy 交易，
+ * 用档案上的 purchase_cost 兜底到 otherOutflow。
  */
 export function calculateYearlyRenewalVsProfit(
   transactions: TransactionWithRequiredFields[],
@@ -378,42 +384,26 @@ export function calculateYearlyRenewalVsProfit(
     if (t.type === 'sell') {
       row.saleNet += amt;
     } else if (t.type === 'renew') {
-      const dom = domains.find((d) => d.id === t.domain_id);
-      const bk = dom?.baseline_renewal_as_of
-        ? String(dom.baseline_renewal_as_of).slice(0, 10)
-        : null;
-      const td = String(t.date).slice(0, 10);
-      if (bk && td.length >= 10 && td < bk) {
-        // 基线日之前的 renew 视为已反映在 renewal_count×renewal_cost 中，避免按年与增量双算
-      } else {
-        row.renewalSpend += amt;
-      }
+      // renew 交易由下面的 expandRenewalEvents 走全量统计；这里跳过，
+      // 不在此循环里直接累加，避免与事件流重复。
+      continue;
     } else if (OUTFLOW_TYPES.includes(t.type)) {
       row.otherOutflow += amt;
     }
   }
 
-  const renewByDomainYear = new Set<string>();
-  for (const t of transactions) {
-    if (t.type !== 'renew') continue;
-    const y = txCalendarYear(t);
-    if (!Number.isFinite(y)) continue;
-    renewByDomainYear.add(`${t.domain_id}-${y}`);
-  }
-
   for (const d of domains) {
-    if (d.baseline_renewal_as_of) {
-      // 已启用续费基线：不按 renewal_count 推算按年续费，仅依赖交易中的 renew
-      continue;
+    // 续费：走事件流，archive + 显式 renew tx 全归这里
+    for (const ev of expandRenewalEvents(d, transactions)) {
+      if (ev.source === 'projected') continue;
+      const y = ev.date.getFullYear();
+      if (!Number.isFinite(y)) continue;
+      ensureYear(y).renewalSpend += ev.amount;
     }
 
+    // 购入：本年没 buy tx 时用档案 purchase_cost 兜底
     const purchaseY = calendarYearFromIso(d.purchase_date, refYear);
     if (!Number.isFinite(purchaseY)) continue;
-
-    let endY = refYear;
-    if (d.status === 'sold' && d.sale_date) {
-      endY = calendarYearFromIso(d.sale_date, refYear);
-    }
 
     const buyInPurchaseYear = transactions
       .filter(
@@ -426,18 +416,6 @@ export function calculateYearlyRenewalVsProfit(
 
     if (buyInPurchaseYear === 0 && (d.purchase_cost || 0) > 0) {
       ensureYear(purchaseY).otherOutflow += d.purchase_cost || 0;
-    }
-
-    const unitRenew = d.renewal_cost || 0;
-    const nRenewals = Math.max(0, d.renewal_count ?? 0);
-    const cycleYears = Math.max(1, Math.floor(d.renewal_cycle || 1));
-
-    let y = purchaseY;
-    for (let i = 0; i < nRenewals; i++) {
-      y += cycleYears;
-      if (y > endY) break;
-      if (renewByDomainYear.has(`${d.id}-${y}`)) continue;
-      ensureYear(y).renewalSpend += unitRenew;
     }
   }
 
