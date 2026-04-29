@@ -8,15 +8,48 @@ import {
   CircleDot,
   ChevronRight,
   Edit,
+  Globe,
 } from 'lucide-react';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import type { DomainWithTags } from '../../types/dashboard';
 import type { TransactionWithRequiredFields } from '../../types/transaction';
+import { domainStatusLabel as statusLabel } from '../../lib/domainStatusLabel';
 import {
   buildDomainTimelineEvents,
   type DomainTimelineEvent,
   type DomainTimelineKind,
 } from '../../lib/domainTimeline';
+
+// Status palette helpers — same 4-color system as DomainCard/Table/Chips/Hero.
+function statusDotClass(status: string): string {
+  switch (status) {
+    case 'active':
+      return 'bg-teal-500';
+    case 'for_sale':
+      return 'bg-amber-500';
+    case 'sold':
+      return 'bg-emerald-500';
+    case 'expired':
+      return 'bg-rose-400';
+    default:
+      return 'bg-stone-300';
+  }
+}
+
+function statusPillClass(status: string): string {
+  switch (status) {
+    case 'active':
+      return 'bg-teal-100 text-teal-700';
+    case 'for_sale':
+      return 'bg-amber-100 text-amber-700';
+    case 'sold':
+      return 'bg-emerald-100 text-emerald-700';
+    case 'expired':
+      return 'bg-rose-100 text-rose-700';
+    default:
+      return 'bg-stone-100 text-stone-700';
+  }
+}
 
 interface DomainTimelineViewProps {
   domains: DomainWithTags[];
@@ -143,8 +176,14 @@ export default function DomainTimelineView({
 
   if (domains.length === 0) {
     return (
-      <div className="text-center py-14 bg-white rounded-2xl border border-stone-200/80 shadow-sm">
-        <p className="text-sm text-stone-500">{t('timeline.noDomains')}</p>
+      <div className="relative overflow-hidden rounded-3xl border border-stone-200/60 bg-gradient-to-br from-teal-50/50 via-white to-amber-50/40 shadow-sm">
+        <div className="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-gradient-to-br from-teal-200/40 to-transparent blur-3xl" />
+        <div className="relative px-6 py-12 text-center">
+          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-stone-100 text-stone-600">
+            <Globe className="h-7 w-7" />
+          </div>
+          <p className="mt-4 text-sm text-stone-500 max-w-sm mx-auto">{t('timeline.noDomains')}</p>
+        </div>
       </div>
     );
   }
@@ -172,15 +211,22 @@ export default function DomainTimelineView({
                   <button
                     type="button"
                     onClick={() => onSelectDomain(d.id)}
-                    className={`w-full text-left px-4 py-3 flex items-center gap-2 text-sm transition ${
+                    className={`w-full text-left px-4 py-3 flex items-center gap-2.5 text-sm transition ${
                       active
-                        ? 'bg-teal-50 text-teal-900 font-medium'
+                        ? 'bg-stone-900 text-white font-medium'
                         : 'text-stone-700 hover:bg-stone-50'
                     }`}
                   >
+                    {/* Status dot — small saturated indicator before the name,
+                        consistent with the 4-color status palette used on
+                        cards/table/chips. Stays visible in both states. */}
+                    <span
+                      className={`h-2 w-2 shrink-0 rounded-full ${statusDotClass(d.status)}`}
+                      aria-hidden
+                    />
                     <span className="truncate flex-1">{d.domain_name}</span>
                     <ChevronRight
-                      className={`h-4 w-4 shrink-0 ${active ? 'text-teal-600' : 'text-stone-300'}`}
+                      className={`h-4 w-4 shrink-0 ${active ? 'text-white/70' : 'text-stone-300'}`}
                     />
                   </button>
                 </li>
@@ -192,7 +238,16 @@ export default function DomainTimelineView({
 
       <div className="lg:col-span-8">
         {selectedDomain && (
-          <h3 className="mb-4 text-lg font-semibold text-stone-900">{selectedDomain.domain_name}</h3>
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <h3 className="text-lg font-semibold text-stone-900">{selectedDomain.domain_name}</h3>
+            <span
+              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusPillClass(
+                selectedDomain.status
+              )}`}
+            >
+              {statusLabel(selectedDomain.status, t)}
+            </span>
+          </div>
         )}
 
         {events.length === 0 ? (
