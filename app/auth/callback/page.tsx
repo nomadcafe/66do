@@ -57,7 +57,7 @@ function AuthCallbackContent() {
 
   if (status === 'error') {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center py-12 px-4">
+      <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-center py-12 px-4">
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg max-w-md">
           {errorMessage || t('auth.magicLink.loginFailed')}
         </div>
@@ -73,10 +73,10 @@ function AuthCallbackContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div className="min-h-screen bg-stone-50 flex items-center justify-center">
       <div className="text-center">
         <div className="animate-spin rounded-full h-10 w-10 border-2 border-teal-500 border-t-transparent mx-auto" />
-        <p className="mt-4 text-gray-600">{t('auth.magicLink.verifying')}</p>
+        <p className="mt-4 text-stone-600">{t('auth.magicLink.verifying')}</p>
       </div>
     </div>
   );
@@ -86,7 +86,7 @@ export default function AuthCallbackPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="min-h-screen bg-stone-50 flex items-center justify-center">
           <div className="animate-spin rounded-full h-10 w-10 border-2 border-teal-500 border-t-transparent" />
         </div>
       }
