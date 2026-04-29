@@ -106,11 +106,11 @@ function MagicLinkContent() {
   }, [searchParams, router, t]);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-stone-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">{t('platform.name')}</h1>
-          <p className="mt-2 text-gray-600">{t('platform.subtitle')}</p>
+          <h1 className="text-3xl font-bold text-stone-900">{t('platform.name')}</h1>
+          <p className="mt-2 text-stone-600">{t('platform.subtitle')}</p>
         </div>
       </div>
 
@@ -119,7 +119,7 @@ function MagicLinkContent() {
           {loading && (
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-4 text-gray-600">{t('auth.magicLink.verifying')}</p>
+              <p className="mt-4 text-stone-600">{t('auth.magicLink.verifying')}</p>
             </div>
           )}
 
@@ -146,10 +146,10 @@ function MagicLinkContent() {
 export default function MagicLinkPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-stone-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">加载中...</p>
+          <p className="mt-4 text-stone-600">加载中...</p>
         </div>
       </div>
     }>
