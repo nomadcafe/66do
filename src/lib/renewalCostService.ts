@@ -1,8 +1,10 @@
 // 续费成本分析（高级面板使用）
-// 数据源：transactions (type='renew')。单一数据源，与 dashboard 底部
-// Yearly Renewal vs Profit 表保持一致，避免上下两半数字打架。
+// 历史/实际续费走 expandRenewalEvents（archive + transaction 两类事件源），
+// 与 Portfolio Performance 紫色 Renewal cost 折线、Dashboard YTD tile 共享同一
+// 事件流口径。否则只有逐笔 renew tx 的域名能进 actual，archive 续费会消失。
 
 import type { TransactionWithRequiredFields } from '../types/transaction';
+import { expandRenewalEvents } from './expandRenewalEvents';
 
 export interface AnnualRenewalCostAnalysis {
   year: number;
@@ -38,9 +40,12 @@ type DomainLike = {
   status: string;
   renewal_cost?: number | null;
   renewal_cycle?: number;
+  renewal_count?: number | null;
   domain_name?: string;
+  purchase_date?: string | null;
   expiry_date?: string | null;
   registrar?: string | null;
+  baseline_renewal_as_of?: string | null;
 };
 
 /** 把 transactions 中的 renew 类型按 domain 分组，并按日期降序排序 */
@@ -64,37 +69,26 @@ function groupRenewalsByDomain(
   return map;
 }
 
-/** 按年份汇总实际续费金额（来自 transactions） */
-function sumActualByYear(transactions: TransactionWithRequiredFields[]): Map<number, number> {
+/**
+ * 按年份汇总「已发生」的续费支出（archive + 显式 renew tx）。
+ * - 走 expandRenewalEvents 与紫色 Renewal cost 折线、YTD tile 同源
+ * - 不含 projected：这里只想看真实历史，不想把估的未来续费当 actual
+ * - 仅遍历活跃域名（与上层 activeDomains 同口径），sold/expired 已经在调用处剔除
+ */
+function sumActualByYear(
+  domains: DomainLike[],
+  transactions: TransactionWithRequiredFields[]
+): Map<number, number> {
   const map = new Map<number, number>();
-  for (const t of transactions) {
-    if (t.type !== 'renew') continue;
-    if (!t.date) continue;
-    const y = new Date(String(t.date)).getFullYear();
-    if (!Number.isFinite(y)) continue;
-    map.set(y, (map.get(y) || 0) + (Number(t.amount) || 0));
+  for (const d of domains) {
+    for (const ev of expandRenewalEvents(d, transactions)) {
+      if (ev.source === 'projected') continue;
+      const y = ev.date.getFullYear();
+      if (!Number.isFinite(y)) continue;
+      map.set(y, (map.get(y) || 0) + ev.amount);
+    }
   }
   return map;
-}
-
-/** 预测下次续费成本（基于历史的线性回归） */
-function predictNextRenewalCost(history: RenewalRecord[]): number {
-  if (history.length === 0) return 0;
-  if (history.length === 1) return history[0].renewal_cost;
-
-  const points = history.map((record, index) => ({ x: index, y: record.renewal_cost }));
-  const n = points.length;
-  const sumX = points.reduce((sum, p) => sum + p.x, 0);
-  const sumY = points.reduce((sum, p) => sum + p.y, 0);
-  const sumXY = points.reduce((sum, p) => sum + p.x * p.y, 0);
-  const sumXX = points.reduce((sum, p) => sum + p.x * p.x, 0);
-
-  const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-  const intercept = (sumY - slope * sumX) / n;
-  const nextX = n;
-  const predicted = slope * nextX + intercept;
-
-  return Math.max(0, predicted);
 }
 
 /** 基于历史价格序列判断趋势（前后两半均值对比） */
@@ -114,36 +108,53 @@ function calculateCostTrend(costs: number[]): 'increasing' | 'decreasing' | 'sta
   return 'stable';
 }
 
-/** 某年到期域名的预估续费总额、数量、按注册商分布（基于已分组的历史） */
+/**
+ * 某年的预估续费总额、涉及域名数、按注册商分布。
+ *
+ * 走 expandRenewalEvents（forecastUntil = 该年最后一刻），把档案 archive、显式
+ * renew tx、未来 projected 三类事件都纳入：
+ *   - 历史年：events 全是 archive + tx，与 actual 列同源 → 历史年 estimated == actual
+ *   - 当前年：已发生部分（archive + tx）+ 年内剩余的 projected 续费
+ *   - 未来年：纯 projected
+ *
+ * 这样 cycle=1 年的域名，未来 3 年每一年都会贡献一笔 projected，Outlook 列表
+ * 不会再出现"今年到期域名贡献 $X，明年/后年凭空降到 $0"的假象。
+ *
+ * domains_needing_renewal 用 Set 去重：一个域名在该年有任何事件就计 1，
+ * 不会因为多条事件（理论上不会发生，但 cycle=0.5 之类边界情况兜个底）重复。
+ */
 function buildAnnualEstimatedBreakdown(
   year: number,
   activeDomains: DomainLike[],
-  historyByDomain: Map<string, RenewalRecord[]>
+  transactions: TransactionWithRequiredFields[]
 ): {
   total_estimated_cost: number;
   domains_needing_renewal: number;
   cost_by_registrar: { [registrar: string]: number };
 } {
   let total_estimated_cost = 0;
-  let domains_needing_renewal = 0;
+  const domainsThisYear = new Set<string>();
   const cost_by_registrar: { [registrar: string]: number } = {};
+  const yearEnd = new Date(year, 11, 31, 23, 59, 59, 999);
 
   for (const domain of activeDomains) {
-    const expiryDate = domain.expiry_date;
-    if (!expiryDate) continue;
-    const expiryDateObj = new Date(expiryDate);
-    if (expiryDateObj.getFullYear() !== year) continue;
-
-    domains_needing_renewal += 1;
-    const history = historyByDomain.get(domain.id) || [];
-    const predictedCost =
-      history.length > 0 ? predictNextRenewalCost(history) : (domain.renewal_cost ?? 0);
-    total_estimated_cost += predictedCost;
+    let costThisYear = 0;
+    for (const ev of expandRenewalEvents(domain, transactions, { forecastUntil: yearEnd })) {
+      if (ev.date.getFullYear() !== year) continue;
+      costThisYear += ev.amount;
+    }
+    if (costThisYear === 0) continue;
+    total_estimated_cost += costThisYear;
+    domainsThisYear.add(domain.id);
     const registrar = (domain.registrar as string) || 'Unknown';
-    cost_by_registrar[registrar] = (cost_by_registrar[registrar] || 0) + predictedCost;
+    cost_by_registrar[registrar] = (cost_by_registrar[registrar] || 0) + costThisYear;
   }
 
-  return { total_estimated_cost, domains_needing_renewal, cost_by_registrar };
+  return {
+    total_estimated_cost,
+    domains_needing_renewal: domainsThisYear.size,
+    cost_by_registrar,
+  };
 }
 
 /**
@@ -248,13 +259,20 @@ export function computeAdvancedRenewalPanelData(
   const relevantRenewals = transactions.filter(
     (t) => t.type === 'renew' && activeIds.has(t.domain_id)
   );
+  // historyByDomain 只喂给 calculateCostTrends（涨价趋势、最贵 domain、优化机会）。
+  // archive 续费没有逐笔单价，所以这块仍只看真实 renew tx 序列。
   const historyByDomain = groupRenewalsByDomain(relevantRenewals);
-  const actualByYear = sumActualByYear(relevantRenewals);
+  // actualByYear / 估值都走 expandRenewalEvents：archive + tx + projected 三类。
+  const actualByYear = sumActualByYear(activeDomains, transactions);
 
-  const breakdown = buildAnnualEstimatedBreakdown(selectedYear, activeDomains, historyByDomain);
+  const breakdown = buildAnnualEstimatedBreakdown(selectedYear, activeDomains, transactions);
   const actualCost = actualByYear.get(selectedYear) || 0;
   const costTrends = calculateCostTrends(activeDomains, historyByDomain);
 
+  // 现在 estimated 与 actual 同源（archive+tx 部分完全相同），差额只来自 projected。
+  // 历史年：projected = 0 → estimated == actual → accuracy = 100%
+  // 当前年中：actual / estimated = 已发生比例（"今年续费已经走完多少"）
+  // 未来年：actual = 0 → 不显示 accuracy（落到下方 actualCost > 0 分支）
   const rawAccuracy =
     actualCost > 0
       ? (1 - Math.abs(breakdown.total_estimated_cost - actualCost) / actualCost) * 100
@@ -275,7 +293,7 @@ export function computeAdvancedRenewalPanelData(
   const sumEnd = selectedYear + futureYears;
   const yearSummaries: RenewalYearSummary[] = [];
   for (let y = sumStart; y <= sumEnd; y++) {
-    const b = buildAnnualEstimatedBreakdown(y, activeDomains, historyByDomain);
+    const b = buildAnnualEstimatedBreakdown(y, activeDomains, transactions);
     yearSummaries.push({
       year: y,
       total_estimated_cost: b.total_estimated_cost,
