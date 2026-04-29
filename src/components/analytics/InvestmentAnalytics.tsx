@@ -93,7 +93,8 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
   const { t, locale } = useI18nContext();
   const [selectedTimeframe, setSelectedTimeframe] = useState<'6M' | '1Y' | '2Y' | '3Y' | 'ALL'>('ALL');
 
-  // N 个月窗口（含当前月）。filter 与 timeSeriesData 共用此值，确保两边窗口对齐。
+  // N 个月窗口（含当前月）。只影响图表的显示范围；事件流计算永远走全量
+  // 数据，否则会丢失窗口外的成本基准 / 续费历史 / 跨窗口分期到账。
   const monthsWindow = useMemo(() => {
     switch (selectedTimeframe) {
       case '6M': return 6;
@@ -104,61 +105,72 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     }
   }, [selectedTimeframe]);
 
-  const filteredData = useMemo(() => {
-    if (monthsWindow === null) return { domains, transactions };
-
-    const now = new Date();
-    const startDate = new Date(now.getFullYear(), now.getMonth() - (monthsWindow - 1), 1);
-
-    const filteredDomains = domains.filter(domain => {
-      const domainDate = new Date(domain.purchase_date || '');
-      return domainDate >= startDate && domainDate <= now;
-    });
-
-    const filteredTransactions = transactions.filter(transaction => {
-      const transactionDate = new Date(transaction.date);
-      return transactionDate >= startDate && transactionDate <= now;
-    });
-
-    return { domains: filteredDomains, transactions: filteredTransactions };
-  }, [domains, transactions, monthsWindow]);
+  // 关键：所有事件流口径计算都用全量 domains / transactions。
+  // 之前用 filteredData 按 domain.purchase_date / tx.date 过滤是错的——
+  //   1. 老域名上月卖出：filteredDomains 把 domain 过滤掉了 → 那笔利润全丢
+  //   2. cost basis 计算需要域名完整购买/续费历史：filteredTransactions 把
+  //      老的 buy/renew tx 过滤掉，cost basis 算成 0 → 利润被严重高估
+  //   3. 老域名上月续费：filteredDomains 把 domain 过滤掉 → renewal 事件丢
+  //   4. 分期销售 sell.date 在窗口外但已付期到账月在窗口内：filteredData
+  //      把 sell tx 过滤掉 → 这些月的 revenue 丢
+  //
+  // 正确做法：所有 by-month 事件流用全量数据计算，得到完整的 Map<月份, 数值>
+  // 再在图表循环里按 monthsToShow 取窗口内的月份显示。
 
   const investmentYears = useMemo(
-    () => calculateInvestmentYears(filteredData.domains),
-    [filteredData.domains]
+    () => calculateInvestmentYears(domains),
+    [domains]
   );
 
-  // 使用筛选后的数据计算
-  const financialAnalysis = useComprehensiveFinancialAnalysis(filteredData.domains, filteredData.transactions);
-  
-  const portfolioMetrics: PortfolioMetrics = useMemo(() => {
-    const soldCount = filteredData.domains.filter((d) => d.status === 'sold').length;
-    return {
-      realizedPnL: totalRealizedPnL(filteredData.domains, filteredData.transactions),
-      annualizedReturn: financialAnalysis.advanced.annualizedReturn,
-      sharpeRatio: financialAnalysis.advanced.sharpeRatio,
-      soldCount,
-    };
-  }, [financialAnalysis, filteredData.domains, filteredData.transactions]);
+  // Sharpe / 年化收益是 lifetime portfolio 指标，永远基于全量数据，
+  // 跟时间窗口选择器解耦——窗口选 6M 时这俩指标也展示 lifetime 数字。
+  const financialAnalysis = useComprehensiveFinancialAnalysis(domains, transactions);
 
-  // 月度入账：分期销售用 expandSellToCashReceipts 按已付期展开到对应月份，
-  // 避免把多期分期一起记到销售当月让中间月柱子全 0。
+  // 月度入账：分期销售用 expandSellToCashReceipts 按已付期展开到对应月份。
   const monthlyNetInflowByMonth = useMemo(() => {
     const map = new Map<string, number>();
-    for (const t of filteredData.transactions) {
+    for (const t of transactions) {
       if (t.type !== 'sell') continue;
       for (const r of expandSellToCashReceipts(t)) {
         map.set(r.monthKey, (map.get(r.monthKey) ?? 0) + r.netAmount);
       }
     }
     return map;
-  }, [filteredData.transactions]);
+  }, [transactions]);
 
-  // 已实现盈亏（按到账月）走共享 lib，与 dashboard hero 同源。
+  // 已实现盈亏（按到账月）走共享 lib，与 dashboard hero 同源。全量数据。
   const monthlyRealizedPnL = useMemo(
-    () => realizedPnLByMonth(filteredData.domains, filteredData.transactions),
-    [filteredData.transactions, filteredData.domains]
+    () => realizedPnLByMonth(domains, transactions),
+    [transactions, domains]
   );
+
+  // KPI strip 的 Realized P&L：当前窗口内月份的累计——跟图表黄线最右端对齐。
+  // ALL 时是 lifetime；6M 时是过去 6 个月内已实现的盈亏（一笔老域名上月卖出
+  // 的利润会进 6M 窗口；这是用户期望的语义）。
+  const portfolioMetrics: PortfolioMetrics = useMemo(() => {
+    const soldCount = domains.filter((d) => d.status === 'sold').length;
+    let realizedPnL = 0;
+    if (monthsWindow === null) {
+      for (const v of monthlyRealizedPnL.values()) realizedPnL += v;
+    } else {
+      const now = new Date();
+      const startMonth = new Date(now.getFullYear(), now.getMonth() - (monthsWindow - 1), 1);
+      for (const [key, v] of monthlyRealizedPnL) {
+        const [yearStr, monthStr] = key.split('-');
+        const year = Number(yearStr);
+        const month = Number(monthStr);
+        if (!Number.isFinite(year) || !Number.isFinite(month)) continue;
+        const d = new Date(year, month - 1, 1);
+        if (d >= startMonth && d <= now) realizedPnL += v;
+      }
+    }
+    return {
+      realizedPnL,
+      annualizedReturn: financialAnalysis.advanced.annualizedReturn,
+      sharpeRatio: financialAnalysis.advanced.sharpeRatio,
+      soldCount,
+    };
+  }, [domains, financialAnalysis, monthlyRealizedPnL, monthsWindow]);
 
   const timeSeriesData: TimeSeriesData[] = useMemo(() => {
     const data: TimeSeriesData[] = [];
@@ -170,11 +182,11 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       monthsToShow = monthsWindow;
       startDate = new Date(now.getFullYear(), now.getMonth() - (monthsWindow - 1), 1);
     } else {
-      // ALL: 找到最早的数据日期并展开
+      // ALL: 找到最早的数据日期并展开（全量数据）
       monthsToShow = 12;
       const allDates = [
-        ...filteredData.domains.map(d => new Date(d.purchase_date || '')),
-        ...filteredData.transactions.map(t => new Date(t.date))
+        ...domains.map(d => new Date(d.purchase_date || '')),
+        ...transactions.map(t => new Date(t.date))
       ].filter(d => !isNaN(d.getTime()));
       const earliestDate = allDates.length > 0
         ? new Date(Math.min(...allDates.map(d => d.getTime())))
@@ -196,10 +208,13 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     // basis impact, projected events only feed the dotted forecast line on the
     // chart. Projected forecastUntil = today so we never project visible months
     // beyond what the chart covers anyway.
+    // 用全量 domains/transactions 算事件流，避免漏掉窗口外创建但事件落在
+    // 窗口内的域名（老域名上月续费等）。事件流出来后按月聚合到 Map，下面
+    // 主循环只取窗口内月份显示。
     const renewalActualByMonth = new Map<string, number>();
     const renewalProjectedByMonth = new Map<string, number>();
-    for (const d of filteredData.domains) {
-      for (const ev of expandRenewalEvents(d, filteredData.transactions, { forecastUntil: now })) {
+    for (const d of domains) {
+      for (const ev of expandRenewalEvents(d, transactions, { forecastUntil: now })) {
         if (ev.date > now) continue;
         const key = ev.date.toISOString().slice(0, 7);
         const target = ev.source === 'projected' ? renewalProjectedByMonth : renewalActualByMonth;
@@ -207,7 +222,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       }
     }
     const purchaseEventsByMonth = new Map<string, number>();
-    for (const d of filteredData.domains) {
+    for (const d of domains) {
       if (!d.purchase_date) continue;
       const pd = new Date(d.purchase_date);
       if (Number.isNaN(pd.getTime()) || pd > now) continue;
@@ -236,7 +251,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
 
       // 月度净现金流 = 本月实收 - 本月花出（买入/续费/平台费）。
       // 流出按 t.date 月份归类：buy/renew/fee 都是一次性付款，不存在分期到账问题。
-      const costThisMonth = filteredData.transactions
+      const costThisMonth = transactions
         .filter((t) => {
           if (t.type !== 'buy' && t.type !== 'renew' && t.type !== 'fee') return false;
           return new Date(t.date).toISOString().slice(0, 7) === monthKey;
@@ -260,12 +275,12 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     }
 
     return data;
-  }, [filteredData, monthsWindow, monthlyNetInflowByMonth, monthlyRealizedPnL]);
+  }, [domains, transactions, monthsWindow, monthlyNetInflowByMonth, monthlyRealizedPnL]);
 
   // 辅助函数已移至共享计算库
 
   const renderPortfolioMetrics = () => {
-    if (filteredData.domains.length === 0 && filteredData.transactions.length === 0) {
+    if (domains.length === 0 && transactions.length === 0) {
       return (
         <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
           <div className="flex flex-col items-center justify-center py-12 text-stone-500">
@@ -524,8 +539,8 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       return parts.length > 1 ? parts[parts.length - 1] : 'unknown';
     };
 
-    // 持有域名后缀分布（基于筛选后的数据）
-    const heldDomains = filteredData.domains.filter(d => d.status === 'active' || d.status === 'for_sale');
+    // 持有域名后缀分布——portfolio 当前组成，跟时间窗口无关，用全量 domains。
+    const heldDomains = domains.filter(d => d.status === 'active' || d.status === 'for_sale');
     const heldSuffixCount: { [key: string]: number } = {};
     heldDomains.forEach(domain => {
       const suffix = extractSuffix(domain.domain_name);
@@ -544,11 +559,11 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       heldSuffixData,
       totalHeld: heldDomains.length
     };
-  }, [filteredData.domains]);
+  }, [domains]);
 
-  // 按当前持有域名统计注册商分布（active + for_sale）
+  // 按当前持有域名统计注册商分布（active + for_sale）。同样用全量 domains。
   const registrarAnalysis = useMemo(() => {
-    const heldDomains = filteredData.domains.filter(
+    const heldDomains = domains.filter(
       (d) => d.status === 'active' || d.status === 'for_sale'
     );
     const registrarCount: { [key: string]: number } = {};
@@ -566,7 +581,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       .sort((a, b) => b.value - a.value);
 
     return { data, totalHeld: heldDomains.length };
-  }, [filteredData.domains, t]);
+  }, [domains, t]);
 
   const renderMonthlyCashFlow = () => (
     <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
@@ -648,11 +663,12 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         {(() => {
           // Status palette aligned with Hero composition donut + DomainCard/Table:
           // active=teal-600 / for_sale=amber-500 / sold=emerald-500 / expired=rose-400.
+          // 全量 domains—portfolio 状态分布跟时间窗口无关。
           const statusData = [
-            { name: t('analytics.activeDomains'), value: filteredData.domains.filter(d => d.status === 'active').length, color: '#0d9488' },
-            { name: t('analytics.forSaleDomains'), value: filteredData.domains.filter(d => d.status === 'for_sale').length, color: '#f59e0b' },
-            { name: t('analytics.soldDomains'), value: filteredData.domains.filter(d => d.status === 'sold').length, color: '#10b981' },
-            { name: t('analytics.expiredDomains'), value: filteredData.domains.filter(d => d.status === 'expired').length, color: '#fb7185' },
+            { name: t('analytics.activeDomains'), value: domains.filter(d => d.status === 'active').length, color: '#0d9488' },
+            { name: t('analytics.forSaleDomains'), value: domains.filter(d => d.status === 'for_sale').length, color: '#f59e0b' },
+            { name: t('analytics.soldDomains'), value: domains.filter(d => d.status === 'sold').length, color: '#10b981' },
+            { name: t('analytics.expiredDomains'), value: domains.filter(d => d.status === 'expired').length, color: '#fb7185' },
           ].filter(entry => entry.value > 0);
           if (statusData.length === 0) {
             return (
@@ -731,11 +747,6 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
             <h3 className="text-lg font-semibold text-stone-900">{t('analytics.title')}</h3>
             <p className="text-sm text-stone-500 mt-1">
               {t('analytics.dataRange')}: <span className="font-medium text-stone-700">{getTimeframeText()}</span>
-              {selectedTimeframe !== 'ALL' && (
-                <span className="ml-2 text-xs text-stone-400">
-                  ({filteredData.domains.length} {t('analytics.domainsCount')}, {filteredData.transactions.length} {t('analytics.transactionsCount')})
-                </span>
-              )}
             </p>
           </div>
           <select
