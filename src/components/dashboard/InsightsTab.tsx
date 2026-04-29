@@ -8,6 +8,7 @@ import {
   LazyInvestmentAnalytics,
   LazyAdvancedRenewalAnalysis,
   LazyExpiredDomainLossAnalysis,
+  LazyYearlyCashflowTable,
   LazyWrapper,
 } from '../LazyComponents';
 import type { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
@@ -235,6 +236,9 @@ export default function InsightsTab({
           </LazyWrapper>
           <LazyWrapper>
             <LazyInvestmentAnalytics domains={domains} transactions={transactionsForMetrics} />
+          </LazyWrapper>
+          <LazyWrapper>
+            <LazyYearlyCashflowTable domains={domains} transactions={transactionsForMetrics} />
           </LazyWrapper>
         </div>
       )}
