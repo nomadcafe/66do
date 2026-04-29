@@ -72,6 +72,28 @@ export interface HomeDictionary {
     captionRenewal: string;
     captionDecisions: string;
     captionBilingual: string;
+    // ─── New keys to mirror the redesigned dashboard ──────────────
+    realizedPnL: string;
+    portfolioAtCost: string;
+    fromSales: string;             // "from {n} sales" / "{n} 笔出售"
+    activeListed: string;          // "{a} active · {l} listed"
+    tabPortfolio: string;
+    tabActivity: string;
+    tabInsights: string;
+    statusActive: string;
+    statusForSale: string;
+    statusSold: string;
+    statusExpired: string;
+    actionExpiringTitle: string;
+    actionExpiringPrimary: string; // "{n} domains expiring · ${cost}"
+    actionRecentTitle: string;
+    actionRecentPrimary: string;
+    actionStuckTitle: string;
+    actionStuckPrimary: string;    // "{n} stuck > 1 year"
+    actionCtaReview: string;
+    actionCtaView: string;
+    domainSold: string;            // "Sold $X · ROI +Y%"
+    domainHolding: string;         // "Total cost $X · {n} renewals"
   };
   footer: {
     description: string;
@@ -166,6 +188,27 @@ const zh: HomeDictionary = {
     captionRenewal: '一年续费成本一目了然',
     captionDecisions: '续费 / 出售决策不靠脑记',
     captionBilingual: '中英双语，桌面与移动皆适配',
+    realizedPnL: '已实现盈亏',
+    portfolioAtCost: '当前持有成本',
+    fromSales: '{n} 笔出售',
+    activeListed: '{a} 持有 · {l} 在售',
+    tabPortfolio: '组合',
+    tabActivity: '动态',
+    tabInsights: '洞察',
+    statusActive: '持有',
+    statusForSale: '在售',
+    statusSold: '已售',
+    statusExpired: '失效',
+    actionExpiringTitle: '本周到期',
+    actionExpiringPrimary: '3 个域名待续费 · 共 $30',
+    actionRecentTitle: '本月动态',
+    actionRecentPrimary: '2 笔出售已落账',
+    actionStuckTitle: '滞留中',
+    actionStuckPrimary: '5 个超 1 年未售',
+    actionCtaReview: '查看',
+    actionCtaView: '前往',
+    domainSold: '售 ${price} · ROI +{roi}%',
+    domainHolding: '总成本 ${cost} · 续费 {n} 次',
   },
   footer: {
     description:
@@ -261,6 +304,27 @@ const en: HomeDictionary = {
     captionRenewal: 'A year of renewal cost at a glance',
     captionDecisions: 'Renew or sell — backed by data, not memory',
     captionBilingual: 'Bilingual EN/ZH, desktop and mobile both polished',
+    realizedPnL: 'Realized P&L',
+    portfolioAtCost: 'Portfolio at Cost',
+    fromSales: 'from {n} sales',
+    activeListed: '{a} active · {l} listed',
+    tabPortfolio: 'Portfolio',
+    tabActivity: 'Activity',
+    tabInsights: 'Insights',
+    statusActive: 'Active',
+    statusForSale: 'For sale',
+    statusSold: 'Sold',
+    statusExpired: 'Expired',
+    actionExpiringTitle: 'Expiring this week',
+    actionExpiringPrimary: '3 domains · $30 in renewals',
+    actionRecentTitle: 'This month',
+    actionRecentPrimary: '2 sales closed',
+    actionStuckTitle: 'Stuck listings',
+    actionStuckPrimary: '5 held over 1 year',
+    actionCtaReview: 'Review',
+    actionCtaView: 'Open',
+    domainSold: 'Sold ${price} · ROI +{roi}%',
+    domainHolding: 'Total cost ${cost} · {n} renewals',
   },
   footer: {
     description:

@@ -6,10 +6,8 @@ import {
   BarChart3,
   Star,
   Shield,
-  Plus,
   RefreshCw,
   PieChart,
-  DollarSign,
 } from 'lucide-react';
 import {
   getHomeDictionary,
@@ -42,16 +40,6 @@ export default async function HomePage({ params }: PageProps) {
     { icon: <BarChart3 className="h-5 w-5" />, title: d.features.data.title },
     { icon: <Shield className="h-5 w-5" />, title: d.features.security.title },
   ];
-
-  const sampleTransactions = [
-    { domain: 'crypto.xyz', type: 'sell' as const, date: locale === 'zh' ? '2026年4月12日' : 'Apr 12, 2026', amount: '+$8,400' },
-    { domain: 'meta.io', type: 'buy' as const, date: locale === 'zh' ? '2026年4月9日' : 'Apr 9, 2026', amount: '-$220' },
-    { domain: 'ai-tools.com', type: 'renew' as const, date: locale === 'zh' ? '2026年4月3日' : 'Apr 3, 2026', amount: '-$32' },
-    { domain: 'portfolio.dev', type: 'sell' as const, date: locale === 'zh' ? '2026年3月28日' : 'Mar 28, 2026', amount: '+$3,200' },
-  ];
-
-  const txTypeLabel = (type: 'buy' | 'sell' | 'renew') =>
-    type === 'sell' ? d.preview.typeSell : type === 'buy' ? d.preview.typeBuy : d.preview.typeRenew;
 
   // Sparkline points: monotonic upward sample, 12 monthly steps. width 200, height 56, padded 4.
   const sparkPoints = [12, 14, 13, 18, 22, 24, 28, 30, 36, 40, 44, 48];
@@ -111,44 +99,79 @@ export default async function HomePage({ params }: PageProps) {
                 />
               </div>
 
-              {/* Right: portfolio-value KPI card with sparkline */}
+              {/* Right: dual-metric Hero preview, mirrors PortfolioHealthCard. */}
               <div aria-hidden="true" className="relative mx-auto w-full max-w-md lg:max-w-none">
                 <div className="absolute -inset-6 -z-10 rounded-[2rem] bg-gradient-to-br from-teal-100/60 via-emerald-100/40 to-transparent blur-2xl" />
-                <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-xl shadow-stone-900/5">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-medium uppercase tracking-wider text-stone-500">
-                      {d.preview.totalRevenue}
-                    </p>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                      <TrendingUp className="h-3 w-3" /> +18%
-                    </span>
-                  </div>
-                  <p className="mt-2 text-4xl font-bold tracking-tight text-stone-900">$48,200</p>
-                  <p className="mt-1 text-xs text-stone-500">{d.preview.activeSold}</p>
-
-                  <svg viewBox="0 0 200 60" className="mt-5 h-16 w-full" preserveAspectRatio="none" role="img">
-                    <defs>
-                      <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#14b8a6" stopOpacity="0.25" />
-                        <stop offset="100%" stopColor="#14b8a6" stopOpacity="0" />
-                      </linearGradient>
-                    </defs>
-                    <path d={sparkArea} fill="url(#sparkGrad)" />
-                    <path d={sparkPath} fill="none" stroke="#0d9488" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-
-                  <div className="mt-5 grid grid-cols-3 gap-3 border-t border-stone-100 pt-4">
-                    <div>
-                      <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">{d.preview.totalDomains}</p>
-                      <p className="mt-0.5 text-base font-semibold text-stone-900">28</p>
+                <div className="relative overflow-hidden rounded-3xl border border-stone-200/60 bg-gradient-to-br from-teal-50/50 via-white to-amber-50/40 p-6 shadow-xl shadow-stone-900/5">
+                  <div className="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-gradient-to-br from-teal-200/40 to-transparent blur-3xl" />
+                  <div className="relative">
+                    {/* Top: dual metrics side-by-side */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                          {d.preview.realizedPnL}
+                        </p>
+                        <p className="mt-1 text-3xl font-bold tracking-tight tabular-nums text-emerald-600">
+                          +$12,450
+                        </p>
+                        <p className="mt-1 text-xs text-stone-500">
+                          {d.preview.fromSales.replace('{n}', '7')}
+                        </p>
+                      </div>
+                      <div className="border-l border-stone-200/70 pl-4">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                          {d.preview.portfolioAtCost}
+                        </p>
+                        <p className="mt-1 text-3xl font-bold tracking-tight tabular-nums text-stone-900">
+                          $48,300
+                        </p>
+                        <p className="mt-1 text-xs text-stone-500">
+                          {d.preview.activeListed.replace('{a}', '12').replace('{l}', '3')}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">{d.preview.totalCost}</p>
-                      <p className="mt-0.5 text-base font-semibold text-stone-900">$14,520</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">{d.preview.roi}</p>
-                      <p className="mt-0.5 text-base font-semibold text-emerald-600">232%</p>
+
+                    {/* Sparkline */}
+                    <svg viewBox="0 0 200 60" className="mt-5 h-16 w-full" preserveAspectRatio="none" role="img">
+                      <defs>
+                        <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
+                          <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+                        </linearGradient>
+                      </defs>
+                      <path d={sparkArea} fill="url(#sparkGrad)" />
+                      <path d={sparkPath} fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+
+                    {/* Footer chips */}
+                    <div className="mt-5 grid grid-cols-3 gap-3 border-t border-stone-200/70 pt-4">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-stone-100 text-stone-700">
+                          <Globe className="h-3.5 w-3.5" />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">{d.preview.totalDomains}</p>
+                          <p className="text-sm font-semibold text-stone-900 tabular-nums">28</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-700">
+                          <BarChart3 className="h-3.5 w-3.5" />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">{d.preview.roi}</p>
+                          <p className="text-sm font-semibold text-emerald-600 tabular-nums">+86%</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700">
+                          <RefreshCw className="h-3.5 w-3.5" />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">YTD</p>
+                          <p className="text-sm font-semibold text-stone-900 tabular-nums">$580</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -172,7 +195,13 @@ export default async function HomePage({ params }: PageProps) {
               </p>
             </div>
 
-            {/* Mock dashboard frame */}
+            {/* Mock dashboard frame — mirrors the redesigned dashboard:
+                  Hero card (dual metric + sparkline + composition donut)
+                → Tab nav (Portfolio/Activity/Insights)
+                → Action Lane (3-row alert panel)
+                → Status chip strip
+                → DomainCard list (with status edge stripe)
+                Numbers/labels are aspirational sample data, not real. */}
             <div aria-hidden="true" className="rounded-2xl border border-stone-200 bg-white shadow-xl shadow-stone-900/5 overflow-hidden">
               {/* Window chrome */}
               <div className="flex items-center gap-1.5 border-b border-stone-100 bg-stone-50/80 px-4 py-2.5">
@@ -182,93 +211,140 @@ export default async function HomePage({ params }: PageProps) {
                 <span className="ml-3 text-xs text-stone-400">domain.financial / dashboard</span>
               </div>
 
-              <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
-                {/* KPI row — mirrors dashboard layout */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                  <div className="rounded-2xl border border-stone-200/80 bg-white p-4 sm:p-5 shadow-sm">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{d.preview.totalDomains}</p>
-                        <p className="text-2xl font-bold text-stone-900 mt-1">28</p>
-                        <p className="text-xs text-stone-500 mt-1">{d.preview.activeSold}</p>
-                      </div>
-                      <div className="w-10 h-10 rounded-xl bg-stone-100 flex items-center justify-center text-stone-600"><Globe className="h-5 w-5" /></div>
-                    </div>
-                  </div>
-                  <div className="rounded-2xl border border-stone-200/80 bg-white p-4 sm:p-5 shadow-sm">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{d.preview.totalCost}</p>
-                        <p className="text-2xl font-bold text-stone-900 mt-1">$14,520</p>
-                        <p className="text-xs text-stone-500 mt-1">avg $518</p>
-                      </div>
-                      <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600"><DollarSign className="h-5 w-5" /></div>
-                    </div>
-                  </div>
-                  <div className="rounded-2xl border border-stone-200/80 bg-white p-4 sm:p-5 shadow-sm">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{d.preview.totalRevenue}</p>
-                        <p className="text-2xl font-bold text-stone-900 mt-1">$48,200</p>
-                        <p className="text-xs text-emerald-600 mt-1">+18% YoY</p>
-                      </div>
-                      <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600"><TrendingUp className="h-5 w-5" /></div>
-                    </div>
-                  </div>
-                  <div className="rounded-2xl border border-stone-200/80 bg-white p-4 sm:p-5 shadow-sm">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-xs font-medium uppercase tracking-wider text-stone-500">{d.preview.roi}</p>
-                        <p className="text-2xl font-bold text-stone-900 mt-1">232.0%</p>
-                        <p className="text-xs text-stone-500 mt-1">+$33,680</p>
-                      </div>
-                      <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600"><BarChart3 className="h-5 w-5" /></div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Tab bar */}
-                <div className="rounded-xl border border-stone-200 overflow-hidden">
+              <div className="bg-stone-50/30 p-4 sm:p-6 space-y-4 sm:space-y-5">
+                {/* Tab nav — sits ABOVE the hero in the real dashboard too. */}
+                <div className="rounded-2xl border border-stone-200 bg-white shadow-sm overflow-hidden">
                   <div className="flex gap-1 p-1.5 bg-stone-50/50 border-b border-stone-100">
-                    <span className="rounded-lg px-3 py-1.5 text-sm font-medium bg-stone-900 text-white shadow-sm">{d.preview.tabOverview}</span>
-                    <span className="rounded-lg px-3 py-1.5 text-sm font-medium text-stone-600">{d.preview.tabDomains}</span>
-                    <span className="rounded-lg px-3 py-1.5 text-sm font-medium text-stone-600">{d.preview.tabTransactions}</span>
-                    <span className="hidden sm:inline-flex rounded-lg px-3 py-1.5 text-sm font-medium text-stone-600">{d.preview.tabAnalytics}</span>
+                    <span className="rounded-lg px-3 py-1.5 text-sm font-medium bg-stone-900 text-white shadow-sm">{d.preview.tabPortfolio}</span>
+                    <span className="rounded-lg px-3 py-1.5 text-sm font-medium text-stone-600">{d.preview.tabActivity}</span>
+                    <span className="rounded-lg px-3 py-1.5 text-sm font-medium text-stone-600">{d.preview.tabInsights}</span>
                   </div>
                 </div>
 
-                {/* Recent Transactions card */}
-                <div className="rounded-xl border border-stone-200 overflow-hidden">
-                  <div className="px-4 sm:px-5 py-3 sm:py-3.5 border-b border-stone-100">
-                    <h3 className="text-sm font-semibold text-stone-900">{d.preview.recentTransactions}</h3>
-                  </div>
-                  <div className="divide-y divide-stone-100">
-                    {sampleTransactions.map((tx, i) => {
-                      const tone = tx.type;
-                      const iconBg =
-                        tone === 'sell' ? 'bg-emerald-50 text-emerald-600' :
-                        tone === 'buy' ? 'bg-teal-50 text-teal-600' :
-                        'bg-amber-50 text-amber-600';
-                      const Icon = tone === 'sell' ? TrendingUp : tone === 'buy' ? Plus : RefreshCw;
-                      const amountColor =
-                        tone === 'sell' ? 'text-emerald-600' :
-                        tone === 'buy' ? 'text-teal-700' :
-                        'text-amber-700';
-                      return (
-                        <div key={i} className="flex items-center justify-between px-4 sm:px-5 py-3">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <span className={`shrink-0 flex h-9 w-9 items-center justify-center rounded-xl ${iconBg}`}>
-                              <Icon className="h-4 w-4" />
-                            </span>
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium text-stone-900 truncate">{tx.domain}</p>
-                              <p className="text-xs text-stone-500">{txTypeLabel(tx.type)} · {tx.date}</p>
-                            </div>
-                          </div>
-                          <p className={`shrink-0 ml-3 text-sm font-semibold ${amountColor}`}>{tx.amount}</p>
+                {/* Hero card — gradient + dual metrics + sparkline + footer chips */}
+                <div className="relative overflow-hidden rounded-3xl border border-stone-200/60 bg-gradient-to-br from-teal-50/50 via-white to-amber-50/40 shadow-md">
+                  <div className="pointer-events-none absolute -top-20 -right-20 h-48 w-48 rounded-full bg-gradient-to-br from-teal-200/40 to-transparent blur-3xl" />
+                  <div className="relative p-5 sm:p-6">
+                    <div className="grid grid-cols-1 gap-5 sm:grid-cols-[1.5fr_1fr_auto] sm:items-start sm:gap-8">
+                      {/* Realized P&L */}
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">{d.preview.realizedPnL}</p>
+                        <p className="mt-1 text-3xl font-bold tracking-tight tabular-nums text-emerald-600 sm:text-4xl">
+                          +$12,450
+                        </p>
+                        <p className="mt-1 text-xs text-stone-500">
+                          {d.preview.fromSales.replace('{n}', '7')}
+                          <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">
+                            <TrendingUp className="h-3 w-3" /> +$2.1k
+                          </span>
+                        </p>
+                      </div>
+                      {/* Portfolio at Cost */}
+                      <div className="sm:border-l sm:border-stone-200/70 sm:pl-6">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">{d.preview.portfolioAtCost}</p>
+                        <p className="mt-1 text-2xl font-bold tracking-tight tabular-nums text-stone-900 sm:text-3xl">
+                          $48,300
+                        </p>
+                        <p className="mt-1 text-xs text-stone-500">
+                          {d.preview.activeListed.replace('{a}', '12').replace('{l}', '3')}
+                        </p>
+                      </div>
+                      {/* Composition donut + legend */}
+                      <div className="flex items-start gap-3 sm:flex-col sm:items-end sm:gap-2">
+                        <svg viewBox="0 0 100 100" className="h-16 w-16 shrink-0 -rotate-90">
+                          <circle cx="50" cy="50" r="40" fill="none" stroke="#f5f5f4" strokeWidth="14" />
+                          {/* 12 active (60%) teal, 3 listed (15%) amber, 5 sold (25%) emerald */}
+                          <circle cx="50" cy="50" r="40" fill="none" stroke="#0d9488" strokeWidth="14"
+                            strokeDasharray="150.7 100.5" strokeDashoffset="0" />
+                          <circle cx="50" cy="50" r="40" fill="none" stroke="#f59e0b" strokeWidth="14"
+                            strokeDasharray="37.7 213.7" strokeDashoffset="-150.7" />
+                          <circle cx="50" cy="50" r="40" fill="none" stroke="#10b981" strokeWidth="14"
+                            strokeDasharray="62.8 188.5" strokeDashoffset="-188.4" />
+                        </svg>
+                        <div className="space-y-1 text-xs">
+                          <div className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-teal-600" /><span className="text-stone-600">12 {d.preview.statusActive.toLowerCase()}</span></div>
+                          <div className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-amber-500" /><span className="text-stone-600">3 {d.preview.statusForSale.toLowerCase()}</span></div>
+                          <div className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" /><span className="text-stone-600">7 {d.preview.statusSold.toLowerCase()}</span></div>
                         </div>
-                      );
-                    })}
+                      </div>
+                    </div>
+                    {/* Mini sparkline */}
+                    <svg viewBox="0 0 200 60" className="mt-5 h-12 w-full" preserveAspectRatio="none" role="img">
+                      <defs>
+                        <linearGradient id="mockSparkGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#10b981" stopOpacity="0.22" />
+                          <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+                        </linearGradient>
+                      </defs>
+                      <path d={sparkArea} fill="url(#mockSparkGrad)" />
+                      <path d={sparkPath} fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Action Lane — 3-row alert panel */}
+                <div className="rounded-2xl border border-stone-200/70 bg-white shadow-sm overflow-hidden">
+                  {[
+                    { iconBg: 'bg-rose-100 text-rose-700', Icon: RefreshCw, title: d.preview.actionExpiringTitle, primary: d.preview.actionExpiringPrimary, cta: d.preview.actionCtaReview },
+                    { iconBg: 'bg-emerald-100 text-emerald-700', Icon: TrendingUp, title: d.preview.actionRecentTitle, primary: d.preview.actionRecentPrimary, cta: d.preview.actionCtaView },
+                    { iconBg: 'bg-amber-100 text-amber-700', Icon: BarChart3, title: d.preview.actionStuckTitle, primary: d.preview.actionStuckPrimary, cta: d.preview.actionCtaReview },
+                  ].map((row, i) => (
+                    <div key={i} className={`flex items-center gap-4 px-4 py-3 sm:px-5 ${i > 0 ? 'border-t border-stone-100' : ''}`}>
+                      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${row.iconBg}`}>
+                        <row.Icon className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-500">{row.title}</p>
+                        <p className="mt-0.5 text-sm font-semibold text-stone-900 truncate">{row.primary}</p>
+                      </div>
+                      <span className="hidden sm:inline-flex shrink-0 rounded-lg bg-stone-900 px-3 py-1.5 text-xs font-medium text-white">
+                        {row.cta}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Status chip strip */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-2 rounded-full bg-stone-900 text-white px-3.5 py-1.5 text-sm font-medium">All<span className="text-xs opacity-90">22</span></span>
+                  <span className="inline-flex items-center gap-2 rounded-full bg-teal-50 border border-teal-100 text-teal-700 px-3.5 py-1.5 text-sm font-medium">{d.preview.statusActive}<span className="text-xs opacity-70">12</span></span>
+                  <span className="inline-flex items-center gap-2 rounded-full bg-amber-50 border border-amber-100 text-amber-700 px-3.5 py-1.5 text-sm font-medium">{d.preview.statusForSale}<span className="text-xs opacity-70">3</span></span>
+                  <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 px-3.5 py-1.5 text-sm font-medium">{d.preview.statusSold}<span className="text-xs opacity-70">7</span></span>
+                </div>
+
+                {/* Sample DomainCards — with status edge stripe */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  {/* Sold — emerald edge, profit headline */}
+                  <div className="rounded-2xl border border-stone-200/80 border-l-4 border-l-emerald-500 bg-white p-4 sm:p-5 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-stone-100 flex items-center justify-center text-stone-600 shrink-0"><Globe className="h-5 w-5" /></div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-stone-900 truncate">crypto.xyz</p>
+                        <p className="text-xs text-stone-500">GoDaddy</p>
+                      </div>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-700 shrink-0">{d.preview.statusSold}</span>
+                    </div>
+                    <div className="mt-3 rounded-xl bg-emerald-50/70 border border-emerald-200/80 p-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-700/80">Net profit</p>
+                      <p className="mt-0.5 text-xl font-bold tabular-nums text-emerald-700">+$8,210</p>
+                      <p className="mt-1 text-xs text-emerald-700/70">{d.preview.domainSold.replace('{price}', '8,400').replace('{roi}', '4,210')}</p>
+                    </div>
+                  </div>
+                  {/* Active — teal edge, total holding cost */}
+                  <div className="rounded-2xl border border-stone-200/80 border-l-4 border-l-teal-500 bg-white p-4 sm:p-5 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-stone-100 flex items-center justify-center text-stone-600 shrink-0"><Globe className="h-5 w-5" /></div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-stone-900 truncate">portfolio.dev</p>
+                        <p className="text-xs text-stone-500">Cloudflare</p>
+                      </div>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-teal-100 text-teal-700 shrink-0">{d.preview.statusActive}</span>
+                    </div>
+                    <div className="mt-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">Total holding cost</p>
+                      <p className="mt-0.5 text-xl font-bold tabular-nums text-stone-900">$56</p>
+                      <p className="mt-1 text-xs text-stone-500">{d.preview.domainHolding.replace('{cost}', '56').replace('{n}', '2')}</p>
+                    </div>
                   </div>
                 </div>
               </div>
