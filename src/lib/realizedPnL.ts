@@ -141,6 +141,40 @@ export function tradeOutcomes(
   return outcomes;
 }
 
+/**
+ * 已实现 ROI（百分比）：
+ *   = Σ(sold profit) / Σ(sold cost basis at sale) × 100
+ *
+ * 跟 totalRealizedPnL 配套，分母是"已变现交易的 cost basis 总和"，不含
+ * 持有未卖的域名。这样 Hero 上的"Realized P&L + Realized ROI"语义对齐：
+ * 都只看完成的交易。
+ *
+ * 老的 basic.roi（= totalRevenue/totalInvestment − 1）把持有未卖的 cost
+ * 也算分母，跟 Realized P&L 不在一条逻辑上，会出现 P&L 正但 ROI 负的怪现
+ * 象（cost basis of held >> cumulative profit on sold）。
+ *
+ * 没有任何已售域名时返回 0。
+ */
+export function realizedROI(
+  domains: DomainWithTags[],
+  transactions: TransactionWithRequiredFields[]
+): number {
+  let pnl = 0;
+  let costSold = 0;
+  const domainsById = new Map(domains.map((d) => [d.id, d]));
+  for (const t of transactions) {
+    if (t.type !== 'sell') continue;
+    const domain = domainsById.get(t.domain_id);
+    if (!domain) continue;
+    const sellNet = sellNetUSD(t);
+    if (sellNet <= 0) continue;
+    const cb = holdingCostAsOf(domain, transactions, new Date(t.date));
+    pnl += sellNet - cb;
+    costSold += cb;
+  }
+  return costSold > 0 ? (pnl / costSold) * 100 : 0;
+}
+
 /** Insights KPI 横条用的聚合：best sale / win rate / avg holding period */
 export interface InsightsKPISummary {
   /** 单笔最大盈利（≥ 0；没有出售时为 null） */
