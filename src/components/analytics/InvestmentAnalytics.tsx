@@ -598,11 +598,13 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
         <h3 className="text-lg font-semibold text-stone-900 mb-4">{t('analytics.investmentDistribution')}</h3>
         {(() => {
+          // Status palette aligned with Hero composition donut + DomainCard/Table:
+          // active=teal-600 / for_sale=amber-500 / sold=emerald-500 / expired=rose-400.
           const statusData = [
-            { name: t('analytics.activeDomains'), value: filteredData.domains.filter(d => d.status === 'active').length, color: '#10b981' },
+            { name: t('analytics.activeDomains'), value: filteredData.domains.filter(d => d.status === 'active').length, color: '#0d9488' },
             { name: t('analytics.forSaleDomains'), value: filteredData.domains.filter(d => d.status === 'for_sale').length, color: '#f59e0b' },
-            { name: t('analytics.soldDomains'), value: filteredData.domains.filter(d => d.status === 'sold').length, color: '#0d9488' },
-            { name: t('analytics.expiredDomains'), value: filteredData.domains.filter(d => d.status === 'expired').length, color: '#ef4444' },
+            { name: t('analytics.soldDomains'), value: filteredData.domains.filter(d => d.status === 'sold').length, color: '#10b981' },
+            { name: t('analytics.expiredDomains'), value: filteredData.domains.filter(d => d.status === 'expired').length, color: '#fb7185' },
           ].filter(entry => entry.value > 0);
           if (statusData.length === 0) {
             return (

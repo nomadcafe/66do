@@ -203,17 +203,16 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
     }
   };
 
-  // 与 DomainCard / IA 状态饼图对齐：3 段语义色 + sold=teal + expired=rose，
-  // 统一 100/700 强度。原来 sold 用 stone-100 与 Card 的 teal 漂移，强度
-  // 50/700 也比 Card 的 100/800 更淡，跨视图同一域名状态徽章看起来不一致。
+  // 与 status chip 滤镜带 + Hero 持仓 donut + DomainCard + IA 状态饼图对齐：
+  // active=teal, for_sale=amber, sold=emerald, expired=rose，统一 100/700。
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
-        return 'bg-emerald-100 text-emerald-700';
+        return 'bg-teal-100 text-teal-700';
       case 'for_sale':
         return 'bg-amber-100 text-amber-700';
       case 'sold':
-        return 'bg-teal-100 text-teal-700';
+        return 'bg-emerald-100 text-emerald-700';
       case 'expired':
         return 'bg-rose-100 text-rose-700';
       default:
