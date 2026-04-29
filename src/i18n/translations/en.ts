@@ -930,7 +930,7 @@ const en = {
       expiredDomainsCount: 'Expired Domains',
       averageLossPerDomain: 'Avg Loss/Domain',
       thisYear: 'This year',
-      cumulativeAverageHint: 'No expirations this year — shown is cumulative average',
+      cumulativeAverageHint: 'No expirations this year',
       expiredLossDefinition:
         'Loss = purchase + renewals already paid (renewal_count × renewal cost), full write-off; sales proceeds not deducted.',
       lossYearUnknown: 'Unknown expiry',

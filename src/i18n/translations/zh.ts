@@ -925,7 +925,7 @@ const zh = {
       expiredDomainsCount: '过期域名数',
       averageLossPerDomain: '平均损失/域名',
       thisYear: '本年过期',
-      cumulativeAverageHint: '本年无过期，以上为累计平均',
+      cumulativeAverageHint: '本年无过期',
       expiredLossDefinition:
         '损失口径：购买成本 + 已发生续费成本（renewal_count×续费单价），按全额冲销计；未扣减售出回款。',
       lossYearUnknown: '未填到期日',

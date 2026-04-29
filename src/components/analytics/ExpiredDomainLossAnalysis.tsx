@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react';
 import { calculateExpiredDomainLoss } from '../../lib/financialCalculations';
 import { useI18nContext } from '../../contexts/I18nProvider';
-import { TrendingDown, Calendar, DollarSign, AlertTriangle, CheckCircle } from 'lucide-react';
+import { TrendingDown, Hash, Scale, AlertTriangle, CheckCircle } from 'lucide-react';
 import type { TransactionWithRequiredFields } from '../../types/transaction';
 
 interface ExpiredDomainLossAnalysisProps {
@@ -56,15 +56,18 @@ export default function ExpiredDomainLossAnalysis({ domains, transactions = [] }
     [locale]
   );
 
-  const { thisYearLoss, thisYearCount, averageLossPerDomain } = useMemo(() => {
+  // thisYearLoss feeds the headline tile; averageLossPerDomain is now
+  // always cumulative (no swap to "this year average" when current year
+  // has data — fixed semantic so the label doesn't lie). thisYearCount
+  // was used by the old swapping logic and is no longer needed.
+  const { thisYearLoss, averageLossPerDomain } = useMemo(() => {
     const currentYear = new Date().getFullYear().toString();
     const tyLoss = lossAnalysis.annualLoss[currentYear] || 0;
-    const tyCount = lossAnalysis.expiredDomains.filter((d) => d.lossYear === currentYear).length;
     const avg =
       lossAnalysis.expiredDomains.length > 0
         ? lossAnalysis.totalLoss / lossAnalysis.expiredDomains.length
         : 0;
-    return { thisYearLoss: tyLoss, thisYearCount: tyCount, averageLossPerDomain: avg };
+    return { thisYearLoss: tyLoss, averageLossPerDomain: avg };
   }, [lossAnalysis]);
 
   const statusCounts = useMemo(
@@ -116,113 +119,147 @@ export default function ExpiredDomainLossAnalysis({ domains, transactions = [] }
     );
   }
 
+  const hasThisYearLoss = thisYearLoss > 0;
+
   return (
-    <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          <div className="p-2 bg-red-100 rounded-xl">
-            <TrendingDown className="h-6 w-6 text-red-600" />
+    <div className="space-y-5">
+      {/* Header card — title + definition. Separate from KPI strip so the
+          definition reads as preamble, not as a tile of its own. */}
+      <div className="rounded-2xl border border-stone-200/80 bg-white p-6 shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-700">
+            <TrendingDown className="h-5 w-5" />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <h3 className="text-lg font-semibold text-stone-900">{t('analytics.expiredDomainLoss')}</h3>
             <p className="text-sm text-stone-600">{t('analytics.expiredDomainLossDesc')}</p>
           </div>
         </div>
+        <p className="mt-4 rounded-lg bg-stone-50 border border-stone-100 px-3 py-2 text-xs leading-relaxed text-stone-500">
+          {t('analytics.expiredLossDefinition')}
+        </p>
       </div>
-      <p className="text-xs text-stone-500 mb-6 rounded-lg bg-stone-50 border border-stone-100 px-3 py-2">
-        {t('analytics.expiredLossDefinition')}
-      </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-red-50 rounded-xl p-4 border border-red-100/80">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-red-700 mb-1">{t('analytics.thisYearTotalLoss')}</p>
-              <p className="text-2xl font-bold text-red-900">{formatCurrency(thisYearLoss)}</p>
-            </div>
-            <DollarSign className="h-8 w-8 text-red-500" />
-          </div>
-        </div>
-
-        <div className="bg-amber-50 rounded-xl p-4 border border-amber-100/80">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-amber-800 mb-1">{t('analytics.expiredDomainsCount')}</p>
-              <p className="text-2xl font-bold text-amber-950">{lossAnalysis.expiredDomains.length}</p>
-            </div>
-            <AlertTriangle className="h-8 w-8 text-amber-600" />
-          </div>
-        </div>
-
-        <div className="bg-stone-50 rounded-xl p-4 border border-stone-200/80">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-stone-700 mb-1">{t('analytics.averageLossPerDomain')}</p>
-              {thisYearCount > 0 ? (
-                <p className="text-xs text-stone-600 mb-0.5">{t('analytics.thisYear')}</p>
-              ) : null}
-              <p className="text-2xl font-bold text-stone-900">
-                {formatCurrency(
-                  thisYearCount > 0 ? thisYearLoss / thisYearCount : averageLossPerDomain
-                )}
+      {/* KPI strip — same gradient-hero language as the Insights tab top.
+          Three fixed-semantic tiles: this-year loss / total expired count /
+          cumulative avg per domain. Colored icon tiles signal severity:
+          rose for loss, amber for count, stone for the neutral average. */}
+      <div className="relative overflow-hidden rounded-3xl border border-stone-200/60 bg-gradient-to-br from-stone-50 via-white to-rose-50/30 shadow-sm">
+        <div className="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-gradient-to-br from-rose-100/30 to-transparent blur-3xl" />
+        <div className="relative grid grid-cols-1 gap-5 p-5 sm:p-6 md:grid-cols-3 md:gap-6">
+          {/* Tile 1: This-year loss. When 0, render an em dash + hint so a
+              prominent "$0.00" doesn't get misread as the headline number. */}
+          <div className="flex items-start gap-3">
+            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+              hasThisYearLoss ? 'bg-rose-100 text-rose-700' : 'bg-stone-100 text-stone-500'
+            }`}>
+              <TrendingDown className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                {t('analytics.thisYearTotalLoss')}
               </p>
-              {thisYearCount === 0 && lossAnalysis.expiredDomains.length > 0 ? (
-                <p className="text-xs text-stone-500 mt-1">{t('analytics.cumulativeAverageHint')}</p>
-              ) : null}
+              {hasThisYearLoss ? (
+                <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-rose-700">
+                  −{formatCurrency(thisYearLoss)}
+                </p>
+              ) : (
+                <>
+                  <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-stone-300">—</p>
+                  <p className="mt-0.5 text-xs text-stone-500">
+                    {t('analytics.cumulativeAverageHint')}
+                  </p>
+                </>
+              )}
             </div>
-            <Calendar className="h-8 w-8 text-stone-500" />
+          </div>
+
+          {/* Tile 2: total expired count */}
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
+              <Hash className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                {t('analytics.expiredDomainsCount')}
+              </p>
+              <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-stone-900">
+                {lossAnalysis.expiredDomains.length}
+              </p>
+            </div>
+          </div>
+
+          {/* Tile 3: cumulative average per domain — fixed semantic, no
+              this-year/all-time context swap. The previous version flipped
+              the metric meaning depending on data, which made the label
+              misleading. Now always cumulative; if 0 expirations the
+              previous 0-render branch already returned the empty state. */}
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-stone-700">
+              <Scale className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                {t('analytics.averageLossPerDomain')}
+              </p>
+              <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-stone-900">
+                {formatCurrency(averageLossPerDomain)}
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
       {lossAnalysis.lossByYear.length > 0 && (
-        <div className="mb-6">
-          <h4 className="text-md font-semibold text-stone-900 mb-4">{t('analytics.annualLossTrend')}</h4>
-          <div className="space-y-3">
+        <div className="rounded-2xl border border-stone-200/80 bg-white p-6 shadow-sm">
+          <h4 className="text-base font-semibold text-stone-900 mb-4">{t('analytics.annualLossTrend')}</h4>
+          <ul className="space-y-2">
             {lossAnalysis.lossByYear.map((yearData) => (
-              <div
+              <li
                 key={yearData.year}
-                className="flex items-center justify-between p-3 bg-stone-50 rounded-xl border border-stone-100"
+                className="flex items-center justify-between gap-3 rounded-xl border border-stone-100 bg-stone-50/60 p-3"
               >
-                <div className="flex items-center space-x-3">
-                  <div className="w-3 h-3 bg-red-500 rounded-full" />
-                  <span className="font-medium text-stone-900">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-rose-400" aria-hidden />
+                  <span className="font-medium text-stone-900 tabular-nums">
                     {yearData.year === 'unknown' ? t('analytics.lossYearUnknown') : yearData.year}
                   </span>
                   <span className="text-sm text-stone-500">
                     ({yearData.domainCount} {t('analytics.domains')})
                   </span>
                 </div>
-                <span className="font-semibold text-red-600">{formatCurrency(yearData.loss)}</span>
-              </div>
+                <span className="shrink-0 font-semibold tabular-nums text-rose-700">
+                  −{formatCurrency(yearData.loss)}
+                </span>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       )}
 
-      <div>
-        <h4 className="text-md font-semibold text-stone-900 mb-4">{t('analytics.expiredDomainsDetails')}</h4>
-        <div className="space-y-2 max-h-64 overflow-y-auto">
+      <div className="rounded-2xl border border-stone-200/80 bg-white p-6 shadow-sm">
+        <h4 className="text-base font-semibold text-stone-900 mb-4">{t('analytics.expiredDomainsDetails')}</h4>
+        <ul className="space-y-2 max-h-64 overflow-y-auto pr-1">
           {lossAnalysis.expiredDomains.map((domain) => (
-            <div
+            <li
               key={domain.id}
-              className="flex items-center justify-between p-3 bg-stone-50 rounded-xl border border-stone-100"
+              className="flex items-center justify-between gap-3 rounded-xl border border-stone-100 bg-stone-50/60 p-3"
             >
-              <div className="flex items-center space-x-3 min-w-0">
-                <div className="w-2 h-2 bg-red-500 rounded-full shrink-0" />
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="h-2 w-2 shrink-0 rounded-full bg-rose-400" aria-hidden />
                 <span className="font-medium text-stone-900 truncate">{domain.domain_name}</span>
-                <span className="text-sm text-stone-500 shrink-0">
+                <span className="text-sm text-stone-500 shrink-0 tabular-nums">
                   {domain.expiryDate
                     ? dateFormatter.format(new Date(domain.expiryDate))
                     : t('analytics.expiryDateMissing')}
                 </span>
               </div>
-              <span className="font-semibold text-red-600 shrink-0 ml-2">
-                {formatCurrency(domain.totalInvestment)}
+              <span className="shrink-0 font-semibold tabular-nums text-rose-700">
+                −{formatCurrency(domain.totalInvestment)}
               </span>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
     </div>
   );
