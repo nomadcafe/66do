@@ -508,20 +508,9 @@ const en = {
       newFinancialMetrics: 'New Financial Metrics Cards'
     },
     renewal: {
-      analysis: 'Renewal Overview',
-      thisYearCost: 'This Year Renewal Cost',
-      needRenewal: 'Domains Need Renewal',
-      noRenewal: 'No Renewal Needed',
-      averageCostPerDomain: 'Average Cost per Domain',
-      cycleDistribution: 'Renewal Cycle Distribution',
-      cycleCountYearsZh: '{n}年',
-      cycleCountYearEn: '{n} year',
-      cycleCountYearsEn: '{n} years',
-      optimizationSuggestions: 'Renewal Optimization Suggestions',
       year: 'year',
       domains: 'domains',
       cost: 'cost',
-      suggestion: 'suggestion',
       renewDomain: 'Renew domain',
       selectRenewalYears: 'Select renewal years',
       currentExpiry: 'Current expiry date',
@@ -541,8 +530,6 @@ const en = {
       advancedTitle: 'Annual Renewal Analysis',
       estimatedCost: 'Estimated Cost',
       domainsToRenew: 'Domains to Renew',
-      accuracy: 'Accuracy',
-      monthlyDistribution: 'Monthly Cost Distribution',
       annualOutlook: 'Renewal outlook by year',
       annualOutlookDesc:
         'Per calendar year: estimated from domains expiring that year and renewal history; actual is recorded renewals in that year.',
@@ -559,8 +546,7 @@ const en = {
       optimizationOpportunities: 'Optimization Opportunities',
       opportunityItem: '{name} ({percent}% increase)',
       noRenewalData: 'No renewal data',
-      noRenewalDataDesc: 'No domains due for renewal this year, or no active domains',
-      accuracyNoData: 'No records yet'
+      noRenewalDataDesc: 'No domains due for renewal this year, or no active domains'
     },
     transaction: {
       type: 'Transaction Type',

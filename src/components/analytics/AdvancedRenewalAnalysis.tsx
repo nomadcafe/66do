@@ -105,7 +105,15 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      {/* Two KPI tiles: estimated cost for the selected year + count of
+          domains hitting that year. The third tile (Accuracy / cost_accuracy)
+          was removed because its semantic shifted after the renewal-analysis
+          rewrite (events flow now): historical years collapse to 100%
+          (estimated == actual same source), future years show "no data",
+          and only mid-current-year shows the actual-vs-projected split.
+          The "Accuracy" label became misleading and the data layer's
+          cost_accuracy field is no longer surfaced anywhere. */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="bg-stone-50 rounded-xl p-4 border border-stone-100">
           <div className="flex items-center gap-3">
             <DollarSign className="h-8 w-8 text-stone-600" />
@@ -126,21 +134,6 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
             <div>
               <p className="text-sm font-medium text-teal-700">{t('renewal.domainsToRenew')}</p>
               <p className="text-2xl font-bold text-teal-900">{analysis.domains_needing_renewal}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-stone-50 rounded-xl p-4 border border-stone-100">
-          <div className="flex items-center gap-3">
-            <TrendingUp className="h-8 w-8 text-stone-600" />
-            <div>
-              <p className="text-sm font-medium text-stone-600">{t('renewal.accuracy')}</p>
-              {/* cost_accuracy 已在 service 层夹到 [0, 100]；当年没有实际续费记录时显示"暂无记录"。 */}
-              <p className="text-2xl font-bold text-stone-900">
-                {analysis.total_actual_cost > 0
-                  ? `${analysis.cost_accuracy.toFixed(1)}%`
-                  : t('renewal.accuracyNoData')}
-              </p>
             </div>
           </div>
         </div>
