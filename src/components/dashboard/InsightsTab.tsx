@@ -1,5 +1,8 @@
 'use client';
 
+import { useMemo } from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { TrendingUp, Award, Target, Clock } from 'lucide-react';
 import {
   LazyFinancialAnalysis,
   LazyInvestmentAnalytics,
@@ -7,15 +10,13 @@ import {
   LazyExpiredDomainLossAnalysis,
   LazyWrapper,
 } from '../LazyComponents';
-import {
-  formatRenewalCycleDistributionLabel,
-} from '../../lib/renewalCalculations';
+import { formatRenewalCycleDistributionLabel } from '../../lib/renewalCalculations';
 import type { AnnualRenewalCost } from '../../lib/renewalCalculations';
 import type { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
+import { totalRealizedPnL, insightsKPISummary } from '../../lib/realizedPnL';
 
 interface InsightsTabProps {
   domains: DomainWithTags[];
-  /** 与项目数据源约定一致：所有指标/图表都用 transactionsForMetrics（去重后的版本） */
   transactionsForMetrics: TransactionWithRequiredFields[];
   renewalAnalysis: AnnualRenewalCost;
   locale: 'zh' | 'en';
@@ -23,21 +24,24 @@ interface InsightsTabProps {
   formatCurrency: (n: number, currency?: string) => string;
 }
 
+type InsightsSubTab = 'performance' | 'renewals' | 'loss';
+const VALID_SUB_TABS: readonly InsightsSubTab[] = ['performance', 'renewals', 'loss'] as const;
+
 /**
- * Insights tab on the dashboard. Stack of lazy-loaded analytical
- * components plus a static Renewal Overview card.
+ * Insights tab — completely restructured from the old "5 deep panels stacked
+ * vertically" layout into:
  *
- * Card order is intentional:
- *   1) Financial Analysis  — overview (KPIs + Snapshot + recommendations)
- *   2) Investment Analytics — drill-down charts / distributions / trends
- *   3) Renewal Overview     — light counts (need / no-need + cycle dist)
- *   4) Advanced Renewal     — annual forecast (deep)
- *   5) Expired Domain Loss  — failure cases at the bottom
+ *   [ KPI strip — 4 trade-performance metrics in a gradient hero strip ]
+ *   [ Sub-tab nav — Performance / Renewals / Loss (segmented control)  ]
+ *   [ Tab-scoped content                                                ]
  *
- * Earlier the order put the light renewal block first and split the two
- * renewal sections with Investment Analytics in between, which broke
- * both "overview → detail" and "keep related sections adjacent". Don't
- * reorder these without rereading that comment.
+ * The KPI strip provides anchoring context that survives no matter which
+ * sub-tab is active (you can scan "Realized P&L $X · Win rate Y%" while
+ * looking at any deep panel below). The sub-tabs replace the old infinite
+ * scroll, so the user reaches Loss analysis in 1 click instead of 5 scroll
+ * pages.
+ *
+ * Sub-tab state lives in `?ins=` (separate from the outer `?tab=insights`).
  */
 export default function InsightsTab({
   domains,
@@ -47,78 +51,264 @@ export default function InsightsTab({
   t,
   formatCurrency,
 }: InsightsTabProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const rawIns = searchParams.get('ins');
+  const activeSubTab: InsightsSubTab =
+    (VALID_SUB_TABS as readonly string[]).includes(rawIns ?? '')
+      ? (rawIns as InsightsSubTab)
+      : 'performance';
+
+  const setSubTab = (next: InsightsSubTab) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (next === 'performance') params.delete('ins');
+    else params.set('ins', next);
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
+
+  // ── KPI computations ────────────────────────────────────────────────
+  const realizedPnL = useMemo(
+    () => totalRealizedPnL(domains, transactionsForMetrics),
+    [domains, transactionsForMetrics]
+  );
+  const kpis = useMemo(
+    () => insightsKPISummary(domains, transactionsForMetrics),
+    [domains, transactionsForMetrics]
+  );
+
+  const formatHolding = (days: number) => {
+    if (days < 60) return `${days} ${t('insights.kpiDays')}`;
+    const months = Math.round(days / 30);
+    return `${months} ${t('insights.kpiMonths')}`;
+  };
+
+  const pnlPositive = realizedPnL > 0;
+  const pnlNegative = realizedPnL < 0;
+  const pnlSign = pnlPositive ? '+' : pnlNegative ? '−' : '';
+  const pnlColor = pnlPositive
+    ? 'text-emerald-600'
+    : pnlNegative
+      ? 'text-rose-600'
+      : 'text-stone-900';
+
+  // ── Sub-tab pill class ──────────────────────────────────────────────
+  const pillClass = (tab: InsightsSubTab) =>
+    `rounded-lg px-4 py-2 text-sm font-medium whitespace-nowrap transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 ${
+      activeSubTab === tab
+        ? 'bg-white text-stone-900 shadow-sm'
+        : 'text-stone-500 hover:text-stone-900'
+    }`;
+
   return (
     <div className="space-y-6">
-      <LazyWrapper>
-        <LazyFinancialAnalysis
-          domains={domains}
-          transactions={transactionsForMetrics}
-        />
-      </LazyWrapper>
-
-      <LazyWrapper>
-        <LazyInvestmentAnalytics
-          domains={domains}
-          transactions={transactionsForMetrics}
-        />
-      </LazyWrapper>
-
-      {/* Renewal Overview — light KPIs only.
-          Intentionally NO "this year estimated cost" / "average per domain":
-            - The first conflicts with Advanced Renewal Analysis's
-              regression-based estimate (different methodology, same label).
-            - The second's denominator only counts domains that need renewal,
-              so the label "average per domain" misleads. */}
-      <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
-        <h3 className="text-base font-semibold text-stone-900 mb-4">{t('renewal.analysis')}</h3>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="rounded-xl bg-stone-50 p-4 border border-stone-100">
-            <p className="text-xs font-medium text-stone-500">{t('renewal.needRenewal')}</p>
-            <p className="text-xl font-bold text-teal-700 mt-1">
-              {renewalAnalysis.domainsNeedingRenewal.length}
-            </p>
-          </div>
-          <div className="rounded-xl bg-stone-50 p-4 border border-stone-100">
-            <p className="text-xs font-medium text-stone-500">{t('renewal.noRenewal')}</p>
-            <p className="text-xl font-bold text-stone-900 mt-1">
-              {renewalAnalysis.domainsNotNeedingRenewal.length}
-            </p>
-          </div>
-        </div>
-        {Object.keys(renewalAnalysis.costByCycle).length > 0 && (
-          <div className="mt-5 pt-4 border-t border-stone-100">
-            <h4 className="text-sm font-medium text-stone-700 mb-3">
-              {t('renewal.cycleDistribution')}
-            </h4>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {Object.entries(renewalAnalysis.costByCycle).map(([cycle, cost]) => (
-                <div key={cycle} className="bg-stone-50 rounded-lg p-3">
-                  <p className="text-xs text-stone-500">
-                    {formatRenewalCycleDistributionLabel(cycle, locale, t)}
-                  </p>
-                  <p className="text-base font-semibold text-stone-900">
-                    {formatCurrency(cost, 'USD')}
-                  </p>
-                </div>
-              ))}
+      {/* ────── KPI strip — gradient hero, 4 trade-performance metrics ────── */}
+      <div className="relative overflow-hidden rounded-3xl border border-stone-200/60 bg-gradient-to-br from-stone-50 via-white to-teal-50/40 shadow-sm">
+        <div className="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-gradient-to-br from-teal-100/40 to-transparent blur-3xl" />
+        <div className="relative grid grid-cols-2 gap-4 p-5 sm:p-6 lg:grid-cols-4 lg:gap-6">
+          {/* Realized P&L */}
+          <div className="flex items-start gap-3">
+            <span
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                pnlPositive
+                  ? 'bg-emerald-50 text-emerald-700'
+                  : pnlNegative
+                    ? 'bg-rose-50 text-rose-700'
+                    : 'bg-stone-100 text-stone-700'
+              }`}
+            >
+              <TrendingUp className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                {t('insights.kpiRealizedPnL')}
+              </p>
+              <p className={`mt-1 text-xl font-bold tracking-tight tabular-nums ${pnlColor}`}>
+                {pnlSign}
+                {formatCurrency(Math.abs(realizedPnL), 'USD')}
+              </p>
             </div>
           </div>
-        )}
+
+          {/* Best Sale */}
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
+              <Award className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                {t('insights.kpiBestSale')}
+              </p>
+              {kpis.bestSale ? (
+                <>
+                  <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-stone-900">
+                    +{formatCurrency(kpis.bestSale.amount, 'USD')}
+                  </p>
+                  {kpis.bestSale.domainName && (
+                    <p className="mt-0.5 truncate text-xs text-stone-500" title={kpis.bestSale.domainName}>
+                      {kpis.bestSale.domainName}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="mt-1 text-xl font-bold tracking-tight text-stone-300">—</p>
+              )}
+            </div>
+          </div>
+
+          {/* Win Rate */}
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
+              <Target className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                {t('insights.kpiWinRate')}
+              </p>
+              {kpis.winRate ? (
+                <>
+                  <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-stone-900">
+                    {kpis.winRate.percent.toFixed(0)}%
+                  </p>
+                  <p className="mt-0.5 text-xs text-stone-500 tabular-nums">
+                    {t('insights.kpiWinRateBreakdown')
+                      .replace('{wins}', String(kpis.winRate.wins))
+                      .replace('{total}', String(kpis.winRate.total))}
+                  </p>
+                </>
+              ) : (
+                <p className="mt-1 text-xl font-bold tracking-tight text-stone-300">—</p>
+              )}
+            </div>
+          </div>
+
+          {/* Avg Holding Period */}
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700">
+              <Clock className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                {t('insights.kpiAvgHolding')}
+              </p>
+              {kpis.avgHoldingDays !== null ? (
+                <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-stone-900">
+                  {formatHolding(kpis.avgHoldingDays)}
+                </p>
+              ) : (
+                <p className="mt-1 text-xl font-bold tracking-tight text-stone-300">—</p>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
-      <LazyWrapper>
-        <LazyAdvancedRenewalAnalysis
-          domains={domains}
-          transactions={transactionsForMetrics}
-        />
-      </LazyWrapper>
+      {/* ────── Sub-tab nav (segmented control) ────── */}
+      <div className="inline-flex items-center gap-1 rounded-xl border border-stone-200 bg-stone-100/80 p-1">
+        <button
+          type="button"
+          onClick={() => setSubTab('performance')}
+          aria-pressed={activeSubTab === 'performance'}
+          className={pillClass('performance')}
+        >
+          {t('insights.subTabPerformance')}
+        </button>
+        <button
+          type="button"
+          onClick={() => setSubTab('renewals')}
+          aria-pressed={activeSubTab === 'renewals'}
+          className={pillClass('renewals')}
+        >
+          {t('insights.subTabRenewals')}
+        </button>
+        <button
+          type="button"
+          onClick={() => setSubTab('loss')}
+          aria-pressed={activeSubTab === 'loss'}
+          className={pillClass('loss')}
+        >
+          {t('insights.subTabLoss')}
+        </button>
+      </div>
 
-      <LazyWrapper>
-        <LazyExpiredDomainLossAnalysis
-          domains={domains}
-          transactions={transactionsForMetrics}
-        />
-      </LazyWrapper>
+      {/* ────── Tab content ────── */}
+      {activeSubTab === 'performance' && (
+        <div className="space-y-6">
+          <LazyWrapper>
+            <LazyFinancialAnalysis domains={domains} transactions={transactionsForMetrics} />
+          </LazyWrapper>
+          <LazyWrapper>
+            <LazyInvestmentAnalytics domains={domains} transactions={transactionsForMetrics} />
+          </LazyWrapper>
+        </div>
+      )}
+
+      {activeSubTab === 'renewals' && (
+        <div className="space-y-6">
+          {/* Light renewal counts + cycle distribution. Lives in this tab so
+              the user gets the overview before diving into AdvancedRenewalAnalysis.
+              Intentionally omits "this year estimated cost" / "average per domain":
+              the first conflicts with Advanced Renewal's regression-based number,
+              the second's denominator is misleading. */}
+          <div className="rounded-2xl border border-stone-200/80 bg-white p-6 shadow-sm">
+            <h3 className="text-base font-semibold text-stone-900">{t('renewal.analysis')}</h3>
+            <div className="mt-4 grid grid-cols-2 gap-4">
+              <div className="rounded-xl border border-teal-100/80 bg-teal-50/50 p-4">
+                <p className="text-xs font-medium uppercase tracking-wider text-teal-700/80">
+                  {t('renewal.needRenewal')}
+                </p>
+                <p className="mt-1 text-2xl font-bold tabular-nums text-teal-700">
+                  {renewalAnalysis.domainsNeedingRenewal.length}
+                </p>
+              </div>
+              <div className="rounded-xl border border-stone-100 bg-stone-50 p-4">
+                <p className="text-xs font-medium uppercase tracking-wider text-stone-500">
+                  {t('renewal.noRenewal')}
+                </p>
+                <p className="mt-1 text-2xl font-bold tabular-nums text-stone-900">
+                  {renewalAnalysis.domainsNotNeedingRenewal.length}
+                </p>
+              </div>
+            </div>
+            {Object.keys(renewalAnalysis.costByCycle).length > 0 && (
+              <div className="mt-5 border-t border-stone-100 pt-4">
+                <h4 className="text-sm font-medium text-stone-700">
+                  {t('renewal.cycleDistribution')}
+                </h4>
+                <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+                  {Object.entries(renewalAnalysis.costByCycle).map(([cycle, cost]) => (
+                    <div key={cycle} className="rounded-lg bg-stone-50 p-3">
+                      <p className="text-xs text-stone-500">
+                        {formatRenewalCycleDistributionLabel(cycle, locale, t)}
+                      </p>
+                      <p className="mt-0.5 text-base font-semibold text-stone-900 tabular-nums">
+                        {formatCurrency(cost, 'USD')}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <LazyWrapper>
+            <LazyAdvancedRenewalAnalysis domains={domains} transactions={transactionsForMetrics} />
+          </LazyWrapper>
+        </div>
+      )}
+
+      {activeSubTab === 'loss' && (
+        <div className="space-y-6">
+          <LazyWrapper>
+            <LazyExpiredDomainLossAnalysis
+              domains={domains}
+              transactions={transactionsForMetrics}
+            />
+          </LazyWrapper>
+        </div>
+      )}
     </div>
   );
 }
