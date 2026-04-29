@@ -843,7 +843,7 @@ const zh = {
       renewalCost: '续费成本',
       renewalCostProjected: '预计续费',
       revenue: '收益',
-      cumulativeNetProfit: '累计净利润',
+      realizedPnL: '已实现盈亏',
       riskMetrics: '风险指标',
       riskLevel: '风险等级',
       diversificationScore: '分散化评分',

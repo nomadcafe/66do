@@ -848,7 +848,7 @@ const en = {
       renewalCost: 'Renewal cost',
       renewalCostProjected: 'Projected renewal',
       revenue: 'Revenue',
-      cumulativeNetProfit: 'Cumulative Net Profit',
+      realizedPnL: 'Realized P&L',
       riskMetrics: 'Risk Metrics',
       riskLevel: 'Risk Level',
       diversificationScore: 'Diversification Score',

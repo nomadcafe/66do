@@ -3,6 +3,8 @@
 import React, { useState, useMemo } from 'react';
 import { useComprehensiveFinancialAnalysis } from '../../hooks/useFinancialCalculations';
 import { calculateInvestmentYears, expandSellToCashReceipts } from '../../lib/coreCalculations';
+import { holdingCostAsOf } from '../../lib/renewalCostBasis';
+import { sellNetUSD } from '../../lib/sellProceeds';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import {
@@ -50,7 +52,7 @@ interface TimeSeriesData {
   renewalCost: number;       // investment 里归属于「实际续费」的部分（archive + tx，不含 projected）
   renewalCostProjected: number; // 假设域名继续保留时，本月预计的续费支出（不并入 investment）
   revenue: number;           // 单月净入账（分期销售按到账月展开）
-  cumulativeNetProfit: number; // 累计净利润 = Σ(revenue − investment)；纯交易数字、无估值
+  realizedPnL: number;       // 累计已实现盈亏：每笔出售 (sellNet − cost basis at sale)，按到账月分摊
   monthlyCashFlow: number;   // 给月度净现金流图用，本图不画
 }
 
@@ -138,6 +140,32 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     return map;
   }, [filteredData.transactions]);
 
+  // 已实现盈亏（按到账月）：对每笔 sell 交易，
+  //   trade P&L = sellNet − holdingCostAsOf(domain, …, t.date)
+  // 然后按 expandSellToCashReceipts 的 netAmount 比例分摊到各到账月。这样：
+  //   · 一次性付款：整笔 P&L 全部记在 t.date 月
+  //   · 分期：已付到账月按 receipt.netAmount / sellNet 占比分得对应 P&L
+  //   · 未付期不产生已实现盈亏（买家可能违约，钱没到不算"已实现"）
+  // 与 Revenue 区域使用同一展开口径，所以"已实现"严格跟随"已收款"。
+  const realizedPnLByMonth = useMemo(() => {
+    const map = new Map<string, number>();
+    const domainsById = new Map(filteredData.domains.map(d => [d.id, d]));
+    for (const t of filteredData.transactions) {
+      if (t.type !== 'sell') continue;
+      const domain = domainsById.get(t.domain_id);
+      if (!domain) continue;
+      const sellNet = sellNetUSD(t);
+      if (sellNet <= 0) continue;
+      const costBasis = holdingCostAsOf(domain, filteredData.transactions, new Date(t.date));
+      const tradePnL = sellNet - costBasis;
+      for (const r of expandSellToCashReceipts(t)) {
+        const share = r.netAmount / sellNet;
+        map.set(r.monthKey, (map.get(r.monthKey) ?? 0) + tradePnL * share);
+      }
+    }
+    return map;
+  }, [filteredData.transactions, filteredData.domains]);
+
   const timeSeriesData: TimeSeriesData[] = useMemo(() => {
     const data: TimeSeriesData[] = [];
     const now = new Date();
@@ -194,8 +222,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       purchaseEventsByMonth.set(key, (purchaseEventsByMonth.get(key) ?? 0) + cost);
     }
 
-    let cumulativeRevenue = 0;
-    let cumulativeInvestment = 0;
+    let cumulativeRealizedPnL = 0;
     for (let i = 0; i < monthsToShow; i++) {
       const date = new Date(startDate);
       date.setMonth(date.getMonth() + i);
@@ -206,9 +233,8 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       const purchaseThisMonth = purchaseEventsByMonth.get(monthKey) ?? 0;
       const renewalCost = renewalActualByMonth.get(monthKey) ?? 0;
       const renewalCostProjected = renewalProjectedByMonth.get(monthKey) ?? 0;
-      // Investment counts only realised events; projected stays as a separate
-      // forecast line so cumulativeNetProfit doesn't go more negative just
-      // because a renewal is anticipated.
+      // Investment counts only realised events; projected feeds the dotted
+      // forecast line on the chart, never the Investment area.
       const investment = purchaseThisMonth + renewalCost;
 
       // 入账：从 monthlyNetInflowByMonth 直接取（已按到账月聚合）。
@@ -224,11 +250,9 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         .reduce((sum, t) => sum + t.amount, 0);
       const monthlyCashFlow = revenue - costThisMonth;
 
-      cumulativeRevenue += revenue;
-      cumulativeInvestment += investment;
-      // 累计净利润 = 累计实收 − 累计 cost basis（buy + renew）。
-      // 与 Portfolio Value 不同，这里完全基于真实交易，不引入 estimated_value 这类估值。
-      const cumulativeNetProfit = cumulativeRevenue - cumulativeInvestment;
+      // 累计已实现盈亏：每笔出售的 (sellNet − cost basis at sale) 按到账月分摊后
+      // 累加。持有未卖的域名既不进分子也不进分母，所以这条线只在卖出时才动。
+      cumulativeRealizedPnL += realizedPnLByMonth.get(monthKey) ?? 0;
 
       data.push({
         date: monthKey,
@@ -236,13 +260,13 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         renewalCost,
         renewalCostProjected,
         revenue,
-        cumulativeNetProfit,
+        realizedPnL: cumulativeRealizedPnL,
         monthlyCashFlow
       });
     }
 
     return data;
-  }, [filteredData, monthsWindow, monthlyNetInflowByMonth]);
+  }, [filteredData, monthsWindow, monthlyNetInflowByMonth, realizedPnLByMonth]);
 
   // 辅助函数已移至共享计算库
 
@@ -352,7 +376,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-amber-500 rounded"></div>
-              <span>{t('analytics.cumulativeNetProfit')}</span>
+              <span>{t('analytics.realizedPnL')}</span>
             </div>
           </div>
         </div>
@@ -447,11 +471,11 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
             />
             <Line
               type="monotone"
-              dataKey="cumulativeNetProfit"
+              dataKey="realizedPnL"
               stroke="#f59e0b"
               fill="url(#colorPortfolio)"
               strokeWidth={3}
-              name={t('analytics.cumulativeNetProfit')}
+              name={t('analytics.realizedPnL')}
               dot={{ r: 4, fill: '#f59e0b' }}
               activeDot={{ r: 8, fill: '#f59e0b' }}
             />
