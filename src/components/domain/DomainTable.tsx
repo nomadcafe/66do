@@ -220,6 +220,23 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
     }
   };
 
+  // 行首左边条颜色：用饱和度 500 与 DomainCard 边条同源，让用户扫一列表格
+  // 时一眼读到 status，不用回到第三列读 pill。
+  const getEdgeAccent = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'border-l-teal-500';
+      case 'for_sale':
+        return 'border-l-amber-500';
+      case 'sold':
+        return 'border-l-emerald-500';
+      case 'expired':
+        return 'border-l-rose-400';
+      default:
+        return 'border-l-stone-300';
+    }
+  };
+
   // const calculateTotalHoldingCost = (domain: DomainWithTags) => {
   //   const totalRenewalCost = domain.renewal_count * (domain.renewal_cost || 0);
   //   return (domain.purchase_cost || 0) + totalRenewalCost;
@@ -268,7 +285,10 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
           <table className="w-full">
             <thead className="bg-stone-50 border-b border-stone-200">
               <tr>
-                <th aria-label={t('domainList.table.expandHistory')} className="w-8 px-2 py-3" />
+                <th
+                  aria-label={t('domainList.table.expandHistory')}
+                  className="w-8 px-2 py-3 border-l-4 border-l-transparent"
+                />
                 <SortableHeader
                   field="domain_name"
                   label={t('domainList.table.domainName')}
@@ -331,8 +351,8 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
 
                 return (
                   <Fragment key={domain.id}>
-                  <tr className="hover:bg-stone-50/80">
-                    <td className="w-8 px-2 py-3 align-top">
+                  <tr className="hover:bg-stone-50/60 transition-colors">
+                    <td className={`w-8 px-2 py-3 align-top border-l-4 ${getEdgeAccent(domain.status)}`}>
                       <button
                         type="button"
                         onClick={() => toggleExpand(domain.id)}
@@ -496,7 +516,10 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                   </tr>
                   {isExpanded && (
                     <tr className="bg-stone-50/50">
-                      <td colSpan={9} className="px-4 py-4">
+                      <td
+                        colSpan={9}
+                        className={`px-4 py-4 border-l-4 ${getEdgeAccent(domain.status)}`}
+                      >
                         {domainEvents.length === 0 ? (
                           <p className="text-sm text-stone-500 italic">{t('timeline.noEvents')}</p>
                         ) : (
