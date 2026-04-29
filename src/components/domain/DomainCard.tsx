@@ -47,18 +47,18 @@ const DomainCard = memo(function DomainCard({ domain, transactions = [], onEdit,
     return -days; // positive number of days past expiry
   }, [domain]);
 
-  // 与 InvestmentAnalytics 状态饼图 + DomainTable 对齐：3 段语义色
-  // (active emerald / for_sale amber / sold teal / expired rose)，统一
-  // 100/700 强度。原 sold=teal-100/800 太重 + expired 用 red 而非项目
-  // 调色板里的 rose；Table 上又是 stone/rose 50/700 一套，两边漂移。
+  // 与 status chip 滤镜带 + Hero 持仓 donut + DomainTable + IA 状态饼图对齐：
+  // active=teal（持有中=品牌主色）, for_sale=amber（待处理）,
+  // sold=emerald（已变现=正盈亏色）, expired=rose（损失/告警）。
+  // 统一 100/700 强度，跟项目其他地方的 status 色保持一致。
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
-        return 'bg-emerald-100 text-emerald-700';
+        return 'bg-teal-100 text-teal-700';
       case 'for_sale':
         return 'bg-amber-100 text-amber-700';
       case 'sold':
-        return 'bg-teal-100 text-teal-700';
+        return 'bg-emerald-100 text-emerald-700';
       case 'expired':
         return 'bg-rose-100 text-rose-700';
       default:

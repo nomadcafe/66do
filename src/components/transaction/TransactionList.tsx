@@ -2,7 +2,7 @@
 
 import { useMemo, memo, useCallback, useEffect } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { Search, Filter, Plus, Edit, Trash2, Calendar, FileText, LayoutList, GitBranch, ArrowUp, ArrowDown } from 'lucide-react';
+import { Search, Filter, Plus, Edit, Trash2, Calendar, FileText, LayoutList, GitBranch, ArrowUp, ArrowDown, TrendingUp, TrendingDown, Scale, Hash } from 'lucide-react';
 import { sellGrossUSD, sellNetUSD } from '../../lib/coreCalculations';
 import { calculateDomainROI, formatPercentage } from '../../lib/enhancedFinancialMetrics';
 import { useI18nContext } from '../../contexts/I18nProvider';
@@ -211,6 +211,46 @@ const TransactionList = memo(function TransactionList({
     }
   };
 
+  // Chip palette for the type filter strip — same 3-band 金钱方向 logic as
+  // getTypeColor, but with active=solid / idle=tinted variants. Inflow types
+  // (sell) get emerald; main outflow (buy/renew) stays neutral stone so common
+  // operations don't visually scream; ancillary outflows (fee/transfer/etc)
+  // get amber attention. "All" is stone-900 to match the DomainList All chip.
+  const typeChipPalette: Record<string, { active: string; idle: string }> = {
+    all: {
+      active: 'bg-stone-900 text-white border-stone-900',
+      idle: 'bg-white text-stone-700 border-stone-200 hover:border-stone-300',
+    },
+    sell: {
+      active: 'bg-emerald-600 text-white border-emerald-600',
+      idle: 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:border-emerald-200',
+    },
+    buy: {
+      active: 'bg-stone-700 text-white border-stone-700',
+      idle: 'bg-stone-50 text-stone-700 border-stone-200 hover:border-stone-300',
+    },
+    renew: {
+      active: 'bg-stone-700 text-white border-stone-700',
+      idle: 'bg-stone-50 text-stone-700 border-stone-200 hover:border-stone-300',
+    },
+    transfer: {
+      active: 'bg-amber-500 text-white border-amber-500',
+      idle: 'bg-amber-50 text-amber-700 border-amber-100 hover:border-amber-200',
+    },
+    fee: {
+      active: 'bg-amber-500 text-white border-amber-500',
+      idle: 'bg-amber-50 text-amber-700 border-amber-100 hover:border-amber-200',
+    },
+    marketing: {
+      active: 'bg-amber-500 text-white border-amber-500',
+      idle: 'bg-amber-50 text-amber-700 border-amber-100 hover:border-amber-200',
+    },
+    advertising: {
+      active: 'bg-amber-500 text-white border-amber-500',
+      idle: 'bg-amber-50 text-amber-700 border-amber-100 hover:border-amber-200',
+    },
+  };
+
   const getTypeLabel = useCallback((type: string) => {
     switch (type) {
       case 'buy': return t('transaction.buy');
@@ -342,6 +382,16 @@ const TransactionList = memo(function TransactionList({
     { value: 'advertising', labelKey: 'transaction.advertising' as const }
   ];
 
+  // 每种 type 的计数 — 用于 chip 上显示 (n)，只在 count > 0 时渲染对应 chip，
+  // 避免给只录了 buy/sell/renew 的用户显示一长串 0 的 transfer/marketing。
+  const typeCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: transactions.length };
+    for (const tx of transactions) {
+      counts[tx.type] = (counts[tx.type] ?? 0) + 1;
+    }
+    return counts;
+  }, [transactions]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -383,7 +433,49 @@ const TransactionList = memo(function TransactionList({
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+      {/* Type chip strip — primary type filter, replaces the old dropdown.
+          Only rendered when there's at least one transaction; hidden in
+          timeline mode (which has its own filtering semantics). Each chip
+          shows a count and only renders when count > 0 (so users with only
+          buy/sell/renew don't see empty transfer/marketing chips). */}
+      {viewMode === 'list' && transactions.length > 0 && (
+        <div
+          role="tablist"
+          aria-label={t('transactionList.allTypes')}
+          className="flex flex-wrap items-center gap-2"
+        >
+          {typeOptions.map((option) => {
+            const isActive = typeFilter === option.value;
+            const palette = typeChipPalette[option.value] ?? typeChipPalette.all;
+            const count = typeCounts[option.value] ?? 0;
+            // Always show All; for specific types only render if there's data
+            if (option.value !== 'all' && count === 0) return null;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => setTypeFilter(option.value)}
+                className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 ${
+                  isActive ? palette.active : palette.idle
+                }`}
+              >
+                <span>{t(option.labelKey)}</span>
+                <span
+                  className={`tabular-nums text-xs ${
+                    isActive ? 'opacity-90' : 'opacity-70'
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="flex-1">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
@@ -402,19 +494,7 @@ const TransactionList = memo(function TransactionList({
         </div>
         {viewMode === 'list' && (
           <div className="flex flex-wrap items-center gap-3">
-            <Filter className="h-4 w-4 text-stone-400" />
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              aria-label={t('transactionList.allTypes')}
-              className="px-3 py-2.5 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-            >
-              {typeOptions.map(option => (
-                <option key={option.value} value={option.value}>
-                  {t(option.labelKey)}
-                </option>
-              ))}
-            </select>
+            <Filter className="h-4 w-4 text-stone-400 lg:hidden" />
             {/* Sort dropdown — mobile only (desktop uses clickable column headers) */}
             <select
               value={`${sortField}-${sortDir}`}
@@ -441,28 +521,78 @@ const TransactionList = memo(function TransactionList({
       </div>
 
       {viewMode === 'list' && filteredTransactions.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 rounded-2xl border border-stone-200/80 bg-white shadow-sm divide-y sm:divide-y-0 sm:divide-x divide-stone-100">
-          <div className="p-4">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">{t('transactionList.kpiInflow')}</p>
-            <p className="mt-0.5 text-lg font-bold text-emerald-700 tabular-nums">
-              {periodMetrics.inflow > 0 ? '+' : ''}{formatCurrency(periodMetrics.inflow, 'USD')}
-            </p>
-          </div>
-          <div className="p-4">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">{t('transactionList.kpiOutflow')}</p>
-            <p className="mt-0.5 text-lg font-bold text-rose-700 tabular-nums">
-              {periodMetrics.outflow > 0 && '-'}{formatCurrency(periodMetrics.outflow, 'USD')}
-            </p>
-          </div>
-          <div className="p-4">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">{t('transactionList.kpiNet')}</p>
-            <p className={`mt-0.5 text-lg font-bold tabular-nums ${periodMetrics.net > 0 ? 'text-emerald-700' : periodMetrics.net < 0 ? 'text-rose-700' : 'text-stone-700'}`}>
-              {periodMetrics.net > 0 ? '+' : periodMetrics.net < 0 ? '-' : ''}{formatCurrency(Math.abs(periodMetrics.net), 'USD')}
-            </p>
-          </div>
-          <div className="p-4">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">{t('transactionList.kpiCount')}</p>
-            <p className="mt-0.5 text-lg font-bold text-stone-900 tabular-nums">{periodMetrics.count}</p>
+        <div className="relative overflow-hidden rounded-3xl border border-stone-200/60 bg-gradient-to-br from-stone-50 via-white to-emerald-50/30 shadow-sm">
+          <div className="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-gradient-to-br from-emerald-100/30 to-transparent blur-3xl" />
+          <div className="relative grid grid-cols-2 gap-4 p-5 sm:p-6 lg:grid-cols-4 lg:gap-6">
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                <TrendingUp className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                  {t('transactionList.kpiInflow')}
+                </p>
+                <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-emerald-700">
+                  {periodMetrics.inflow > 0 ? '+' : ''}{formatCurrency(periodMetrics.inflow, 'USD')}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-700">
+                <TrendingDown className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                  {t('transactionList.kpiOutflow')}
+                </p>
+                <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-rose-700">
+                  {periodMetrics.outflow > 0 && '−'}{formatCurrency(periodMetrics.outflow, 'USD')}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <span
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                  periodMetrics.net > 0
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : periodMetrics.net < 0
+                      ? 'bg-rose-50 text-rose-700'
+                      : 'bg-stone-100 text-stone-700'
+                }`}
+              >
+                <Scale className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                  {t('transactionList.kpiNet')}
+                </p>
+                <p
+                  className={`mt-1 text-xl font-bold tracking-tight tabular-nums ${
+                    periodMetrics.net > 0
+                      ? 'text-emerald-700'
+                      : periodMetrics.net < 0
+                        ? 'text-rose-700'
+                        : 'text-stone-700'
+                  }`}
+                >
+                  {periodMetrics.net > 0 ? '+' : periodMetrics.net < 0 ? '−' : ''}
+                  {formatCurrency(Math.abs(periodMetrics.net), 'USD')}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-stone-700">
+                <Hash className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                  {t('transactionList.kpiCount')}
+                </p>
+                <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-stone-900">
+                  {periodMetrics.count}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -511,10 +641,16 @@ const TransactionList = memo(function TransactionList({
         </div>
       ) : (
         <div className="space-y-2">
-          {/* Mobile: stacked cards (table is unreadable below lg) */}
+          {/* Mobile: stacked cards (table is unreadable below lg).
+              Sell rows get a left emerald accent strip; outflow rows stay neutral. */}
           <div className="lg:hidden space-y-2">
             {paginatedTransactions.map((transaction) => (
-              <article key={transaction.id} className="bg-white rounded-2xl border border-stone-200/80 shadow-sm p-4">
+              <article
+                key={transaction.id}
+                className={`bg-white rounded-2xl border border-stone-200/80 shadow-sm p-4 ${
+                  transaction.type === 'sell' ? 'border-l-4 border-l-emerald-500' : ''
+                }`}
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold text-stone-900 break-words">
@@ -624,7 +760,12 @@ const TransactionList = memo(function TransactionList({
                 </thead>
                 <tbody className="bg-white divide-y divide-stone-200">
                   {paginatedTransactions.map((transaction) => (
-                  <tr key={transaction.id} className="hover:bg-stone-50/80">
+                  <tr
+                    key={transaction.id}
+                    className={`hover:bg-stone-50/80 ${
+                      transaction.type === 'sell' ? 'bg-emerald-50/30' : ''
+                    }`}
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-stone-900">
                         {getDomainName(transaction.domain_id)}
