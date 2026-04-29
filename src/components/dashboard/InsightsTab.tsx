@@ -10,16 +10,12 @@ import {
   LazyExpiredDomainLossAnalysis,
   LazyWrapper,
 } from '../LazyComponents';
-import { formatRenewalCycleDistributionLabel } from '../../lib/renewalCalculations';
-import type { AnnualRenewalCost } from '../../lib/renewalCalculations';
 import type { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import { totalRealizedPnL, insightsKPISummary } from '../../lib/realizedPnL';
 
 interface InsightsTabProps {
   domains: DomainWithTags[];
   transactionsForMetrics: TransactionWithRequiredFields[];
-  renewalAnalysis: AnnualRenewalCost;
-  locale: 'zh' | 'en';
   t: (key: string) => string;
   formatCurrency: (n: number, currency?: string) => string;
 }
@@ -46,8 +42,6 @@ const VALID_SUB_TABS: readonly InsightsSubTab[] = ['performance', 'renewals', 'l
 export default function InsightsTab({
   domains,
   transactionsForMetrics,
-  renewalAnalysis,
-  locale,
   t,
   formatCurrency,
 }: InsightsTabProps) {
@@ -247,52 +241,6 @@ export default function InsightsTab({
 
       {activeSubTab === 'renewals' && (
         <div className="space-y-6">
-          {/* Light renewal counts + cycle distribution. Lives in this tab so
-              the user gets the overview before diving into AdvancedRenewalAnalysis.
-              Intentionally omits "this year estimated cost" / "average per domain":
-              the first conflicts with Advanced Renewal's regression-based number,
-              the second's denominator is misleading. */}
-          <div className="rounded-2xl border border-stone-200/80 bg-white p-6 shadow-sm">
-            <h3 className="text-base font-semibold text-stone-900">{t('renewal.analysis')}</h3>
-            <div className="mt-4 grid grid-cols-2 gap-4">
-              <div className="rounded-xl border border-teal-100/80 bg-teal-50/50 p-4">
-                <p className="text-xs font-medium uppercase tracking-wider text-teal-700/80">
-                  {t('renewal.needRenewal')}
-                </p>
-                <p className="mt-1 text-2xl font-bold tabular-nums text-teal-700">
-                  {renewalAnalysis.domainsNeedingRenewal.length}
-                </p>
-              </div>
-              <div className="rounded-xl border border-stone-100 bg-stone-50 p-4">
-                <p className="text-xs font-medium uppercase tracking-wider text-stone-500">
-                  {t('renewal.noRenewal')}
-                </p>
-                <p className="mt-1 text-2xl font-bold tabular-nums text-stone-900">
-                  {renewalAnalysis.domainsNotNeedingRenewal.length}
-                </p>
-              </div>
-            </div>
-            {Object.keys(renewalAnalysis.costByCycle).length > 0 && (
-              <div className="mt-5 border-t border-stone-100 pt-4">
-                <h4 className="text-sm font-medium text-stone-700">
-                  {t('renewal.cycleDistribution')}
-                </h4>
-                <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
-                  {Object.entries(renewalAnalysis.costByCycle).map(([cycle, cost]) => (
-                    <div key={cycle} className="rounded-lg bg-stone-50 p-3">
-                      <p className="text-xs text-stone-500">
-                        {formatRenewalCycleDistributionLabel(cycle, locale, t)}
-                      </p>
-                      <p className="mt-0.5 text-base font-semibold text-stone-900 tabular-nums">
-                        {formatCurrency(cost, 'USD')}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
           <LazyWrapper>
             <LazyAdvancedRenewalAnalysis domains={domains} transactions={transactionsForMetrics} />
           </LazyWrapper>

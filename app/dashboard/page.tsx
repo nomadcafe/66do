@@ -24,7 +24,6 @@ import DashboardTabsNav from '../../src/components/dashboard/DashboardTabsNav';
 import InsightsTab from '../../src/components/dashboard/InsightsTab';
 import IcalSubscriptionCard from '../../src/components/dashboard/IcalSubscriptionCard';
 import { buildWeeklyBriefingCards } from '../../src/components/dashboard/buildWeeklyBriefingCards';
-import { calculateAnnualRenewalCost } from '../../src/lib/renewalCalculations';
 import { formatCurrency as formatCurrencyEnhanced } from '../../src/lib/financialCalculations';
 // 懒加载组件
 import {
@@ -322,32 +321,6 @@ export default function DashboardPage() {
       router.push('/login?redirect=/dashboard');
     }
   }, [user, authLoading, router]);
-
-  // 计算续费分析 - 使用缓存优化性能
-  // 注意：calculateAnnualRenewalCost 内部在缺 expiry_date 时会跳过该域名
-  // （见 src/lib/renewalCalculations.ts L49-50），所以上层 filter 也要
-  // 同步过滤，否则会出现"filter 通过但计算时被默默丢弃"的数据不一致。
-  const renewalAnalysis = useMemo(() => {
-    const validDomains = domains
-      .filter(domain =>
-        domain.status === 'active' &&
-        domain.renewal_cost !== null &&
-        domain.purchase_date !== null &&
-        domain.expiry_date !== null
-      )
-      .map(domain => ({
-        id: domain.id,
-        domain_name: domain.domain_name,
-        renewal_cost: domain.renewal_cost!,
-        renewal_cycle: domain.renewal_cycle,
-        renewal_count: domain.renewal_count,
-        purchase_date: domain.purchase_date!,
-        expiry_date: domain.expiry_date!,
-        status: domain.status
-      }));
-
-    return calculateAnnualRenewalCost(validDomains);
-  }, [domains]);
 
   // 即将到期 + 刚过期（7 天内）：30 天内到期或已过期 7 天内，便于续费/标记已售。
   // 用 getEffectiveExpiry 兜底链：没填 expiry_date 也用 next_renewal_date 或者
@@ -915,8 +888,6 @@ export default function DashboardPage() {
           <InsightsTab
             domains={domains}
             transactionsForMetrics={transactionsForMetrics}
-            renewalAnalysis={renewalAnalysis}
-            locale={locale}
             t={t}
             formatCurrency={formatCurrencyEnhanced}
           />

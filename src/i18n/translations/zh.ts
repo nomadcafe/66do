@@ -503,20 +503,9 @@ const zh = {
       newFinancialMetrics: '新增财务指标卡片'
     },
     renewal: {
-      analysis: '续费概览',
-      thisYearCost: '今年续费成本',
-      needRenewal: '需要续费域名',
-      noRenewal: '无需续费域名',
-      averageCostPerDomain: '平均成本/域名',
-      cycleDistribution: '续费周期分布',
-      cycleCountYearsZh: '{n}年',
-      cycleCountYearEn: '{n} year',
-      cycleCountYearsEn: '{n} years',
-      optimizationSuggestions: '续费优化建议',
       year: '年',
       domains: '个域名',
       cost: '成本',
-      suggestion: '建议',
       renewDomain: '续费域名',
       selectRenewalYears: '选择续费年数',
       currentExpiry: '当前到期日期',
@@ -536,8 +525,6 @@ const zh = {
       advancedTitle: '年度续费分析',
       estimatedCost: '预估成本',
       domainsToRenew: '待续费域名数',
-      accuracy: '预测准确度',
-      monthlyDistribution: '月度成本分布',
       annualOutlook: '年度续费一览',
       annualOutlookDesc:
         '按自然年汇总：预估根据当年到期的域名与续费历史推算；「实际」为续费记录中该日历年的金额。',
@@ -554,8 +541,7 @@ const zh = {
       optimizationOpportunities: '优化建议',
       opportunityItem: '{name}（成本上涨 {percent}%）',
       noRenewalData: '暂无续费数据',
-      noRenewalDataDesc: '当前年份无待续费域名，或没有活跃域名',
-      accuracyNoData: '暂无记录'
+      noRenewalDataDesc: '当前年份无待续费域名，或没有活跃域名'
     },
     transaction: {
       type: '交易类型',
