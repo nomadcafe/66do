@@ -218,14 +218,14 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between z-10 shrink-0">
-          <h2 className="text-xl font-semibold text-gray-900">
+          <h2 className="text-xl font-semibold text-stone-900">
             {domain ? t('dashboard.domainFormTitleEdit') : t('dashboard.domainFormTitleAdd')}
           </h2>
           <button
             type="button"
             data-close-domain-form
             onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 cursor-pointer"
+            className="text-stone-400 hover:text-stone-600 p-1 rounded hover:bg-stone-100 cursor-pointer"
             aria-label={t('common.close')}
           >
             <X className="h-6 w-6" />
@@ -257,7 +257,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label htmlFor="domain-form-domain_name" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="domain-form-domain_name" className="block text-sm font-medium text-stone-700 mb-2">
                 <Globe className="h-4 w-4 inline mr-1" />
                 {t('dashboard.domainNameLabel')} *
               </label>
@@ -267,14 +267,14 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
                 required
                 value={formData.domain_name}
                 onChange={(e) => setFormData((prev) => ({ ...prev, domain_name: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder={t('dashboard.domainNamePlaceholder')}
                 aria-invalid={validationErrors.some((e) => e.toLowerCase().includes('domain'))}
               />
             </div>
 
             <div>
-              <label htmlFor="domain-form-registrar" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="domain-form-registrar" className="block text-sm font-medium text-stone-700 mb-2">
                 {t('dashboard.registrarLabel')}
               </label>
               <input
@@ -282,7 +282,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
                 type="text"
                 value={formData.registrar}
                 onChange={(e) => setFormData((prev) => ({ ...prev, registrar: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder={t('dashboard.registrarPlaceholder')}
                 list={registrarSuggestions.length > 0 ? 'domain-form-registrar-list' : undefined}
                 autoComplete="off"
@@ -313,11 +313,11 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
                 onChange={(value) => setFormData((prev) => ({ ...prev, expiry_date: value }))}
                 className="w-full max-w-md"
               />
-              <p className="text-xs text-gray-500">{t('dashboard.expiryDateOptionalHint')}</p>
+              <p className="text-xs text-stone-500">{t('dashboard.expiryDateOptionalHint')}</p>
             </div>
 
             <div>
-              <label htmlFor="domain-form-purchase_cost" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="domain-form-purchase_cost" className="block text-sm font-medium text-stone-700 mb-2">
                 <DollarSign className="h-4 w-4 inline mr-1" />
                 {t('dashboard.purchaseCostLabel')} *
               </label>
@@ -329,13 +329,13 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
                 step="0.01"
                 value={formData.purchase_cost === 0 ? '' : formData.purchase_cost}
                 onChange={(e) => setFormData((prev) => ({ ...prev, purchase_cost: parseFloat(e.target.value) || 0 }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="0.00"
               />
             </div>
 
             <div>
-              <label htmlFor="domain-form-renewal_cost" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="domain-form-renewal_cost" className="block text-sm font-medium text-stone-700 mb-2">
                 <DollarSign className="h-4 w-4 inline mr-1" />
                 {t('dashboard.renewalCostLabel')}
               </label>
@@ -346,13 +346,13 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
                 step="0.01"
                 value={formData.renewal_cost === 0 ? '' : formData.renewal_cost}
                 onChange={(e) => setFormData((prev) => ({ ...prev, renewal_cost: parseFloat(e.target.value) || 0 }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="0.00"
               />
             </div>
 
         <div>
-          <label htmlFor="domain-form-renewal_cycle" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="domain-form-renewal_cycle" className="block text-sm font-medium text-stone-700 mb-2">
             <Calendar className="h-4 w-4 inline mr-1" />
             {t('dashboard.renewalCycleYears')}
           </label>
@@ -369,7 +369,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
                   renewal_cycle: Math.min(10, Math.max(1, parseInt(e.target.value, 10) || 1))
                 }))
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder={t('dashboard.renewalCycleCustomPlaceholder')}
             />
           ) : (
@@ -388,7 +388,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
                 }
                 setFormData((prev) => ({ ...prev, renewal_cycle: parseInt(e.target.value, 10) || 1 }));
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value={1}>{t('dashboard.renewalCycle1Year')}</option>
               <option value={2}>{t('dashboard.renewalCycle2Years')}</option>
@@ -398,13 +398,13 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
               <option value={CUSTOM_CYCLE_SENTINEL}>{t('dashboard.renewalCycleCustom')}</option>
             </select>
           )}
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-stone-500 mt-1">
             {t('dashboard.renewalCycleHelp')}
           </p>
         </div>
 
         <div>
-          <label htmlFor="domain-form-renewal_count" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="domain-form-renewal_count" className="block text-sm font-medium text-stone-700 mb-2">
             <Calendar className="h-4 w-4 inline mr-1" />
             {t('dashboard.renewalCountLabel')}
           </label>
@@ -414,10 +414,10 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
             min="0"
             value={formData.renewal_count === 0 ? '' : formData.renewal_count}
             onChange={(e) => setFormData((prev) => ({ ...prev, renewal_count: parseInt(e.target.value) || 0 }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder={t('dashboard.renewalCountPlaceholder')}
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-stone-500 mt-1">
             {t('dashboard.renewalCountHelp')}
           </p>
         </div>
@@ -431,12 +431,12 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
               }
               className="w-full md:col-span-2"
             />
-            <p className="text-xs text-gray-500 md:col-span-2 -mt-4">
+            <p className="text-xs text-stone-500 md:col-span-2 -mt-4">
               {t('dashboard.baselineRenewalAsOfHelp')}
             </p>
 
             <div>
-              <label htmlFor="domain-form-estimated_value" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="domain-form-estimated_value" className="block text-sm font-medium text-stone-700 mb-2">
                 <DollarSign className="h-4 w-4 inline mr-1" />
                 {t('dashboard.estimatedValueLabel')}
               </label>
@@ -447,20 +447,20 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
                 step="0.01"
                 value={formData.estimated_value === 0 ? '' : formData.estimated_value}
                 onChange={(e) => setFormData((prev) => ({ ...prev, estimated_value: parseFloat(e.target.value) || 0 }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="0.00"
               />
             </div>
 
             <div>
-              <label htmlFor="domain-form-status" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="domain-form-status" className="block text-sm font-medium text-stone-700 mb-2">
                 {t('dashboard.statusLabel')}
               </label>
               <select
                 id="domain-form-status"
                 value={formData.status}
                 onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value as 'active' | 'for_sale' | 'sold' | 'expired' }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="active">{t('common.active')}</option>
                 <option value="for_sale">{t('common.forSale')}</option>
@@ -471,7 +471,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-stone-700 mb-2">
               <Tag className="h-4 w-4 inline mr-1" />
               {t('dashboard.tagsLabel')}
             </label>
@@ -498,13 +498,13 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder={t('dashboard.addTagPlaceholder')}
               />
               <button
                 type="button"
                 onClick={handleAddTag}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                className="px-4 py-2 bg-stone-100 text-stone-700 rounded-md hover:bg-stone-200"
               >
                 {t('dashboard.add')}
               </button>
@@ -516,7 +516,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
               type="button"
               data-close-domain-form
               onClick={handleClose}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 cursor-pointer"
+              className="px-4 py-2 text-stone-600 hover:text-stone-800 cursor-pointer"
             >
               {t('dashboard.cancel')}
             </button>

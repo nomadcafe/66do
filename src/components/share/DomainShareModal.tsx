@@ -94,8 +94,8 @@ export default function DomainShareModal({ isOpen, onClose, domain, transactions
       <div className="p-6">
         {/* 预览区域 */}
         <div className="mb-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">{t('common.imagePreview')}</h3>
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50">
+          <h3 className="text-lg font-medium text-stone-900 mb-4">{t('common.imagePreview')}</h3>
+          <div className="border-2 border-dashed border-stone-300 rounded-lg p-4 bg-stone-50">
             <canvas
               ref={canvasRef}
               className="max-w-full h-auto mx-auto block"
@@ -113,7 +113,7 @@ export default function DomainShareModal({ isOpen, onClose, domain, transactions
 
         {/* LinkedIn/Facebook sharers can't attach the canvas image; removed. */}
         <div className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-900">{t('common.shareToSocialMedia')}</h3>
+          <h3 className="text-lg font-medium text-stone-900">{t('common.shareToSocialMedia')}</h3>
 
           <button
             onClick={onShareX}
@@ -126,7 +126,7 @@ export default function DomainShareModal({ isOpen, onClose, domain, transactions
           <div className="flex justify-center">
             <button
               onClick={onDownload}
-              className="flex items-center space-x-2 bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700"
+              className="flex items-center space-x-2 bg-stone-600 text-white px-6 py-3 rounded-lg hover:bg-stone-700"
             >
               <Download className="h-5 w-5" />
               <span>{t('common.downloadImage')}</span>

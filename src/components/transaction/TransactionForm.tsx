@@ -424,13 +424,13 @@ export default function TransactionForm({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900">
+          <h2 className="text-xl font-semibold text-stone-900">
             {transaction ? t('transaction.editTransaction') : t('transaction.addNewTransaction')}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-stone-400 hover:text-stone-600"
             aria-label={t('common.close')}
           >
             <X className="h-6 w-6" />
@@ -439,20 +439,20 @@ export default function TransactionForm({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div ref={domainPickerRef}>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-stone-700 mb-2">
               {t('transaction.domain')} *
             </label>
             <div className="relative">
               {selectedDomain ? (
-                <div className="flex items-center gap-2 rounded-md border border-gray-300 bg-gray-50 px-3 py-2">
-                  <span className="flex-1 font-medium text-gray-900">{selectedDomain.domain_name}</span>
-                  <span className="text-xs text-gray-500">
+                <div className="flex items-center gap-2 rounded-md border border-stone-300 bg-stone-50 px-3 py-2">
+                  <span className="flex-1 font-medium text-stone-900">{selectedDomain.domain_name}</span>
+                  <span className="text-xs text-stone-500">
                     ({selectedDomain.status === 'active' ? t('transaction.domainStatusActive') : selectedDomain.status === 'for_sale' ? t('transaction.domainStatusForSale') : t('transaction.domainStatusSold')})
                   </span>
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, domain_id: '' })}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-stone-400 hover:text-stone-600"
                     aria-label={t('common.close')}
                   >
                     <X className="h-4 w-4" />
@@ -460,8 +460,8 @@ export default function TransactionForm({
                 </div>
               ) : (
                 <>
-                  <div className="flex rounded-md border border-gray-300 focus-within:ring-2 focus-within:ring-blue-500">
-                    <span className="flex items-center pl-3 text-gray-400">
+                  <div className="flex rounded-md border border-stone-300 focus-within:ring-2 focus-within:ring-blue-500">
+                    <span className="flex items-center pl-3 text-stone-400">
                       <Search className="h-4 w-4" />
                     </span>
                     <input
@@ -478,18 +478,18 @@ export default function TransactionForm({
                     <button
                       type="button"
                       onClick={() => setDomainDropdownOpen((v) => !v)}
-                      className="pr-2 text-gray-400 hover:text-gray-600"
+                      className="pr-2 text-stone-400 hover:text-stone-600"
                     >
                       <ChevronDown className="h-4 w-4" />
                     </button>
                   </div>
                   {domainDropdownOpen && (
                     <ul
-                      className="absolute z-10 mt-1 w-full max-h-56 overflow-auto rounded-md border border-gray-200 bg-white shadow-lg py-1"
+                      className="absolute z-10 mt-1 w-full max-h-56 overflow-auto rounded-md border border-stone-200 bg-white shadow-lg py-1"
                       role="listbox"
                     >
                       {filteredDomains.length === 0 ? (
-                        <li className="px-3 py-2 text-sm text-gray-500">{t('transaction.selectDomain')}</li>
+                        <li className="px-3 py-2 text-sm text-stone-500">{t('transaction.selectDomain')}</li>
                       ) : (
                         filteredDomains.map((domain) => (
                           <li
@@ -501,10 +501,10 @@ export default function TransactionForm({
                               setDomainSearch('');
                               setDomainDropdownOpen(false);
                             }}
-                            className="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 flex justify-between items-center"
+                            className="px-3 py-2 text-sm cursor-pointer hover:bg-stone-100 flex justify-between items-center"
                           >
-                            <span className="font-medium text-gray-900 truncate">{domain.domain_name}</span>
-                            <span className="text-xs text-gray-500 shrink-0 ml-2">
+                            <span className="font-medium text-stone-900 truncate">{domain.domain_name}</span>
+                            <span className="text-xs text-stone-500 shrink-0 ml-2">
                               {domain.status === 'active' ? t('transaction.domainStatusActive') : domain.status === 'for_sale' ? t('transaction.domainStatusForSale') : t('transaction.domainStatusSold')}
                             </span>
                           </li>
@@ -519,7 +519,7 @@ export default function TransactionForm({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="transaction-form-type" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="transaction-form-type" className="block text-sm font-medium text-stone-700 mb-2">
                 {t('transaction.type')} *
               </label>
               <select
@@ -527,7 +527,7 @@ export default function TransactionForm({
                 required
                 value={formData.type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value as TransactionWithRequiredFields['type'] })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {transactionTypes.map((type) => (
                   <option key={type.value} value={type.value}>
@@ -588,8 +588,8 @@ export default function TransactionForm({
             )}
 
             {formData.type === 'renew' && formData.domain_id && (
-              <div className="md:col-span-2 space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
-                <label className="flex items-center gap-2 text-sm text-gray-800 cursor-pointer">
+              <div className="md:col-span-2 space-y-3 rounded-lg border border-stone-200 bg-stone-50 p-4">
+                <label className="flex items-center gap-2 text-sm text-stone-800 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={formData.renewal_years_use_custom}
@@ -599,12 +599,12 @@ export default function TransactionForm({
                         renewal_years_use_custom: e.target.checked
                       }))
                     }
-                    className="rounded border-gray-300"
+                    className="rounded border-stone-300"
                   />
                   {t('transaction.renewUseCustomYears')}
                 </label>
                 {!formData.renewal_years_use_custom && selectedDomain ? (
-                  <p className="text-xs text-gray-600">
+                  <p className="text-xs text-stone-600">
                     {t('transaction.renewUseDomainCycle').replace(
                       '{years}',
                       String(Math.min(10, Math.max(1, selectedDomain.renewal_cycle || 1)))
@@ -614,7 +614,7 @@ export default function TransactionForm({
                   <div>
                     <label
                       htmlFor="transaction-renewal-period-years"
-                      className="block text-xs font-medium text-gray-600 mb-1"
+                      className="block text-xs font-medium text-stone-600 mb-1"
                     >
                       {t('transaction.renewPeriodYears')}
                     </label>
@@ -633,7 +633,7 @@ export default function TransactionForm({
                           )
                         }))
                       }
-                      className="w-24 px-2 py-1 border border-gray-300 rounded-md text-sm"
+                      className="w-24 px-2 py-1 border border-stone-300 rounded-md text-sm"
                     />
                   </div>
                 )}
@@ -652,7 +652,7 @@ export default function TransactionForm({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="transaction-form-amount" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="transaction-form-amount" className="block text-sm font-medium text-stone-700 mb-2">
                 <DollarSign className="h-4 w-4 inline mr-1" />
                 {t('transaction.amount')} *
               </label>
@@ -664,13 +664,13 @@ export default function TransactionForm({
                 step="0.01"
                 value={formData.amount === 0 ? '' : formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="0.00"
               />
             </div>
 
             <div>
-              <label htmlFor="transaction-form-platform-fee-pct" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="transaction-form-platform-fee-pct" className="block text-sm font-medium text-stone-700 mb-2">
                 {t('transaction.platformFeePercentage')}
               </label>
               <input
@@ -689,7 +689,7 @@ export default function TransactionForm({
                     platform_fee: calculatedFee
                   });
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="0.00"
               />
             </div>
@@ -697,19 +697,19 @@ export default function TransactionForm({
 
           {/* 净收入显示 */}
           {formData.type === 'sell' && (
-            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+            <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-green-800">{t('transaction.netIncomeCalculation')}</p>
-                  <p className="text-lg font-semibold text-green-900">
+                  <p className="text-sm font-medium text-emerald-800">{t('transaction.netIncomeCalculation')}</p>
+                  <p className="text-lg font-semibold text-emerald-900">
                     {formatCurrencyAmount(formData.amount - formData.platform_fee, formData.currency)}
                   </p>
-                  <p className="text-xs text-green-600 mt-1">
+                  <p className="text-xs text-emerald-600 mt-1">
                     {t('transaction.totalAmount')}: {formatCurrencyAmount(formData.amount, formData.currency)} - {t('transaction.platformFeeDesc')}: {formatCurrencyAmount(formData.platform_fee, formData.currency)}
                   </p>
                 </div>
-                <div className="p-2 bg-green-100 rounded-full">
-                  <DollarSign className="h-6 w-6 text-green-600" />
+                <div className="p-2 bg-emerald-100 rounded-full">
+                  <DollarSign className="h-6 w-6 text-emerald-600" />
                 </div>
               </div>
             </div>
@@ -727,7 +727,7 @@ export default function TransactionForm({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="transaction-form-platform" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="transaction-form-platform" className="block text-sm font-medium text-stone-700 mb-2">
                 {t('transaction.platform')}
               </label>
               <input
@@ -735,7 +735,7 @@ export default function TransactionForm({
                 type="text"
                 value={formData.platform}
                 onChange={(e) => setFormData({ ...formData, platform: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder={t('transaction.platformPlaceholder')}
                 list="transaction-form-platform-list"
                 autoComplete="off"
@@ -748,7 +748,7 @@ export default function TransactionForm({
             </div>
 
             <div>
-              <label htmlFor="transaction-form-category" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="transaction-form-category" className="block text-sm font-medium text-stone-700 mb-2">
                 {t('transaction.category')}
               </label>
               <input
@@ -756,7 +756,7 @@ export default function TransactionForm({
                 type="text"
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder={t('transaction.categoryPlaceholder')}
                 list={categorySuggestions.length > 0 ? 'transaction-form-category-list' : undefined}
                 autoComplete="off"
@@ -777,15 +777,15 @@ export default function TransactionForm({
               id="tax_deductible"
               checked={formData.tax_deductible}
               onChange={(e) => setFormData({ ...formData, tax_deductible: e.target.checked })}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-stone-300 rounded"
             />
-            <label htmlFor="tax_deductible" className="ml-2 block text-sm text-gray-700">
+            <label htmlFor="tax_deductible" className="ml-2 block text-sm text-stone-700">
               {t('transaction.taxDeductible')}
             </label>
           </div>
 
           <div>
-            <label htmlFor="transaction-form-receipt-url" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="transaction-form-receipt-url" className="block text-sm font-medium text-stone-700 mb-2">
               {t('transaction.receiptUrl')}
             </label>
             <input
@@ -793,13 +793,13 @@ export default function TransactionForm({
               type="url"
               value={formData.receipt_url}
               onChange={(e) => setFormData({ ...formData, receipt_url: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder={t('transaction.receiptUrlPlaceholder')}
             />
           </div>
 
           <div>
-            <label htmlFor="transaction-form-notes" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="transaction-form-notes" className="block text-sm font-medium text-stone-700 mb-2">
               <FileText className="h-4 w-4 inline mr-1" />
               {t('transaction.notes')}
             </label>
@@ -808,7 +808,7 @@ export default function TransactionForm({
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder={t('transaction.notesPlaceholder')}
             />
           </div>
@@ -823,7 +823,7 @@ export default function TransactionForm({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50"
+              className="px-4 py-2 text-stone-600 hover:text-stone-800 disabled:opacity-50"
             >
               {t('common.cancel')}
             </button>

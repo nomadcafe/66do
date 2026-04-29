@@ -115,12 +115,12 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-2xl font-bold text-stone-900">
               {domain ? '编辑域名' : '添加域名'}
             </h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-stone-400 hover:text-stone-600"
             >
               ✕
             </button>
@@ -130,28 +130,28 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
             {/* 基本信息 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-stone-700 mb-2">
                   域名名称 *
                 </label>
                 <input
                   type="text"
                   value={formData.domain_name}
                   onChange={(e) => handleInputChange('domain_name', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="example.com"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-stone-700 mb-2">
                   注册商
                 </label>
                 <input
                   type="text"
                   value={formData.registrar || ''}
                   onChange={(e) => handleInputChange('registrar', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="GoDaddy, Namecheap, etc."
                 />
               </div>
@@ -168,7 +168,7 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
               />
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-stone-700 mb-2">
                   购买价格
                 </label>
                 <input
@@ -176,13 +176,13 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
                   step="0.01"
                   value={formData.purchase_cost || 0}
                   onChange={(e) => handleInputChange('purchase_cost', parseFloat(e.target.value) || 0)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="0.00"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-stone-700 mb-2">
                   续费周期（年）
                 </label>
                 {useCustomCycle ? (
@@ -197,7 +197,7 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
                         Math.min(10, Math.max(1, parseInt(e.target.value, 10) || 1))
                       )
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="输入 1–10 的整数"
                   />
                 ) : (
@@ -217,7 +217,7 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
                       }
                       handleInputChange('renewal_cycle', parseInt(e.target.value, 10) || 1);
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value={1}>1年</option>
                     <option value={2}>2年</option>
@@ -233,7 +233,7 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
             {/* 续费信息 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-stone-700 mb-2">
                   续费费用
                 </label>
                 <input
@@ -241,13 +241,13 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
                   step="0.01"
                   value={formData.renewal_cost || 0}
                   onChange={(e) => handleInputChange('renewal_cost', parseFloat(e.target.value) || 0)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="0.00"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-stone-700 mb-2">
                   已续费次数
                 </label>
                 <input
@@ -255,7 +255,7 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
                   min="0"
                   value={formData.renewal_count}
                   onChange={(e) => handleInputChange('renewal_count', parseInt(e.target.value) || 0)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -273,7 +273,7 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
                 }
                 className="w-full max-w-md"
               />
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-stone-500">
                 新建域名时默认今天：此前用「已续费次数×续费成本」概括；之后每笔续费请用「续费」交易记账，金额会计入持有成本。若清空，则持有成本不按交易叠加（旧版逻辑）。
               </p>
             </div>
@@ -281,11 +281,11 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
             {/* 到期日期输入 */}
             <div className="border-t pt-6">
               <div className="mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center mb-2">
+                <h3 className="text-lg font-semibold text-stone-900 flex items-center mb-2">
                   <Calendar className="h-5 w-5 mr-2" />
                   到期日期（选填）
                 </h3>
-                <p className="text-sm text-gray-600 mb-4">
+                <p className="text-sm text-stone-600 mb-4">
                   可不填；填写后即将到期提醒与分析更准确，之后也可在编辑中补全。若填写，建议以注册商或 WHOIS 为准。
                 </p>
               </div>
@@ -296,7 +296,7 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
                 onChange={(value) => handleInputChange('expiry_date', value)}
                 className="w-full"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-stone-500 mt-1">
                 选填。可查注册商后台或 WHOIS 获取准确到期日。
               </p>
 
@@ -304,7 +304,7 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
               {expiryValidation && (
                 <div className={`mt-3 p-3 rounded-lg ${
                   expiryValidation.isValid 
-                    ? 'bg-green-50 border border-green-200' 
+                    ? 'bg-emerald-50 border border-emerald-200' 
                     : 'bg-red-50 border border-red-200'
                 }`}>
                   {expiryValidation.warnings.length > 0 && (
@@ -341,7 +341,7 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
             {/* 其他信息 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-stone-700 mb-2">
                   预估价值
                 </label>
                 <input
@@ -349,19 +349,19 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
                   step="0.01"
                   value={formData.estimated_value || 0}
                   onChange={(e) => handleInputChange('estimated_value', parseFloat(e.target.value) || 0)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="0.00"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-stone-700 mb-2">
                   状态
                 </label>
                 <select
                   value={formData.status}
                   onChange={(e) => handleInputChange('status', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="active">活跃</option>
                   <option value="for_sale">出售中</option>
@@ -376,7 +376,7 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                className="px-4 py-2 text-stone-700 bg-stone-100 rounded-md hover:bg-stone-200"
               >
                 取消
               </button>

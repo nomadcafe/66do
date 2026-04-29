@@ -54,17 +54,17 @@ export default function MobileNavigation({ activeTab, onTabChange, onOpenSetting
         <div className="bg-white rounded-t-2xl shadow-2xl">
           {/* Handle */}
           <div className="flex justify-center py-2">
-            <div className="w-12 h-1 bg-gray-300 rounded-full" />
+            <div className="w-12 h-1 bg-stone-300 rounded-full" />
           </div>
 
           {/* Language switcher */}
           <div className="px-4 pt-1 pb-3 flex items-center justify-between">
-            <span className="text-xs font-medium text-gray-500">{t('settings.selectLanguage')}</span>
-            <div className="flex gap-1 p-1 rounded-lg bg-gray-100">
+            <span className="text-xs font-medium text-stone-500">{t('settings.selectLanguage')}</span>
+            <div className="flex gap-1 p-1 rounded-lg bg-stone-100">
               <button
                 onClick={() => setLocale('zh')}
                 className={`px-3 py-1 rounded-md text-xs font-medium transition ${
-                  locale === 'zh' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
+                  locale === 'zh' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-600'
                 }`}
               >
                 中文
@@ -72,7 +72,7 @@ export default function MobileNavigation({ activeTab, onTabChange, onOpenSetting
               <button
                 onClick={() => setLocale('en')}
                 className={`px-3 py-1 rounded-md text-xs font-medium transition ${
-                  locale === 'en' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
+                  locale === 'en' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-600'
                 }`}
               >
                 English
@@ -97,7 +97,7 @@ export default function MobileNavigation({ activeTab, onTabChange, onOpenSetting
                     className={`flex flex-col items-center p-4 rounded-xl transition-colors ${
                       isActive
                         ? 'bg-teal-100 text-teal-700'
-                        : 'text-gray-600 hover:bg-gray-100'
+                        : 'text-stone-600 hover:bg-stone-100'
                     }`}
                   >
                     <div className="relative">
@@ -116,13 +116,13 @@ export default function MobileNavigation({ activeTab, onTabChange, onOpenSetting
           </div>
 
           {/* Settings entry — opens drawer */}
-          <div className="px-4 pb-6 border-t border-gray-100 pt-3">
+          <div className="px-4 pb-6 border-t border-stone-100 pt-3">
             <button
               onClick={() => {
                 setIsOpen(false);
                 onOpenSettings();
               }}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-stone-600 hover:bg-stone-100 transition-colors"
             >
               <Settings size={18} />
               <span className="text-sm font-medium">{t('dashboard.settings')}</span>
