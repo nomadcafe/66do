@@ -86,7 +86,26 @@ export default function DashboardPage() {
     return 'portfolio';
   };
   const tabParam = searchParams.get('tab');
-  const activeTab: TabType = normalizeTab(tabParam);
+  const tabFromUrl: TabType = normalizeTab(tabParam);
+
+  // activeTab 走 React state（点击秒响应），URL sync 在后台 fire-and-forget。
+  // 之前 activeTab 直接派生自 searchParams，每次点 tab 都要等 router.replace
+  // 触发的全页 re-render 完成才更新——切换感觉慢的根因。
+  //
+  // visited Set 记录已访问过的 tab：第一次切换时会挂载新 tab 内容（仍有挂载
+  // 成本），后续切换走 hidden 属性 CSS 切换，瞬秒。这样 IA / FAO 这种重型
+  // 计算只跑一次，timeframe 选择等组件状态也跨切换保留。
+  const [activeTab, setActiveTabState] = useState<TabType>(tabFromUrl);
+  const [visited, setVisited] = useState<Set<TabType>>(() => new Set([tabFromUrl]));
+
+  // 浏览器前进/后退或外部链接 → URL 改了，把 state 同步过去。
+  useEffect(() => {
+    if (tabFromUrl !== activeTab) {
+      setActiveTabState(tabFromUrl);
+      setVisited((prev) => (prev.has(tabFromUrl) ? prev : new Set([...prev, tabFromUrl])));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabFromUrl]);
 
   // Settings drawer state (in-memory; section can be seeded from URL for backwards-compat)
   const [settingsDrawerOpen, setSettingsDrawerOpen] = useState(false);
@@ -94,6 +113,10 @@ export default function DashboardPage() {
     searchParams.get('settings') === 'data' ? 'data' : 'preferences'
   );
   const setActiveTab = useCallback((next: TabType) => {
+    // 同步更新 state（即时 UI 响应）+ visited（已挂载 tab 不再重挂）
+    setActiveTabState(next);
+    setVisited((prev) => (prev.has(next) ? prev : new Set([...prev, next])));
+    // URL sync — fire-and-forget，浏览器 back/forward 通过上面的 effect 拉回 state
     const params = new URLSearchParams(searchParams.toString());
     if (next === 'portfolio') params.delete('tab'); else params.set('tab', next);
     params.delete('settings');
@@ -760,9 +783,11 @@ export default function DashboardPage() {
           }}
         />
 
-        {/* Tab Content */}
-        {activeTab === 'portfolio' && (
-          <div className="space-y-8">
+        {/* Tab Content — visited tabs stay mounted (hidden when inactive) so
+            switching back is instant CSS toggle instead of full remount.
+            First visit per tab still pays the mount cost. */}
+        {visited.has('portfolio') && (
+          <div className="space-y-8" hidden={activeTab !== 'portfolio'}>
             <PortfolioHealthCard
               totalDomains={stats.totalDomains}
               activeDomains={stats.activeDomains}
@@ -873,24 +898,28 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {activeTab === 'activity' && (
-          <TransactionList
-            transactions={transactions}
-            metricsTransactions={transactionsForMetrics}
-            domains={domains}
-            onEdit={transactionOps.handleEditTransaction}
-            onDelete={setPendingDeleteTransactionId}
-            onAdd={transactionOps.handleAddTransaction}
-          />
+        {visited.has('activity') && (
+          <div hidden={activeTab !== 'activity'}>
+            <TransactionList
+              transactions={transactions}
+              metricsTransactions={transactionsForMetrics}
+              domains={domains}
+              onEdit={transactionOps.handleEditTransaction}
+              onDelete={setPendingDeleteTransactionId}
+              onAdd={transactionOps.handleAddTransaction}
+            />
+          </div>
         )}
 
-        {activeTab === 'insights' && (
-          <InsightsTab
-            domains={domains}
-            transactionsForMetrics={transactionsForMetrics}
-            t={t}
-            formatCurrency={formatCurrencyEnhanced}
-          />
+        {visited.has('insights') && (
+          <div hidden={activeTab !== 'insights'}>
+            <InsightsTab
+              domains={domains}
+              transactionsForMetrics={transactionsForMetrics}
+              t={t}
+              formatCurrency={formatCurrencyEnhanced}
+            />
+          </div>
         )}
 
 
