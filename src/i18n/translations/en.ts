@@ -818,6 +818,18 @@ const en = {
       searchHint: 'Use the search box above to filter domains in the list',
       sellListedHint: 'of {amount} listed'
     },
+    insights: {
+      kpiRealizedPnL: 'Realized P&L',
+      kpiBestSale: 'Best sale',
+      kpiWinRate: 'Win rate',
+      kpiWinRateBreakdown: '{wins} of {total} profitable',
+      kpiAvgHolding: 'Avg holding',
+      kpiDays: 'days',
+      kpiMonths: 'months',
+      subTabPerformance: 'Performance',
+      subTabRenewals: 'Renewals',
+      subTabLoss: 'Loss analysis',
+    },
     analytics: {
       title: 'Investment Analytics',
       totalInvestment: 'Total Investment',

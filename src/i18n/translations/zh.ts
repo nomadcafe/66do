@@ -813,6 +813,18 @@ const zh = {
       searchHint: '使用上方搜索框按域名名称筛选列表',
       sellListedHint: '合同 {amount}'
     },
+    insights: {
+      kpiRealizedPnL: '已实现盈亏',
+      kpiBestSale: '最高单笔盈利',
+      kpiWinRate: '盈利占比',
+      kpiWinRateBreakdown: '{total} 笔中 {wins} 笔盈利',
+      kpiAvgHolding: '平均持有',
+      kpiDays: '天',
+      kpiMonths: '个月',
+      subTabPerformance: '业绩',
+      subTabRenewals: '续费',
+      subTabLoss: '损失分析',
+    },
     analytics: {
       title: '投资分析',
       totalInvestment: '总投资',
