@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { TrendingUp, Award, Target, Clock } from 'lucide-react';
 import {
@@ -51,18 +51,35 @@ export default function InsightsTab({
   const searchParams = useSearchParams();
 
   const rawIns = searchParams.get('ins');
-  const activeSubTab: InsightsSubTab =
+  const subTabFromUrl: InsightsSubTab =
     (VALID_SUB_TABS as readonly string[]).includes(rawIns ?? '')
       ? (rawIns as InsightsSubTab)
       : 'performance';
 
-  const setSubTab = (next: InsightsSubTab) => {
+  // 跟主 tab 同样的 perf 模式（参见 9c44603）：activeSubTab 走 React state，
+  // 点击秒响应；URL sync fire-and-forget。visited Set 让访问过的子 tab 保
+  // 持挂载（hidden 隐藏），第二次切回不重新挂 lazy 组件 + 不重跑重型 useMemo。
+  const [activeSubTab, setActiveSubTabState] = useState<InsightsSubTab>(subTabFromUrl);
+  const [visited, setVisited] = useState<Set<InsightsSubTab>>(() => new Set([subTabFromUrl]));
+
+  // 浏览器前进/后退或外部链接 → URL 变 → state 同步过去
+  useEffect(() => {
+    if (subTabFromUrl !== activeSubTab) {
+      setActiveSubTabState(subTabFromUrl);
+      setVisited((prev) => (prev.has(subTabFromUrl) ? prev : new Set([...prev, subTabFromUrl])));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subTabFromUrl]);
+
+  const setSubTab = useCallback((next: InsightsSubTab) => {
+    setActiveSubTabState(next);
+    setVisited((prev) => (prev.has(next) ? prev : new Set([...prev, next])));
     const params = new URLSearchParams(searchParams.toString());
     if (next === 'performance') params.delete('ins');
     else params.set('ins', next);
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-  };
+  }, [searchParams, pathname, router]);
 
   // ── KPI computations ────────────────────────────────────────────────
   const realizedPnL = useMemo(
@@ -228,9 +245,11 @@ export default function InsightsTab({
         </button>
       </div>
 
-      {/* ────── Tab content ────── */}
-      {activeSubTab === 'performance' && (
-        <div className="space-y-6">
+      {/* ────── Tab content — visited sub-tabs stay mounted (hidden when
+          inactive) so subsequent switches are instant CSS toggle instead
+          of full remount + lazy reload + heavy useMemo recompute. ────── */}
+      {visited.has('performance') && (
+        <div className="space-y-6" hidden={activeSubTab !== 'performance'}>
           <LazyWrapper>
             <LazyFinancialAnalysis domains={domains} transactions={transactionsForMetrics} />
           </LazyWrapper>
@@ -243,16 +262,16 @@ export default function InsightsTab({
         </div>
       )}
 
-      {activeSubTab === 'renewals' && (
-        <div className="space-y-6">
+      {visited.has('renewals') && (
+        <div className="space-y-6" hidden={activeSubTab !== 'renewals'}>
           <LazyWrapper>
             <LazyAdvancedRenewalAnalysis domains={domains} transactions={transactionsForMetrics} />
           </LazyWrapper>
         </div>
       )}
 
-      {activeSubTab === 'loss' && (
-        <div className="space-y-6">
+      {visited.has('loss') && (
+        <div className="space-y-6" hidden={activeSubTab !== 'loss'}>
           <LazyWrapper>
             <LazyExpiredDomainLossAnalysis
               domains={domains}
