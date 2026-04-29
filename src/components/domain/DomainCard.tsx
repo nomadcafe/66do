@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, memo } from 'react';
-import { Globe, Calendar, DollarSign, Tag, Edit, Trash2, Eye, Share2, AlertTriangle } from 'lucide-react';
+import { Globe, Calendar, Tag, Edit, Trash2, Eye, Share2, AlertTriangle } from 'lucide-react';
 import DomainShareModal from '../share/DomainShareModal';
 import { DomainWithTags } from '../../types/dashboard';
 import { useI18nContext } from '../../contexts/I18nProvider';
@@ -66,6 +66,23 @@ const DomainCard = memo(function DomainCard({ domain, transactions = [], onEdit,
     }
   };
 
+  // 左边条颜色：跟 status pill 同语义，更饱和（用 500 而非 100/700 双色）。
+  // 让用户扫一列卡片时一眼识别每张的 status，不用读底部 pill 文字。
+  const getEdgeAccent = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'border-l-teal-500';
+      case 'for_sale':
+        return 'border-l-amber-500';
+      case 'sold':
+        return 'border-l-emerald-500';
+      case 'expired':
+        return 'border-l-rose-400';
+      default:
+        return 'border-l-stone-300';
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString(localeTag);
   };
@@ -79,22 +96,26 @@ const DomainCard = memo(function DomainCard({ domain, transactions = [], onEdit,
 
   return (
     <div
-      className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm hover:shadow-md transition-all duration-200 relative h-full flex flex-col"
+      className={`relative h-full flex flex-col bg-white rounded-2xl border border-stone-200/80 border-l-4 ${getEdgeAccent(
+        domain.status
+      )} p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:border-stone-300 transition-all duration-200`}
     >
-      {/* Actions always visible — touch-friendly. On a translucent backdrop so they remain legible over content. */}
-      <div className="absolute top-3 right-3 flex items-center gap-0.5 z-10 bg-white/80 backdrop-blur-sm rounded-lg p-0.5 border border-stone-200/60">
-        <button onClick={() => onView(domain)} className="p-1.5 text-stone-500 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label={`${t('domainList.table.viewDetails')} ${domain.domain_name}`} title={t('domainList.table.viewDetails')}>
+      {/* Actions in top-right. The pr-20 below reserves header space so we
+          don't need the backdrop-blur container anymore — actions sit in
+          their own clear zone. */}
+      <div className="absolute top-3 right-3 flex items-center gap-0.5 z-10">
+        <button onClick={() => onView(domain)} className="p-1.5 text-stone-400 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label={`${t('domainList.table.viewDetails')} ${domain.domain_name}`} title={t('domainList.table.viewDetails')}>
           <Eye className="h-4 w-4" />
         </button>
-        <button onClick={() => onEdit(domain)} className="p-1.5 text-stone-500 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label={`${t('domainList.table.editDomain')} ${domain.domain_name}`} title={t('domainList.table.editDomain')}>
+        <button onClick={() => onEdit(domain)} className="p-1.5 text-stone-400 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label={`${t('domainList.table.editDomain')} ${domain.domain_name}`} title={t('domainList.table.editDomain')}>
           <Edit className="h-4 w-4" />
         </button>
         {domain.status === 'sold' && (
-          <button onClick={() => setShowShareModal(true)} className="p-1.5 text-stone-500 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label={`${t('domainList.table.shareSale')} ${domain.domain_name}`} title={t('domainList.table.shareSale')}>
+          <button onClick={() => setShowShareModal(true)} className="p-1.5 text-stone-400 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label={`${t('domainList.table.shareSale')} ${domain.domain_name}`} title={t('domainList.table.shareSale')}>
             <Share2 className="h-4 w-4" />
           </button>
         )}
-        <button onClick={() => onDelete(domain.id)} className="p-1.5 text-stone-500 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label={`${t('domainList.table.deleteDomain')} ${domain.domain_name}`} title={t('domainList.table.deleteDomain')}>
+        <button onClick={() => onDelete(domain.id)} className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label={`${t('domainList.table.deleteDomain')} ${domain.domain_name}`} title={t('domainList.table.deleteDomain')}>
           <Trash2 className="h-4 w-4" />
         </button>
       </div>
@@ -111,28 +132,29 @@ const DomainCard = memo(function DomainCard({ domain, transactions = [], onEdit,
         </div>
       </div>
 
-      {/* 基本信息 */}
-      <div className="space-y-3 mb-4">
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div className="flex items-center space-x-2 text-stone-600">
-            <Calendar className="h-4 w-4 flex-shrink-0" />
-            <span className="truncate">{formatDate(domain.purchase_date || '')}</span>
-          </div>
-          <div className="flex items-center space-x-2 text-stone-600">
-            <DollarSign className="h-4 w-4 flex-shrink-0" />
-            <span className="truncate">{formatCurrency(domain.purchase_cost || 0)}</span>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-4 text-sm text-stone-600">
-          <div className="flex items-center space-x-1">
-            <span>{t('domain.renewalCount')}: {domain.renewal_count}</span>
-          </div>
-          <div className="flex items-center space-x-1 text-teal-600 font-medium">
-            <DollarSign className="h-4 w-4" />
-            <span className="truncate">{t('domain.totalHoldingCost')}: {formatCurrency(totalHoldingCost)}</span>
-          </div>
-        </div>
+      {/* Metadata block: headline = total holding cost (the "what this domain
+          actually costs me" number), caption = supporting facts (purchase
+          date, original cost, renewal count). DollarSign icons removed —
+          tabular nums + the dollar sign in formatCurrency carry the meaning. */}
+      <div className="mb-4">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+          {t('domain.totalHoldingCost')}
+        </p>
+        <p className="mt-0.5 text-xl font-bold tabular-nums text-stone-900">
+          {formatCurrency(totalHoldingCost)}
+        </p>
+        <p className="mt-1.5 text-xs text-stone-500 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <span className="inline-flex items-center gap-1">
+            <Calendar className="h-3 w-3 flex-shrink-0" />
+            {formatDate(domain.purchase_date || '')}
+          </span>
+          <span className="text-stone-300">·</span>
+          <span className="tabular-nums">{formatCurrency(domain.purchase_cost || 0)}</span>
+          <span className="text-stone-300">·</span>
+          <span>
+            {t('domain.renewalCount')}: {domain.renewal_count}
+          </span>
+        </p>
       </div>
 
       {staleDaysPastExpiry !== null && (
@@ -159,32 +181,50 @@ const DomainCard = memo(function DomainCard({ domain, transactions = [], onEdit,
         </div>
       )}
 
-      {domain.status === 'sold' && domain.sale_date && domain.sale_price && (
-        <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200/80 rounded-xl">
-          <div className="flex items-center space-x-2 text-emerald-800 mb-2">
-            <DollarSign className="h-4 w-4" />
-            <span className="font-medium">{t('domain.sold')}</span>
-          </div>
-          <div className="grid grid-cols-1 gap-2 text-sm">
-            <div className="flex items-center space-x-1">
-              <Calendar className="h-4 w-4 text-emerald-600" />
-              <span className="text-emerald-700">{t('domain.saleDate')}: {formatDate(domain.sale_date)}</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <DollarSign className="h-4 w-4 text-emerald-600" />
-              <span className="text-emerald-700 font-medium">{t('domain.salePrice')}: {formatCurrency(domain.sale_price)}</span>
-            </div>
-            <div className="text-sm">
-              <span className="text-emerald-700">
-                {t('domain.netProfit')}: {formatCurrency(domain.sale_price - totalHoldingCost - (domain.platform_fee || 0))}
+      {domain.status === 'sold' && domain.sale_date && domain.sale_price && (() => {
+        const netProfit = domain.sale_price - totalHoldingCost - (domain.platform_fee || 0);
+        const roi = calculateDomainROI(domain, transactions);
+        const profitPositive = netProfit >= 0;
+        return (
+          <div
+            className={`mb-4 p-4 rounded-xl border ${
+              profitPositive
+                ? 'bg-emerald-50/70 border-emerald-200/80'
+                : 'bg-rose-50/70 border-rose-200/80'
+            }`}
+          >
+            <p
+              className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${
+                profitPositive ? 'text-emerald-700/80' : 'text-rose-700/80'
+              }`}
+            >
+              {t('domain.netProfit')}
+            </p>
+            <div className="mt-0.5 flex items-baseline gap-2">
+              <p
+                className={`text-2xl font-bold tabular-nums ${
+                  profitPositive ? 'text-emerald-700' : 'text-rose-700'
+                }`}
+              >
+                {profitPositive ? '+' : '−'}
+                {formatCurrency(Math.abs(netProfit))}
+              </p>
+              <span
+                className={`text-xs font-medium tabular-nums ${
+                  profitPositive ? 'text-emerald-700/80' : 'text-rose-700/80'
+                }`}
+              >
+                ROI {profitPositive ? '+' : ''}{roi.toFixed(1)}%
               </span>
-              <span className="ml-2 text-emerald-600">
-                (ROI: {calculateDomainROI(domain, transactions).toFixed(1)}%)
-              </span>
             </div>
+            <p className={`mt-1.5 text-xs ${profitPositive ? 'text-emerald-700/70' : 'text-rose-700/70'}`}>
+              {t('domain.salePrice')} {formatCurrency(domain.sale_price)}
+              {' · '}
+              {formatDate(domain.sale_date)}
+            </p>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {(() => {
         const tagsArray = domain.tags;
