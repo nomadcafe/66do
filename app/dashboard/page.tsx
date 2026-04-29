@@ -50,6 +50,7 @@ import { calculatePaidAmountFromInstallment } from '../../src/lib/platformFeeCal
 import { totalHoldingCostForDomain } from '../../src/lib/renewalCostBasis';
 import { getEffectiveExpiry } from '../../src/lib/effectiveExpiry';
 import { expandRenewalEvents } from '../../src/lib/expandRenewalEvents';
+import { totalRealizedPnL, realizedPnLByMonth, portfolioAtCost } from '../../src/lib/realizedPnL';
 import {
   Plus,
   AlertTriangle,
@@ -473,6 +474,58 @@ export default function DashboardPage() {
     return monthlyRevenueSeries.reduce((sum, v) => sum + v, 0);
   }, [trendWindow, stats.totalRevenue, monthlyRevenueSeries]);
 
+  // Realized P&L 按月聚合的增量（用于 sparkline）。直接复用 lib，与 IA 黄线同源。
+  const realizedPnLMap = useMemo(
+    () => realizedPnLByMonth(domains, transactionsForMetrics),
+    [domains, transactionsForMetrics]
+  );
+
+  // Sparkline 用 windowed monthly realized P&L（与 monthlyRevenue 同窗口对齐）。
+  const realizedPnLSeries = useMemo(() => {
+    const monthCount = monthlyRevenueSeries.length;
+    if (monthCount === 0) return [] as number[];
+    const buckets = new Array(monthCount).fill(0) as number[];
+    const now = new Date();
+    const startMonth = new Date(now.getFullYear(), now.getMonth() - (monthCount - 1), 1);
+    for (const [monthKey, amount] of realizedPnLMap.entries()) {
+      const [yearStr, monthStr] = monthKey.split('-');
+      const year = Number(yearStr);
+      const month = Number(monthStr);
+      if (!Number.isFinite(year) || !Number.isFinite(month)) continue;
+      const idx = (year - startMonth.getFullYear()) * 12 + ((month - 1) - startMonth.getMonth());
+      if (idx >= 0 && idx < monthCount) buckets[idx] += amount;
+    }
+    return buckets;
+  }, [realizedPnLMap, monthlyRevenueSeries.length]);
+
+  // Hero 主指标 1：累计 Realized P&L（all-time）+ 当前窗口内的增量
+  const allTimeRealizedPnL = useMemo(
+    () => totalRealizedPnL(domains, transactionsForMetrics),
+    [domains, transactionsForMetrics]
+  );
+  const windowedRealizedPnL = useMemo(() => {
+    if (trendWindow === 'All') return allTimeRealizedPnL;
+    return realizedPnLSeries.reduce((sum, v) => sum + v, 0);
+  }, [trendWindow, allTimeRealizedPnL, realizedPnLSeries]);
+
+  // Hero 主指标 2：Portfolio at Cost（当前持有库存按成本）
+  const portfolioCost = useMemo(
+    () => portfolioAtCost(domains, transactionsForMetrics),
+    [domains, transactionsForMetrics]
+  );
+
+  // 持仓构成（active / for_sale / sold / expired），用于 hero donut
+  const composition = useMemo(() => {
+    let active = 0, forSale = 0, sold = 0, expired = 0;
+    for (const d of domains) {
+      if (d.status === 'active') active++;
+      else if (d.status === 'for_sale') forSale++;
+      else if (d.status === 'sold') sold++;
+      else if (d.status === 'expired') expired++;
+    }
+    return { active, forSale, sold, expired };
+  }, [domains]);
+
   // 本年续费支出 — 三个口径：
   //   cash:       本年实际发生的续费现金流（archive 摊在估算月 + tx 按日期；
   //               不含 projected——预测的还没真付）
@@ -739,11 +792,14 @@ export default function DashboardPage() {
               totalDomains={stats.totalDomains}
               activeDomains={stats.activeDomains}
               soldDomains={stats.soldDomains}
-              displayRevenue={windowedRevenue}
-              allTimeRevenue={stats.totalRevenue}
+              realizedPnLAllTime={allTimeRealizedPnL}
+              realizedPnLInWindow={windowedRealizedPnL}
+              realizedPnLSeries={realizedPnLSeries}
+              realizedPnLLabels={monthlyRevenueLabels}
+              completedSalesCount={transactionsForMetrics.filter((t) => t.type === 'sell').length}
+              portfolioAtCost={portfolioCost}
               roi={stats.roi}
-              monthlyRevenueSeries={monthlyRevenueSeries}
-              monthlyRevenueLabels={monthlyRevenueLabels}
+              composition={composition}
               ytdRenewalSpendAmortized={ytdRenewalSpend.amortized}
               ytdRenewalSpendCash={ytdRenewalSpend.cash}
               currentYear={currentYear}
@@ -752,9 +808,26 @@ export default function DashboardPage() {
               selectedWindow={trendWindow}
               onWindowChange={(k) => setTrendWindow(k as '3M' | '6M' | '1Y' | 'All')}
               labels={{
-                portfolioRevenue: t('dashboard.portfolioRevenue'),
+                realizedPnL: t('dashboard.heroRealizedPnL'),
+                portfolioAtCost: t('dashboard.heroPortfolioAtCost'),
+                fromSales: t('dashboard.heroFromSales'),
+                fromOneSale: t('dashboard.heroFromOneSale'),
+                noSales: t('dashboard.heroNoSales'),
+                heldListed: (a, fs) => t('dashboard.heroHeldListed')
+                  .replace('{active}', String(a))
+                  .replace('{forSale}', String(fs)),
+                lifecycle: (s, e) => t('dashboard.heroLifecycle')
+                  .replace('{sold}', String(s))
+                  .replace('{expired}', String(e)),
+                allTime: (amount) => t('dashboard.heroAllTime').replace('{amount}', amount),
+                windowDelta: (signedAmount) => {
+                  const sign = signedAmount.startsWith('+') ? '+' : signedAmount.startsWith('−') ? '−' : '';
+                  const amount = sign ? signedAmount.slice(1) : signedAmount;
+                  return t('dashboard.heroWindowDelta')
+                    .replace('{sign}', sign)
+                    .replace('{amount}', amount);
+                },
                 windowCaption: trendWindowCaption,
-                allTimeAnchor: t('dashboard.allTimeAnchor'),
                 domains: t('dashboard.totalDomains'),
                 activeSold: (a, s) => t('dashboard.portfolioCardActiveSold')
                   .replace('{active}', String(a))
