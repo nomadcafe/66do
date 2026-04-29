@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { useComprehensiveFinancialAnalysis } from '../../hooks/useFinancialCalculations';
 import { calculateInvestmentYears, expandSellToCashReceipts } from '../../lib/coreCalculations';
-import { realizedPnLByMonth } from '../../lib/realizedPnL';
+import { realizedPnLByMonth, totalRealizedPnL } from '../../lib/realizedPnL';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import {
@@ -39,11 +39,22 @@ interface InvestmentAnalyticsProps {
 }
 
 // max-drawdown / volatility 故意不在此列：在域名投资这种稀疏样本上会误导。
+// totalProfit 改为 realizedPnL（与 Hero / IA 黄线 / FinancialAnalysisOptimized 同源），
+// 旧 basic.totalProfit (= totalRevenue − totalInvestment) 把持有未卖的 cost 也算分母，
+// 跟 Realized P&L 数字会不一致，会让用户在不同 surface 看到不同"赚多少"的数字。
 interface PortfolioMetrics {
-  totalProfit: number;
+  realizedPnL: number;
   annualizedReturn: number;
   sharpeRatio: number;
+  /** 已售域名数量——Sharpe Ratio 在样本 < SHARPE_MIN_SAMPLE 时统计意义不足，
+   *  这时显示 "—" 而不是凭虚假精度的数字。 */
+  soldCount: number;
 }
+
+// Sharpe Ratio 在已售域名 < 10 时基本是噪声（基于波动率，样本太少波动率
+// 估计极不稳定）。同文件已经因为这个理由去掉了 max-drawdown / volatility，
+// 但 Sharpe 一直保留，逻辑前后不一致。改为 sample 不够时显示 "—"。
+const SHARPE_MIN_SAMPLE = 10;
 
 interface TimeSeriesData {
   date: string;
@@ -120,11 +131,15 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
   // 使用筛选后的数据计算
   const financialAnalysis = useComprehensiveFinancialAnalysis(filteredData.domains, filteredData.transactions);
   
-  const portfolioMetrics: PortfolioMetrics = useMemo(() => ({
-    totalProfit: financialAnalysis.basic.totalProfit,
-    annualizedReturn: financialAnalysis.advanced.annualizedReturn,
-    sharpeRatio: financialAnalysis.advanced.sharpeRatio,
-  }), [financialAnalysis]);
+  const portfolioMetrics: PortfolioMetrics = useMemo(() => {
+    const soldCount = filteredData.domains.filter((d) => d.status === 'sold').length;
+    return {
+      realizedPnL: totalRealizedPnL(filteredData.domains, filteredData.transactions),
+      annualizedReturn: financialAnalysis.advanced.annualizedReturn,
+      sharpeRatio: financialAnalysis.advanced.sharpeRatio,
+      soldCount,
+    };
+  }, [financialAnalysis, filteredData.domains, filteredData.transactions]);
 
   // 月度入账：分期销售用 expandSellToCashReceipts 按已付期展开到对应月份，
   // 避免把多期分期一起记到销售当月让中间月柱子全 0。
@@ -262,56 +277,89 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       );
     }
 
-    const profitColor = portfolioMetrics.totalProfit >= 0 ? 'text-emerald-700' : 'text-red-600';
+    const pnlPositive = portfolioMetrics.realizedPnL > 0;
+    const pnlNegative = portfolioMetrics.realizedPnL < 0;
+    const pnlPrefix = pnlPositive ? '+' : pnlNegative ? '−' : '';
+    const pnlIconBg = pnlPositive
+      ? 'bg-emerald-50 text-emerald-700'
+      : pnlNegative
+        ? 'bg-rose-50 text-rose-700'
+        : 'bg-stone-100 text-stone-700';
+    const pnlValueColor = pnlPositive
+      ? 'text-emerald-700'
+      : pnlNegative
+        ? 'text-rose-700'
+        : 'text-stone-900';
+
+    const sharpeMeaningful = portfolioMetrics.soldCount >= SHARPE_MIN_SAMPLE;
     const sharpeColor =
-      portfolioMetrics.sharpeRatio >= 1 ? 'text-emerald-700' :
-      portfolioMetrics.sharpeRatio >= 0.5 ? 'text-amber-600' : 'text-red-600';
+      portfolioMetrics.sharpeRatio >= 1
+        ? 'text-emerald-700'
+        : portfolioMetrics.sharpeRatio >= 0.5
+          ? 'text-amber-600'
+          : 'text-rose-700';
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-stone-50 rounded-xl p-4 border border-stone-100">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <p className="text-sm font-medium text-stone-600">{t('analytics.netProfit')}</p>
+      <div className="relative overflow-hidden rounded-3xl border border-stone-200/60 bg-gradient-to-br from-stone-50 via-white to-teal-50/30 shadow-sm">
+        <div className="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-gradient-to-br from-teal-100/30 to-transparent blur-3xl" />
+        <div className="relative grid grid-cols-1 gap-5 p-5 sm:p-6 md:grid-cols-3 md:gap-6">
+          <div className="flex items-start gap-3">
+            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${pnlIconBg}`}>
+              <Wallet className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                  {t('analytics.realizedPnL')}
+                </p>
                 <InfoTooltip text={t('analytics.netProfitCalculation')} />
               </div>
-              <p className={`text-2xl font-bold mt-1 ${profitColor}`}>${portfolioMetrics.totalProfit.toLocaleString()}</p>
-              <p className={`text-xs mt-1 ${portfolioMetrics.totalProfit >= 0 ? 'text-emerald-700/70' : 'text-red-500'}`}>
-                {portfolioMetrics.totalProfit >= 0 ? t('analytics.performanceRating.profitable') : t('analytics.performanceRating.loss')}
+              <p className={`mt-1 text-xl font-bold tracking-tight tabular-nums ${pnlValueColor}`}>
+                {pnlPrefix}${Math.abs(portfolioMetrics.realizedPnL).toLocaleString()}
               </p>
             </div>
-            <Wallet className="h-8 w-8 text-stone-600 shrink-0" />
           </div>
-        </div>
 
-        <div className="bg-stone-50 rounded-xl p-4 border border-stone-100">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <p className="text-sm font-medium text-stone-600">{t('analytics.annualizedReturn')}</p>
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
+              <CalendarClock className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                  {t('analytics.annualizedReturn')}
+                </p>
                 <InfoTooltip text={investmentYears < 1 ? t('analytics.annualizedReturnShortTerm') : t('analytics.annualizedReturnDesc')} />
               </div>
               {investmentYears >= 1 ? (
-                <p className="text-2xl font-bold text-stone-900 mt-1">{portfolioMetrics.annualizedReturn.toFixed(1)}%</p>
+                <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-stone-900">
+                  {portfolioMetrics.annualizedReturn.toFixed(1)}%
+                </p>
               ) : (
-                <p className="text-sm text-stone-500 mt-2">{t('analytics.annualizedReturnShortTerm')}</p>
+                <p className="mt-1 text-xl font-bold tracking-tight text-stone-300">—</p>
               )}
             </div>
-            <CalendarClock className="h-8 w-8 text-stone-600 shrink-0" />
           </div>
-        </div>
 
-        <div className="bg-stone-50 rounded-xl p-4 border border-stone-100">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <p className="text-sm font-medium text-stone-600">{t('analytics.sharpeRatio')}</p>
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-stone-700">
+              <Scale className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                  {t('analytics.sharpeRatio')}
+                </p>
                 <InfoTooltip text={t('analytics.sharpeRatioDesc')} />
               </div>
-              <p className={`text-2xl font-bold mt-1 ${sharpeColor}`}>{portfolioMetrics.sharpeRatio.toFixed(2)}</p>
+              {sharpeMeaningful ? (
+                <p className={`mt-1 text-xl font-bold tracking-tight tabular-nums ${sharpeColor}`}>
+                  {portfolioMetrics.sharpeRatio.toFixed(2)}
+                </p>
+              ) : (
+                <p className="mt-1 text-xl font-bold tracking-tight text-stone-300">—</p>
+              )}
             </div>
-            <Scale className="h-8 w-8 text-stone-600 shrink-0" />
           </div>
         </div>
       </div>
@@ -541,7 +589,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
             {timeSeriesData.map((entry, index) => (
               <Cell
                 key={`cashflow-${index}`}
-                fill={entry.monthlyCashFlow >= 0 ? '#10b981' : '#ef4444'}
+                fill={entry.monthlyCashFlow >= 0 ? '#10b981' : '#fb7185'}
               />
             ))}
           </Bar>
