@@ -47,7 +47,10 @@ export default function HomeHeaderClient({
       (pathname && /^\/(zh|en)(\/|$)/.test(pathname)
         ? pathname.replace(/^\/(zh|en)(?=\/|$)/, `/${newLocale}`)
         : `/${newLocale}`) || `/${newLocale}`;
-    router.push(nextPath);
+    // router.replace 而非 push：locale 切换不应入历史栈（zh → en 然后按
+    // 后退应回到之前那个页面，不是回到 zh 版本本身）。同时省一次 history
+    // entry 写入，跳转略快。
+    router.replace(nextPath);
   };
 
   // 把 platformName 拆成 "Domain" + ".Financial" — 与 DashboardHeader 和 Login
