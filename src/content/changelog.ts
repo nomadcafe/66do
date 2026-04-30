@@ -58,6 +58,21 @@ export function changelogPageMetadata(locale: HomeLocale): Metadata {
       title: `${c.metaTitle} · Domain.Financial`,
       description: c.metaDescription,
       type: 'website',
+      siteName: 'Domain.Financial',
+      images: [
+        {
+          url: '/domainfinancialpng.png',
+          width: 612,
+          height: 408,
+          alt: 'Domain.Financial',
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${c.metaTitle} · Domain.Financial`,
+      description: c.metaDescription,
+      images: ['/domainfinancialpng.png'],
     },
   };
 }

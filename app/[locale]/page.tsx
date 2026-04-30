@@ -15,6 +15,7 @@ import {
   type HomeLocale,
 } from '../../src/i18n/homeDictionary';
 import { isHomeLocale } from '../../src/i18n/localePath';
+import { getSiteUrl } from '../../src/lib/siteUrl';
 import HomeHeaderClient from '../../src/components/home/HomeHeaderClient';
 import HomeCtaButtons from '../../src/components/home/HomeCtaButtons';
 import HomeFooterProductLinks from '../../src/components/home/HomeFooterProductLinks';
@@ -54,8 +55,59 @@ export default async function HomePage({ params }: PageProps) {
     .join(' ');
   const sparkArea = `${sparkPath} L196,56 L4,56 Z`;
 
+  // JSON-LD structured data — feeds Google brand panel / Sitelinks search box.
+  // WebSite gives the searchable site identity (potential Sitelinks search box,
+  // though that requires an internal search endpoint we don't have yet);
+  // Organization establishes the brand entity for Knowledge Graph linking.
+  // Both reference the same canonical URL so Google can collapse them.
+  const siteUrl = getSiteUrl().href.replace(/\/$/, '');
+  const localeUrl = `${siteUrl}/${locale}`;
+  const jsonLd = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      '@id': `${siteUrl}/#website`,
+      name: 'Domain.Financial',
+      url: siteUrl,
+      description: d.home.subtitle,
+      inLanguage: locale === 'zh' ? 'zh-CN' : 'en',
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      '@id': `${siteUrl}/#organization`,
+      name: 'Domain.Financial',
+      url: siteUrl,
+      logo: `${siteUrl}/favicon.png`,
+      image: `${siteUrl}/domainfinancialpng.png`,
+      description: d.home.subtitle,
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'SoftwareApplication',
+      '@id': `${siteUrl}/#app`,
+      name: 'Domain.Financial',
+      url: localeUrl,
+      applicationCategory: 'FinanceApplication',
+      operatingSystem: 'Web',
+      description: d.home.subtitle,
+      offers: {
+        '@type': 'Offer',
+        price: '0',
+        priceCurrency: 'USD',
+      },
+    },
+  ];
+
   return (
     <div className="min-h-screen antialiased bg-stone-50 text-stone-900">
+      {/* JSON-LD: rendered as a single script per Google's recommendation;
+          @id cross-references let crawlers stitch the three nodes into one
+          entity graph instead of seeing them as unrelated objects. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <HomeHeaderClient
         initialLocale={locale}
         localePrefix={`/${locale}`}

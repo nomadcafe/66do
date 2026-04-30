@@ -375,11 +375,21 @@ export function homePageMetadata(locale: HomeLocale): Metadata {
       description: d.home.subtitle,
       locale: isZh ? 'zh_CN' : 'en_US',
       type: 'website',
+      siteName: 'Domain.Financial',
+      images: [
+        {
+          url: '/domainfinancialpng.png',
+          width: 612,
+          height: 408,
+          alt: 'Domain.Financial',
+        },
+      ],
     },
     twitter: {
       card: 'summary_large_image',
       title: d.home.title,
       description: d.home.subtitle,
+      images: ['/domainfinancialpng.png'],
     },
   };
 }
