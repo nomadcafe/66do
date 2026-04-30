@@ -2,7 +2,7 @@
 
 Living document. Add items at the bottom of the appropriate section as they come up; archive done items into a dated bullet under **Recently shipped**. Keep entries one or two lines each — link out for design rationale.
 
-Last updated: 2026-04-30
+Last updated: 2026-04-30 (added Product & growth section)
 
 ---
 
@@ -43,6 +43,46 @@ Three layered options were discussed; deferred decision. Pick when the time is r
   - Magic-link login wouldn't work (no password to derive a key from)
   - Best fit only if "privacy-first domain investing" becomes the explicit positioning of the product
 - [ ] **Option A: stay as-is, keep policy honest** — what we currently do. RLS + Supabase at-rest + the in-app activity log + honest privacy policy. Most peer SaaS sit here. No work required; listed for completeness.
+
+---
+
+## Product & growth (PM lens, ranked by leverage)
+
+These are feature-level bets, not infra follow-ups. Listed roughly in descending order of "would unlock adoption / pricing power."
+
+### 1. Registrar sync — top adoption unlock
+
+- [ ] **Connect a registrar account, auto-import portfolio + renewals**. The single highest-impact feature missing. Manually entering 100+ domains is the #1 reason serious investors stay on spreadsheets. Start with one provider — **Namecheap** (API-friendly, popular with domainers) or **Dynadot** (favoured by serious investors). One integration is enough to validate; expand to GoDaddy / Sav / Porkbun later. Expected impact: 5–10× signup→active conversion.
+
+### 2. Bookkeeping → Advisor (positioning shift)
+
+- [ ] **Comparable sales / fair-value signals**. Integrate NameBio (300k+ recorded sales/month) so each domain shows "median comparable sale: $X over last 12 months." Turns the product from "passive ledger" into "advisor that has an opinion." This is what would let us compete with Estibot.
+- [ ] **Forward-looking action recommendations**. Today's Insights are retrospective ("you sold X for Y profit"). Add prospective:
+  - "These 3 domains held >5 yrs with no inquiries — drop on next renewal? ($XXX saved)"
+  - "Renewal in 14d on $12 domain; portfolio avg sale $1,200 → renewal economics OK"
+  - Optional weekly digest email.
+
+### 3. Sale workflow closure
+
+- [ ] **For-sale landing page generator**. One-click "publish a 'this domain is for sale' page" with contact form → leads land in dashboard. Removes the "I marked it for sale, now what?" gap.
+- [ ] **Marketplace listing sync** to Sedo / Afternic / Dan.com (their APIs are open). User pushes from Domain.Financial; sale records flow back automatically.
+- [ ] **Inquiry tracking**: forward email inquiries into the dashboard, attach to the relevant domain.
+
+### 4. Annual willingness-to-pay hooks
+
+- [ ] **Tax export**. One button → CSV / PDF of cap gains for the calendar year, formatted for Schedule D (US) and parallel jurisdictions where feasible. Used once a year, but the user who's used it once will not churn before next April.
+
+### 5. Retention / virality
+
+- [ ] **Anonymous benchmarking**. "Your success rate ranks top 30% among investors with 50–100-domain portfolios" / ".ai sell-through is up 14% QoQ across the platform." Pure aggregates, no individual data exposed. Free, sticky, and screenshot-shareable on Twitter / NamePros.
+
+### 6. Business model
+
+- [ ] **Pricing tiers** to make the project sustainable:
+  - **Free** — <20 domains, basic tracking
+  - **Pro $12/mo** — unlimited domains, registrar sync, comparable sales, tax export, alerts
+  - **Team $39/mo** — multi-user / shared portfolio (LLC partners, accountants)
+- [ ] **Multi-user / read-only sharing** — required for the Team tier; many serious investors run their portfolio as an LLC with a partner or accountant.
 
 ---
 
