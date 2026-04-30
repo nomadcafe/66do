@@ -20,7 +20,6 @@ import {
   AreaChart,
   BarChart,
   Bar,
-  Legend
 } from 'recharts';
 import {
   BarChart3,
@@ -60,7 +59,6 @@ interface TimeSeriesData {
   date: string;
   investment: number;        // 单月新增 cost basis（buy + 实际续费 archive/tx）
   renewalCost: number;       // investment 里归属于「实际续费」的部分（archive + tx，不含 projected）
-  renewalCostProjected: number; // 假设域名继续保留时，本月预计的续费支出（不并入 investment）
   revenue: number;           // 单月净入账（分期销售按到账月展开）
   realizedPnL: number;       // 累计已实现盈亏：每笔出售 (sellNet − cost basis at sale)，按到账月分摊
   monthlyCashFlow: number;   // 给月度净现金流图用，本图不画
@@ -92,6 +90,19 @@ const CHART_PALETTE = [
 export default function InvestmentAnalytics({ domains, transactions }: InvestmentAnalyticsProps) {
   const { t, locale } = useI18nContext();
   const [selectedTimeframe, setSelectedTimeframe] = useState<'6M' | '1Y' | '2Y' | '3Y' | 'ALL'>('ALL');
+
+  // 图表 4 条数据系列的显隐开关——legend 上点击切换，hide=true 时 Recharts
+  // 不渲染该 series。默认全亮；用户主动隐藏后保留在本 component 生命周期内。
+  type ChartSeriesKey = 'investment' | 'renewalCost' | 'revenue' | 'realizedPnL';
+  const [hiddenSeries, setHiddenSeries] = useState<Set<ChartSeriesKey>>(() => new Set());
+  const toggleSeries = (key: ChartSeriesKey) => {
+    setHiddenSeries((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   // N 个月窗口（含当前月）。只影响图表的显示范围；事件流计算永远走全量
   // 数据，否则会丢失窗口外的成本基准 / 续费历史 / 跨窗口分期到账。
@@ -199,26 +210,21 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     }
 
     // 事件口径：把每笔购买 / 每次续费当成一个 (date, amount) 事件，按月聚合。
-    // 续费走 expandRenewalEvents：archive renewal_count × renewal_cost 的总额按
-    // `purchase + i × cycle` 估算到每一年，避免老 holdingCostAsOf 在 baseline 那
-    // 一天砸一笔历史续费 lump 让图上看起来"突然支出 $30 后再无支出"。
-    // Investment = 当月购买事件 + 当月续费事件，两者来自相同的事件流，
-    // 所以 Investment 总能 ≥ Renewal cost，永远不会出现"续费 > 投资"的怪图。
-    // Renewal events split by source: archive/tx events count as "actual" cost
-    // basis impact, projected events only feed the dotted forecast line on the
-    // chart. Projected forecastUntil = today so we never project visible months
-    // beyond what the chart covers anyway.
+    // 续费走 expandRenewalEvents 取 archive + transaction 两类（不含 projected）：
+    // chart 只展示历史（≤ now）的实际续费支出。Projected 事件原本是给"未来
+    // 续费预测"的，但 chart 只画 ≤ now 的月份，未来 projected 永远画不出来；
+    // 而对 stale 域名（status=active 但 expiry 已过）会产生过去时点的 projected
+    // 事件——语义上是"漏录的续费记录"，作为一条独立紫色虚线展示反而误导。
+    // DomainCard 的 stale 警告 + Renewal Outlook 的"实际"列已经覆盖这个信号。
     // 用全量 domains/transactions 算事件流，避免漏掉窗口外创建但事件落在
     // 窗口内的域名（老域名上月续费等）。事件流出来后按月聚合到 Map，下面
     // 主循环只取窗口内月份显示。
     const renewalActualByMonth = new Map<string, number>();
-    const renewalProjectedByMonth = new Map<string, number>();
     for (const d of domains) {
-      for (const ev of expandRenewalEvents(d, transactions, { forecastUntil: now })) {
+      for (const ev of expandRenewalEvents(d, transactions)) {
         if (ev.date > now) continue;
         const key = ev.date.toISOString().slice(0, 7);
-        const target = ev.source === 'projected' ? renewalProjectedByMonth : renewalActualByMonth;
-        target.set(key, (target.get(key) ?? 0) + ev.amount);
+        renewalActualByMonth.set(key, (renewalActualByMonth.get(key) ?? 0) + ev.amount);
       }
     }
     const purchaseEventsByMonth = new Map<string, number>();
@@ -241,9 +247,6 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
 
       const purchaseThisMonth = purchaseEventsByMonth.get(monthKey) ?? 0;
       const renewalCost = renewalActualByMonth.get(monthKey) ?? 0;
-      const renewalCostProjected = renewalProjectedByMonth.get(monthKey) ?? 0;
-      // Investment counts only realised events; projected feeds the dotted
-      // forecast line on the chart, never the Investment area.
       const investment = purchaseThisMonth + renewalCost;
 
       // 入账：从 monthlyNetInflowByMonth 直接取（已按到账月聚合）。
@@ -267,7 +270,6 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         date: monthKey,
         investment,
         renewalCost,
-        renewalCostProjected,
         revenue,
         realizedPnL: cumulativeRealizedPnL,
         monthlyCashFlow
@@ -395,31 +397,49 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       );
     }
 
+    // Legend 的 4 条数据系列定义。每项是一个可点击 chip——点击切换隐藏。
+    // 隐藏时整个 chip 变浅 + 文字穿过，再点恢复。Recharts 自带的底部 Legend
+    // 已删除（之前两个 legend 视觉冗余）。
+    const seriesItems: Array<{
+      key: ChartSeriesKey;
+      label: string;
+      swatch: 'block' | 'dash';
+      color: string;
+    }> = [
+      { key: 'investment',  label: t('analytics.investment'),  swatch: 'block', color: 'bg-indigo-500' },
+      { key: 'renewalCost', label: t('analytics.renewalCost'), swatch: 'dash',  color: 'bg-purple-500' },
+      { key: 'revenue',     label: t('analytics.revenue'),     swatch: 'block', color: 'bg-emerald-500' },
+      { key: 'realizedPnL', label: t('analytics.realizedPnL'), swatch: 'block', color: 'bg-amber-500' },
+    ];
+
     return (
       <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
           <h3 className="text-lg font-semibold text-stone-900">{t('analytics.portfolioPerformance')}</h3>
-          <div className="flex items-center gap-4 text-xs text-stone-600">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-indigo-500 rounded"></div>
-              <span>{t('analytics.investment')}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-1 bg-purple-500 rounded"></div>
-              <span>{t('analytics.renewalCost')}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-1 bg-purple-300 rounded"></div>
-              <span>{t('analytics.renewalCostProjected')}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-emerald-500 rounded"></div>
-              <span>{t('analytics.revenue')}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-amber-500 rounded"></div>
-              <span>{t('analytics.realizedPnL')}</span>
-            </div>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-stone-600">
+            {seriesItems.map((s) => {
+              const hidden = hiddenSeries.has(s.key);
+              return (
+                <button
+                  key={s.key}
+                  type="button"
+                  onClick={() => toggleSeries(s.key)}
+                  aria-pressed={!hidden}
+                  className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 ${
+                    hidden
+                      ? 'border-stone-200 bg-stone-50 text-stone-400 line-through'
+                      : 'border-stone-200 bg-white text-stone-700 hover:border-stone-300'
+                  }`}
+                >
+                  <span
+                    className={`${
+                      s.swatch === 'block' ? 'h-3 w-3' : 'h-1 w-3'
+                    } rounded ${s.color} ${hidden ? 'opacity-40' : ''}`}
+                  />
+                  <span>{s.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
         <ResponsiveContainer width="100%" height={400}>
@@ -481,6 +501,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
               strokeWidth={2}
               name={t('analytics.investment')}
               activeDot={{ r: 6, fill: '#6366f1' }}
+              hide={hiddenSeries.has('investment')}
             />
             <Line
               type="monotone"
@@ -491,16 +512,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
               dot={false}
               name={t('analytics.renewalCost')}
               activeDot={{ r: 5, fill: '#a855f7' }}
-            />
-            <Line
-              type="monotone"
-              dataKey="renewalCostProjected"
-              stroke="#c4b5fd"
-              strokeWidth={2}
-              strokeDasharray="2 4"
-              dot={false}
-              name={t('analytics.renewalCostProjected')}
-              activeDot={{ r: 5, fill: '#c4b5fd' }}
+              hide={hiddenSeries.has('renewalCost')}
             />
             <Area
               type="monotone"
@@ -510,6 +522,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
               strokeWidth={2}
               name={t('analytics.revenue')}
               activeDot={{ r: 6, fill: '#10b981' }}
+              hide={hiddenSeries.has('revenue')}
             />
             <Line
               type="monotone"
@@ -520,10 +533,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
               name={t('analytics.realizedPnL')}
               dot={{ r: 4, fill: '#f59e0b' }}
               activeDot={{ r: 8, fill: '#f59e0b' }}
-            />
-            <Legend
-              wrapperStyle={{ paddingTop: '20px' }}
-              iconType="circle"
+              hide={hiddenSeries.has('realizedPnL')}
             />
           </AreaChart>
         </ResponsiveContainer>
