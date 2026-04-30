@@ -2,7 +2,7 @@
 
 Living document. Add items at the bottom of the appropriate section as they come up; archive done items into a dated bullet under **Recently shipped**. Keep entries one or two lines each — link out for design rationale.
 
-Last updated: 2026-04-30 (added Product & growth section)
+Last updated: 2026-05-01 (NameBio MVP path; Sedo/Afternic moved to deferred)
 
 ---
 
@@ -56,7 +56,9 @@ These are feature-level bets, not infra follow-ups. Listed roughly in descending
 
 ### 2. Bookkeeping → Advisor (positioning shift)
 
-- [ ] **Comparable sales / fair-value signals**. Integrate NameBio (300k+ recorded sales/month) so each domain shows "median comparable sale: $X over last 12 months." Turns the product from "passive ledger" into "advisor that has an opinion." This is what would let us compete with Estibot.
+- [ ] **Comparable sales — free MVP (deep-link to NameBio)**. ~1 hour. Add a "Look up comparable sales →" button on each domain card that opens NameBio's public search pre-filled with the keyword + TLD. Zero cost, no API, gives the user 80% of the value (real sales data) without our paying anything. The trade-off is the user leaves our UI, but the positioning shift ("the product knows where to send you") is real.
+- [ ] **Estimated valuation via GoDaddy Appraisal API (free)**. ~3-4 hours. Use GoDaddy's free `/v1/appraisal/{domain}` endpoint to show a rough ML valuation on each domain card. Quality is below true comparable sales — it's a model estimate, not a real-trade datapoint — but it's a visible number with no external cost.
+- [ ] **NameBio paid API integration** — defer until **50+ paying Pro subscribers**. The API runs ~$300/month; with Pro at $12/month, 25 subs is the break-even and 50 makes it comfortable. Until then the deep-link MVP carries the load. Implementation when triggered: ~6-8 hours (replace deep-link with inline median-sale display + filtering).
 - [ ] **Forward-looking action recommendations**. Today's Insights are retrospective ("you sold X for Y profit"). Add prospective:
   - "These 3 domains held >5 yrs with no inquiries — drop on next renewal? ($XXX saved)"
   - "Renewal in 14d on $12 domain; portfolio avg sale $1,200 → renewal economics OK"
@@ -64,9 +66,9 @@ These are feature-level bets, not infra follow-ups. Listed roughly in descending
 
 ### 3. Sale workflow closure
 
-- [ ] **For-sale landing page generator**. One-click "publish a 'this domain is for sale' page" with contact form → leads land in dashboard. Removes the "I marked it for sale, now what?" gap.
-- [ ] **Marketplace listing sync** to Sedo / Afternic / Dan.com (their APIs are open). User pushes from Domain.Financial; sale records flow back automatically.
-- [ ] **Inquiry tracking**: forward email inquiries into the dashboard, attach to the relevant domain.
+- [ ] **Public portfolio page** at `/u/<user>/portfolio` (opt-in). Lists the user's for-sale domains with an inquiry form, the user shares the URL on Twitter / NamePros / signature blocks. Inquiries flow into the dashboard. ~3-4h. Sidesteps the DNS-pointing friction of true per-domain landing pages.
+- [ ] **For-sale landing page generator** (per-domain). One-click "publish a 'this domain is for sale' page" with contact form → leads land in dashboard. Removes the "I marked it for sale, now what?" gap. Caveat: requires the user to point DNS to us, which is real friction; competes with Bodis / ParkingCrew that pay PPC revenue. Defer until the public portfolio page validates demand.
+- [ ] **Inquiry tracking**: capture inquiries from the public portfolio + per-domain landing pages, attach to the relevant domain. Built alongside the pages above.
 
 ### 4. Annual willingness-to-pay hooks
 
@@ -93,6 +95,7 @@ So we don't re-litigate these:
 - **Resend / SMTP-based email security alerts**. Tried and reverted in `956038d`. The Recent Activity panel covers the same ground without an external dependency, and avoids the privacy-policy expansion that outgoing mail would have required.
 - **Cookie-based "new device" detection emails**. Discussed; rejected. False positives on cookie clears / incognito + privacy-hostile fingerprinting + framing implies detection accuracy we can't deliver.
 - **AES-256 / per-user encryption keys** as a marketing claim — was in the privacy translations, removed because the implementation didn't exist. Don't re-add without doing Option B or C first.
+- **Sedo / Afternic / Dan.com API listing sync**. Looked into it: those APIs are gated behind partner-registrar agreements, not open to solo developers. Sedo's "Domains API" requires registrar partnership; Afternic requires Fast Transfer Network membership; Dan.com was absorbed into Afternic in 2022 (no standalone API). Revisit only when the product has registrar status or > a few thousand active users (i.e., negotiation leverage).
 
 ---
 
