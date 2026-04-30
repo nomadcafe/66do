@@ -820,6 +820,7 @@ const en = {
       kpiDays: 'days',
       kpiMonths: 'months',
       subTabPerformance: 'Performance',
+      subTabPortfolio: 'Portfolio',
       subTabRenewals: 'Renewals',
       subTabLoss: 'Loss analysis',
     },
