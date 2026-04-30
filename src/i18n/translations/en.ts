@@ -826,7 +826,6 @@ const en = {
       annualizedReturn: 'Annualized Return',
       annualizedReturnDesc: 'Annualized Return: Converts returns from different periods to an annual rate for easier comparison',
       annualizedReturnShortTerm: 'Hold period < 1 year, annualized return not shown',
-      netCashFlow: 'Net cash flow',
       liquidityRatio: 'Liquidity ratio',
       liquidityRatioDesc: 'Share of domains that are active or for sale; higher is better',
       portfolioPerformance: 'Portfolio Performance',

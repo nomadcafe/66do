@@ -821,7 +821,6 @@ const zh = {
       annualizedReturn: '年化收益率',
       annualizedReturnDesc: '年化收益率：将不同期限的投资收益转换为年度收益率，便于比较不同投资的表现',
       annualizedReturnShortTerm: '持有期不足一年，暂不显示年化',
-      netCashFlow: '净现金流',
       liquidityRatio: '可售占比',
       liquidityRatioDesc: '可售域名（活跃+在售）占比，越高流动性越好',
       portfolioPerformance: '投资组合表现',
