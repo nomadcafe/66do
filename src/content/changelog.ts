@@ -68,7 +68,7 @@ export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
       version: '2026-04-30',
       date: '2026-04-30',
       items: [
-        '全站视觉刷新：登录、404、Landing、空态、表单、域名卡片与表格统一到一套调色板（stone + teal / emerald），整体观感更一致。',
+        '全站 UI 大升级：各类样式整体优化，页面之间观感更协调统一。',
         'Insights 重构：顶部 KPI strip + 分段子 tab（Performance / Portfolio / Renewals / Loss）替代原来的纵向长滚，常用面板一键直达。',
         '域名追踪算法优化：核心指标口径更清晰、更贴合真实业绩，图表数字与 KPI 卡片相互对齐。',
         'Bug 修复、续费预测功能上线，以及其他小功能优化。',
@@ -136,7 +136,7 @@ export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
       version: '2026-04-30',
       date: '2026-04-30',
       items: [
-        'Visual refresh: login, 404, landing, empty states, forms, domain cards, and tables all moved onto one palette (stone + teal / emerald) for a more cohesive look.',
+        'Major UI overhaul: styles refined across the app, with a more cohesive feel between pages.',
         'Insights restructure: a top KPI strip plus segmented sub-tabs (Performance / Portfolio / Renewals / Loss) replace the old vertical scroll — the panel you want is one click away.',
         'Domain tracking refined: core metrics now read more clearly and reflect real performance, with charts and KPI tiles consistent.',
         'Bug fixes, new renewal forecasting, and other small improvements.',
