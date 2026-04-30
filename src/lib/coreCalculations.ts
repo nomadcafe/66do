@@ -24,11 +24,10 @@ export interface BasicFinancialMetrics {
   profitMargin: number;
 }
 
-// 高级财务指标接口。原本还有 annualizedReturn 和 sharpeRatio：
-//   - annualizedReturn 移到 realizedPnL.ts:annualizedRealizedReturn（窗口感知 + realized 口径）
-//   - sharpeRatio 砍掉：域名销售样本太稀疏 + 偏态分布太重，Sharpe 数学前提不成立；
-//     同文件原本就因为这个理由刻意没引入 max-drawdown / volatility，Sharpe 一直
-//     是同一类问题的漏网之鱼。
+// 高级财务指标接口。annualizedReturn / sharpeRatio 都砍了——域名销售样本
+// 稀疏 + cost basis 偶见极小（免费/$1 抢注），让指数年化和波动率两个数学
+// 体系都失效。同文件原本就因为这个理由刻意没引入 max-drawdown / volatility。
+// 长期收益由 Performance hero 上的 lifetime Net Profit / Realized ROI 表达。
 export interface AdvancedFinancialMetrics {
   avgHoldingPeriod: number;
 }
@@ -71,32 +70,6 @@ export function calculateBasicFinancialMetrics(
     roi,
     profitMargin
   };
-}
-
-/**
- * CAGR (compound annual growth rate) — 把累计收益按年化展平。
- *
- * 输入：
- *   totalReturn = realizedPnL / costBasisOfSold（小数，如 0.5 = 50%）
- *   years       = 投资活动跨度（年）
- *
- * 旧版直接用 (totalRevenue − totalInvestment) / totalInvestment，分母是
- * 全量 cost basis（含未卖），把"未变现库存"当作"亏损"一起年化，跟 Hero
- * 的 Realized P&L 体系不一致，会出现"已实现盈利但年化收益 -75%"的怪现
- * 象。新版只看已变现交易，跟 Realized ROI / Realized P&L 同一口径。
- *
- * 边界：totalReturn ≤ -1 时（理论上不会发生，realized loss 上限 = sold
- * cost basis 全亏完 → totalReturn = -1）返回 -1（年化 -100%），避免
- * Math.pow(0, ...) 后续 - 1 数值不稳。years ≤ 0 或 totalReturn === 0
- * 时返回 0。
- */
-export function calculateAnnualizedReturn(
-  totalReturn: number,
-  years: number
-): number {
-  if (years <= 0) return 0;
-  if (totalReturn <= -1) return -1;
-  return Math.pow(1 + totalReturn, 1 / years) - 1;
 }
 
 // 计算投资年限

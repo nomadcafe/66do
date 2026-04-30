@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { expandSellToCashReceipts } from '../../lib/coreCalculations';
 import { sellGrossUSD, sellNetUSD } from '../../lib/sellProceeds';
-import { realizedPnLByMonth, annualizedRealizedReturn } from '../../lib/realizedPnL';
+import { realizedPnLByMonth } from '../../lib/realizedPnL';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import {
@@ -26,7 +26,6 @@ import {
   Globe,
   Info,
   Wallet,
-  CalendarClock,
   Building2,
   RefreshCw,
   ShoppingCart,
@@ -39,19 +38,17 @@ interface InvestmentAnalyticsProps {
   transactions: TransactionWithRequiredFields[];
 }
 
-// 5 个 KPI tile，全部跟随时间窗口选择器。
-//   - Realized P&L      :chart 黄线在窗口的累计
-//   - Annualized Return :realized 口径年化（窗口感知）
-//   - Investment        :chart indigo 区域窗口求和
-//   - Renewal Cost      :chart 紫线窗口求和（Investment 的子集）
-//   - Total Sales       :按到账月展开 gross 后窗口求和。跟 chart 不直接对齐
-//                        （chart 没有"毛额"系列），但用来跟 Performance hero
-//                        的 lifetime Total Revenue 对照判断平台费比例。
-// Net cash flow / Revenue 已撤除：前者口径介于 cash 与 P&L 之间不像主线指标；
-// 后者 lifetime 已经在 Performance hero 上呈现，重复展示窗口净额价值不大。
+// 4 个 KPI tile，全部跟随时间窗口选择器。
+//   - Realized P&L :chart 黄线在窗口的累计
+//   - Investment   :chart indigo 区域窗口求和
+//   - Renewal Cost :chart 紫线窗口求和（Investment 的子集）
+//   - Total Sales  :按到账月展开 gross 后窗口求和
+// Annualized Return 已撤除：域名销售样本稀疏 + cost basis 偶现极小（免费 / $1
+// 抢注）让 (1+ROI)^(1/years) 的指数推算极易爆炸（实测见过 +4M%）。同样的
+// 数学前提失效问题在 Sharpe Ratio 早就让其被砍掉。改用 Performance hero
+// 的 lifetime Net Profit / Realized ROI 表达"长期收益"。
 interface PortfolioMetrics {
   realizedPnL: number;
-  annualizedReturn: number | null;
   investment: number;
   renewalCost: number;
   grossSales: number;
@@ -264,10 +261,9 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     return data;
   }, [domains, transactions, monthsWindow, monthlyNetInflowByMonth, monthlyRealizedPnL]);
 
-  // KPI 5 项全部跟随时间窗口。Investment / Renewal Cost 直接对 timeSeriesData
+  // KPI 4 项全部跟随时间窗口。Investment / Renewal Cost 直接对 timeSeriesData
   // 求和（保证 KPI 数值 = 用户在 chart 可见区间上看到的总和）。Realized P&L
   // 单独算累计（按到账月落入窗口的部分相加，跟图表黄线最右端对齐）；
-  // Annualized Return 走 annualizedRealizedReturn 的 windowed 口径。
   // Total Sales 用 monthlyGrossInflowByMonth 按窗口月份累加（毛额，跟 chart
   // emerald net 不直接对齐，提供「合同 vs 净到账」的对比维度）。
   const portfolioMetrics: PortfolioMetrics = useMemo(() => {
@@ -305,12 +301,11 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
 
     return {
       realizedPnL,
-      annualizedReturn: annualizedRealizedReturn(domains, transactions, monthsWindow),
       investment,
       renewalCost,
       grossSales,
     };
-  }, [domains, transactions, monthlyRealizedPnL, monthlyGrossInflowByMonth, monthsWindow, timeSeriesData]);
+  }, [monthlyRealizedPnL, monthlyGrossInflowByMonth, monthsWindow, timeSeriesData]);
 
   const renderPortfolioMetrics = () => {
     if (domains.length === 0 && transactions.length === 0) {
@@ -337,8 +332,6 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
           ? 'bg-rose-50 text-rose-700'
           : 'bg-stone-100 text-stone-700';
 
-    const annualized = portfolioMetrics.annualizedReturn;
-
     type Tile = {
       key: string;
       label: string;
@@ -348,10 +341,9 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       value: React.ReactNode;
     };
 
-    // 顺序：outcomes（PnL / 年化）→ inputs（Investment / Renewal Cost）→ output
-    // （Total Sales 毛额）。颜色：investment=indigo / renewalCost=purple 跟 chart
-    // legend 对应；Total Sales 用 emerald 表示收入（虽然没在 chart 上直接画，
-    // 但跟用户的"销售额=正面"心智模型一致）。
+    // 顺序：outcome（Realized P&L）→ inputs（Investment / Renewal Cost）→
+    // output（Total Sales 毛额）。颜色：investment=indigo / renewalCost=purple
+    // 跟 chart legend 对应；Total Sales 用 emerald 表示收入。
     const tiles: Tile[] = [
       {
         key: 'realizedPnL',
@@ -362,20 +354,6 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         value: (
           <span className={`tabular-nums ${signValueColor(portfolioMetrics.realizedPnL)}`}>
             {formatSigned(portfolioMetrics.realizedPnL)}
-          </span>
-        ),
-      },
-      {
-        key: 'annualizedReturn',
-        label: t('analytics.annualizedReturn'),
-        tooltip: t('analytics.annualizedReturnDesc'),
-        icon: <CalendarClock className="h-5 w-5" />,
-        iconBg: 'bg-amber-50 text-amber-700',
-        value: annualized === null ? (
-          <span className="text-stone-300">—</span>
-        ) : (
-          <span className={`tabular-nums ${annualized >= 0 ? 'text-stone-900' : 'text-rose-700'}`}>
-            {annualized >= 0 ? '+' : ''}{annualized.toFixed(1)}%
           </span>
         ),
       },
@@ -418,7 +396,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     return (
       <div className="relative overflow-hidden rounded-3xl border border-stone-200/60 bg-gradient-to-br from-stone-50 via-white to-teal-50/30 shadow-sm">
         <div className="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-gradient-to-br from-teal-100/30 to-transparent blur-3xl" />
-        <div className="relative grid grid-cols-2 gap-5 p-5 sm:p-6 md:grid-cols-3 md:gap-6 lg:grid-cols-5">
+        <div className="relative grid grid-cols-2 gap-5 p-5 sm:p-6 md:grid-cols-4 md:gap-6">
           {tiles.map((tile) => (
             <div key={tile.key} className="flex items-start gap-3">
               <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tile.iconBg}`}>
