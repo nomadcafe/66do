@@ -479,7 +479,7 @@ export default async function HomePage({ params }: PageProps) {
                 </li>
                 <li>
                   <Link
-                    href={`/${locale}/privacy`}
+                    href={`/${locale}/terms`}
                     className="transition hover:text-white"
                     title={d.footer.termsOfService}
                   >
@@ -506,14 +506,14 @@ export default async function HomePage({ params }: PageProps) {
                 {d.footer.privacyShort}
               </Link>
               <Link
-                href={`/${locale}/privacy`}
+                href={`/${locale}/terms`}
                 className="transition hover:text-white"
                 title={d.footer.termsOfService}
               >
                 {d.footer.termsShort}
               </Link>
               <Link
-                href={`/${locale}/privacy`}
+                href={`/${locale}/cookies`}
                 className="transition hover:text-white"
                 title={d.footer.cookiesShort}
               >

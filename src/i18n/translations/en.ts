@@ -1106,105 +1106,219 @@ const en = {
       lastUpdated: 'Last Updated',
       introduction: {
         title: 'Introduction',
-        content: 'Domain Financial is committed to protecting your privacy and personal data. This Privacy Policy explains how we collect, use, store, and protect your information when you use our domain investment management platform.'
+        content: 'Domain.Financial is a domain investment management platform. This Privacy Policy explains, in plain language, what data we collect, how it is stored and protected, who can access it, and what rights you have over it. We aim to be specific and honest rather than make claims we cannot deliver on technically.'
       },
       dataCollection: {
         title: 'Data We Collect',
-        content: 'We collect information necessary to provide you with our domain investment management services. This includes both personal and financial data related to your domain portfolio.',
+        content: 'We only collect the data needed to operate the service. Specifically:',
         personalData: {
-          title: 'Personal Information',
-          email: 'Email address for account authentication and communication',
-          domainInfo: 'Domain names, registration details, and ownership information',
-          financialData: 'Purchase costs, renewal fees, sale prices, and investment amounts',
-          transactionData: 'Transaction history, payment records, and financial transactions',
-          analyticsData: 'Usage patterns, feature interactions, and performance metrics'
+          title: 'Account & Portfolio Data',
+          email: 'Your email address — used for authentication, magic links, and service notifications.',
+          domainInfo: 'Domain names you add to your portfolio, along with the registrar and dates you supply.',
+          financialData: 'Purchase costs, renewal fees, sale prices, and any other financial figures you choose to enter.',
+          transactionData: 'Transaction history (buys, sells, renewals) recorded by you.',
+          analyticsData: 'Aggregate, anonymized usage signals (page views, feature load times) via Vercel Analytics — no cookies, no cross-site tracking.'
         },
         sensitiveData: {
-          title: 'Sensitive Financial Data',
-          content: 'We understand that your financial information is highly sensitive. All financial data is encrypted using AES-256 encryption and stored securely with user-specific encryption keys.'
+          title: 'About Your Financial Data',
+          content: 'Domain prices and transaction amounts are stored as you enter them. We do not handle credit card numbers, bank accounts, or any payment instruments — domain transactions you record are bookkeeping entries inside the app, not actual payments.'
         }
       },
       dataSecurity: {
-        title: 'Data Security',
-        content: 'We implement multiple layers of security to protect your data:',
+        title: 'How Your Data Is Protected',
+        content: 'We rely on the following layers, in order from outermost to innermost:',
         encryption: {
-          title: 'Encryption & Security Measures',
-          aes: 'AES-256 encryption for all sensitive data',
-          https: 'HTTPS/TLS encryption for all data transmission',
-          rls: 'Row-Level Security (RLS) for database access control',
-          userKeys: 'User-specific encryption keys for data isolation'
+          title: 'Protections in Place',
+          https: 'HTTPS / TLS in transit — every request between your browser and our servers is encrypted on the wire.',
+          atRest: 'Database storage at rest is encrypted by our infrastructure provider (Supabase, on Amazon RDS).',
+          rls: 'Row-Level Security at the database layer — every query carries your user identity, and the database refuses to return rows that do not belong to you. Other users of the platform cannot read your data, even if they obtained a session token of their own.',
+          authVerification: 'Every API endpoint verifies your identity before any database operation; unauthenticated requests are rejected before they touch your data.'
+        },
+        operatorNote: {
+          title: 'What We, the Operators, Can See',
+          content: 'We want to be clear about this: data is stored without application-layer encryption. That means a person with administrative access to our database (currently the founding team) can technically read user-entered values such as domain names and prices. We do not access individual user data except (a) when you explicitly request support that requires it, or (b) to investigate a confirmed security or abuse incident. We do not sell, share, or use your portfolio data for any purpose beyond operating the service.'
         }
       },
       dataUsage: {
         title: 'How We Use Your Data',
-        content: 'Your data is used exclusively to provide and improve our domain investment management services:',
-        portfolioManagement: 'Manage and track your domain portfolio',
-        financialAnalysis: 'Generate financial reports and investment analytics',
-        renewalTracking: 'Monitor domain renewal dates and costs',
-        performanceMetrics: 'Calculate ROI, profit margins, and investment performance',
-        userExperience: 'Personalize your experience and improve our services'
+        content: 'Your data is used only to deliver the features you see in the product:',
+        portfolioManagement: 'Show you the domains you have added.',
+        financialAnalysis: 'Compute the metrics, charts, and reports inside your dashboard.',
+        renewalTracking: 'Track upcoming renewals and surface reminders.',
+        performanceMetrics: 'Calculate ROI, holding cost, realized P&L, and similar figures.',
+        userExperience: 'Remember preferences such as your language so the UI behaves the way you set it.'
       },
       dataSharing: {
         title: 'Data Sharing',
-        content: 'We do not sell, rent, or share your personal data with third parties for marketing purposes.',
+        content: 'We do not sell, rent, or trade your data. We share data with third parties only in the narrow operational situations below:',
         never: {
           title: 'We Never',
-          sell: 'Sell your personal or financial data',
-          rent: 'Rent your data to third parties',
-          share: 'Share your data without explicit consent',
-          marketing: 'Use your data for third-party marketing'
+          sell: 'Sell your personal or portfolio data.',
+          rent: 'Rent your data to third parties.',
+          share: 'Share your data with marketers or data brokers.',
+          marketing: 'Use your data for cross-product advertising.'
         }
       },
       userRights: {
         title: 'Your Rights',
-        content: 'You have the following rights regarding your personal data:',
-        access: 'Access your personal data',
-        rectification: 'Correct inaccurate or incomplete data',
-        erasure: 'Request deletion of your data',
-        portability: 'Export your data in a portable format',
-        restriction: 'Restrict processing of your data',
-        objection: 'Object to certain uses of your data'
+        content: 'You have the following rights over your data, exercisable by emailing us:',
+        access: 'Get a copy of the data we hold about you.',
+        rectification: 'Correct inaccurate or incomplete data.',
+        erasure: 'Delete your account and associated data.',
+        portability: 'Export your portfolio in a portable format (CSV / JSON).',
+        restriction: 'Pause processing of your data while a request is being resolved.',
+        objection: 'Object to specific uses of your data.'
       },
       dataRetention: {
         title: 'Data Retention',
-        content: 'We retain your data for as long as necessary to provide our services and comply with legal obligations.',
+        content: 'We keep your data only as long as you keep your account, plus a short window for backups:',
         periods: {
-          title: 'Retention Periods',
-          account: 'Account data: Until account deletion',
-          domainData: 'Domain information: 7 years after last activity',
-          transactionData: 'Financial records: 7 years for tax compliance',
-          analytics: 'Usage analytics: 2 years'
+          title: 'Retention',
+          account: 'Account data — kept until you delete your account.',
+          domainData: 'Domain & transaction records — kept until you delete the record or the account.',
+          transactionData: 'Billing or tax-related records (none currently — the service is free) — none retained.',
+          analytics: 'Aggregate analytics — kept for up to 2 years and never tied to your account identity.'
         }
       },
       cookies: {
-        title: 'Cookies and Tracking',
-        content: 'We use cookies and similar technologies to enhance your experience:',
-        essential: 'Essential cookies for platform functionality',
-        analytics: 'Analytics cookies to understand usage patterns',
-        preferences: 'Preference cookies to remember your settings',
-        security: 'Security cookies to protect against fraud'
+        title: 'Cookies & Local Storage',
+        content: 'We keep cookie usage to the minimum required to operate the service. We do not use advertising or third-party tracking cookies. See the Cookies page for the full list.',
+        essential: 'Authentication session (Supabase-managed) — keeps you signed in.',
+        preferences: 'Language preference — remembers whether you set the UI to Chinese or English.',
+        analytics: 'Vercel Analytics — collects anonymized page views without cookies or cross-site identifiers.',
+        security: 'No third-party tracking, advertising, or cross-site cookies.'
       },
       thirdParty: {
         title: 'Third-Party Services',
-        content: 'We use trusted third-party services to provide our platform:',
+        content: 'We use the following service providers to operate the platform:',
         services: {
           title: 'Service Providers',
-          supabase: 'Database hosting and authentication services',
-          vercel: 'Web hosting and content delivery',
-          resend: 'Email delivery services for notifications'
+          supabase: 'Supabase — database, authentication, and email magic-link delivery.',
+          vercel: 'Vercel — web hosting, edge network, and privacy-friendly analytics.',
+          resend: 'Resend — transactional email delivery (notifications and security alerts only).'
         }
       },
       changes: {
         title: 'Changes to This Policy',
-        content: 'We may update this Privacy Policy from time to time. We will notify you of any significant changes via email or through our platform.'
+        content: 'We may update this Privacy Policy as the service evolves. Significant changes will be announced in the changelog and, where the change materially affects your data, communicated by email.'
       },
       contact: {
         title: 'Contact Us',
-        content: 'If you have any questions about this Privacy Policy or your data, please contact us:',
+        content: 'If you have any questions about this Privacy Policy or want to exercise any of the rights above, email us:',
         email: 'Email',
-        response: 'We will respond to all inquiries within 48 hours.'
+        response: 'We aim to respond within 48 hours.'
       },
-      footer: 'This Privacy Policy is effective as of the date listed above and applies to all users of the Domain Financial platform.'
+      footer: 'This Privacy Policy applies to all users of Domain.Financial as of the date above.'
+    },
+    terms: {
+      title: 'Terms of Service',
+      lastUpdated: 'Last Updated',
+      intro: {
+        title: 'Agreement',
+        content: 'By accessing or using Domain.Financial, you agree to these Terms of Service. If you do not agree, please do not use the service.'
+      },
+      service: {
+        title: 'The Service',
+        content: 'Domain.Financial is a self-serve domain investment management tool that lets you record domains, track financial figures, and view analytics. The service is provided as-is. You are responsible for the accuracy of the data you enter.'
+      },
+      account: {
+        title: 'Your Account',
+        content: 'You sign in via email magic link or a third-party identity provider (currently Google). You are responsible for keeping access to your inbox and identity provider secure. Please notify us immediately if you suspect unauthorized access to your account.'
+      },
+      acceptable: {
+        title: 'Acceptable Use',
+        content: 'You agree not to:',
+        items: {
+          abuse: 'Attempt to access, probe, or interfere with accounts or data that do not belong to you.',
+          scrape: 'Scrape, mirror, or systematically harvest content from the service via automated means without permission.',
+          reverse: 'Reverse-engineer, decompile, or otherwise attempt to extract source code or proprietary logic.',
+          illegal: 'Use the service for any unlawful activity, fraud, or money laundering.',
+          impersonate: 'Impersonate another person or misrepresent your affiliation with any entity.'
+        }
+      },
+      noAdvice: {
+        title: 'Not Investment Advice',
+        content: 'Domain.Financial provides bookkeeping and analytics tools, not investment advice. Domain investing involves substantial risk. Numbers, charts, and analyses inside the platform are computed from data you enter and should not be interpreted as professional financial, tax, legal, or investment advice. You make your own investment decisions.'
+      },
+      data: {
+        title: 'Your Data',
+        content: 'You retain ownership of the domain and financial information you enter. We process your data as described in the Privacy Policy. You can export or delete your data at any time. Operational details about who can access data are covered in the Privacy Policy.'
+      },
+      pricing: {
+        title: 'Pricing',
+        content: 'The service is currently free to use. We reserve the right to introduce paid plans in the future; if we do, we will notify you in advance and any features you rely on today will continue to work for a reasonable transition period.'
+      },
+      availability: {
+        title: 'Availability & Changes',
+        content: 'We aim for high availability but do not guarantee uninterrupted service. We may change, suspend, or discontinue features with reasonable notice. Major breaking changes will be announced in the changelog.'
+      },
+      termination: {
+        title: 'Termination',
+        content: 'You may delete your account at any time. We may suspend or terminate accounts that materially violate these terms or pose a security risk to the service or to other users.'
+      },
+      warranty: {
+        title: 'Disclaimer of Warranties',
+        content: 'The service is provided "as is" and "as available" without warranties of any kind, whether express or implied, including merchantability, fitness for a particular purpose, accuracy, or non-infringement. We do not warrant that domain valuations or projections shown in the platform reflect actual market behavior.'
+      },
+      liability: {
+        title: 'Limitation of Liability',
+        content: 'To the maximum extent permitted by law, Domain.Financial and its operators are not liable for any indirect, incidental, special, or consequential damages — including lost profits, lost domains, or trading decisions — arising out of your use of the service.'
+      },
+      governing: {
+        title: 'Governing Law & Changes',
+        content: 'These terms are governed by the laws of the operator\'s jurisdiction. We may update these terms; significant changes will be announced in the changelog and, where the change materially affects your rights, communicated by email.'
+      },
+      contact: {
+        title: 'Contact',
+        content: 'Questions about these terms? Email us at the address below — we respond within 48 hours.',
+        email: 'Email'
+      }
+    },
+    cookies: {
+      title: 'Cookies Policy',
+      lastUpdated: 'Last Updated',
+      intro: {
+        title: 'What This Page Covers',
+        content: 'Domain.Financial uses the minimum set of cookies required to operate the service. This page lists every cookie and similar storage we use, who sets it, and what it does. We do not use advertising or third-party tracking cookies.'
+      },
+      categories: {
+        title: 'Cookies We Use',
+        essential: {
+          name: 'Authentication session',
+          purpose: 'Set by Supabase when you sign in. Keeps you logged in between page loads.',
+          provider: 'Supabase',
+          retention: 'Refreshed on activity; cleared on sign-out or after inactivity.'
+        },
+        preferences: {
+          name: 'Language preference',
+          purpose: 'Remembers whether you set the UI to Chinese or English so the right language loads on your next visit.',
+          provider: 'Domain.Financial',
+          retention: '1 year.'
+        },
+        local: {
+          name: 'Local storage (locale)',
+          purpose: 'Mirrors the language preference in browser local storage so cross-tab switching is instant.',
+          provider: 'Domain.Financial',
+          retention: 'Until you clear browser storage.'
+        }
+      },
+      noTracking: {
+        title: 'What We Do Not Use',
+        content: 'No advertising, behavioral targeting, retargeting, fingerprinting, or cross-site tracking. Vercel Analytics, which powers our aggregate page-view counts, is configured to operate without cookies and does not collect personal identifiers.'
+      },
+      control: {
+        title: 'Your Control',
+        content: 'You can clear cookies and local storage at any time through your browser settings. Doing so will sign you out and reset preferences. Most browsers also let you block cookies entirely for specific sites.'
+      },
+      changes: {
+        title: 'Changes',
+        content: 'If we ever add a new cookie type — for example, optional analytics that require consent — this page will be updated and the change will appear in the changelog before it takes effect.'
+      },
+      contact: {
+        title: 'Contact',
+        content: 'Questions about cookies or storage? Email us:',
+        email: 'Email'
+      }
     },
     domain: {
       expiryMonitoring: 'Domain Expiry Monitoring',
