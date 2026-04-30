@@ -88,7 +88,7 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
           mirrors actual cash-out vs cash-in. */}
       <div className="relative overflow-hidden rounded-3xl border border-stone-200/60 bg-gradient-to-br from-stone-50 via-white to-teal-50/30 shadow-sm">
         <div className="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-gradient-to-br from-teal-100/30 to-transparent blur-3xl" />
-        <div className="relative grid grid-cols-2 gap-5 p-5 sm:p-6 md:grid-cols-3 md:gap-6 lg:grid-cols-6">
+        <div className="relative grid grid-cols-2 gap-5 p-5 sm:p-6 md:grid-cols-3 md:gap-6">
           <KpiTile
             icon={<DollarSign className="h-5 w-5" />}
             iconClass="bg-stone-100 text-stone-700"
