@@ -1,7 +1,7 @@
 // import { Domain, DomainTransaction as Transaction } from '../types/domain';
 import { DomainWithTags, TransactionWithRequiredFields } from '../types/dashboard';
 import { sellGrossUSD, sellNetUSD } from './sellProceeds';
-import { totalHoldingCostForDomain, holdingCostAsOf } from './renewalCostBasis';
+import { totalHoldingCostForDomain } from './renewalCostBasis';
 import { expandRenewalEvents } from './expandRenewalEvents';
 
 export type { SellProceedsFields } from './sellProceeds';
@@ -24,10 +24,12 @@ export interface BasicFinancialMetrics {
   profitMargin: number;
 }
 
-// 高级财务指标接口（三块：年化收益 / 风险调整收益 / 平均持有期）
+// 高级财务指标接口。原本还有 annualizedReturn 和 sharpeRatio：
+//   - annualizedReturn 移到 realizedPnL.ts:annualizedRealizedReturn（窗口感知 + realized 口径）
+//   - sharpeRatio 砍掉：域名销售样本太稀疏 + 偏态分布太重，Sharpe 数学前提不成立；
+//     同文件原本就因为这个理由刻意没引入 max-drawdown / volatility，Sharpe 一直
+//     是同一类问题的漏网之鱼。
 export interface AdvancedFinancialMetrics {
-  annualizedReturn: number;
-  sharpeRatio: number;
   avgHoldingPeriod: number;
 }
 
@@ -112,56 +114,6 @@ export function calculateInvestmentYears(domains: DomainWithTags[]): number {
   return (new Date().getTime() - new Date(oldestDomain.purchase_date || '').getTime()) / (1000 * 60 * 60 * 24 * 365);
 }
 
-/** 月度收益率（%）：每月出售收入 / 当月累计投资成本 */
-export function calculateMonthlyReturns(
-  domains: DomainWithTags[],
-  transactions: TransactionWithRequiredFields[]
-): number[] {
-  return Array.from({ length: 12 }, (_, i) => {
-    const date = new Date();
-    date.setMonth(date.getMonth() - (11 - i));
-    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-
-    const monthDomains = domains.filter(d => {
-      const domainMonth = (d.purchase_date || '').slice(0, 7);
-      return domainMonth <= monthKey;
-    });
-    const investment = monthDomains.reduce(
-      (sum, d) => sum + totalHoldingCostForDomain(d, transactions),
-      0
-    );
-
-    const monthTransactions = transactions.filter(t => {
-      const transactionDate = new Date(t.date);
-      return transactionDate.getMonth() === date.getMonth() &&
-             transactionDate.getFullYear() === date.getFullYear() && t.type === 'sell';
-    });
-    const revenue = monthTransactions.reduce((sum, t) => sum + sellNetUSD(t), 0);
-
-    if (investment <= 0) return 0;
-    return (revenue / investment) * 100;
-  });
-}
-
-// 计算波动率
-export function calculateVolatility(returns: number[]): number {
-  if (returns.length === 0) return 0;
-  
-  const avgReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
-  const variance = returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length;
-  return Math.sqrt(variance);
-}
-
-/** 夏普比率：年化收益率与年化波动率均为小数（如 0.05, 0.12） */
-export function calculateSharpeRatio(
-  annualizedReturnDecimal: number,
-  riskFreeRate: number = 0.02,
-  annualizedVolatilityDecimal: number
-): number {
-  if (annualizedVolatilityDecimal <= 0) return 0;
-  return (annualizedReturnDecimal - riskFreeRate) / annualizedVolatilityDecimal;
-}
-
 // 计算平均持有期
 export function calculateAvgHoldingPeriod(domains: DomainWithTags[]): number {
   const soldDomains = domains.filter(d => d.status === 'sold');
@@ -176,47 +128,15 @@ export function calculateAvgHoldingPeriod(domains: DomainWithTags[]): number {
   return totalDays / soldDomains.length;
 }
 
-// 计算高级财务指标。basic 由调用方传入，避免与 useComprehensiveFinancialAnalysis
-// 重复跑一次 calculateBasicFinancialMetrics。basic 仍保留——其他地方读它。
+// 高级财务指标。Sharpe / 年化都已经搬走或砍掉，目前只剩 avgHoldingPeriod。
+// 暂时保留 basic 参数和 transactions 参数让函数签名稳定（其他 hook 调用点），
+// 未来可考虑 inline 到 useComprehensiveFinancialAnalysis 简化。
 export function calculateAdvancedFinancialMetrics(
   domains: DomainWithTags[],
-  transactions: TransactionWithRequiredFields[],
+  _transactions: TransactionWithRequiredFields[],
   _basic: BasicFinancialMetrics
 ): AdvancedFinancialMetrics {
-  const years = calculateInvestmentYears(domains);
-
-  // 年化收益走 realized 口径：分子 = 已实现盈亏，分母 = 已售域名的 cost
-  // basis 总和。跟 Hero / Realized P&L / Realized ROI 同一套口径，未卖出
-  // 的库存不参与计算。inline 计算避免 realizedPnL.ts 反向依赖 coreCalculations
-  // 形成循环依赖。
-  const domainsById = new Map(domains.map((d) => [d.id, d]));
-  let realizedPnL = 0;
-  let soldCostBasis = 0;
-  for (const t of transactions) {
-    if (t.type !== 'sell') continue;
-    const domain = domainsById.get(t.domain_id);
-    if (!domain) continue;
-    const sellNet = sellNetUSD(t);
-    if (sellNet <= 0) continue;
-    const cb = holdingCostAsOf(domain, transactions, new Date(t.date));
-    realizedPnL += sellNet - cb;
-    soldCostBasis += cb;
-  }
-  const totalReturn = soldCostBasis > 0 ? realizedPnL / soldCostBasis : 0;
-  const annualizedReturn = calculateAnnualizedReturn(totalReturn, years);
-
-  // sharpeRatio 需要年化波动率（基于月度收益率序列）。月度收益率本身仍走
-  // 旧的 totalRevenue / totalInvestment 口径——月度数据本来就稀疏，再加
-  // realized 口径只让月份大多为零，意义不大。Sharpe 已经被 sample-size
-  // gating（IA 组件层面 SHARPE_MIN_SAMPLE = 10）保护，不强求精确。
-  const monthlyReturnPct = calculateMonthlyReturns(domains, transactions);
-  const volMonthlyPct = calculateVolatility(monthlyReturnPct);
-  const volAnnualDecimal = (volMonthlyPct / 100) * Math.sqrt(12);
-  const sharpeRatio = calculateSharpeRatio(annualizedReturn, 0.02, volAnnualDecimal);
-
   return {
-    annualizedReturn: annualizedReturn * 100,
-    sharpeRatio,
     avgHoldingPeriod: calculateAvgHoldingPeriod(domains),
   };
 }

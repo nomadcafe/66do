@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { useComprehensiveFinancialAnalysis } from '../../hooks/useFinancialCalculations';
 import { expandSellToCashReceipts } from '../../lib/coreCalculations';
-import { realizedPnLByMonth, totalRealizedPnL, annualizedRealizedReturn } from '../../lib/realizedPnL';
+import { realizedPnLByMonth, annualizedRealizedReturn } from '../../lib/realizedPnL';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import {
@@ -29,6 +28,9 @@ import {
   CalendarClock,
   Scale,
   Building2,
+  RefreshCw,
+  ShoppingCart,
+  TrendingUp,
 } from 'lucide-react';
 import { expandRenewalEvents } from '../../lib/expandRenewalEvents';
 
@@ -37,27 +39,18 @@ interface InvestmentAnalyticsProps {
   transactions: TransactionWithRequiredFields[];
 }
 
-// max-drawdown / volatility 故意不在此列：在域名投资这种稀疏样本上会误导。
-// totalProfit 改为 realizedPnL（与 Hero / IA 黄线 / FinancialAnalysisOptimized 同源），
-// 旧 basic.totalProfit (= totalRevenue − totalInvestment) 把持有未卖的 cost 也算分母，
-// 跟 Realized P&L 数字会不一致，会让用户在不同 surface 看到不同"赚多少"的数字。
-//
-// annualizedReturn: number | null — 跟时间窗口走（6M / 1Y / 2Y / 3Y / ALL），
-// null 表示该窗口内没有已实现交易，UI 显示 "—"。Sharpe 仍然 lifetime（基于
-// portfolio 整体波动率，跟时间窗口解耦）。
+// 6 个 KPI 一一对应 Portfolio Performance 图表的 4 条数据线 + 月度现金流图，
+// 加 1 个 Annualized Return（realized 口径，从 Realized P&L 派生）。全部跟随
+// 时间窗口选择器 — Sharpe Ratio 已砍（样本稀疏 + 偏态分布让 Sharpe 数学前提
+// 不成立，详见 coreCalculations.AdvancedFinancialMetrics 注释）。
 interface PortfolioMetrics {
-  realizedPnL: number;
-  annualizedReturn: number | null;
-  sharpeRatio: number;
-  /** 已售域名数量——Sharpe Ratio 在样本 < SHARPE_MIN_SAMPLE 时统计意义不足，
-   *  这时显示 "—" 而不是凭虚假精度的数字。 */
-  soldCount: number;
+  realizedPnL: number;          // chart 黄线累计
+  annualizedReturn: number | null; // null 时窗口内无 realized 交易
+  investment: number;           // chart indigo 区域窗口求和
+  renewalCost: number;          // chart 紫线窗口求和（含在 investment 里的子集）
+  revenue: number;              // chart emerald 区域窗口求和
+  netCashFlow: number;          // 月度现金流 bar chart 窗口求和
 }
-
-// Sharpe Ratio 在已售域名 < 10 时基本是噪声（基于波动率，样本太少波动率
-// 估计极不稳定）。同文件已经因为这个理由去掉了 max-drawdown / volatility，
-// 但 Sharpe 一直保留，逻辑前后不一致。改为 sample 不够时显示 "—"。
-const SHARPE_MIN_SAMPLE = 10;
 
 interface TimeSeriesData {
   date: string;
@@ -132,11 +125,6 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
   // 正确做法：所有 by-month 事件流用全量数据计算，得到完整的 Map<月份, 数值>
   // 再在图表循环里按 monthsToShow 取窗口内的月份显示。
 
-  // Sharpe Ratio 是 lifetime portfolio 指标（基于波动率，跟时间窗口解耦），
-  // 永远从全量数据派生。Annualized Return 走窗口感知的 annualizedRealizedReturn
-  // helper（见下方 portfolioMetrics）。
-  const financialAnalysis = useComprehensiveFinancialAnalysis(domains, transactions);
-
   // 月度入账：分期销售用 expandSellToCashReceipts 按已付期展开到对应月份。
   const monthlyNetInflowByMonth = useMemo(() => {
     const map = new Map<string, number>();
@@ -154,37 +142,6 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     () => realizedPnLByMonth(domains, transactions),
     [transactions, domains]
   );
-
-  // KPI strip 的 Realized P&L：当前窗口内月份的累计——跟图表黄线最右端对齐。
-  // ALL 时是 lifetime；6M 时是过去 6 个月内已实现的盈亏（一笔老域名上月卖出
-  // 的利润会进 6M 窗口；这是用户期望的语义）。
-  const portfolioMetrics: PortfolioMetrics = useMemo(() => {
-    const soldCount = domains.filter((d) => d.status === 'sold').length;
-    let realizedPnL = 0;
-    if (monthsWindow === null) {
-      for (const v of monthlyRealizedPnL.values()) realizedPnL += v;
-    } else {
-      const now = new Date();
-      const startMonth = new Date(now.getFullYear(), now.getMonth() - (monthsWindow - 1), 1);
-      for (const [key, v] of monthlyRealizedPnL) {
-        const [yearStr, monthStr] = key.split('-');
-        const year = Number(yearStr);
-        const month = Number(monthStr);
-        if (!Number.isFinite(year) || !Number.isFinite(month)) continue;
-        const d = new Date(year, month - 1, 1);
-        if (d >= startMonth && d <= now) realizedPnL += v;
-      }
-    }
-    return {
-      realizedPnL,
-      // 年化跟着时间窗口变（6M / 1Y / 2Y / 3Y → 对应窗口；ALL → lifetime）。
-      // null 时 UI 渲染 "—"。
-      annualizedReturn: annualizedRealizedReturn(domains, transactions, monthsWindow),
-      // Sharpe Ratio 是 portfolio 级波动率指标，跟时间窗口解耦——永远 lifetime。
-      sharpeRatio: financialAnalysis.advanced.sharpeRatio,
-      soldCount,
-    };
-  }, [domains, transactions, financialAnalysis, monthlyRealizedPnL, monthsWindow]);
 
   const timeSeriesData: TimeSeriesData[] = useMemo(() => {
     const data: TimeSeriesData[] = [];
@@ -282,7 +239,47 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     return data;
   }, [domains, transactions, monthsWindow, monthlyNetInflowByMonth, monthlyRealizedPnL]);
 
-  // 辅助函数已移至共享计算库
+  // KPI 6 项全部跟随时间窗口。投/续费/收入/净现金流 4 项直接对 timeSeriesData
+  // 求和——保证「KPI 数值 = 用户在 chart 可见区间上看到的总和」。Realized P&L
+  // 单独算累计（按到账月落入窗口的部分相加，跟图表黄线最右端对齐）；
+  // Annualized Return 走 annualizedRealizedReturn 的 windowed 口径。
+  const portfolioMetrics: PortfolioMetrics = useMemo(() => {
+    let realizedPnL = 0;
+    if (monthsWindow === null) {
+      for (const v of monthlyRealizedPnL.values()) realizedPnL += v;
+    } else {
+      const now = new Date();
+      const startMonth = new Date(now.getFullYear(), now.getMonth() - (monthsWindow - 1), 1);
+      for (const [key, v] of monthlyRealizedPnL) {
+        const [yearStr, monthStr] = key.split('-');
+        const year = Number(yearStr);
+        const month = Number(monthStr);
+        if (!Number.isFinite(year) || !Number.isFinite(month)) continue;
+        const d = new Date(year, month - 1, 1);
+        if (d >= startMonth && d <= now) realizedPnL += v;
+      }
+    }
+
+    let investment = 0;
+    let renewalCost = 0;
+    let revenue = 0;
+    let netCashFlow = 0;
+    for (const row of timeSeriesData) {
+      investment += row.investment;
+      renewalCost += row.renewalCost;
+      revenue += row.revenue;
+      netCashFlow += row.monthlyCashFlow;
+    }
+
+    return {
+      realizedPnL,
+      annualizedReturn: annualizedRealizedReturn(domains, transactions, monthsWindow),
+      investment,
+      renewalCost,
+      revenue,
+      netCashFlow,
+    };
+  }, [domains, transactions, monthlyRealizedPnL, monthsWindow, timeSeriesData]);
 
   const renderPortfolioMetrics = () => {
     if (domains.length === 0 && transactions.length === 0) {
@@ -297,93 +294,126 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       );
     }
 
-    const pnlPositive = portfolioMetrics.realizedPnL > 0;
-    const pnlNegative = portfolioMetrics.realizedPnL < 0;
-    const pnlPrefix = pnlPositive ? '+' : pnlNegative ? '−' : '';
-    const pnlIconBg = pnlPositive
-      ? 'bg-emerald-50 text-emerald-700'
-      : pnlNegative
-        ? 'bg-rose-50 text-rose-700'
-        : 'bg-stone-100 text-stone-700';
-    const pnlValueColor = pnlPositive
-      ? 'text-emerald-700'
-      : pnlNegative
-        ? 'text-rose-700'
-        : 'text-stone-900';
+    // 统一数字渲染：带正负号 / 带颜色（盈利绿、亏损玫红、零灰）。
+    const formatSigned = (n: number) =>
+      `${n > 0 ? '+' : n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString()}`;
+    const signValueColor = (n: number) =>
+      n > 0 ? 'text-emerald-700' : n < 0 ? 'text-rose-700' : 'text-stone-900';
+    const signIconBg = (n: number) =>
+      n > 0
+        ? 'bg-emerald-50 text-emerald-700'
+        : n < 0
+          ? 'bg-rose-50 text-rose-700'
+          : 'bg-stone-100 text-stone-700';
 
-    const sharpeMeaningful = portfolioMetrics.soldCount >= SHARPE_MIN_SAMPLE;
-    const sharpeColor =
-      portfolioMetrics.sharpeRatio >= 1
-        ? 'text-emerald-700'
-        : portfolioMetrics.sharpeRatio >= 0.5
-          ? 'text-amber-600'
-          : 'text-rose-700';
+    const annualized = portfolioMetrics.annualizedReturn;
+
+    type Tile = {
+      key: string;
+      label: string;
+      tooltip?: string;
+      icon: React.ReactNode;
+      iconBg: string;
+      value: React.ReactNode;
+    };
+
+    // Order：先 outcomes（PnL / 年化 / 净现金流），再 chart 的 3 条原始系列
+    // （investment / renewalCost / revenue）。颜色搭配跟 chart 系列对应：
+    // investment=indigo / renewalCost=purple / revenue=emerald，跟图表 legend
+    // 一一对应；用户能在 KPI 上一眼看到该 series 的窗口总额。
+    const tiles: Tile[] = [
+      {
+        key: 'realizedPnL',
+        label: t('analytics.realizedPnL'),
+        tooltip: t('analytics.netProfitCalculation'),
+        icon: <Wallet className="h-5 w-5" />,
+        iconBg: signIconBg(portfolioMetrics.realizedPnL),
+        value: (
+          <span className={`tabular-nums ${signValueColor(portfolioMetrics.realizedPnL)}`}>
+            {formatSigned(portfolioMetrics.realizedPnL)}
+          </span>
+        ),
+      },
+      {
+        key: 'annualizedReturn',
+        label: t('analytics.annualizedReturn'),
+        tooltip: t('analytics.annualizedReturnDesc'),
+        icon: <CalendarClock className="h-5 w-5" />,
+        iconBg: 'bg-amber-50 text-amber-700',
+        value: annualized === null ? (
+          <span className="text-stone-300">—</span>
+        ) : (
+          <span className={`tabular-nums ${annualized >= 0 ? 'text-stone-900' : 'text-rose-700'}`}>
+            {annualized >= 0 ? '+' : ''}{annualized.toFixed(1)}%
+          </span>
+        ),
+      },
+      {
+        key: 'netCashFlow',
+        label: t('analytics.netCashFlow'),
+        icon: <Scale className="h-5 w-5" />,
+        iconBg: signIconBg(portfolioMetrics.netCashFlow),
+        value: (
+          <span className={`tabular-nums ${signValueColor(portfolioMetrics.netCashFlow)}`}>
+            {formatSigned(portfolioMetrics.netCashFlow)}
+          </span>
+        ),
+      },
+      {
+        key: 'investment',
+        label: t('analytics.investment'),
+        icon: <ShoppingCart className="h-5 w-5" />,
+        iconBg: 'bg-indigo-50 text-indigo-700',
+        value: (
+          <span className="tabular-nums text-stone-900">
+            ${portfolioMetrics.investment.toLocaleString()}
+          </span>
+        ),
+      },
+      {
+        key: 'renewalCost',
+        label: t('analytics.renewalCost'),
+        icon: <RefreshCw className="h-5 w-5" />,
+        iconBg: 'bg-purple-50 text-purple-700',
+        value: (
+          <span className="tabular-nums text-stone-900">
+            ${portfolioMetrics.renewalCost.toLocaleString()}
+          </span>
+        ),
+      },
+      {
+        key: 'revenue',
+        label: t('analytics.revenue'),
+        icon: <TrendingUp className="h-5 w-5" />,
+        iconBg: 'bg-emerald-50 text-emerald-700',
+        value: (
+          <span className="tabular-nums text-emerald-700">
+            ${portfolioMetrics.revenue.toLocaleString()}
+          </span>
+        ),
+      },
+    ];
 
     return (
       <div className="relative overflow-hidden rounded-3xl border border-stone-200/60 bg-gradient-to-br from-stone-50 via-white to-teal-50/30 shadow-sm">
         <div className="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-gradient-to-br from-teal-100/30 to-transparent blur-3xl" />
-        <div className="relative grid grid-cols-1 gap-5 p-5 sm:p-6 md:grid-cols-3 md:gap-6">
-          <div className="flex items-start gap-3">
-            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${pnlIconBg}`}>
-              <Wallet className="h-5 w-5" />
-            </span>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-                  {t('analytics.realizedPnL')}
-                </p>
-                <InfoTooltip text={t('analytics.netProfitCalculation')} />
+        <div className="relative grid grid-cols-2 gap-5 p-5 sm:p-6 md:grid-cols-3 md:gap-6">
+          {tiles.map((tile) => (
+            <div key={tile.key} className="flex items-start gap-3">
+              <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tile.iconBg}`}>
+                {tile.icon}
+              </span>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                    {tile.label}
+                  </p>
+                  {tile.tooltip ? <InfoTooltip text={tile.tooltip} /> : null}
+                </div>
+                <p className="mt-1 text-xl font-bold tracking-tight">{tile.value}</p>
               </div>
-              <p className={`mt-1 text-xl font-bold tracking-tight tabular-nums ${pnlValueColor}`}>
-                {pnlPrefix}${Math.abs(portfolioMetrics.realizedPnL).toLocaleString()}
-              </p>
             </div>
-          </div>
-
-          <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
-              <CalendarClock className="h-5 w-5" />
-            </span>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-                  {t('analytics.annualizedReturn')}
-                </p>
-                <InfoTooltip text={t('analytics.annualizedReturnDesc')} />
-              </div>
-              {portfolioMetrics.annualizedReturn !== null ? (
-                <p className={`mt-1 text-xl font-bold tracking-tight tabular-nums ${
-                  portfolioMetrics.annualizedReturn >= 0 ? 'text-stone-900' : 'text-rose-700'
-                }`}>
-                  {portfolioMetrics.annualizedReturn >= 0 ? '+' : ''}
-                  {portfolioMetrics.annualizedReturn.toFixed(1)}%
-                </p>
-              ) : (
-                <p className="mt-1 text-xl font-bold tracking-tight text-stone-300">—</p>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-stone-700">
-              <Scale className="h-5 w-5" />
-            </span>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-                  {t('analytics.sharpeRatio')}
-                </p>
-                <InfoTooltip text={t('analytics.sharpeRatioDesc')} />
-              </div>
-              {sharpeMeaningful ? (
-                <p className={`mt-1 text-xl font-bold tracking-tight tabular-nums ${sharpeColor}`}>
-                  {portfolioMetrics.sharpeRatio.toFixed(2)}
-                </p>
-              ) : (
-                <p className="mt-1 text-xl font-bold tracking-tight text-stone-300">—</p>
-              )}
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     );
