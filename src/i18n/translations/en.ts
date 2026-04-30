@@ -1133,10 +1133,6 @@ const en = {
           atRest: 'Database storage at rest is encrypted by our infrastructure provider (Supabase, on Amazon RDS).',
           rls: 'Row-Level Security at the database layer — every query carries your user identity, and the database refuses to return rows that do not belong to you. Other users of the platform cannot read your data, even if they obtained a session token of their own.',
           authVerification: 'Every API endpoint verifies your identity before any database operation; unauthenticated requests are rejected before they touch your data.'
-        },
-        operatorNote: {
-          title: 'What We, the Operators, Can See',
-          content: 'We want to be clear about this: data is stored without application-layer encryption. That means a person with administrative access to our database (currently the founding team) can technically read user-entered values such as domain names and prices. We do not access individual user data except (a) when you explicitly request support that requires it, or (b) to investigate a confirmed security or abuse incident. We do not sell, share, or use your portfolio data for any purpose beyond operating the service.'
         }
       },
       dataUsage: {

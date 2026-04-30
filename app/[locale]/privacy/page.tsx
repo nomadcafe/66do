@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, ShieldCheck, Calendar, Mail, AlertCircle } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Calendar, Mail } from 'lucide-react';
 import { useI18nContext } from '../../../src/contexts/I18nProvider';
 
 const SUPPORT_EMAIL = 'hello@domain.financial';
@@ -115,18 +115,6 @@ export default function PrivacyPage() {
                   t('privacy.dataSecurity.encryption.authVerification'),
                 ]}
               />
-            </div>
-
-            {/* Honest disclosure card — the key honesty pivot. Amber tint
-                signals "important note" without alarming users. */}
-            <div className="mt-4 rounded-xl border border-amber-200/70 bg-amber-50/60 p-4 sm:p-5">
-              <h3 className="mb-2 inline-flex items-center gap-2 text-sm font-semibold text-amber-900">
-                <AlertCircle className="h-4 w-4" />
-                {t('privacy.dataSecurity.operatorNote.title')}
-              </h3>
-              <p className="text-[15px] leading-relaxed text-amber-900/90">
-                {t('privacy.dataSecurity.operatorNote.content')}
-              </p>
             </div>
           </Section>
 
