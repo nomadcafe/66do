@@ -13,7 +13,7 @@
  * Hero Card 大数字（cumulative）共用，通过本模块的两个导出函数实现。
  */
 
-import { expandSellToCashReceipts } from './coreCalculations';
+import { expandSellToCashReceipts, calculateAnnualizedReturn, calculateInvestmentYears } from './coreCalculations';
 import { holdingCostAsOf } from './renewalCostBasis';
 import { sellNetUSD } from './sellProceeds';
 import type { DomainWithTags, TransactionWithRequiredFields } from '../types/dashboard';
@@ -184,6 +184,57 @@ export function realizedROI(
     costSold += cb;
   }
   return costSold > 0 ? (pnl / costSold) * 100 : 0;
+}
+
+/**
+ * 已实现年化收益率（百分比）— 时间窗口感知。
+ *
+ *   - windowMonths === null（"ALL"）：分子/分母用全部 sell 交易，年化期长
+ *     度 = 最早域名持有至今的年数（calculateInvestmentYears）
+ *   - windowMonths > 0（6M / 1Y / 2Y / 3Y）：只算 t.date 落在窗口内的 sell
+ *     交易，年化期长度 = windowMonths / 12
+ *
+ * cost basis 永远走完整 holdingCostAsOf 历史（不被窗口过滤），保证 Realized
+ * P&L 算法跨 surface 一致。返回 null 表示"该窗口内没有已实现交易"——UI 层
+ * 用 — 渲染，避免误显示 0% 让用户以为 "0% 收益"。
+ */
+export function annualizedRealizedReturn(
+  domains: DomainWithTags[],
+  transactions: TransactionWithRequiredFields[],
+  windowMonths: number | null
+): number | null {
+  let startMs = -Infinity;
+  let years: number;
+  if (windowMonths === null) {
+    years = calculateInvestmentYears(domains);
+  } else {
+    const now = new Date();
+    startMs = new Date(now.getFullYear(), now.getMonth() - (windowMonths - 1), 1).getTime();
+    years = windowMonths / 12;
+  }
+  if (years <= 0) return null;
+
+  const domainsById = new Map(domains.map((d) => [d.id, d]));
+  let pnl = 0;
+  let costSold = 0;
+  let count = 0;
+  for (const t of transactions) {
+    if (t.type !== 'sell') continue;
+    const txMs = new Date(t.date).getTime();
+    if (!Number.isFinite(txMs) || txMs < startMs) continue;
+    const domain = domainsById.get(t.domain_id);
+    if (!domain) continue;
+    const sellNet = sellNetUSD(t);
+    if (sellNet <= 0) continue;
+    const cb = holdingCostAsOf(domain, transactions, new Date(t.date));
+    pnl += sellNet - cb;
+    costSold += cb;
+    count++;
+  }
+
+  if (count === 0 || costSold <= 0) return null;
+  const totalReturn = pnl / costSold;
+  return calculateAnnualizedReturn(totalReturn, years) * 100;
 }
 
 /** Insights KPI 横条用的聚合：best sale / win rate / avg holding period */

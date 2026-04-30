@@ -2,8 +2,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { useComprehensiveFinancialAnalysis } from '../../hooks/useFinancialCalculations';
-import { calculateInvestmentYears, expandSellToCashReceipts } from '../../lib/coreCalculations';
-import { realizedPnLByMonth, totalRealizedPnL } from '../../lib/realizedPnL';
+import { expandSellToCashReceipts } from '../../lib/coreCalculations';
+import { realizedPnLByMonth, totalRealizedPnL, annualizedRealizedReturn } from '../../lib/realizedPnL';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import {
@@ -41,9 +41,13 @@ interface InvestmentAnalyticsProps {
 // totalProfit 改为 realizedPnL（与 Hero / IA 黄线 / FinancialAnalysisOptimized 同源），
 // 旧 basic.totalProfit (= totalRevenue − totalInvestment) 把持有未卖的 cost 也算分母，
 // 跟 Realized P&L 数字会不一致，会让用户在不同 surface 看到不同"赚多少"的数字。
+//
+// annualizedReturn: number | null — 跟时间窗口走（6M / 1Y / 2Y / 3Y / ALL），
+// null 表示该窗口内没有已实现交易，UI 显示 "—"。Sharpe 仍然 lifetime（基于
+// portfolio 整体波动率，跟时间窗口解耦）。
 interface PortfolioMetrics {
   realizedPnL: number;
-  annualizedReturn: number;
+  annualizedReturn: number | null;
   sharpeRatio: number;
   /** 已售域名数量——Sharpe Ratio 在样本 < SHARPE_MIN_SAMPLE 时统计意义不足，
    *  这时显示 "—" 而不是凭虚假精度的数字。 */
@@ -128,13 +132,9 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
   // 正确做法：所有 by-month 事件流用全量数据计算，得到完整的 Map<月份, 数值>
   // 再在图表循环里按 monthsToShow 取窗口内的月份显示。
 
-  const investmentYears = useMemo(
-    () => calculateInvestmentYears(domains),
-    [domains]
-  );
-
-  // Sharpe / 年化收益是 lifetime portfolio 指标，永远基于全量数据，
-  // 跟时间窗口选择器解耦——窗口选 6M 时这俩指标也展示 lifetime 数字。
+  // Sharpe Ratio 是 lifetime portfolio 指标（基于波动率，跟时间窗口解耦），
+  // 永远从全量数据派生。Annualized Return 走窗口感知的 annualizedRealizedReturn
+  // helper（见下方 portfolioMetrics）。
   const financialAnalysis = useComprehensiveFinancialAnalysis(domains, transactions);
 
   // 月度入账：分期销售用 expandSellToCashReceipts 按已付期展开到对应月份。
@@ -177,11 +177,14 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     }
     return {
       realizedPnL,
-      annualizedReturn: financialAnalysis.advanced.annualizedReturn,
+      // 年化跟着时间窗口变（6M / 1Y / 2Y / 3Y → 对应窗口；ALL → lifetime）。
+      // null 时 UI 渲染 "—"。
+      annualizedReturn: annualizedRealizedReturn(domains, transactions, monthsWindow),
+      // Sharpe Ratio 是 portfolio 级波动率指标，跟时间窗口解耦——永远 lifetime。
       sharpeRatio: financialAnalysis.advanced.sharpeRatio,
       soldCount,
     };
-  }, [domains, financialAnalysis, monthlyRealizedPnL, monthsWindow]);
+  }, [domains, transactions, financialAnalysis, monthlyRealizedPnL, monthsWindow]);
 
   const timeSeriesData: TimeSeriesData[] = useMemo(() => {
     const data: TimeSeriesData[] = [];
@@ -346,10 +349,13 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
                   {t('analytics.annualizedReturn')}
                 </p>
-                <InfoTooltip text={investmentYears < 1 ? t('analytics.annualizedReturnShortTerm') : t('analytics.annualizedReturnDesc')} />
+                <InfoTooltip text={t('analytics.annualizedReturnDesc')} />
               </div>
-              {investmentYears >= 1 ? (
-                <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-stone-900">
+              {portfolioMetrics.annualizedReturn !== null ? (
+                <p className={`mt-1 text-xl font-bold tracking-tight tabular-nums ${
+                  portfolioMetrics.annualizedReturn >= 0 ? 'text-stone-900' : 'text-rose-700'
+                }`}>
+                  {portfolioMetrics.annualizedReturn >= 0 ? '+' : ''}
                   {portfolioMetrics.annualizedReturn.toFixed(1)}%
                 </p>
               ) : (
