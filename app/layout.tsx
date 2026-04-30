@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { cookies, headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -18,6 +18,17 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Default OG image — 612×408 (the only branded asset we have today). Below
+// the 1200×630 ideal, but having one beats having none for FB / LinkedIn /
+// Slack unfurls. Listed in metadata so per-page generateMetadata that
+// doesn't override openGraph.images inherits this fallback.
+const OG_IMAGE = {
+  url: "/domainfinancialpng.png",
+  width: 612,
+  height: 408,
+  alt: "Domain.Financial",
+} as const;
+
 export const metadata: Metadata = {
   metadataBase: getSiteUrl(),
   title: "Domain.Financial – Track & Grow Your Domains",
@@ -27,6 +38,21 @@ export const metadata: Metadata = {
     shortcut: "/favicon.png",
     apple: "/favicon.png",
   },
+  openGraph: {
+    type: "website",
+    siteName: "Domain.Financial",
+    images: [OG_IMAGE],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: [OG_IMAGE.url],
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#0d9488", // teal-600 — matches CTA + primary accent
 };
 
 export default async function RootLayout({

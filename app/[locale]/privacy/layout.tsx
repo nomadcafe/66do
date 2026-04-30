@@ -33,7 +33,27 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       url: canonical,
       title: isZh ? '隐私政策' : 'Privacy Policy',
+      description: isZh
+        ? 'Domain.Financial 隐私政策与用户数据说明。'
+        : 'Domain.Financial privacy policy and how we handle your data.',
       type: 'website',
+      siteName: 'Domain.Financial',
+      images: [
+        {
+          url: '/domainfinancialpng.png',
+          width: 612,
+          height: 408,
+          alt: 'Domain.Financial',
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: isZh ? '隐私政策 · Domain.Financial' : 'Privacy Policy · Domain.Financial',
+      description: isZh
+        ? 'Domain.Financial 隐私政策与用户数据说明。'
+        : 'Domain.Financial privacy policy and how we handle your data.',
+      images: ['/domainfinancialpng.png'],
     },
   };
 }
