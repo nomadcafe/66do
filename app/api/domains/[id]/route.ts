@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { DomainService } from '../../../../src/lib/supabaseService'
 import { validateDomain, sanitizeDomainData } from '../../../../src/lib/validation'
+import { buildDomainUpdatePayload } from '../../../../src/lib/domainPayloads'
 import { getAuthInfoFromRequest } from '../../../../src/lib/auth-helper'
 import { createAuthenticatedSupabaseClient } from '../../../../src/lib/supabaseAuthClient'
 import { getCorsHeaders, getCorsHeadersForError } from '../../../../src/lib/cors'
@@ -108,26 +109,27 @@ export async function PUT(
     }
     
     const sanitizedUpdateDomain = sanitizeDomainData(domain)
+    const updatePayload = buildDomainUpdatePayload(sanitizedUpdateDomain)
     const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined
     const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken, refreshToken)
 
     // 验证域名所有权
     const userDomains = await DomainService.getDomainsWithClient(authenticatedClient, userId)
     const canUpdate = userDomains.some(d => d.id === domainId)
-    
+
     if (!canUpdate) {
-      return NextResponse.json({ 
-        error: 'Domain not found or access denied' 
-      }, { 
+      return NextResponse.json({
+        error: 'Domain not found or access denied'
+      }, {
         status: 403,
         headers: corsHeaders
       })
     }
-    
+
     const updatedDomain = await DomainService.updateDomainWithClient(
       authenticatedClient,
       domainId,
-      sanitizedUpdateDomain,
+      updatePayload,
       userId
     )
     
