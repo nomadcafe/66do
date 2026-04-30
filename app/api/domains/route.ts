@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { DomainService } from '../../../src/lib/supabaseService'
 import { validateDomain, sanitizeDomainData } from '../../../src/lib/validation'
+import { buildDomainInsertPayload } from '../../../src/lib/domainPayloads'
 import { getAuthInfoFromRequest } from '../../../src/lib/auth-helper'
 import { createAuthenticatedSupabaseClient } from '../../../src/lib/supabaseAuthClient'
 import { getCorsHeaders, getCorsHeadersForError, noCacheHeaders } from '../../../src/lib/cors'
@@ -91,24 +92,9 @@ export async function POST(request: NextRequest) {
         }
         
         const sanitizedDomain = sanitizeDomainData(domainData) as Record<string, unknown>
-        const domainId = (typeof sanitizedDomain.id === 'string' && sanitizedDomain.id.trim())
-          ? (sanitizedDomain.id as string).trim()
-          : crypto.randomUUID()
-        const tagsForDb = Array.isArray(sanitizedDomain.tags)
-          ? JSON.stringify(sanitizedDomain.tags)
-          : (typeof sanitizedDomain.tags === 'string' ? sanitizedDomain.tags : '[]')
-        const status = ['active', 'for_sale', 'sold', 'expired'].includes((sanitizedDomain.status as string) || '')
-          ? (sanitizedDomain.status as string)
-          : 'active'
-        const newDomain = await DomainService.createDomainWithClient(authenticatedClient, { 
-          ...sanitizedDomain, 
-          tags: tagsForDb,
-          status,
-          user_id: userId,
-          id: domainId,
-          domain_name: (sanitizedDomain.domain_name as string) || ''
-        })
-        
+        const payload = buildDomainInsertPayload(sanitizedDomain, userId)
+        const newDomain = await DomainService.createDomainWithClient(authenticatedClient, payload)
+
         if (newDomain) {
           createdDomains.push(newDomain)
         }
@@ -153,24 +139,9 @@ export async function POST(request: NextRequest) {
     }
     
     const sanitizedDomain = sanitizeDomainData(domain) as Record<string, unknown>
-    const domainId = (typeof sanitizedDomain.id === 'string' && sanitizedDomain.id.trim())
-      ? (sanitizedDomain.id as string).trim()
-      : crypto.randomUUID()
-    const tagsForDb = Array.isArray(sanitizedDomain.tags)
-      ? JSON.stringify(sanitizedDomain.tags)
-      : (typeof sanitizedDomain.tags === 'string' ? sanitizedDomain.tags : '[]')
-    const status = ['active', 'for_sale', 'sold', 'expired'].includes((sanitizedDomain.status as string) || '')
-      ? (sanitizedDomain.status as string)
-      : 'active'
-    const newDomain = await DomainService.createDomainWithClient(authenticatedClient, { 
-      ...sanitizedDomain, 
-      tags: tagsForDb,
-      status,
-      user_id: userId,
-      id: domainId,
-      domain_name: (sanitizedDomain.domain_name as string) || ''
-    })
-    
+    const payload = buildDomainInsertPayload(sanitizedDomain, userId)
+    const newDomain = await DomainService.createDomainWithClient(authenticatedClient, payload)
+
     if (!newDomain) {
       console.error('Failed to create domain - see server logs for details')
       return NextResponse.json({
