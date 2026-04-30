@@ -1032,17 +1032,10 @@ const zh = {
       dataCollection: {
         title: '我们收集的数据',
         content: '只收集运营服务所必需的数据：',
-        personalData: {
-          title: '账户与组合数据',
-          email: '邮箱地址 —— 用于登录、Magic Link 与服务通知。',
-          domainInfo: '您手动添加的域名，以及您填写的注册商和日期。',
-          financialData: '购买成本、续费费用、销售价格等您主动录入的财务字段。',
-          transactionData: '您录入的交易记录（购买 / 出售 / 续费）。',
-          analyticsData: '通过 Vercel Analytics 收集的匿名访问统计（页面浏览、性能指标），不使用 Cookie，无跨站追踪。'
-        },
-        sensitiveData: {
-          title: '关于您的财务数据',
-          content: '域名价格与交易金额按您填写的内容存储。我们不处理信用卡号、银行账户或任何支付凭证 —— 您在应用内录入的"交易"是账本记录，不是真正的资金往来。'
+        items: {
+          account: '您的邮箱地址，用于登录与服务通知。',
+          portfolio: '您在使用过程中主动录入的相关信息。',
+          analytics: '匿名访问统计 —— 不使用 Cookie，无跨站追踪。'
         }
       },
       dataSecurity: {
@@ -1058,12 +1051,9 @@ const zh = {
       },
       dataUsage: {
         title: '我们如何使用您的数据',
-        content: '只用于您在产品里看到的功能：',
-        portfolioManagement: '展示您添加的域名。',
-        financialAnalysis: '在仪表板里计算各项指标、图表与报告。',
-        renewalTracking: '跟踪即将到期的续费并提醒您。',
-        performanceMetrics: '计算 ROI、持有成本、已实现盈亏等数字。',
-        userExperience: '记住语言等偏好，让 UI 按您设置的样子运行。'
+        content: '您的数据仅用于向您本人提供服务：',
+        features: '驱动您日常使用的产品功能（数据展示、分析、提醒等）。',
+        preferences: '记住您的偏好设置（如语言），让界面按您设置的样子运行。'
       },
       dataSharing: {
         title: '数据共享',
@@ -1093,7 +1083,6 @@ const zh = {
           title: '保留期限',
           account: '账户数据 —— 在您删除账户之前保留。',
           domainData: '域名与交易记录 —— 直到您删除该记录或账户。',
-          transactionData: '账单或税务相关记录（目前无 —— 服务免费）—— 不保留。',
           analytics: '聚合分析 —— 最长保留 2 年，且永远不与您的账户身份关联。'
         }
       },
