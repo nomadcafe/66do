@@ -78,7 +78,11 @@ export async function GET(
       'Content-Type': 'text/calendar; charset=utf-8',
       // Calendar clients poll regularly; a 1-hour cache cuts server load
       // without making "I just renewed" feel stale for too long.
-      'Cache-Control': 'public, max-age=3600',
+      // `private` keeps shared caches (corporate proxies / CDN edges) from
+      // storing the body — the URL token is the only auth, so a cached
+      // response is itself a credential leak vector if the URL surfaces
+      // anywhere it shouldn't.
+      'Cache-Control': 'private, max-age=3600',
       // Hint a filename for clients that download instead of subscribing.
       'Content-Disposition': 'inline; filename="domain-renewals.ics"',
     },

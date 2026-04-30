@@ -1,6 +1,10 @@
-// 生产环境日志控制
+// 生产环境日志控制。
+// 注意：故意用 ENABLE_DEBUG_LOGS（非 NEXT_PUBLIC_）—— 这个变量不能进客户端
+// bundle，否则浏览器 console 会暴露所有 logger.debug 内容（含未来可能加进
+// 来的对象快照、user 信息等）。客户端 prod 永远不打 debug 日志；服务端可
+// 以在 Vercel 上按需打开。
 const isProduction = process.env.NODE_ENV === 'production';
-const enableDebugLogs = process.env.NEXT_PUBLIC_ENABLE_DEBUG_LOGS === 'true';
+const enableDebugLogs = process.env.ENABLE_DEBUG_LOGS === 'true';
 
 export const logger = {
   log: (...args: unknown[]) => {
