@@ -63,7 +63,8 @@ interface TimeSeriesData {
   date: string;
   investment: number;        // 单月新增 cost basis（buy + 实际续费 archive/tx）
   renewalCost: number;       // investment 里归属于「实际续费」的部分（archive + tx，不含 projected）
-  revenue: number;           // 单月净入账（分期销售按到账月展开）
+  revenue: number;           // 单月净入账（分期销售按到账月展开）—— 给 monthlyCashFlow 用，不画
+  grossSales: number;        // 单月毛额入账（分期销售按到账月展开）—— Performance chart 绿色 area
   realizedPnL: number;       // 累计已实现盈亏：每笔出售 (sellNet − cost basis at sale)，按到账月分摊
   monthlyCashFlow: number;   // 给月度净现金流图用，本图不画
 }
@@ -101,7 +102,9 @@ export default function InvestmentAnalytics({
 
   // 图表 4 条数据系列的显隐开关——legend 上点击切换，hide=true 时 Recharts
   // 不渲染该 series。默认全亮；用户主动隐藏后保留在本 component 生命周期内。
-  type ChartSeriesKey = 'investment' | 'renewalCost' | 'revenue' | 'realizedPnL';
+  // grossSales 而不是 revenue（净入账）：跟上面 KPI tile 的 Total Sales 同源，
+  // 避免 chart 绿线和上面绿色 KPI 数字差一截（差值 = 平台费）让用户困惑。
+  type ChartSeriesKey = 'investment' | 'renewalCost' | 'grossSales' | 'realizedPnL';
   const [hiddenSeries, setHiddenSeries] = useState<Set<ChartSeriesKey>>(() => new Set());
   const toggleSeries = (key: ChartSeriesKey) => {
     setHiddenSeries((prev) => {
@@ -242,6 +245,7 @@ export default function InvestmentAnalytics({
 
       // 入账：从 monthlyNetInflowByMonth 直接取（已按到账月聚合）。
       const revenue = monthlyNetInflowByMonth.get(monthKey) ?? 0;
+      const grossSales = monthlyGrossInflowByMonth.get(monthKey) ?? 0;
 
       // 月度净现金流 = 本月实收 - 本月花出（买入/续费/平台费）。
       // 流出按 t.date 月份归类：buy/renew/fee 都是一次性付款，不存在分期到账问题。
@@ -262,19 +266,20 @@ export default function InvestmentAnalytics({
         investment,
         renewalCost,
         revenue,
+        grossSales,
         realizedPnL: cumulativeRealizedPnL,
         monthlyCashFlow
       });
     }
 
     return data;
-  }, [domains, transactions, monthsWindow, monthlyNetInflowByMonth, monthlyRealizedPnL]);
+  }, [domains, transactions, monthsWindow, monthlyNetInflowByMonth, monthlyGrossInflowByMonth, monthlyRealizedPnL]);
 
   // KPI 4 项全部跟随时间窗口。Investment / Renewal Cost 直接对 timeSeriesData
   // 求和（保证 KPI 数值 = 用户在 chart 可见区间上看到的总和）。Realized P&L
   // 单独算累计（按到账月落入窗口的部分相加，跟图表黄线最右端对齐）；
-  // Total Sales 用 monthlyGrossInflowByMonth 按窗口月份累加（毛额，跟 chart
-  // emerald net 不直接对齐，提供「合同 vs 净到账」的对比维度）。
+  // Total Sales 用 monthlyGrossInflowByMonth 按窗口月份累加，跟 chart 的
+  // emerald grossSales area 同源，KPI 数字 = chart 该序列在窗口的求和。
   const portfolioMetrics: PortfolioMetrics = useMemo(() => {
     const now = new Date();
     const startMonth =
@@ -452,7 +457,7 @@ export default function InvestmentAnalytics({
     }> = [
       { key: 'investment',  label: t('analytics.investment'),  swatch: 'block', color: 'bg-indigo-500' },
       { key: 'renewalCost', label: t('analytics.renewalCost'), swatch: 'dash',  color: 'bg-purple-500' },
-      { key: 'revenue',     label: t('analytics.revenue'),     swatch: 'block', color: 'bg-emerald-500' },
+      { key: 'grossSales',  label: t('financial.totalSales'),  swatch: 'block', color: 'bg-emerald-500' },
       { key: 'realizedPnL', label: t('analytics.realizedPnL'), swatch: 'block', color: 'bg-amber-500' },
     ];
 
@@ -560,13 +565,13 @@ export default function InvestmentAnalytics({
             />
             <Area
               type="monotone"
-              dataKey="revenue"
+              dataKey="grossSales"
               stroke="#10b981"
               fill="url(#colorRevenue)"
               strokeWidth={2}
-              name={t('analytics.revenue')}
+              name={t('financial.totalSales')}
               activeDot={{ r: 6, fill: '#10b981' }}
-              hide={hiddenSeries.has('revenue')}
+              hide={hiddenSeries.has('grossSales')}
             />
             <Line
               type="monotone"
