@@ -2,7 +2,7 @@
 
 import { useMemo, memo, useCallback, useEffect } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { Search, Filter, Plus, Edit, Trash2, Calendar, FileText, LayoutList, GitBranch, ArrowUp, ArrowDown, TrendingUp, TrendingDown, Scale, Hash } from 'lucide-react';
+import { Search, Filter, Plus, Edit, Trash2, Calendar, FileText, LayoutList, GitBranch, ArrowUp, ArrowDown, TrendingUp, TrendingDown, Scale, Hash, Coins, Receipt, Award, DollarSign } from 'lucide-react';
 import { sellGrossUSD, sellNetUSD } from '../../lib/coreCalculations';
 import { calculateDomainROI, formatPercentage } from '../../lib/enhancedFinancialMetrics';
 import { useI18nContext } from '../../contexts/I18nProvider';
@@ -347,6 +347,161 @@ const TransactionList = memo(function TransactionList({
     return { inflow, outflow, net: inflow - outflow, count: filteredTransactions.length };
   }, [filteredTransactions, metricsById]);
 
+  // Type-aware KPI tiles. Single-type filter ≠ all 时 inflow/outflow/net 三
+  // 个里有两个必然冗余（sell 时 outflow=0、net=inflow；buy/renew 等只时反
+  // 过来）。所以根据 typeFilter 切换 KPI 含义：sell 看销售三件套（Gross /
+  // Net / Fees），其他单一支出看支出统计（Total / Avg / Largest）。ALL 走
+  // 历史 4 KPI（Inflow/Outflow/Net/Count）保持原有"全局现金流"语义。
+  type KpiTile = {
+    key: string;
+    label: string;
+    value: string;
+    iconBg: string;
+    valueColor: string;
+    icon: React.ReactNode;
+  };
+  const sellKpis = useMemo(() => {
+    let gross = 0;
+    let net = 0;
+    for (const tx of filteredTransactions) {
+      const adj = metricsById.get(tx.id) ?? tx;
+      const g = sellGrossUSD(adj);
+      const n = sellNetUSD(adj);
+      if (Number.isFinite(g)) gross += g;
+      if (Number.isFinite(n)) net += n;
+    }
+    return { gross, net, fees: Math.max(0, gross - net) };
+  }, [filteredTransactions, metricsById]);
+  const outflowKpis = useMemo(() => {
+    let total = 0;
+    let largest = 0;
+    for (const tx of filteredTransactions) {
+      const adj = metricsById.get(tx.id) ?? tx;
+      const v = Number(adj.amount ?? 0);
+      if (!Number.isFinite(v)) continue;
+      total += v;
+      if (v > largest) largest = v;
+    }
+    const count = filteredTransactions.length;
+    return { total, largest, avg: count > 0 ? total / count : 0 };
+  }, [filteredTransactions, metricsById]);
+
+  const kpiTiles: KpiTile[] = useMemo(() => {
+    const fmt = (n: number) => formatCurrency(n, 'USD');
+    const countTile: KpiTile = {
+      key: 'count',
+      label: t('transactionList.kpiCount'),
+      value: String(periodMetrics.count),
+      iconBg: 'bg-stone-100 text-stone-700',
+      valueColor: 'text-stone-900',
+      icon: <Hash className="h-5 w-5" />,
+    };
+
+    if (typeFilter === 'sell') {
+      return [
+        {
+          key: 'totalSales',
+          label: t('transactionList.kpiTotalSales'),
+          value: fmt(sellKpis.gross),
+          iconBg: 'bg-emerald-50 text-emerald-700',
+          valueColor: 'text-emerald-700',
+          icon: <Coins className="h-5 w-5" />,
+        },
+        {
+          key: 'netRevenue',
+          label: t('transactionList.kpiNetRevenue'),
+          value: fmt(sellKpis.net),
+          iconBg: 'bg-emerald-50 text-emerald-700',
+          valueColor: 'text-emerald-700',
+          icon: <TrendingUp className="h-5 w-5" />,
+        },
+        {
+          key: 'platformFees',
+          label: t('transactionList.kpiPlatformFees'),
+          value: fmt(sellKpis.fees),
+          iconBg: 'bg-stone-100 text-stone-700',
+          valueColor: 'text-stone-900',
+          icon: <Receipt className="h-5 w-5" />,
+        },
+        countTile,
+      ];
+    }
+
+    // 单一支出类型 filter（buy/renew/fee/transfer/marketing/advertising）：
+    // 把 4 KPI 改成支出语境（总支出 / 平均 / 最大单笔 / 笔数）。
+    if (typeFilter !== 'all') {
+      return [
+        {
+          key: 'totalSpent',
+          label: t('transactionList.kpiTotalSpent'),
+          value: fmt(outflowKpis.total),
+          iconBg: 'bg-rose-50 text-rose-700',
+          valueColor: 'text-rose-700',
+          icon: <TrendingDown className="h-5 w-5" />,
+        },
+        {
+          key: 'avgPerTx',
+          label: t('transactionList.kpiAvgPerTx'),
+          value: fmt(outflowKpis.avg),
+          iconBg: 'bg-stone-100 text-stone-700',
+          valueColor: 'text-stone-900',
+          icon: <DollarSign className="h-5 w-5" />,
+        },
+        {
+          key: 'largest',
+          label: t('transactionList.kpiLargest'),
+          value: fmt(outflowKpis.largest),
+          iconBg: 'bg-stone-100 text-stone-700',
+          valueColor: 'text-stone-900',
+          icon: <Award className="h-5 w-5" />,
+        },
+        countTile,
+      ];
+    }
+
+    // ALL：保留历史 4 KPI 的"全局现金流"语义。
+    const netSign = periodMetrics.net > 0 ? '+' : periodMetrics.net < 0 ? '−' : '';
+    const netColor =
+      periodMetrics.net > 0
+        ? 'text-emerald-700'
+        : periodMetrics.net < 0
+          ? 'text-rose-700'
+          : 'text-stone-700';
+    const netIconBg =
+      periodMetrics.net > 0
+        ? 'bg-emerald-50 text-emerald-700'
+        : periodMetrics.net < 0
+          ? 'bg-rose-50 text-rose-700'
+          : 'bg-stone-100 text-stone-700';
+    return [
+      {
+        key: 'inflow',
+        label: t('transactionList.kpiInflow'),
+        value: `${periodMetrics.inflow > 0 ? '+' : ''}${fmt(periodMetrics.inflow)}`,
+        iconBg: 'bg-emerald-50 text-emerald-700',
+        valueColor: 'text-emerald-700',
+        icon: <TrendingUp className="h-5 w-5" />,
+      },
+      {
+        key: 'outflow',
+        label: t('transactionList.kpiOutflow'),
+        value: `${periodMetrics.outflow > 0 ? '−' : ''}${fmt(periodMetrics.outflow)}`,
+        iconBg: 'bg-rose-50 text-rose-700',
+        valueColor: 'text-rose-700',
+        icon: <TrendingDown className="h-5 w-5" />,
+      },
+      {
+        key: 'net',
+        label: t('transactionList.kpiNet'),
+        value: `${netSign}${fmt(Math.abs(periodMetrics.net))}`,
+        iconBg: netIconBg,
+        valueColor: netColor,
+        icon: <Scale className="h-5 w-5" />,
+      },
+      countTile,
+    ];
+  }, [typeFilter, periodMetrics, sellKpis, outflowKpis, t, formatCurrency]);
+
   const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / TRANSACTIONS_PAGE_SIZE));
   const page = Math.min(pageRaw, totalPages);
 
@@ -524,75 +679,23 @@ const TransactionList = memo(function TransactionList({
         <div className="relative overflow-hidden rounded-3xl border border-stone-200/60 bg-gradient-to-br from-stone-50 via-white to-emerald-50/30 shadow-sm">
           <div className="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-gradient-to-br from-emerald-100/30 to-transparent blur-3xl" />
           <div className="relative grid grid-cols-2 gap-4 p-5 sm:p-6 lg:grid-cols-4 lg:gap-6">
-            <div className="flex items-start gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
-                <TrendingUp className="h-5 w-5" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-                  {t('transactionList.kpiInflow')}
-                </p>
-                <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-emerald-700">
-                  {periodMetrics.inflow > 0 ? '+' : ''}{formatCurrency(periodMetrics.inflow, 'USD')}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-700">
-                <TrendingDown className="h-5 w-5" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-                  {t('transactionList.kpiOutflow')}
-                </p>
-                <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-rose-700">
-                  {periodMetrics.outflow > 0 && '−'}{formatCurrency(periodMetrics.outflow, 'USD')}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <span
-                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-                  periodMetrics.net > 0
-                    ? 'bg-emerald-50 text-emerald-700'
-                    : periodMetrics.net < 0
-                      ? 'bg-rose-50 text-rose-700'
-                      : 'bg-stone-100 text-stone-700'
-                }`}
-              >
-                <Scale className="h-5 w-5" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-                  {t('transactionList.kpiNet')}
-                </p>
-                <p
-                  className={`mt-1 text-xl font-bold tracking-tight tabular-nums ${
-                    periodMetrics.net > 0
-                      ? 'text-emerald-700'
-                      : periodMetrics.net < 0
-                        ? 'text-rose-700'
-                        : 'text-stone-700'
-                  }`}
+            {kpiTiles.map((tile) => (
+              <div key={tile.key} className="flex items-start gap-3">
+                <span
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tile.iconBg}`}
                 >
-                  {periodMetrics.net > 0 ? '+' : periodMetrics.net < 0 ? '−' : ''}
-                  {formatCurrency(Math.abs(periodMetrics.net), 'USD')}
-                </p>
+                  {tile.icon}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                    {tile.label}
+                  </p>
+                  <p className={`mt-1 text-xl font-bold tracking-tight tabular-nums ${tile.valueColor}`}>
+                    {tile.value}
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-stone-700">
-                <Hash className="h-5 w-5" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-                  {t('transactionList.kpiCount')}
-                </p>
-                <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-stone-900">
-                  {periodMetrics.count}
-                </p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       )}
