@@ -853,7 +853,6 @@ const en = {
       },
       investment: 'Investment',
       renewalCost: 'Renewal cost',
-      renewalCostProjected: 'Projected renewal',
       revenue: 'Revenue',
       realizedPnL: 'Realized P&L',
       riskMetrics: 'Risk Metrics',
