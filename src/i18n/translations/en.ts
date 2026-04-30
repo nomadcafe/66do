@@ -1126,6 +1126,10 @@ const en = {
           atRest: 'Database storage at rest is encrypted by our infrastructure provider (Supabase, on Amazon RDS).',
           rls: 'Row-Level Security at the database layer — every query carries your user identity, and the database refuses to return rows that do not belong to you. Other users of the platform cannot read your data, even if they obtained a session token of their own.',
           authVerification: 'Every API endpoint verifies your identity before any database operation; unauthenticated requests are rejected before they touch your data.'
+        },
+        notifications: {
+          title: 'Sign-In & Sensitive-Operation Alerts',
+          content: 'We send you an email each time your account is signed in (deduplicated to once every 24 hours per device, so you are not spammed by everyday browser relaunches), and on sensitive operations such as data export. To populate these emails we use your browser/OS name and an approximate region (city + country) derived from our hosting provider\'s edge headers. We do not store your raw IP address; the user-agent string is hashed for deduplication and the human-readable summary is what we keep.'
         }
       },
       dataUsage: {

@@ -251,6 +251,38 @@ export interface Database {
           created_at?: string
         }
       }
+      auth_events: {
+        Row: {
+          id: string
+          user_id: string
+          event_type: string
+          ua_hash: string | null
+          ua_summary: string | null
+          region: string | null
+          email_sent: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          event_type: string
+          ua_hash?: string | null
+          ua_summary?: string | null
+          region?: string | null
+          email_sent?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          event_type?: string
+          ua_hash?: string | null
+          ua_summary?: string | null
+          region?: string | null
+          email_sent?: boolean
+          created_at?: string
+        }
+      }
     }
   }
 }
