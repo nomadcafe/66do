@@ -68,20 +68,10 @@ export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
       version: '2026-04-30',
       date: '2026-04-30',
       items: [
-        'Insights 子 tab 二次拆分：原 Performance 拆为「Performance」（业绩结果，Top Performers + 现金流 + 时间窗口图表）和「Portfolio」（持仓构成，三张分布图）；语义更清晰，需要哪类视角直接定位。',
-        '指标口径优化：Win rate 升级为 Success rate（盈利卖出 / 历史持有总数，含 expired），更贴合域名投资真实命中率；Performance hero 砍掉容易爆表的 Annualized Return / Sharpe Ratio，新增 Net Profit、Total Sales、Platform Fees；图表绿色面积由 Revenue（净）切到 Total Sales（毛额），与上方 KPI 同源对齐。',
-        '表单清理：「续费成本基线日」只在编辑老域名时显示（新建场景对该字段无实际影响），文案重写为按行为说明，去掉技术术语。',
-        '体验与底层：交易列表 KPI tile 按交易类型自适应；仪表板 tab 切换改为 state 驱动 + 访问过的子 tab 保持挂载，二次切换零延迟；安全 / 缓存 / API 字段映射做了一轮加固。',
-      ],
-    },
-    {
-      version: '2026-04-29',
-      date: '2026-04-29',
-      items: [
-        '全站视觉刷新：登录 / 404 / 错误页 / Landing Hero / 空态 / Loading 骨架对齐到统一调色板（stone + teal / emerald）；表单与弹窗、域名卡片与表格也同步刷新，新增状态侧边色条。',
-        'Insights 首轮重构：顶部新增 4 项 KPI strip（Realized P&L / Best sale / Win rate / Avg holding），下方改为分段子 tab（Performance / Renewals / Loss），替代原来纵向 5 段长滚，常用面板 1 次点击直达。',
-        '分析升级：续费预测 + YTD 与事件流对齐，archive 续费日期按 expiry 倒推（不再堆在基线日）；Annual Renewal Analysis 接入统一事件流；Top Performers / 最差成交统一走 net 口径；Loss Analysis 调玫红主题 + 真诚的 0 状态。',
-        '杂项：Portfolio card 同时显示分摊与现金两种 YTD 续费口径；Yearly Cashflow 表迁入 Performance 并改为现金流方向口径；多处冗余面板（Renewal Overview / Accuracy 等）下线。',
+        '全站视觉刷新：登录、404、Landing、空态、表单、域名卡片与表格统一到一套调色板（stone + teal / emerald），整体观感更一致。',
+        'Insights 重构：顶部 KPI strip + 分段子 tab（Performance / Portfolio / Renewals / Loss）替代原来的纵向长滚，常用面板一键直达。',
+        '指标口径优化：Win rate 升级为 Success rate（盈利卖出 / 历史持有），更贴合域名投资真实命中率；Performance 图表与 KPI 口径对齐，砍掉容易爆表的 Annualized Return / Sharpe。',
+        '其他：续费预测与 YTD 对齐、Loss Analysis 重做、Yearly Cashflow 改为现金流方向、若干表单文案简化。',
       ],
     },
     {
@@ -146,20 +136,10 @@ export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
       version: '2026-04-30',
       date: '2026-04-30',
       items: [
-        'Insights sub-tabs split again: the old Performance tab is now "Performance" (results — Top Performers, cashflow, timeframe chart) and "Portfolio" (composition — the three distribution charts). Cleaner semantics, one click to the view you want.',
-        'Metric overhaul: Win rate is replaced by Success rate (profitable sales / total domains ever owned, including expired) — closer to a domain investor\'s real hit rate. The Performance hero drops easy-to-explode Annualized Return / Sharpe and adds Net Profit, Total Sales, Platform Fees; the chart\'s green area switches from Revenue (net) to Total Sales (gross) so it lines up with the KPI tile above.',
-        'Form cleanup: the "Renewal cost baseline" field now only appears when editing existing domains (it has no observable effect on Add); help text was rewritten in terms of behavior, not internal field names.',
-        'Polish & internals: transaction-list KPI tiles adapt to the active type filter; dashboard tab switching moved to state-driven with visited sub-tabs kept mounted, so re-entering is instant; a round of security / caching / API payload mapping hardening.',
-      ],
-    },
-    {
-      version: '2026-04-29',
-      date: '2026-04-29',
-      items: [
-        'Full visual refresh: login / 404 / error / landing hero / empty / loading skeleton aligned to one palette (stone + teal / emerald); forms, modals, domain cards, and tables refreshed with status edge stripes.',
-        'Insights v1 redesign: a 4-tile KPI strip on top (Realized P&L / Best sale / Win rate / Avg holding) plus segmented sub-tabs (Performance / Renewals / Loss) replace the old vertical 5-section scroll — the panel you want is one click away.',
-        'Analytics upgrades: renewal forecasting + YTD now share one event stream, with archive renewal dates walked back from expiry instead of all stacked on the baseline date; Annual Renewal Analysis switched to the same event stream; Top Performers / worst sale unified on net proceeds; Loss Analysis recolored to rose with an honest zero state.',
-        'Misc: Portfolio card shows both amortized and cash-basis YTD renewal cost; Yearly Cashflow table moved into Performance with cash-flow-direction labels; redundant panels (Renewal Overview / Accuracy etc.) retired.',
+        'Visual refresh: login, 404, landing, empty states, forms, domain cards, and tables all moved onto one palette (stone + teal / emerald) for a more cohesive look.',
+        'Insights restructure: a top KPI strip plus segmented sub-tabs (Performance / Portfolio / Renewals / Loss) replace the old vertical scroll — the panel you want is one click away.',
+        'Metrics tuned: Win rate is replaced by Success rate (profitable sales / total domains ever owned), closer to a domain investor\'s real hit rate. Performance chart aligned with the KPI tiles, and the easy-to-explode Annualized Return / Sharpe are out.',
+        'Also: renewal forecasting unified with YTD, Loss Analysis recolored, Yearly Cashflow re-labeled by direction, and a sweep of form copy simplification.',
       ],
     },
     {
