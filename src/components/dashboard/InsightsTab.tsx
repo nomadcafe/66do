@@ -21,24 +21,27 @@ interface InsightsTabProps {
   formatCurrency: (n: number, currency?: string) => string;
 }
 
-type InsightsSubTab = 'performance' | 'renewals' | 'loss';
-const VALID_SUB_TABS: readonly InsightsSubTab[] = ['performance', 'renewals', 'loss'] as const;
+type InsightsSubTab = 'performance' | 'portfolio' | 'renewals' | 'loss';
+const VALID_SUB_TABS: readonly InsightsSubTab[] = ['performance', 'portfolio', 'renewals', 'loss'] as const;
 
 /**
- * Insights tab — completely restructured from the old "5 deep panels stacked
- * vertically" layout into:
+ * Insights tab — restructured from the old "5 deep panels stacked vertically"
+ * layout into a KPI hero strip + sub-tabs:
  *
  *   [ KPI strip — 4 trade-performance metrics in a gradient hero strip ]
- *   [ Sub-tab nav — Performance / Renewals / Loss (segmented control)  ]
+ *   [ Sub-tab nav — Performance / Portfolio / Renewals / Loss          ]
  *   [ Tab-scoped content                                                ]
  *
- * The KPI strip provides anchoring context that survives no matter which
- * sub-tab is active (you can scan "Realized P&L $X · Win rate Y%" while
- * looking at any deep panel below). The sub-tabs replace the old infinite
- * scroll, so the user reaches Loss analysis in 1 click instead of 5 scroll
- * pages.
+ * Sub-tab semantics:
+ *   - Performance: results-focused (lifetime KPI, Top Performers, perf chart,
+ *     monthly cashflow, yearly cashflow table) — "how the trades did"
+ *   - Portfolio:   composition-focused (Held Suffix / Investment / Registrar
+ *     distributions) — "what we currently hold and where"
+ *   - Renewals:    upcoming + historical renewal cost analysis
+ *   - Loss:        expired domain loss analysis
  *
- * Sub-tab state lives in `?ins=` (separate from the outer `?tab=insights`).
+ * The KPI strip stays visible across sub-tabs as anchoring context. Sub-tab
+ * state lives in `?ins=` (separate from the outer `?tab=insights`).
  */
 export default function InsightsTab({
   domains,
@@ -229,6 +232,14 @@ export default function InsightsTab({
         </button>
         <button
           type="button"
+          onClick={() => setSubTab('portfolio')}
+          aria-pressed={activeSubTab === 'portfolio'}
+          className={pillClass('portfolio')}
+        >
+          {t('insights.subTabPortfolio')}
+        </button>
+        <button
+          type="button"
           onClick={() => setSubTab('renewals')}
           aria-pressed={activeSubTab === 'renewals'}
           className={pillClass('renewals')}
@@ -254,10 +265,26 @@ export default function InsightsTab({
             <LazyFinancialAnalysis domains={domains} transactions={transactionsForMetrics} />
           </LazyWrapper>
           <LazyWrapper>
-            <LazyInvestmentAnalytics domains={domains} transactions={transactionsForMetrics} />
+            <LazyInvestmentAnalytics
+              domains={domains}
+              transactions={transactionsForMetrics}
+              section="analysis"
+            />
           </LazyWrapper>
           <LazyWrapper>
             <LazyYearlyCashflowTable domains={domains} transactions={transactionsForMetrics} />
+          </LazyWrapper>
+        </div>
+      )}
+
+      {visited.has('portfolio') && (
+        <div className="space-y-6" hidden={activeSubTab !== 'portfolio'}>
+          <LazyWrapper>
+            <LazyInvestmentAnalytics
+              domains={domains}
+              transactions={transactionsForMetrics}
+              section="distribution"
+            />
           </LazyWrapper>
         </div>
       )}

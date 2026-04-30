@@ -36,6 +36,11 @@ import { expandRenewalEvents } from '../../lib/expandRenewalEvents';
 interface InvestmentAnalyticsProps {
   domains: DomainWithTags[];
   transactions: TransactionWithRequiredFields[];
+  // 'analysis' = KPI tiles + perf chart + monthly cashflow（业绩视角，跟时间窗口
+  // 联动），'distribution' = 三张持仓分布（Suffix / Investment / Registrar，
+  // 跟时间窗口无关）。Insights 把这两类拆到 Performance vs Portfolio 子 tab
+  // 后用同一个组件按 section 渲染对应块。
+  section?: 'analysis' | 'distribution';
 }
 
 // 4 个 KPI tile，全部跟随时间窗口选择器。
@@ -86,7 +91,11 @@ const CHART_PALETTE = [
   '#f97316', // orange-500
 ];
 
-export default function InvestmentAnalytics({ domains, transactions }: InvestmentAnalyticsProps) {
+export default function InvestmentAnalytics({
+  domains,
+  transactions,
+  section = 'analysis',
+}: InvestmentAnalyticsProps) {
   const { t, locale } = useI18nContext();
   const [selectedTimeframe, setSelectedTimeframe] = useState<'6M' | '1Y' | '2Y' | '3Y' | 'ALL'>('ALL');
 
@@ -783,6 +792,13 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
 
   const getTimeframeText = () => t(`analytics.timeframe.${selectedTimeframe}`);
 
+  // section='distribution' → 仅渲染 3 张持仓分布。这些图跟 selectedTimeframe
+  // 无关（用全量 domains 计算），所以省掉标题 / 时间窗口 selector / KPI tiles /
+  // 业绩 chart / 月度现金流 这些"业绩视角"模块。
+  if (section === 'distribution') {
+    return renderDistribution();
+  }
+
   return (
     <div className="space-y-6">
       {/* 标题 + 时间范围选择器 */}
@@ -811,7 +827,6 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       {renderPortfolioMetrics()}
       {renderPerformanceChart()}
       {renderMonthlyCashFlow()}
-      {renderDistribution()}
     </div>
   );
 }

@@ -815,6 +815,7 @@ const zh = {
       kpiDays: '天',
       kpiMonths: '个月',
       subTabPerformance: '业绩',
+      subTabPortfolio: '持仓构成',
       subTabRenewals: '续费',
       subTabLoss: '损失分析',
     },
