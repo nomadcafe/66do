@@ -1027,105 +1027,219 @@ const zh = {
       lastUpdated: '最后更新',
       introduction: {
         title: '介绍',
-        content: 'Domain Financial 致力于保护您的隐私和个人数据。本隐私政策说明了您使用我们的域名投资管理平台时，我们如何收集、使用、存储和保护您的信息。'
+        content: 'Domain.Financial 是一个域名投资管理平台。本隐私政策用直白的语言说明：我们收集哪些数据、数据如何存储与保护、谁可以访问、以及您对数据享有哪些权利。我们尽量讲事实，不写技术上做不到的承诺。'
       },
       dataCollection: {
         title: '我们收集的数据',
-        content: '我们收集提供域名投资管理服务所需的信息。这包括与您的域名投资组合相关的个人和财务数据。',
+        content: '只收集运营服务所必需的数据：',
         personalData: {
-          title: '个人信息',
-          email: '用于账户认证和通信的邮箱地址',
-          domainInfo: '域名、注册详情和所有权信息',
-          financialData: '购买成本、续费费用、销售价格和投资金额',
-          transactionData: '交易历史、支付记录和财务交易',
-          analyticsData: '使用模式、功能交互和性能指标'
+          title: '账户与组合数据',
+          email: '邮箱地址 —— 用于登录、Magic Link 与服务通知。',
+          domainInfo: '您手动添加的域名，以及您填写的注册商和日期。',
+          financialData: '购买成本、续费费用、销售价格等您主动录入的财务字段。',
+          transactionData: '您录入的交易记录（购买 / 出售 / 续费）。',
+          analyticsData: '通过 Vercel Analytics 收集的匿名访问统计（页面浏览、性能指标），不使用 Cookie，无跨站追踪。'
         },
         sensitiveData: {
-          title: '敏感财务数据',
-          content: '我们了解您的财务信息高度敏感。所有财务数据均使用AES-256加密，并使用用户特定的加密密钥安全存储。'
+          title: '关于您的财务数据',
+          content: '域名价格与交易金额按您填写的内容存储。我们不处理信用卡号、银行账户或任何支付凭证 —— 您在应用内录入的"交易"是账本记录，不是真正的资金往来。'
         }
       },
       dataSecurity: {
-        title: '数据安全',
-        content: '我们实施多层安全措施来保护您的数据：',
+        title: '数据如何被保护',
+        content: '从外到内的多层防护：',
         encryption: {
-          title: '加密和安全措施',
-          aes: '对所有敏感数据进行AES-256加密',
-          https: '对所有数据传输使用HTTPS/TLS加密',
-          rls: '行级安全(RLS)进行数据库访问控制',
-          userKeys: '用户特定的加密密钥实现数据隔离'
+          title: '已实施的防护',
+          https: 'HTTPS / TLS 传输加密 —— 浏览器与服务器之间的每一次请求都在网络上加密。',
+          atRest: '数据库静态加密由基础设施提供商（Supabase，托管于 Amazon RDS）负责。',
+          rls: '数据库行级安全（RLS）—— 每次查询都携带您的用户身份，数据库会拒绝返回不属于您的行。即使其他用户拿到自己的会话 token，也无法读取您的数据。',
+          authVerification: '所有 API 端点在执行任何数据库操作前都先验证身份；未认证的请求在接触数据前就被拒绝。'
+        },
+        operatorNote: {
+          title: '运营方（我们）能看到什么',
+          content: '我们想把这件事讲清楚：数据没有做应用层加密。也就是说，拥有数据库管理权限的人（目前是创始团队）在技术上可以读取您录入的域名、价格等内容。除非（a）您主动请求需要查看数据的支持服务，或（b）调查已确认的安全 / 滥用事件，否则我们不会访问您的个人数据。我们绝不会出售、共享您的组合数据，也不会用于运营服务以外的任何用途。'
         }
       },
       dataUsage: {
         title: '我们如何使用您的数据',
-        content: '您的数据仅用于提供和改进我们的域名投资管理服务：',
-        portfolioManagement: '管理和跟踪您的域名投资组合',
-        financialAnalysis: '生成财务报告和投资分析',
-        renewalTracking: '监控域名续费日期和成本',
-        performanceMetrics: '计算投资回报率、利润率和投资表现',
-        userExperience: '个性化您的体验并改进我们的服务'
+        content: '只用于您在产品里看到的功能：',
+        portfolioManagement: '展示您添加的域名。',
+        financialAnalysis: '在仪表板里计算各项指标、图表与报告。',
+        renewalTracking: '跟踪即将到期的续费并提醒您。',
+        performanceMetrics: '计算 ROI、持有成本、已实现盈亏等数字。',
+        userExperience: '记住语言等偏好，让 UI 按您设置的样子运行。'
       },
       dataSharing: {
         title: '数据共享',
-        content: '我们不会出于营销目的向第三方出售、出租或共享您的个人数据。',
+        content: '我们不出售、出租或交易您的数据。仅在以下狭窄的运营情境下与第三方共享：',
         never: {
           title: '我们绝不',
-          sell: '出售您的个人或财务数据',
-          rent: '将您的数据出租给第三方',
-          share: '未经明确同意共享您的数据',
-          marketing: '将您的数据用于第三方营销'
+          sell: '出售您的个人或组合数据。',
+          rent: '将您的数据出租给第三方。',
+          share: '与营销公司或数据中介共享您的数据。',
+          marketing: '将您的数据用于跨产品广告。'
         }
       },
       userRights: {
         title: '您的权利',
-        content: '您对个人数据享有以下权利：',
-        access: '访问您的个人数据',
-        rectification: '更正不准确或不完整的数据',
-        erasure: '请求删除您的数据',
-        portability: '以便携格式导出您的数据',
-        restriction: '限制处理您的数据',
-        objection: '反对某些数据使用方式'
+        content: '通过邮件联系我们，您可以行使以下权利：',
+        access: '获取我们持有的关于您的数据副本。',
+        rectification: '更正不准确或不完整的数据。',
+        erasure: '删除您的账户及其相关数据。',
+        portability: '以可移植格式（CSV / JSON）导出您的组合。',
+        restriction: '在请求处理过程中暂停对您数据的进一步处理。',
+        objection: '反对对您数据的特定使用方式。'
       },
       dataRetention: {
         title: '数据保留',
-        content: '我们会在提供服务所需的时间内保留您的数据，并遵守法律义务。',
+        content: '我们只在您保留账户的期间保留您的数据，加上备份的短暂窗口：',
         periods: {
           title: '保留期限',
-          account: '账户数据：直到账户删除',
-          domainData: '域名信息：最后活动后7年',
-          transactionData: '财务记录：7年（税务合规）',
-          analytics: '使用分析：2年'
+          account: '账户数据 —— 在您删除账户之前保留。',
+          domainData: '域名与交易记录 —— 直到您删除该记录或账户。',
+          transactionData: '账单或税务相关记录（目前无 —— 服务免费）—— 不保留。',
+          analytics: '聚合分析 —— 最长保留 2 年，且永远不与您的账户身份关联。'
         }
       },
       cookies: {
-        title: 'Cookie和跟踪',
-        content: '我们使用Cookie和类似技术来增强您的体验：',
-        essential: '平台功能必需的基本Cookie',
-        analytics: '了解使用模式的分析Cookie',
-        preferences: '记住您设置的偏好Cookie',
-        security: '防止欺诈的安全Cookie'
+        title: 'Cookie 与本地存储',
+        content: '我们将 Cookie 控制在运营服务所必需的最小集。不使用任何广告或第三方追踪 Cookie。完整列表见 Cookie 页面。',
+        essential: '认证会话（由 Supabase 管理）—— 让您保持登录状态。',
+        preferences: '语言偏好 —— 记住您选择中文还是英文。',
+        analytics: 'Vercel Analytics —— 匿名页面浏览统计，无 Cookie，无跨站标识。',
+        security: '不使用任何第三方追踪、广告或跨站 Cookie。'
       },
       thirdParty: {
         title: '第三方服务',
-        content: '我们使用可信的第三方服务来提供我们的平台：',
+        content: '运营平台时使用以下服务提供商：',
         services: {
           title: '服务提供商',
-          supabase: '数据库托管和认证服务',
-          vercel: '网络托管和内容分发',
-          resend: '通知的邮件传递服务'
+          supabase: 'Supabase —— 数据库、身份认证以及邮件 Magic Link 投递。',
+          vercel: 'Vercel —— 网站托管、边缘网络、隐私友好的访问统计。',
+          resend: 'Resend —— 事务性邮件投递（仅限通知与安全提醒）。'
         }
       },
       changes: {
         title: '政策变更',
-        content: '我们可能会不时更新此隐私政策。我们将通过邮件或平台通知您任何重大变更。'
+        content: '随着服务演进，本隐私政策可能更新。重要变更将通过更新日志公告；如变更对您的数据有实质影响，会通过邮件通知。'
       },
       contact: {
         title: '联系我们',
-        content: '如果您对此隐私政策或您的数据有任何疑问，请联系我们：',
+        content: '若对本隐私政策或上述任何权利有疑问，请通过邮件联系我们：',
         email: '邮箱',
-        response: '我们将在48小时内回复所有询问。'
+        response: '我们将力争在 48 小时内回复。'
       },
-      footer: '本隐私政策自上述日期起生效，适用于 Domain Financial 平台的所有用户。'
+      footer: '本隐私政策自上述日期起适用于 Domain.Financial 的所有用户。'
+    },
+    terms: {
+      title: '服务条款',
+      lastUpdated: '最后更新',
+      intro: {
+        title: '协议',
+        content: '访问或使用 Domain.Financial 即表示您同意本服务条款。如不同意，请不要使用本服务。'
+      },
+      service: {
+        title: '关于服务',
+        content: 'Domain.Financial 是一个自助型域名投资管理工具，帮助您记录域名、跟踪财务数字、查看分析。服务按"现状"提供。您对自己录入数据的准确性负责。'
+      },
+      account: {
+        title: '账户',
+        content: '您通过邮件 Magic Link 或第三方身份提供商（目前为 Google）登录。您有责任保护好自己的邮箱与身份提供商账户。如怀疑账户被未授权访问，请立即通知我们。'
+      },
+      acceptable: {
+        title: '使用规范',
+        content: '您同意不进行以下行为：',
+        items: {
+          abuse: '尝试访问、探测或干扰不属于您的账户或数据。',
+          scrape: '未经许可，使用自动化手段批量抓取、镜像或系统性收集服务内的内容。',
+          reverse: '逆向工程、反编译或试图获取源代码或专有逻辑。',
+          illegal: '将服务用于任何违法行为、欺诈或洗钱。',
+          impersonate: '冒充他人或虚假声明与任何机构的关联。'
+        }
+      },
+      noAdvice: {
+        title: '不构成投资建议',
+        content: 'Domain.Financial 提供的是记账与分析工具，不是投资建议。域名投资存在重大风险。平台中的数字、图表与分析均基于您录入的数据计算，不应被视为专业的财务、税务、法律或投资建议。投资决策由您自行作出。'
+      },
+      data: {
+        title: '您的数据',
+        content: '您对自己录入的域名与财务信息保有所有权。我们按隐私政策所述处理您的数据。您可以随时导出或删除自己的数据。关于谁可以访问数据的运营细节，请见隐私政策。'
+      },
+      pricing: {
+        title: '价格',
+        content: '当前服务免费。我们保留未来推出付费方案的权利；如有变化将提前通知，并为您当前依赖的功能保留合理的过渡期。'
+      },
+      availability: {
+        title: '可用性与变更',
+        content: '我们追求高可用，但不保证不间断的服务。我们可能在合理通知的前提下变更、暂停或下线功能。重大破坏性变更会在更新日志中公告。'
+      },
+      termination: {
+        title: '终止',
+        content: '您可以随时删除账户。如有实质违反本条款或对服务及其他用户构成安全风险的行为，我们可能暂停或终止相关账户。'
+      },
+      warranty: {
+        title: '免责声明',
+        content: '本服务按"现状"和"可用"原则提供，不附带任何明示或默示的担保，包括适销性、特定用途的适用性、准确性或不侵权。我们不保证平台中显示的域名估值或预测能反映真实市场行为。'
+      },
+      liability: {
+        title: '责任限制',
+        content: '在法律允许的最大范围内，Domain.Financial 及其运营方对因您使用本服务产生的任何间接、附带、特殊或后果性损害（包括利润损失、域名损失或交易决策）不承担责任。'
+      },
+      governing: {
+        title: '适用法律与变更',
+        content: '本条款适用于运营方所在司法管辖区的法律。我们可能更新本条款；重要变更会在更新日志中公告，如对您的权利有实质影响则会通过邮件通知。'
+      },
+      contact: {
+        title: '联系',
+        content: '对本条款有疑问？通过下方邮箱联系我们 —— 我们将力争在 48 小时内回复。',
+        email: '邮箱'
+      }
+    },
+    cookies: {
+      title: 'Cookie 政策',
+      lastUpdated: '最后更新',
+      intro: {
+        title: '本页面说明',
+        content: 'Domain.Financial 仅使用运营服务所必需的最小 Cookie 集。本页面列出我们使用的每一项 Cookie 和类似存储、由谁设置、用途是什么。我们不使用任何广告或第三方追踪 Cookie。'
+      },
+      categories: {
+        title: '我们使用的 Cookie',
+        essential: {
+          name: '认证会话',
+          purpose: '由 Supabase 在您登录时设置，用于在页面跳转之间保持登录状态。',
+          provider: 'Supabase',
+          retention: '随活动刷新；登出或长时间不活动后清除。'
+        },
+        preferences: {
+          name: '语言偏好',
+          purpose: '记住您选择的中文或英文，下次访问时自动加载对应语言。',
+          provider: 'Domain.Financial',
+          retention: '1 年。'
+        },
+        local: {
+          name: '本地存储（语言）',
+          purpose: '在浏览器本地存储中镜像语言偏好，让多标签页之间的切换瞬时生效。',
+          provider: 'Domain.Financial',
+          retention: '直到您清空浏览器存储。'
+        }
+      },
+      noTracking: {
+        title: '我们不使用',
+        content: '不使用任何广告、行为定向、再营销、指纹识别或跨站追踪。提供匿名页面浏览统计的 Vercel Analytics 配置为不使用 Cookie，也不收集个人标识。'
+      },
+      control: {
+        title: '您的控制权',
+        content: '您可以随时通过浏览器设置清除 Cookie 与本地存储。这会让您登出并重置偏好。大多数浏览器也允许您针对特定网站完全屏蔽 Cookie。'
+      },
+      changes: {
+        title: '变更',
+        content: '若我们将来添加新的 Cookie 类型 —— 例如需要授权的可选分析 —— 本页面会更新，并在生效前通过更新日志公告。'
+      },
+      contact: {
+        title: '联系',
+        content: '对 Cookie 或存储有疑问？请邮件联系我们：',
+        email: '邮箱'
+      }
     },
     domain: {
       expiryMonitoring: '域名到期监控',

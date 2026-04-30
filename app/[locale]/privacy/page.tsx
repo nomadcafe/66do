@@ -1,29 +1,35 @@
 'use client';
 
-import { useI18nContext } from '../../../src/contexts/I18nProvider';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { ArrowLeft, ShieldCheck, Calendar, Mail, AlertCircle } from 'lucide-react';
+import { useI18nContext } from '../../../src/contexts/I18nProvider';
+
+const SUPPORT_EMAIL = 'hello@domain.financial';
 
 export default function PrivacyPage() {
-  const { t } = useI18nContext();
+  const { t, locale } = useI18nContext();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
+  const lastUpdated = new Date('2026-04-30').toLocaleDateString(
+    locale === 'zh' ? 'zh-CN' : 'en-US',
+    { year: 'numeric', month: 'long', day: 'numeric' }
+  );
+  const backHomeLabel = locale === 'zh' ? '返回首页' : 'Back to home';
+
   if (!isClient) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white shadow-lg rounded-lg p-8">
-            <div className="animate-pulse">
-              <div className="h-8 bg-gray-200 rounded mb-8"></div>
-              <div className="space-y-4">
-                <div className="h-4 bg-gray-200 rounded"></div>
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-              </div>
-            </div>
+      <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-teal-50/40 via-stone-50 to-amber-50/30">
+        <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 w-48 rounded-lg bg-stone-200" />
+            <div className="h-4 w-full rounded bg-stone-200" />
+            <div className="h-4 w-3/4 rounded bg-stone-200" />
+            <div className="h-4 w-1/2 rounded bg-stone-200" />
           </div>
         </div>
       </div>
@@ -31,223 +37,271 @@ export default function PrivacyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white shadow-lg rounded-lg p-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-teal-50/40 via-stone-50 to-amber-50/30 text-stone-900 antialiased">
+      {/* Decorative corner glows — same language as login / not-found / changelog */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-32 -right-32 h-96 w-96 rounded-full bg-gradient-to-br from-teal-200/30 via-emerald-100/20 to-transparent blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-40 -left-40 h-[28rem] w-[28rem] rounded-full bg-gradient-to-tr from-amber-100/30 to-transparent blur-3xl"
+      />
+
+      <header className="relative border-b border-stone-200/80 bg-white/70 backdrop-blur">
+        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-6">
+          <Link
+            href={`/${locale}`}
+            className="inline-flex items-center gap-1.5 rounded-md text-sm font-medium text-teal-700 transition hover:text-teal-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {backHomeLabel}
+          </Link>
+        </div>
+      </header>
+
+      <main className="relative mx-auto max-w-3xl px-4 py-12 sm:px-6 sm:py-16">
+        <div className="text-center sm:text-left">
+          <p className="inline-flex items-center gap-1.5 rounded-full border border-teal-300/60 bg-teal-50 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-teal-700">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            {t('privacy.title')}
+          </p>
+          <h1 className="mt-5 text-3xl font-bold tracking-tight text-stone-900 sm:text-4xl">
             {t('privacy.title')}
           </h1>
-          
-          <div className="prose prose-lg max-w-none">
-            <p className="text-gray-600 mb-6">
-              {t('privacy.lastUpdated')}: {new Date().toLocaleDateString()}
-            </p>
+          <p className="mt-3 inline-flex items-center gap-1.5 text-sm text-stone-500">
+            <Calendar className="h-3.5 w-3.5" />
+            {t('privacy.lastUpdated')} · <time dateTime="2026-04-30">{lastUpdated}</time>
+          </p>
+        </div>
 
-            <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                {t('privacy.introduction.title')}
-              </h2>
-              <p className="text-gray-700 mb-4">
-                {t('privacy.introduction.content')}
-              </p>
-            </section>
+        <div className="mt-10 space-y-6 sm:mt-12 sm:space-y-8">
+          <Section title={t('privacy.introduction.title')}>
+            <p>{t('privacy.introduction.content')}</p>
+          </Section>
 
-            <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                {t('privacy.dataCollection.title')}
-              </h2>
-              <p className="text-gray-700 mb-4">
-                {t('privacy.dataCollection.content')}
-              </p>
-              
-              <h3 className="text-xl font-medium text-gray-900 mb-3">
-                {t('privacy.dataCollection.personalData.title')}
+          <Section title={t('privacy.dataCollection.title')}>
+            <p>{t('privacy.dataCollection.content')}</p>
+
+            <SubHeading>{t('privacy.dataCollection.personalData.title')}</SubHeading>
+            <BulletList
+              items={[
+                t('privacy.dataCollection.personalData.email'),
+                t('privacy.dataCollection.personalData.domainInfo'),
+                t('privacy.dataCollection.personalData.financialData'),
+                t('privacy.dataCollection.personalData.transactionData'),
+                t('privacy.dataCollection.personalData.analyticsData'),
+              ]}
+            />
+
+            <SubHeading>{t('privacy.dataCollection.sensitiveData.title')}</SubHeading>
+            <p>{t('privacy.dataCollection.sensitiveData.content')}</p>
+          </Section>
+
+          <Section title={t('privacy.dataSecurity.title')}>
+            <p>{t('privacy.dataSecurity.content')}</p>
+
+            <div className="mt-4 rounded-xl border border-teal-200/70 bg-teal-50/60 p-4 sm:p-5">
+              <h3 className="mb-3 text-sm font-semibold text-teal-900">
+                {t('privacy.dataSecurity.encryption.title')}
               </h3>
-              <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
-                <li>{t('privacy.dataCollection.personalData.email')}</li>
-                <li>{t('privacy.dataCollection.personalData.domainInfo')}</li>
-                <li>{t('privacy.dataCollection.personalData.financialData')}</li>
-                <li>{t('privacy.dataCollection.personalData.transactionData')}</li>
-                <li>{t('privacy.dataCollection.personalData.analyticsData')}</li>
-              </ul>
+              <BulletList
+                bulletColor="bg-teal-600"
+                textClass="text-teal-900/90"
+                items={[
+                  t('privacy.dataSecurity.encryption.https'),
+                  t('privacy.dataSecurity.encryption.atRest'),
+                  t('privacy.dataSecurity.encryption.rls'),
+                  t('privacy.dataSecurity.encryption.authVerification'),
+                ]}
+              />
+            </div>
 
-              <h3 className="text-xl font-medium text-gray-900 mb-3">
-                {t('privacy.dataCollection.sensitiveData.title')}
+            {/* Honest disclosure card — the key honesty pivot. Amber tint
+                signals "important note" without alarming users. */}
+            <div className="mt-4 rounded-xl border border-amber-200/70 bg-amber-50/60 p-4 sm:p-5">
+              <h3 className="mb-2 inline-flex items-center gap-2 text-sm font-semibold text-amber-900">
+                <AlertCircle className="h-4 w-4" />
+                {t('privacy.dataSecurity.operatorNote.title')}
               </h3>
-              <p className="text-gray-700 mb-4">
-                {t('privacy.dataCollection.sensitiveData.content')}
-              </p>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                {t('privacy.dataSecurity.title')}
-              </h2>
-              <p className="text-gray-700 mb-4">
-                {t('privacy.dataSecurity.content')}
-              </p>
-              
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <h3 className="text-lg font-medium text-blue-900 mb-2">
-                  {t('privacy.dataSecurity.encryption.title')}
-                </h3>
-                <ul className="list-disc list-inside text-blue-800 space-y-1">
-                  <li>{t('privacy.dataSecurity.encryption.aes')}</li>
-                  <li>{t('privacy.dataSecurity.encryption.https')}</li>
-                  <li>{t('privacy.dataSecurity.encryption.rls')}</li>
-                  <li>{t('privacy.dataSecurity.encryption.userKeys')}</li>
-                </ul>
-              </div>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                {t('privacy.dataUsage.title')}
-              </h2>
-              <p className="text-gray-700 mb-4">
-                {t('privacy.dataUsage.content')}
-              </p>
-              
-              <ul className="list-disc list-inside text-gray-700 space-y-2">
-                <li>{t('privacy.dataUsage.portfolioManagement')}</li>
-                <li>{t('privacy.dataUsage.financialAnalysis')}</li>
-                <li>{t('privacy.dataUsage.renewalTracking')}</li>
-                <li>{t('privacy.dataUsage.performanceMetrics')}</li>
-                <li>{t('privacy.dataUsage.userExperience')}</li>
-              </ul>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                {t('privacy.dataSharing.title')}
-              </h2>
-              <p className="text-gray-700 mb-4">
-                {t('privacy.dataSharing.content')}
-              </p>
-              
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                <h3 className="text-lg font-medium text-red-900 mb-2">
-                  {t('privacy.dataSharing.never.title')}
-                </h3>
-                <ul className="list-disc list-inside text-red-800 space-y-1">
-                  <li>{t('privacy.dataSharing.never.sell')}</li>
-                  <li>{t('privacy.dataSharing.never.rent')}</li>
-                  <li>{t('privacy.dataSharing.never.share')}</li>
-                  <li>{t('privacy.dataSharing.never.marketing')}</li>
-                </ul>
-              </div>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                {t('privacy.userRights.title')}
-              </h2>
-              <p className="text-gray-700 mb-4">
-                {t('privacy.userRights.content')}
-              </p>
-              
-              <ul className="list-disc list-inside text-gray-700 space-y-2">
-                <li>{t('privacy.userRights.access')}</li>
-                <li>{t('privacy.userRights.rectification')}</li>
-                <li>{t('privacy.userRights.erasure')}</li>
-                <li>{t('privacy.userRights.portability')}</li>
-                <li>{t('privacy.userRights.restriction')}</li>
-                <li>{t('privacy.userRights.objection')}</li>
-              </ul>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                {t('privacy.dataRetention.title')}
-              </h2>
-              <p className="text-gray-700 mb-4">
-                {t('privacy.dataRetention.content')}
-              </p>
-              
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <h3 className="text-lg font-medium text-yellow-900 mb-2">
-                  {t('privacy.dataRetention.periods.title')}
-                </h3>
-                <ul className="list-disc list-inside text-yellow-800 space-y-1">
-                  <li>{t('privacy.dataRetention.periods.account')}</li>
-                  <li>{t('privacy.dataRetention.periods.domainData')}</li>
-                  <li>{t('privacy.dataRetention.periods.transactionData')}</li>
-                  <li>{t('privacy.dataRetention.periods.analytics')}</li>
-                </ul>
-              </div>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                {t('privacy.cookies.title')}
-              </h2>
-              <p className="text-gray-700 mb-4">
-                {t('privacy.cookies.content')}
-              </p>
-              
-              <ul className="list-disc list-inside text-gray-700 space-y-2">
-                <li>{t('privacy.cookies.essential')}</li>
-                <li>{t('privacy.cookies.analytics')}</li>
-                <li>{t('privacy.cookies.preferences')}</li>
-                <li>{t('privacy.cookies.security')}</li>
-              </ul>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                {t('privacy.thirdParty.title')}
-              </h2>
-              <p className="text-gray-700 mb-4">
-                {t('privacy.thirdParty.content')}
-              </p>
-              
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {t('privacy.thirdParty.services.title')}
-                </h3>
-                <ul className="list-disc list-inside text-gray-700 space-y-1">
-                  <li><strong>Supabase:</strong> {t('privacy.thirdParty.services.supabase')}</li>
-                  <li><strong>Vercel:</strong> {t('privacy.thirdParty.services.vercel')}</li>
-                  <li><strong>Resend:</strong> {t('privacy.thirdParty.services.resend')}</li>
-                </ul>
-              </div>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                {t('privacy.changes.title')}
-              </h2>
-              <p className="text-gray-700 mb-4">
-                {t('privacy.changes.content')}
-              </p>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                {t('privacy.contact.title')}
-              </h2>
-              <p className="text-gray-700 mb-4">
-                {t('privacy.contact.content')}
-              </p>
-              
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <p className="text-green-800">
-                  <strong>{t('privacy.contact.email')}:</strong> hello###domain.financial
-                </p>
-                <p className="text-green-800 mt-2">
-                  <strong>{t('privacy.contact.response')}</strong>
-                </p>
-              </div>
-            </section>
-
-            <div className="border-t border-gray-200 pt-6 mt-8">
-              <p className="text-sm text-gray-500">
-                {t('privacy.footer')}
+              <p className="text-[15px] leading-relaxed text-amber-900/90">
+                {t('privacy.dataSecurity.operatorNote.content')}
               </p>
             </div>
-          </div>
+          </Section>
+
+          <Section title={t('privacy.dataUsage.title')}>
+            <p>{t('privacy.dataUsage.content')}</p>
+            <BulletList
+              items={[
+                t('privacy.dataUsage.portfolioManagement'),
+                t('privacy.dataUsage.financialAnalysis'),
+                t('privacy.dataUsage.renewalTracking'),
+                t('privacy.dataUsage.performanceMetrics'),
+                t('privacy.dataUsage.userExperience'),
+              ]}
+            />
+          </Section>
+
+          <Section title={t('privacy.dataSharing.title')}>
+            <p>{t('privacy.dataSharing.content')}</p>
+            <div className="mt-4 rounded-xl border border-stone-200/80 bg-stone-50/80 p-4 sm:p-5">
+              <h3 className="mb-3 text-sm font-semibold text-stone-900">
+                {t('privacy.dataSharing.never.title')}
+              </h3>
+              <BulletList
+                bulletColor="bg-rose-500"
+                items={[
+                  t('privacy.dataSharing.never.sell'),
+                  t('privacy.dataSharing.never.rent'),
+                  t('privacy.dataSharing.never.share'),
+                  t('privacy.dataSharing.never.marketing'),
+                ]}
+              />
+            </div>
+          </Section>
+
+          <Section title={t('privacy.userRights.title')}>
+            <p>{t('privacy.userRights.content')}</p>
+            <BulletList
+              items={[
+                t('privacy.userRights.access'),
+                t('privacy.userRights.rectification'),
+                t('privacy.userRights.erasure'),
+                t('privacy.userRights.portability'),
+                t('privacy.userRights.restriction'),
+                t('privacy.userRights.objection'),
+              ]}
+            />
+          </Section>
+
+          <Section title={t('privacy.dataRetention.title')}>
+            <p>{t('privacy.dataRetention.content')}</p>
+            <div className="mt-4 rounded-xl border border-stone-200/80 bg-stone-50/80 p-4 sm:p-5">
+              <h3 className="mb-3 text-sm font-semibold text-stone-900">
+                {t('privacy.dataRetention.periods.title')}
+              </h3>
+              <BulletList
+                items={[
+                  t('privacy.dataRetention.periods.account'),
+                  t('privacy.dataRetention.periods.domainData'),
+                  t('privacy.dataRetention.periods.transactionData'),
+                  t('privacy.dataRetention.periods.analytics'),
+                ]}
+              />
+            </div>
+          </Section>
+
+          <Section title={t('privacy.cookies.title')}>
+            <p>{t('privacy.cookies.content')}</p>
+            <BulletList
+              items={[
+                t('privacy.cookies.essential'),
+                t('privacy.cookies.preferences'),
+                t('privacy.cookies.analytics'),
+                t('privacy.cookies.security'),
+              ]}
+            />
+            <p className="mt-3 text-sm text-stone-500">
+              <Link
+                href={`/${locale}/cookies`}
+                className="text-teal-700 underline-offset-4 transition hover:text-teal-800 hover:underline"
+              >
+                {locale === 'zh' ? '查看完整 Cookie 政策 →' : 'Read the full Cookies policy →'}
+              </Link>
+            </p>
+          </Section>
+
+          <Section title={t('privacy.thirdParty.title')}>
+            <p>{t('privacy.thirdParty.content')}</p>
+            <div className="mt-4 rounded-xl border border-stone-200/80 bg-stone-50/80 p-4 sm:p-5">
+              <h3 className="mb-3 text-sm font-semibold text-stone-900">
+                {t('privacy.thirdParty.services.title')}
+              </h3>
+              <ul className="space-y-2.5 text-[15px] text-stone-700">
+                <li className="flex gap-3">
+                  <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-teal-500" />
+                  <span><strong className="text-stone-900">Supabase</strong> — {t('privacy.thirdParty.services.supabase')}</span>
+                </li>
+                <li className="flex gap-3">
+                  <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-teal-500" />
+                  <span><strong className="text-stone-900">Vercel</strong> — {t('privacy.thirdParty.services.vercel')}</span>
+                </li>
+                <li className="flex gap-3">
+                  <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-teal-500" />
+                  <span><strong className="text-stone-900">Resend</strong> — {t('privacy.thirdParty.services.resend')}</span>
+                </li>
+              </ul>
+            </div>
+          </Section>
+
+          <Section title={t('privacy.changes.title')}>
+            <p>{t('privacy.changes.content')}</p>
+          </Section>
+
+          <Section title={t('privacy.contact.title')}>
+            <p>{t('privacy.contact.content')}</p>
+            <div className="mt-4 rounded-xl border border-emerald-200/70 bg-emerald-50/60 p-4 sm:p-5">
+              <p className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-900">
+                <Mail className="h-4 w-4" />
+                {t('privacy.contact.email')}:&nbsp;
+                <a
+                  href={`mailto:${SUPPORT_EMAIL}`}
+                  className="font-semibold text-emerald-800 underline-offset-4 hover:underline"
+                >
+                  {SUPPORT_EMAIL}
+                </a>
+              </p>
+              <p className="mt-2 text-sm text-emerald-900/80">{t('privacy.contact.response')}</p>
+            </div>
+          </Section>
+
+          <p className="border-t border-stone-200/70 pt-6 text-xs text-stone-500">
+            {t('privacy.footer')}
+          </p>
         </div>
-      </div>
+      </main>
     </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="rounded-2xl border border-stone-200/80 bg-white/90 p-6 shadow-sm shadow-stone-900/[0.02] sm:p-7">
+      <h2 className="mb-4 text-xl font-semibold text-stone-900">{title}</h2>
+      <div className="space-y-3 text-[15px] leading-relaxed text-stone-700">{children}</div>
+    </section>
+  );
+}
+
+function SubHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="mt-5 mb-2 text-sm font-semibold uppercase tracking-[0.08em] text-stone-500">
+      {children}
+    </h3>
+  );
+}
+
+function BulletList({
+  items,
+  bulletColor = 'bg-teal-500',
+  textClass = 'text-stone-700',
+}: {
+  items: string[];
+  bulletColor?: string;
+  textClass?: string;
+}) {
+  return (
+    <ul className={`space-y-2.5 text-[15px] leading-relaxed ${textClass}`}>
+      {items.map((item, i) => (
+        <li key={i} className="flex gap-3">
+          <span
+            aria-hidden="true"
+            className={`mt-2 h-1.5 w-1.5 shrink-0 rounded-full ${bulletColor}`}
+          />
+          <span className="flex-1">{item}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
