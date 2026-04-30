@@ -260,23 +260,26 @@ export default function SmartDomainForm({ domain, isOpen, onClose, onSave }: Sma
               </div>
             </div>
 
-            <div className="space-y-1">
-              <DateInput
-                label="续费成本基线日（新建默认今天，可清空）"
-                value={
-                  formData.baseline_renewal_as_of != null
-                    ? String(formData.baseline_renewal_as_of).slice(0, 10)
-                    : ''
-                }
-                onChange={(value) =>
-                  handleInputChange('baseline_renewal_as_of', value.trim() ? value.slice(0, 10) : null)
-                }
-                className="w-full max-w-md"
-              />
-              <p className="text-xs text-stone-500">
-                新建域名时默认今天：此前用「已续费次数×续费成本」概括；之后每笔续费请用「续费」交易记账，金额会计入持有成本。若清空，则持有成本不按交易叠加（旧版逻辑）。
-              </p>
-            </div>
+            {/* 编辑模式才暴露——参见 DomainForm.tsx 的同名字段说明 */}
+            {domain && (
+              <div className="space-y-1">
+                <DateInput
+                  label="续费成本基线日"
+                  value={
+                    formData.baseline_renewal_as_of != null
+                      ? String(formData.baseline_renewal_as_of).slice(0, 10)
+                      : ''
+                  }
+                  onChange={(value) =>
+                    handleInputChange('baseline_renewal_as_of', value.trim() ? value.slice(0, 10) : null)
+                  }
+                  className="w-full max-w-md"
+                />
+                <p className="text-xs text-stone-500">
+                  基线日及之后的续费交易会累加到持有成本；之前的续费由「已续费次数 × 续费成本」一次性概括。清空则不按交易叠加（旧版行为）。
+                </p>
+              </div>
+            )}
 
             {/* 到期日期输入 */}
             <div className="border-t pt-6">

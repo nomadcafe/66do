@@ -312,9 +312,9 @@ const en = {
       renewalCountLabel: 'Renewal count',
       renewalCountHelp: 'Times this domain has been renewed (for total holding cost)',
       renewalCountPlaceholder: 'Enter renewal count',
-      baselineRenewalAsOfLabel: 'Renewal cost baseline (defaults to today when adding)',
+      baselineRenewalAsOfLabel: 'Renewal cost baseline',
       baselineRenewalAsOfHelp:
-        'When adding a domain, this defaults to today: renewal_count × renewal_cost covers renewals through that date; renew transactions dated after it add to holding cost. Clear the field for legacy behavior (count × rate only, no add-on from transactions).',
+        'Renew transactions dated on or after this date are added to holding cost. Earlier renewals are summarized by Renewal Count × Renewal Cost. Clear to ignore renew transactions entirely (legacy behavior).',
       updating: 'Updating…',
       adding: 'Adding…',
       updateDomain: 'Update Domain',
@@ -653,9 +653,9 @@ const en = {
       renewalCountLabel: 'Renewal count',
       renewalCountHelp: 'Enter how many times this domain has been renewed for total holding cost',
       renewalCountPlaceholder: 'Enter renewal count',
-      baselineRenewalAsOfLabel: 'Renewal cost baseline (defaults to today when adding)',
+      baselineRenewalAsOfLabel: 'Renewal cost baseline',
       baselineRenewalAsOfHelp:
-        'When adding a domain, this defaults to today: renewal_count × renewal_cost covers renewals through that date; renew transactions dated after it add to holding cost. Clear the field for legacy behavior (count × rate only, no add-on from transactions).',
+        'Renew transactions dated on or after this date are added to holding cost. Earlier renewals are summarized by Renewal Count × Renewal Cost. Clear to ignore renew transactions entirely (legacy behavior).',
       domainFormTitleEdit: 'Edit Domain',
       domainFormTitleAdd: 'Add New Domain',
       updateDomain: 'Update Domain',
