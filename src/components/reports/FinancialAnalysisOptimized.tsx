@@ -1,7 +1,7 @@
 'use client';
 
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
-import { DollarSign, TrendingUp, Target, Wallet, CheckCircle, XCircle, Award, Receipt } from 'lucide-react';
+import { DollarSign, TrendingUp, Target, Wallet, CheckCircle, XCircle, Award, Receipt, PiggyBank } from 'lucide-react';
 import { useComprehensiveFinancialAnalysis } from '../../hooks/useFinancialCalculations';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { totalRealizedPnL, realizedROI, tradeOutcomes } from '../../lib/realizedPnL';
@@ -77,15 +77,18 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
 
   return (
     <div className="space-y-5">
-      {/* KPI strip — gradient hero language matching the rest of Insights.
-          5 metrics: Total Investment / Total Revenue (net, after platform
-          fees) / Realized P&L (canonical profit, matches Hero) / Realized
-          ROI / Platform Fees (lifetime, gross−net). Platform Fees lives
-          here so users can sanity-check Total Revenue: Total Sales (gross,
-          shown on IA KPI strip) − Platform Fees ≈ Total Revenue. */}
+      {/* KPI strip — 6 lifetime metrics:
+            Total Investment | Total Revenue | Net Profit | Realized P&L |
+            Realized ROI | Platform Fees
+          Net Profit (= totalRevenue − totalInvestment) is the all-time
+          全口径 P&L: includes still-held inventory cost AND expired-domain
+          sunk costs. Differs from Realized P&L (only sold domains): held
+          domains drag Net Profit down because their cost is in the
+          denominator with no offsetting sale yet — that's intentional,
+          mirrors actual cash-out vs cash-in. */}
       <div className="relative overflow-hidden rounded-3xl border border-stone-200/60 bg-gradient-to-br from-stone-50 via-white to-teal-50/30 shadow-sm">
         <div className="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-gradient-to-br from-teal-100/30 to-transparent blur-3xl" />
-        <div className="relative grid grid-cols-2 gap-5 p-5 sm:p-6 md:grid-cols-3 md:gap-6 lg:grid-cols-5">
+        <div className="relative grid grid-cols-2 gap-5 p-5 sm:p-6 md:grid-cols-3 md:gap-6 lg:grid-cols-6">
           <KpiTile
             icon={<DollarSign className="h-5 w-5" />}
             iconClass="bg-stone-100 text-stone-700"
@@ -97,6 +100,19 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
             iconClass="bg-emerald-50 text-emerald-700"
             label={t('reports.totalRevenue')}
             value={formatUSD(basic.totalRevenue)}
+          />
+          <KpiTile
+            icon={<PiggyBank className="h-5 w-5" />}
+            iconClass={
+              basic.totalProfit > 0
+                ? 'bg-emerald-50 text-emerald-700'
+                : basic.totalProfit < 0
+                  ? 'bg-rose-50 text-rose-700'
+                  : 'bg-stone-100 text-stone-700'
+            }
+            label={t('analytics.netProfit')}
+            value={formatUSD(basic.totalProfit)}
+            valueClass={pnlColor(basic.totalProfit)}
           />
           <KpiTile
             icon={<Wallet className="h-5 w-5" />}
