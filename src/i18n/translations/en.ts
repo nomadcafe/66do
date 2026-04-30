@@ -814,8 +814,8 @@ const en = {
     insights: {
       kpiRealizedPnL: 'Realized P&L',
       kpiBestSale: 'Best sale',
-      kpiWinRate: 'Win rate',
-      kpiWinRateBreakdown: '{wins} of {total} profitable',
+      kpiSuccessRate: 'Success rate',
+      kpiSuccessRateBreakdown: '{wins} profitable of {total} owned',
       kpiAvgHolding: 'Avg holding',
       kpiDays: 'days',
       kpiMonths: 'months',
