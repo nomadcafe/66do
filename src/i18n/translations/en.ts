@@ -1110,18 +1110,11 @@ const en = {
       },
       dataCollection: {
         title: 'Data We Collect',
-        content: 'We only collect the data needed to operate the service. Specifically:',
-        personalData: {
-          title: 'Account & Portfolio Data',
-          email: 'Your email address — used for authentication, magic links, and service notifications.',
-          domainInfo: 'Domain names you add to your portfolio, along with the registrar and dates you supply.',
-          financialData: 'Purchase costs, renewal fees, sale prices, and any other financial figures you choose to enter.',
-          transactionData: 'Transaction history (buys, sells, renewals) recorded by you.',
-          analyticsData: 'Aggregate, anonymized usage signals (page views, feature load times) via Vercel Analytics — no cookies, no cross-site tracking.'
-        },
-        sensitiveData: {
-          title: 'About Your Financial Data',
-          content: 'Domain prices and transaction amounts are stored as you enter them. We do not handle credit card numbers, bank accounts, or any payment instruments — domain transactions you record are bookkeeping entries inside the app, not actual payments.'
+        content: 'We only collect what is needed to operate the service:',
+        items: {
+          account: 'Your email address, for sign-in and service notifications.',
+          portfolio: 'Information you choose to record in the app while using the service.',
+          analytics: 'Aggregate, anonymous usage statistics — no cookies, no cross-site tracking.'
         }
       },
       dataSecurity: {
@@ -1137,12 +1130,9 @@ const en = {
       },
       dataUsage: {
         title: 'How We Use Your Data',
-        content: 'Your data is used only to deliver the features you see in the product:',
-        portfolioManagement: 'Show you the domains you have added.',
-        financialAnalysis: 'Compute the metrics, charts, and reports inside your dashboard.',
-        renewalTracking: 'Track upcoming renewals and surface reminders.',
-        performanceMetrics: 'Calculate ROI, holding cost, realized P&L, and similar figures.',
-        userExperience: 'Remember preferences such as your language so the UI behaves the way you set it.'
+        content: 'Your data is only used to deliver the service to you:',
+        features: 'Power the product features you use day to day (data display, analytics, reminders, and so on).',
+        preferences: 'Remember your preferences (such as language) so the UI behaves the way you set it.'
       },
       dataSharing: {
         title: 'Data Sharing',
@@ -1172,7 +1162,6 @@ const en = {
           title: 'Retention',
           account: 'Account data — kept until you delete your account.',
           domainData: 'Domain & transaction records — kept until you delete the record or the account.',
-          transactionData: 'Billing or tax-related records (none currently — the service is free) — none retained.',
           analytics: 'Aggregate analytics — kept for up to 2 years and never tied to your account identity.'
         }
       },

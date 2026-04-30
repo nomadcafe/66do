@@ -82,20 +82,13 @@ export default function PrivacyPage() {
 
           <Section title={t('privacy.dataCollection.title')}>
             <p>{t('privacy.dataCollection.content')}</p>
-
-            <SubHeading>{t('privacy.dataCollection.personalData.title')}</SubHeading>
             <BulletList
               items={[
-                t('privacy.dataCollection.personalData.email'),
-                t('privacy.dataCollection.personalData.domainInfo'),
-                t('privacy.dataCollection.personalData.financialData'),
-                t('privacy.dataCollection.personalData.transactionData'),
-                t('privacy.dataCollection.personalData.analyticsData'),
+                t('privacy.dataCollection.items.account'),
+                t('privacy.dataCollection.items.portfolio'),
+                t('privacy.dataCollection.items.analytics'),
               ]}
             />
-
-            <SubHeading>{t('privacy.dataCollection.sensitiveData.title')}</SubHeading>
-            <p>{t('privacy.dataCollection.sensitiveData.content')}</p>
           </Section>
 
           <Section title={t('privacy.dataSecurity.title')}>
@@ -122,11 +115,8 @@ export default function PrivacyPage() {
             <p>{t('privacy.dataUsage.content')}</p>
             <BulletList
               items={[
-                t('privacy.dataUsage.portfolioManagement'),
-                t('privacy.dataUsage.financialAnalysis'),
-                t('privacy.dataUsage.renewalTracking'),
-                t('privacy.dataUsage.performanceMetrics'),
-                t('privacy.dataUsage.userExperience'),
+                t('privacy.dataUsage.features'),
+                t('privacy.dataUsage.preferences'),
               ]}
             />
           </Section>
@@ -173,7 +163,6 @@ export default function PrivacyPage() {
                 items={[
                   t('privacy.dataRetention.periods.account'),
                   t('privacy.dataRetention.periods.domainData'),
-                  t('privacy.dataRetention.periods.transactionData'),
                   t('privacy.dataRetention.periods.analytics'),
                 ]}
               />
@@ -259,14 +248,6 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <h2 className="mb-4 text-xl font-semibold text-stone-900">{title}</h2>
       <div className="space-y-3 text-[15px] leading-relaxed text-stone-700">{children}</div>
     </section>
-  );
-}
-
-function SubHeading({ children }: { children: React.ReactNode }) {
-  return (
-    <h3 className="mt-5 mb-2 text-sm font-semibold uppercase tracking-[0.08em] text-stone-500">
-      {children}
-    </h3>
   );
 }
 
