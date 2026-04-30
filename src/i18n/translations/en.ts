@@ -1162,7 +1162,7 @@ const en = {
           title: 'Retention',
           account: 'Account data — kept until you delete your account.',
           domainData: 'Domain & transaction records — kept until you delete the record or the account.',
-          analytics: 'Aggregate analytics — kept for up to 2 years and never tied to your account identity.'
+          analytics: 'Aggregate analytics — not linked to individual accounts.'
         }
       },
       cookies: {
