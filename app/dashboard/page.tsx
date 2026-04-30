@@ -5,6 +5,7 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useSupabaseAuth } from '../../src/contexts/SupabaseAuthContext';
 import { useI18nContext } from '../../src/contexts/I18nProvider';
 import { logger } from '../../src/lib/logger';
+import { fireSensitiveOpNotification } from '../../src/lib/securityNotify';
 import DomainList from '../../src/components/domain/DomainList';
 import DomainForm from '../../src/components/domain/DomainForm';
 import SmartDomainForm from '../../src/components/domain/SmartDomainForm';
@@ -1015,6 +1016,12 @@ export default function DashboardPage() {
                     a.download = `domain-financial-backup-${new Date().toISOString().split('T')[0]}.json`;
                     a.click();
                   }
+                  // Fire-and-forget security alert: data export is treated
+                  // as a sensitive operation, so the account owner gets
+                  // an email even if it was them — that way an attacker
+                  // exfiltrating data leaves a trail back to the user's
+                  // inbox immediately.
+                  fireSensitiveOpNotification(session, 'data_export');
                   logger.log(t('common.dataExportedSuccessfully'));
                 } catch (error) {
                   logger.error('Export failed:', error);

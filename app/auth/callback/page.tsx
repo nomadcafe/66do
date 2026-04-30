@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useI18nContext } from '../../../src/contexts/I18nProvider';
 import { supabase } from '../../../src/lib/supabase';
+import { fireSignInNotification } from '../../../src/lib/securityNotify';
 
 function getSafeRedirect(redirect: string | null): string {
   if (!redirect || typeof redirect !== 'string') return '/dashboard';
@@ -33,7 +34,7 @@ function AuthCallbackContent() {
       const refreshToken = params.get('refresh_token');
 
       if (accessToken && refreshToken) {
-        const { error } = await supabase.auth.setSession({
+        const { data, error } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken,
         });
@@ -43,6 +44,9 @@ function AuthCallbackContent() {
           setStatus('error');
           return;
         }
+        // Fire-and-forget sign-in notification before navigating away;
+        // keepalive on the fetch lets it survive the route.replace().
+        fireSignInNotification(data.session);
         const redirectTo = getSafeRedirect(searchParams.get('redirect'));
         setStatus('ok');
         router.replace(redirectTo);

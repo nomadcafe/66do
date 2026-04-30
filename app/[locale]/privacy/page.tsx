@@ -109,6 +109,15 @@ export default function PrivacyPage() {
                 ]}
               />
             </div>
+
+            <div className="mt-4 rounded-xl border border-stone-200/80 bg-stone-50/80 p-4 sm:p-5">
+              <h3 className="mb-2 text-sm font-semibold text-stone-900">
+                {t('privacy.dataSecurity.notifications.title')}
+              </h3>
+              <p className="text-[15px] leading-relaxed text-stone-700">
+                {t('privacy.dataSecurity.notifications.content')}
+              </p>
+            </div>
           </Section>
 
           <Section title={t('privacy.dataUsage.title')}>

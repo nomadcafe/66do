@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useSupabaseAuth } from '../../../src/contexts/SupabaseAuthContext';
 import { useI18nContext } from '../../../src/contexts/I18nProvider';
 import { supabase } from '../../../src/lib/supabase';
+import { fireSignInNotification } from '../../../src/lib/securityNotify';
 
 function MagicLinkContent() {
   const [loading, setLoading] = useState(true);
@@ -57,6 +58,7 @@ function MagicLinkContent() {
           }
 
           if (data.user && data.session) {
+            fireSignInNotification(data.session);
             router.replace('/dashboard');
           } else {
             setError(t('auth.magicLink.loginFailed'));
@@ -84,6 +86,7 @@ function MagicLinkContent() {
           }
 
           if (data.user && data.session) {
+            fireSignInNotification(data.session);
             router.replace('/dashboard');
           } else {
             setError(t('auth.magicLink.loginFailed'));
