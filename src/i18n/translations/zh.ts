@@ -87,6 +87,7 @@ const zh = {
     advancedPortfolioAnalysis: '高级投资组合分析和洞察',
     topPerformers: '表现最好的域名',
     topPerformersEmpty: '暂无已售域名，无法计算表现排名',
+    worstSale: '最差出售',
     overall: '总体',
     performance: '表现',
     risk: '风险',

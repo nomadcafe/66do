@@ -88,6 +88,7 @@ const en = {
     advancedPortfolioAnalysis: 'Advanced portfolio analysis and insights',
     topPerformers: 'Top Performing Domains',
     topPerformersEmpty: 'No sold domains yet — performance ranking unavailable.',
+    worstSale: 'Worst sale',
     overall: 'Overall',
     performance: 'Performance',
     risk: 'Risk',
