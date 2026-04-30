@@ -169,7 +169,25 @@ const en = {
     icalRegenerateConfirm: 'Are you sure? The existing subscription URL will be invalidated immediately and you\'ll need to resubscribe in your calendar app.',
     icalLoadFailed: 'Failed to load subscription URL',
     icalCopyFailed: 'Copy failed',
-    icalRegenerateFailed: 'Regenerate failed'
+    icalRegenerateFailed: 'Regenerate failed',
+    security: {
+      introTitle: 'Sign-in & sensitive activity log',
+      introBody: 'Every sign-in and every sensitive action on your account is recorded here. If you spot one you didn\'t do, sign out from any other devices and rotate your sign-in method (Google or email) immediately.',
+      recentActivityTitle: 'Recent activity',
+      refresh: 'Refresh',
+      loadFailed: 'Could not load recent activity. Try again.',
+      empty: 'No activity recorded yet.',
+      unknownDetails: 'Details unavailable',
+      privacyNote: 'We record device summary (e.g., "Chrome on macOS") and approximate region (city + country) for each event. Raw IP addresses are not stored.',
+      justNow: 'just now',
+      minutesAgo: '{n} min ago',
+      hoursAgo: '{n}h ago',
+      eventSignIn: 'Signed in',
+      eventDataExport: 'Exported your data',
+      eventEmailChange: 'Changed sign-in email',
+      eventAccountDelete: 'Account deletion requested',
+      eventOauthUnbind: 'Third-party sign-in changed'
+    }
   },
     dashboard: {
       title: 'Domain Investment Dashboard',
@@ -259,6 +277,7 @@ const en = {
       portfolioCardFooterCaption: 'Snapshot',
       settingsDrawerTitle: 'Settings',
       settingsClose: 'Close',
+      security: 'Security',
       userSettings: 'User Settings',
       reset: 'Reset',
       saving: 'Saving...',
@@ -1128,8 +1147,8 @@ const en = {
           authVerification: 'Every API endpoint verifies your identity before any database operation; unauthenticated requests are rejected before they touch your data.'
         },
         notifications: {
-          title: 'Sign-In & Sensitive-Operation Alerts',
-          content: 'We send you an email each time your account is signed in (deduplicated to once every 24 hours per device, so you are not spammed by everyday browser relaunches), and on sensitive operations such as data export. To populate these emails we use your browser/OS name and an approximate region (city + country) derived from our hosting provider\'s edge headers. We do not store your raw IP address; the user-agent string is hashed for deduplication and the human-readable summary is what we keep.'
+          title: 'Sign-In & Sensitive-Operation Log',
+          content: 'Every sign-in and every sensitive operation on your account (e.g., data export) is recorded so you can review it from the Settings → Security panel inside the dashboard. We capture a short device summary (e.g., "Chrome on macOS") and an approximate region (city + country) from our hosting provider\'s edge headers. We do not store your raw IP address; the user-agent string is hashed for storage and the human-readable summary is what the panel shows.'
         }
       },
       dataUsage: {

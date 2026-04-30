@@ -18,6 +18,7 @@ import RenewalModal from '../../src/components/domain/RenewalModal';
 import PortfolioHealthCard from '../../src/components/dashboard/PortfolioHealthCard';
 import WeeklyBriefing from '../../src/components/dashboard/WeeklyBriefing';
 import SettingsDrawer from '../../src/components/dashboard/SettingsDrawer';
+import RecentActivityPanel from '../../src/components/settings/RecentActivityPanel';
 import DashboardHeader from '../../src/components/dashboard/DashboardHeader';
 import DashboardLoadingSkeleton from '../../src/components/dashboard/DashboardLoadingSkeleton';
 import DeleteConfirmDialog from '../../src/components/dashboard/DeleteConfirmDialog';
@@ -110,8 +111,12 @@ export default function DashboardPage() {
 
   // Settings drawer state (in-memory; section can be seeded from URL for backwards-compat)
   const [settingsDrawerOpen, setSettingsDrawerOpen] = useState(false);
-  const [settingsSection, setSettingsSection] = useState<'preferences' | 'data'>(
-    searchParams.get('settings') === 'data' ? 'data' : 'preferences'
+  const [settingsSection, setSettingsSection] = useState<'preferences' | 'data' | 'security'>(
+    searchParams.get('settings') === 'data'
+      ? 'data'
+      : searchParams.get('settings') === 'security'
+        ? 'security'
+        : 'preferences'
   );
   const setActiveTab = useCallback((next: TabType) => {
     // 同步更新 state（即时 UI 响应）+ visited（已挂载 tab 不再重挂）
@@ -978,6 +983,7 @@ export default function DashboardPage() {
           title: t('dashboard.settingsDrawerTitle'),
           preferences: t('dashboard.settings'),
           data: t('dashboard.dataAndBackup'),
+          security: t('dashboard.security'),
           close: t('dashboard.settingsClose'),
         }}
         preferencesNode={
@@ -1016,11 +1022,11 @@ export default function DashboardPage() {
                     a.download = `domain-financial-backup-${new Date().toISOString().split('T')[0]}.json`;
                     a.click();
                   }
-                  // Fire-and-forget security alert: data export is treated
-                  // as a sensitive operation, so the account owner gets
-                  // an email even if it was them — that way an attacker
-                  // exfiltrating data leaves a trail back to the user's
-                  // inbox immediately.
+                  // Fire-and-forget audit record: data export is treated
+                  // as a sensitive operation, so it shows up in the
+                  // Settings → Security panel — that way an attacker
+                  // exfiltrating data leaves a trail the legitimate user
+                  // can spot when they check.
                   fireSensitiveOpNotification(session, 'data_export');
                   logger.log(t('common.dataExportedSuccessfully'));
                 } catch (error) {
@@ -1044,6 +1050,9 @@ export default function DashboardPage() {
               }}
             />
           </LazyWrapper>
+        }
+        securityNode={
+          <RecentActivityPanel accessToken={session?.access_token ?? null} />
         }
       />
 

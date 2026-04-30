@@ -259,7 +259,6 @@ export interface Database {
           ua_hash: string | null
           ua_summary: string | null
           region: string | null
-          email_sent: boolean
           created_at: string
         }
         Insert: {
@@ -269,7 +268,6 @@ export interface Database {
           ua_hash?: string | null
           ua_summary?: string | null
           region?: string | null
-          email_sent?: boolean
           created_at?: string
         }
         Update: {
@@ -279,7 +277,6 @@ export interface Database {
           ua_hash?: string | null
           ua_summary?: string | null
           region?: string | null
-          email_sent?: boolean
           created_at?: string
         }
       }
