@@ -1,19 +1,23 @@
 'use client';
 
 import { ReactNode, useEffect, useRef } from 'react';
-import { X, SlidersHorizontal, Database } from 'lucide-react';
+import { X, SlidersHorizontal, Database, ShieldCheck } from 'lucide-react';
+
+export type SettingsSection = 'preferences' | 'data' | 'security';
 
 interface SettingsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  section: 'preferences' | 'data';
-  onSectionChange: (s: 'preferences' | 'data') => void;
+  section: SettingsSection;
+  onSectionChange: (s: SettingsSection) => void;
   preferencesNode: ReactNode;
   dataNode: ReactNode;
+  securityNode: ReactNode;
   labels: {
     title: string;
     preferences: string;
     data: string;
+    security: string;
     close: string;
   };
 }
@@ -29,6 +33,7 @@ export default function SettingsDrawer({
   onSectionChange,
   preferencesNode,
   dataNode,
+  securityNode,
   labels,
 }: SettingsDrawerProps) {
   const closeBtnRef = useRef<HTMLButtonElement>(null);
@@ -116,12 +121,26 @@ export default function SettingsDrawer({
               <Database className="h-4 w-4" />
               {labels.data}
             </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={section === 'security'}
+              onClick={() => onSectionChange('security')}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 ${
+                section === 'security' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              <ShieldCheck className="h-4 w-4" />
+              {labels.security}
+            </button>
           </div>
         </div>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-5">
-          {section === 'preferences' ? preferencesNode : dataNode}
+          {section === 'preferences' && preferencesNode}
+          {section === 'data' && dataNode}
+          {section === 'security' && securityNode}
         </div>
       </div>
     </div>

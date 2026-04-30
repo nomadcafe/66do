@@ -4,15 +4,16 @@
  *
  * Fired by the client when it triggers a sensitive operation that
  * already lives client-side (data_export today, future email_change /
- * account_delete / oauth_unbind once those flows exist).
+ * account_delete / oauth_unbind once those flows exist). Records a
+ * row in auth_events for review in Recent Activity.
  *
  * Same fail-soft contract as /notify-signin: errors are logged, never
- * surfaced. A failed email must not block the user's data export.
+ * surfaced. A failed audit write must not block the user's data export.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { notifySensitiveOp, type SensitiveOpEvent } from '../../../../src/lib/securityEmail';
+import { recordSensitiveOp, type SensitiveOpEvent } from '../../../../src/lib/securityEvents';
 import { logger } from '../../../../src/lib/logger';
 
 export const runtime = 'nodejs';
@@ -23,14 +24,6 @@ const VALID_EVENTS: readonly SensitiveOpEvent[] = [
   'account_delete',
   'oauth_unbind',
 ];
-
-function pickLocale(request: NextRequest): 'zh' | 'en' {
-  const cookie = request.cookies.get('domain_financial_locale')?.value;
-  if (cookie === 'zh' || cookie === 'en') return cookie;
-  const accept = request.headers.get('accept-language') ?? '';
-  if (accept.toLowerCase().startsWith('zh')) return 'zh';
-  return 'en';
-}
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const authHeader = request.headers.get('authorization');
@@ -66,16 +59,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   });
 
   const { data, error } = await client.auth.getUser(token);
-  if (error || !data?.user || !data.user.email) {
+  if (error || !data?.user) {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
 
-  await notifySensitiveOp(
-    { id: data.user.id, email: data.user.email },
-    event,
-    request,
-    pickLocale(request)
-  );
-
+  await recordSensitiveOp({ id: data.user.id }, event, request);
   return NextResponse.json({ ok: true });
 }

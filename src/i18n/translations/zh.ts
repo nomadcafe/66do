@@ -168,7 +168,25 @@ const zh = {
     icalRegenerateConfirm: '确定要重新生成吗？现有的订阅链接将立即失效，需要重新在日历应用里订阅新链接。',
     icalLoadFailed: '加载订阅链接失败',
     icalCopyFailed: '复制失败',
-    icalRegenerateFailed: '重新生成失败'
+    icalRegenerateFailed: '重新生成失败',
+    security: {
+      introTitle: '登录与敏感操作记录',
+      introBody: '账号的每次登录与每次敏感操作都会记录在这里。如果发现不是您本人做的，请立即在其他设备退出登录，并修改您的登录方式（Google 或邮箱）。',
+      recentActivityTitle: '近期活动',
+      refresh: '刷新',
+      loadFailed: '加载活动记录失败，请重试。',
+      empty: '暂无活动记录。',
+      unknownDetails: '无详细信息',
+      privacyNote: '每条记录包含设备简介（如「Chrome on macOS」）与大致地区（城市 + 国家）。我们不存储原始 IP 地址。',
+      justNow: '刚刚',
+      minutesAgo: '{n} 分钟前',
+      hoursAgo: '{n} 小时前',
+      eventSignIn: '账号登录',
+      eventDataExport: '导出账户数据',
+      eventEmailChange: '修改登录邮箱',
+      eventAccountDelete: '请求删除账号',
+      eventOauthUnbind: '修改第三方登录绑定'
+    }
   },
     dashboard: {
       title: '域名投资仪表板',
@@ -254,6 +272,7 @@ const zh = {
       portfolioCardFooterCaption: '概览',
       settingsDrawerTitle: '设置',
       settingsClose: '关闭',
+      security: '安全',
       userSettings: '用户设置',
       reset: '重置',
       saving: '保存中...',
@@ -1049,8 +1068,8 @@ const zh = {
           authVerification: '所有 API 端点在执行任何数据库操作前都先验证身份；未认证的请求在接触数据前就被拒绝。'
         },
         notifications: {
-          title: '登录与敏感操作提醒',
-          content: '账号每次登录、以及在执行数据导出等敏感操作时，都会向您发送邮件提醒（同一设备 24 小时内只发一封，避免日常打开浏览器被淹没）。邮件里会显示您本次操作的浏览器/系统名称以及大致地区（城市 + 国家），这部分信息来自托管平台边缘节点提供的 header；我们不存储您的原始 IP 地址，浏览器标识会做哈希处理仅用于去重，留存的是可读的摘要。'
+          title: '登录与敏感操作记录',
+          content: '账号每次登录、以及在执行数据导出等敏感操作时，都会有一条记录被写入，您可以在仪表板的「设置 → 安全」面板里查看。每条记录包含设备简介（如「Chrome on macOS」）与大致地区（城市 + 国家），这部分信息来自托管平台边缘节点提供的 header；我们不存储您的原始 IP 地址，浏览器标识会做哈希后存储，面板上展示的是可读的摘要。'
         }
       },
       dataUsage: {

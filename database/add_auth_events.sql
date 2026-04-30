@@ -1,54 +1,39 @@
 -- auth_events: append-only audit trail for security-sensitive auth events.
--- Used to (a) drive sign-in notification emails with 24h same-UA dedupe, and
--- (b) record sensitive operations (data export, future: email change /
--- account delete / oauth unbind).
+-- Drives the dashboard's Recent Activity panel — the user can review every
+-- sign-in and sensitive operation (data export today; future: email change /
+-- account delete / oauth unbind) and spot anything they didn't trigger.
 --
 -- Privacy posture:
 --   - We do NOT store raw IP. Only Vercel-derived approximate region
---     (country + optional city) is persisted, which the user already sees
---     in their notification email.
---   - User-Agent is stored as a sha256 hash for dedupe + a short summary
---     ("Chrome on macOS") for display. Raw UA string is NOT persisted
---     after the email is sent.
+--     (country + optional city) is persisted, which is what the user sees.
+--   - User-Agent is stored as a sha256 hash (in case future features want
+--     per-device dedupe in some other context) and a short summary
+--     ("Chrome on macOS") for display.
 --
 -- RLS:
---   - SELECT: owner only (auth.uid() = user_id) — so a future "Recent
---     activity" panel in the Settings drawer can show the user their own
---     events without exposing them across tenants.
+--   - SELECT: owner only (auth.uid() = user_id) — Recent Activity panel
+--     reads under the user's own JWT.
 --   - INSERT: only via service-role client (api/auth/notify-signin and
 --     equivalent server endpoints). RLS does not grant INSERT to authed
 --     users; they cannot fabricate events.
 --   - UPDATE/DELETE: nobody. The table is append-only; cleanup happens via
---     a periodic retention job (see retention_days below).
+--     a periodic retention job (TBD).
 
 create table if not exists public.auth_events (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   -- 'sign_in' | 'data_export' | 'email_change' | 'account_delete' | 'oauth_unbind'
   event_type text not null,
-  -- sha256 of the raw user-agent string. 64 hex chars; index target for dedupe.
+  -- sha256 of the raw user-agent string. 64 hex chars.
   ua_hash text,
-  -- Human-readable summary, e.g. "Chrome 130 on macOS". Shown in email.
+  -- Human-readable summary, e.g. "Chrome on macOS". Shown in Recent Activity.
   ua_summary text,
   -- Vercel-derived region. Either "US" or "California, US" depending on what's available.
   region text,
-  -- Whether the notification email was successfully sent (false = transient
-  -- failure; informational, NOT used to decide future dedupe).
-  email_sent boolean not null default false,
   created_at timestamptz not null default now()
 );
 
--- Index used by the dedupe query in src/lib/securityEmail.ts:
---   SELECT 1 FROM auth_events
---   WHERE user_id = $1 AND event_type = 'sign_in' AND ua_hash = $2
---     AND email_sent = true AND created_at > now() - interval '24 hours'
--- Composite covers all selectivity-relevant predicates; created_at desc lets
--- the planner short-circuit on the most-recent row.
-create index if not exists auth_events_signin_dedupe_idx
-  on public.auth_events (user_id, event_type, ua_hash, created_at desc)
-  where email_sent = true;
-
--- Generic owner-scoped index for the future Settings "Recent activity" view.
+-- Owner-scoped index for the Recent Activity panel (newest-first window scan).
 create index if not exists auth_events_user_recent_idx
   on public.auth_events (user_id, created_at desc);
 

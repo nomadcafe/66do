@@ -1,12 +1,13 @@
 /**
- * Client-side helpers for triggering security notifications. These wrap
- * the /api/auth/notify-* endpoints with fire-and-forget fetch calls — by
- * design we never await the result, so a slow or failing email pipeline
+ * Client-side helpers for recording security-sensitive auth events.
+ * These wrap the /api/auth/notify-* endpoints with fire-and-forget fetch
+ * calls — we never await the result, so a slow or failing audit pipeline
  * cannot delay the user's redirect or block their data export.
  *
- * Returns void Promises that resolve when the request completes (so
- * callers that DO want to wait can opt in), but they never reject — all
- * errors are swallowed and logged to console only.
+ * The endpoints record into the auth_events table; the user reviews
+ * their history in the dashboard's Settings → Security panel.
+ *
+ * Errors are swallowed and logged to console only — never user-visible.
  */
 
 import type { Session } from '@supabase/supabase-js';
@@ -17,9 +18,9 @@ const NOTIFY_SENSITIVE_PATH = '/api/auth/notify-sensitive';
 export type ClientSensitiveOp = 'data_export' | 'email_change' | 'account_delete' | 'oauth_unbind';
 
 /**
- * Fire the sign-in notification email for the active session. Safe to
- * call multiple times — the server-side dedupe (24h same-UA window in
- * auth_events) suppresses duplicates.
+ * Record a sign-in event for the active session. Safe to call on every
+ * successful auth callback — every sign-in is recorded so the user's
+ * activity log shows complete history.
  *
  * Pass the access token explicitly rather than reading from supabase
  * client because the auth callback flow has already stored it in memory
@@ -43,7 +44,7 @@ export function fireSignInNotification(session: Session | null): void {
 }
 
 /**
- * Fire a sensitive-operation alert. Same fire-and-forget contract.
+ * Record a sensitive-operation event. Same fire-and-forget contract.
  */
 export function fireSensitiveOpNotification(
   session: Session | null,
