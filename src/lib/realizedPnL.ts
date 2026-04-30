@@ -186,12 +186,19 @@ export function realizedROI(
   return costSold > 0 ? (pnl / costSold) * 100 : 0;
 }
 
-/** Insights KPI 横条用的聚合：best sale / win rate / avg holding period */
+/** Insights KPI 横条用的聚合：best sale / success rate / avg holding period */
 export interface InsightsKPISummary {
   /** 单笔最大盈利（≥ 0；没有出售时为 null） */
   bestSale: { amount: number; domainName: string | null | undefined } | null;
-  /** 出售域名中盈利的占比 */
-  winRate: { percent: number; wins: number; total: number } | null;
+  /**
+   * 成功率：盈利卖出笔数 / 历史持有过的域名总数（active + for_sale + sold +
+   * expired）。比"盈利卖出 / 全部卖出"的标准 win rate 更适合域名投资场景：
+   * 域名典型 pattern 是买 100 个 → 卖 5 个 → 95 个过期，纯 win rate 会显示
+   * 100% 但实际只有 5% 库存赚到钱。这个指标同时反映「能不能卖出去」+
+   * 「卖出去能不能赚钱」，单一数字暴露真实命中率。
+   * total = domains.length（含 expired——它们是沉没成本，必须计入分母）
+   */
+  successRate: { percent: number; wins: number; total: number } | null;
   /** 已售域名的平均持有天数 */
   avgHoldingDays: number | null;
 }
@@ -201,9 +208,6 @@ export function insightsKPISummary(
   transactions: TransactionWithRequiredFields[]
 ): InsightsKPISummary {
   const outcomes = tradeOutcomes(domains, transactions);
-  if (outcomes.length === 0) {
-    return { bestSale: null, winRate: null, avgHoldingDays: null };
-  }
   let best: TradeOutcome | null = null;
   let wins = 0;
   let holdingSum = 0;
@@ -216,12 +220,17 @@ export function insightsKPISummary(
       holdingCount++;
     }
   }
+  // successRate 跟着 domains.length 走（不依赖 outcomes 是否空）：刚买入还没
+  // 卖的早期投资者也能看到 0/N 这个真实信号——库存全是负担、还没回血。
+  const totalOwned = domains.length;
   return {
     // bestSale 至少展示出来；如果所有交易都亏损（best.profit ≤ 0），就视作"没有正收益"
     bestSale: best && best.profit > 0
       ? { amount: best.profit, domainName: best.domainName }
       : null,
-    winRate: { percent: (wins / outcomes.length) * 100, wins, total: outcomes.length },
+    successRate: totalOwned > 0
+      ? { percent: (wins / totalOwned) * 100, wins, total: totalOwned }
+      : null,
     avgHoldingDays: holdingCount > 0 ? Math.round(holdingSum / holdingCount) : null,
   };
 }

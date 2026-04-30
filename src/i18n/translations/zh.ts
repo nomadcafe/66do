@@ -809,8 +809,8 @@ const zh = {
     insights: {
       kpiRealizedPnL: '已实现盈亏',
       kpiBestSale: '最高单笔盈利',
-      kpiWinRate: '盈利占比',
-      kpiWinRateBreakdown: '{total} 笔中 {wins} 笔盈利',
+      kpiSuccessRate: '成功率',
+      kpiSuccessRateBreakdown: '持有 {total} 个，{wins} 个盈利',
       kpiAvgHolding: '平均持有',
       kpiDays: '天',
       kpiMonths: '个月',

@@ -173,24 +173,26 @@ export default function InsightsTab({
             </div>
           </div>
 
-          {/* Win Rate */}
+          {/* Success Rate —— 盈利卖出 / 历史持有总数（含 expired），比标准
+              win rate 更能反映域名投资命中率：买100个、卖5个、过期95个 →
+              5%（而不是 5/5=100%）*/}
           <div className="flex items-start gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
               <Target className="h-5 w-5" />
             </span>
             <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-                {t('insights.kpiWinRate')}
+                {t('insights.kpiSuccessRate')}
               </p>
-              {kpis.winRate ? (
+              {kpis.successRate ? (
                 <>
                   <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-stone-900">
-                    {kpis.winRate.percent.toFixed(0)}%
+                    {kpis.successRate.percent.toFixed(1)}%
                   </p>
                   <p className="mt-0.5 text-xs text-stone-500 tabular-nums">
-                    {t('insights.kpiWinRateBreakdown')
-                      .replace('{wins}', String(kpis.winRate.wins))
-                      .replace('{total}', String(kpis.winRate.total))}
+                    {t('insights.kpiSuccessRateBreakdown')
+                      .replace('{wins}', String(kpis.successRate.wins))
+                      .replace('{total}', String(kpis.successRate.total))}
                   </p>
                 </>
               ) : (
