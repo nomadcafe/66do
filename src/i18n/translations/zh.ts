@@ -307,9 +307,9 @@ const zh = {
       renewalCountLabel: '已续费次数',
       renewalCountHelp: '输入该域名已经续费的次数，用于计算总持有成本',
       renewalCountPlaceholder: '输入已续费次数',
-      baselineRenewalAsOfLabel: '续费成本基线日（新建默认今天，可清空）',
+      baselineRenewalAsOfLabel: '续费成本基线日',
       baselineRenewalAsOfHelp:
-        '新建域名时默认填入今天：此前续费成本用「已续费次数×续费成本」概括；该日之后的每笔 renew 交易会加进持有成本。若清空，则只看次数×单价、不把 renew 交易叠加（与旧版一致）。',
+        '基线日及之后的 renew 交易会累加到持有成本；之前的续费由「已续费次数 × 续费成本」一次性概括。清空则不按交易叠加（旧版行为）。',
       updating: '更新中…',
       adding: '添加中…',
       updateDomain: '更新域名',
@@ -648,9 +648,9 @@ const zh = {
       renewalCountLabel: '已续费次数',
       renewalCountHelp: '输入该域名已经续费的次数，用于计算总持有成本',
       renewalCountPlaceholder: '输入已续费次数',
-      baselineRenewalAsOfLabel: '续费成本基线日（新建默认今天，可清空）',
+      baselineRenewalAsOfLabel: '续费成本基线日',
       baselineRenewalAsOfHelp:
-        '新建域名时默认填入今天：此前续费成本用「已续费次数×续费成本」概括；该日之后的每笔 renew 交易会加进持有成本。若清空，则只看次数×单价、不把 renew 交易叠加（与旧版一致）。',
+        '基线日及之后的 renew 交易会累加到持有成本；之前的续费由「已续费次数 × 续费成本」一次性概括。清空则不按交易叠加（旧版行为）。',
       domainFormTitleEdit: '编辑域名',
       domainFormTitleAdd: '添加新域名',
       updateDomain: '更新域名',

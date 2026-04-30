@@ -422,18 +422,27 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
           </p>
         </div>
 
-            <DateInput
-              label={t('dashboard.baselineRenewalAsOfLabel')}
-              icon={<Calendar className="h-4 w-4" />}
-              value={formData.baseline_renewal_as_of}
-              onChange={(value) =>
-                setFormData((prev) => ({ ...prev, baseline_renewal_as_of: value }))
-              }
-              className="w-full md:col-span-2"
-            />
-            <p className="text-xs text-stone-500 md:col-span-2 -mt-4">
-              {t('dashboard.baselineRenewalAsOfHelp')}
-            </p>
+            {/* baseline_renewal_as_of: 只在编辑老域名时暴露这个会计切换点。
+                Add 模式下没有意义（新域名还没有 renew tx），统一默认 today
+                通过 useEffect 写入 formData 即可，不必让用户面对一个看了
+                也不知道是什么的 field（label 字面意义 = 创建时间戳，实际
+                却是 archive ↔ tx 累加的切换日期，反差容易误导）。 */}
+            {domain && (
+              <>
+                <DateInput
+                  label={t('dashboard.baselineRenewalAsOfLabel')}
+                  icon={<Calendar className="h-4 w-4" />}
+                  value={formData.baseline_renewal_as_of}
+                  onChange={(value) =>
+                    setFormData((prev) => ({ ...prev, baseline_renewal_as_of: value }))
+                  }
+                  className="w-full md:col-span-2"
+                />
+                <p className="text-xs text-stone-500 md:col-span-2 -mt-4">
+                  {t('dashboard.baselineRenewalAsOfHelp')}
+                </p>
+              </>
+            )}
 
             <div>
               <label htmlFor="domain-form-estimated_value" className="block text-sm font-medium text-stone-700 mb-2">
