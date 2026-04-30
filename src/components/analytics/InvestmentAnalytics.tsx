@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { expandSellToCashReceipts } from '../../lib/coreCalculations';
+import { sellGrossUSD, sellNetUSD } from '../../lib/sellProceeds';
 import { realizedPnLByMonth, annualizedRealizedReturn } from '../../lib/realizedPnL';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
@@ -26,11 +27,10 @@ import {
   Info,
   Wallet,
   CalendarClock,
-  Scale,
   Building2,
   RefreshCw,
   ShoppingCart,
-  TrendingUp,
+  Coins,
 } from 'lucide-react';
 import { expandRenewalEvents } from '../../lib/expandRenewalEvents';
 
@@ -39,17 +39,22 @@ interface InvestmentAnalyticsProps {
   transactions: TransactionWithRequiredFields[];
 }
 
-// 6 个 KPI 一一对应 Portfolio Performance 图表的 4 条数据线 + 月度现金流图，
-// 加 1 个 Annualized Return（realized 口径，从 Realized P&L 派生）。全部跟随
-// 时间窗口选择器 — Sharpe Ratio 已砍（样本稀疏 + 偏态分布让 Sharpe 数学前提
-// 不成立，详见 coreCalculations.AdvancedFinancialMetrics 注释）。
+// 5 个 KPI tile，全部跟随时间窗口选择器。
+//   - Realized P&L      :chart 黄线在窗口的累计
+//   - Annualized Return :realized 口径年化（窗口感知）
+//   - Investment        :chart indigo 区域窗口求和
+//   - Renewal Cost      :chart 紫线窗口求和（Investment 的子集）
+//   - Total Sales       :按到账月展开 gross 后窗口求和。跟 chart 不直接对齐
+//                        （chart 没有"毛额"系列），但用来跟 Performance hero
+//                        的 lifetime Total Revenue 对照判断平台费比例。
+// Net cash flow / Revenue 已撤除：前者口径介于 cash 与 P&L 之间不像主线指标；
+// 后者 lifetime 已经在 Performance hero 上呈现，重复展示窗口净额价值不大。
 interface PortfolioMetrics {
-  realizedPnL: number;          // chart 黄线累计
-  annualizedReturn: number | null; // null 时窗口内无 realized 交易
-  investment: number;           // chart indigo 区域窗口求和
-  renewalCost: number;          // chart 紫线窗口求和（含在 investment 里的子集）
-  revenue: number;              // chart emerald 区域窗口求和
-  netCashFlow: number;          // 月度现金流 bar chart 窗口求和
+  realizedPnL: number;
+  annualizedReturn: number | null;
+  investment: number;
+  renewalCost: number;
+  grossSales: number;
 }
 
 interface TimeSeriesData {
@@ -132,6 +137,26 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       if (t.type !== 'sell') continue;
       for (const r of expandSellToCashReceipts(t)) {
         map.set(r.monthKey, (map.get(r.monthKey) ?? 0) + r.netAmount);
+      }
+    }
+    return map;
+  }, [transactions]);
+
+  // 月度毛额入账：每条 receipt 的 netAmount 按 grossOnTx/netOnTx 比例反推
+  // 回毛额。expandSellToCashReceipts 内部以 net 为单位（已扣分摊后的平台费），
+  // 这里需要的是「合同毛额按到账月分摊」，所以乘上比例。netOnTx <= 0 的边界
+  // case 跳过（理论不会发生—— sellNetUSD 为 0 时 sellGrossUSD 也接近 0，整笔
+  // 没有现金流，对总和影响为 0）。
+  const monthlyGrossInflowByMonth = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const t of transactions) {
+      if (t.type !== 'sell') continue;
+      const netOnTx = sellNetUSD(t);
+      const grossOnTx = sellGrossUSD(t);
+      if (netOnTx <= 0 || grossOnTx <= 0) continue;
+      const grossPerNet = grossOnTx / netOnTx;
+      for (const r of expandSellToCashReceipts(t)) {
+        map.set(r.monthKey, (map.get(r.monthKey) ?? 0) + r.netAmount * grossPerNet);
       }
     }
     return map;
@@ -239,36 +264,43 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     return data;
   }, [domains, transactions, monthsWindow, monthlyNetInflowByMonth, monthlyRealizedPnL]);
 
-  // KPI 6 项全部跟随时间窗口。投/续费/收入/净现金流 4 项直接对 timeSeriesData
-  // 求和——保证「KPI 数值 = 用户在 chart 可见区间上看到的总和」。Realized P&L
+  // KPI 5 项全部跟随时间窗口。Investment / Renewal Cost 直接对 timeSeriesData
+  // 求和（保证 KPI 数值 = 用户在 chart 可见区间上看到的总和）。Realized P&L
   // 单独算累计（按到账月落入窗口的部分相加，跟图表黄线最右端对齐）；
   // Annualized Return 走 annualizedRealizedReturn 的 windowed 口径。
+  // Total Sales 用 monthlyGrossInflowByMonth 按窗口月份累加（毛额，跟 chart
+  // emerald net 不直接对齐，提供「合同 vs 净到账」的对比维度）。
   const portfolioMetrics: PortfolioMetrics = useMemo(() => {
+    const now = new Date();
+    const startMonth =
+      monthsWindow !== null
+        ? new Date(now.getFullYear(), now.getMonth() - (monthsWindow - 1), 1)
+        : null;
+    const inWindow = (key: string): boolean => {
+      if (startMonth === null) return true;
+      const [yearStr, monthStr] = key.split('-');
+      const year = Number(yearStr);
+      const month = Number(monthStr);
+      if (!Number.isFinite(year) || !Number.isFinite(month)) return false;
+      const d = new Date(year, month - 1, 1);
+      return d >= startMonth && d <= now;
+    };
+
     let realizedPnL = 0;
-    if (monthsWindow === null) {
-      for (const v of monthlyRealizedPnL.values()) realizedPnL += v;
-    } else {
-      const now = new Date();
-      const startMonth = new Date(now.getFullYear(), now.getMonth() - (monthsWindow - 1), 1);
-      for (const [key, v] of monthlyRealizedPnL) {
-        const [yearStr, monthStr] = key.split('-');
-        const year = Number(yearStr);
-        const month = Number(monthStr);
-        if (!Number.isFinite(year) || !Number.isFinite(month)) continue;
-        const d = new Date(year, month - 1, 1);
-        if (d >= startMonth && d <= now) realizedPnL += v;
-      }
+    for (const [key, v] of monthlyRealizedPnL) {
+      if (inWindow(key)) realizedPnL += v;
+    }
+
+    let grossSales = 0;
+    for (const [key, v] of monthlyGrossInflowByMonth) {
+      if (inWindow(key)) grossSales += v;
     }
 
     let investment = 0;
     let renewalCost = 0;
-    let revenue = 0;
-    let netCashFlow = 0;
     for (const row of timeSeriesData) {
       investment += row.investment;
       renewalCost += row.renewalCost;
-      revenue += row.revenue;
-      netCashFlow += row.monthlyCashFlow;
     }
 
     return {
@@ -276,10 +308,9 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       annualizedReturn: annualizedRealizedReturn(domains, transactions, monthsWindow),
       investment,
       renewalCost,
-      revenue,
-      netCashFlow,
+      grossSales,
     };
-  }, [domains, transactions, monthlyRealizedPnL, monthsWindow, timeSeriesData]);
+  }, [domains, transactions, monthlyRealizedPnL, monthlyGrossInflowByMonth, monthsWindow, timeSeriesData]);
 
   const renderPortfolioMetrics = () => {
     if (domains.length === 0 && transactions.length === 0) {
@@ -317,10 +348,10 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
       value: React.ReactNode;
     };
 
-    // Order：先 outcomes（PnL / 年化 / 净现金流），再 chart 的 3 条原始系列
-    // （investment / renewalCost / revenue）。颜色搭配跟 chart 系列对应：
-    // investment=indigo / renewalCost=purple / revenue=emerald，跟图表 legend
-    // 一一对应；用户能在 KPI 上一眼看到该 series 的窗口总额。
+    // 顺序：outcomes（PnL / 年化）→ inputs（Investment / Renewal Cost）→ output
+    // （Total Sales 毛额）。颜色：investment=indigo / renewalCost=purple 跟 chart
+    // legend 对应；Total Sales 用 emerald 表示收入（虽然没在 chart 上直接画，
+    // 但跟用户的"销售额=正面"心智模型一致）。
     const tiles: Tile[] = [
       {
         key: 'realizedPnL',
@@ -349,17 +380,6 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         ),
       },
       {
-        key: 'netCashFlow',
-        label: t('analytics.netCashFlow'),
-        icon: <Scale className="h-5 w-5" />,
-        iconBg: signIconBg(portfolioMetrics.netCashFlow),
-        value: (
-          <span className={`tabular-nums ${signValueColor(portfolioMetrics.netCashFlow)}`}>
-            {formatSigned(portfolioMetrics.netCashFlow)}
-          </span>
-        ),
-      },
-      {
         key: 'investment',
         label: t('analytics.investment'),
         icon: <ShoppingCart className="h-5 w-5" />,
@@ -382,13 +402,14 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
         ),
       },
       {
-        key: 'revenue',
-        label: t('analytics.revenue'),
-        icon: <TrendingUp className="h-5 w-5" />,
+        key: 'grossSales',
+        label: t('financial.totalSales'),
+        tooltip: t('financial.totalSalesDesc'),
+        icon: <Coins className="h-5 w-5" />,
         iconBg: 'bg-emerald-50 text-emerald-700',
         value: (
           <span className="tabular-nums text-emerald-700">
-            ${portfolioMetrics.revenue.toLocaleString()}
+            ${portfolioMetrics.grossSales.toLocaleString()}
           </span>
         ),
       },
@@ -397,7 +418,7 @@ export default function InvestmentAnalytics({ domains, transactions }: Investmen
     return (
       <div className="relative overflow-hidden rounded-3xl border border-stone-200/60 bg-gradient-to-br from-stone-50 via-white to-teal-50/30 shadow-sm">
         <div className="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-gradient-to-br from-teal-100/30 to-transparent blur-3xl" />
-        <div className="relative grid grid-cols-2 gap-5 p-5 sm:p-6 md:grid-cols-3 md:gap-6">
+        <div className="relative grid grid-cols-2 gap-5 p-5 sm:p-6 md:grid-cols-3 md:gap-6 lg:grid-cols-5">
           {tiles.map((tile) => (
             <div key={tile.key} className="flex items-start gap-3">
               <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tile.iconBg}`}>

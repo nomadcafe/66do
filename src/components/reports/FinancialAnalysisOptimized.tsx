@@ -1,7 +1,7 @@
 'use client';
 
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
-import { DollarSign, TrendingUp, Target, Wallet, CheckCircle, XCircle, Award } from 'lucide-react';
+import { DollarSign, TrendingUp, Target, Wallet, CheckCircle, XCircle, Award, Receipt } from 'lucide-react';
 import { useComprehensiveFinancialAnalysis } from '../../hooks/useFinancialCalculations';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { totalRealizedPnL, realizedROI, tradeOutcomes } from '../../lib/realizedPnL';
@@ -78,15 +78,14 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
   return (
     <div className="space-y-5">
       {/* KPI strip — gradient hero language matching the rest of Insights.
-          The 4 metrics: Total Investment (lifetime cash spent on domains),
-          Total Revenue (lifetime cash received from sales), Realized P&L
-          (the canonical profit number, matches Hero), Realized ROI (% on
-          completed trades). Old "totalProfit" = totalRevenue−totalInvestment
-          was structurally biased against held inventory and disagreed with
-          Hero's Realized P&L. */}
+          5 metrics: Total Investment / Total Revenue (net, after platform
+          fees) / Realized P&L (canonical profit, matches Hero) / Realized
+          ROI / Platform Fees (lifetime, gross−net). Platform Fees lives
+          here so users can sanity-check Total Revenue: Total Sales (gross,
+          shown on IA KPI strip) − Platform Fees ≈ Total Revenue. */}
       <div className="relative overflow-hidden rounded-3xl border border-stone-200/60 bg-gradient-to-br from-stone-50 via-white to-teal-50/30 shadow-sm">
         <div className="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-gradient-to-br from-teal-100/30 to-transparent blur-3xl" />
-        <div className="relative grid grid-cols-2 gap-5 p-5 sm:p-6 lg:grid-cols-4 lg:gap-6">
+        <div className="relative grid grid-cols-2 gap-5 p-5 sm:p-6 md:grid-cols-3 md:gap-6 lg:grid-cols-5">
           <KpiTile
             icon={<DollarSign className="h-5 w-5" />}
             iconClass="bg-stone-100 text-stone-700"
@@ -120,6 +119,12 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
             label={t('reports.roi')}
             value={`${realizedRoi >= 0 ? '+' : '−'}${Math.abs(realizedRoi).toFixed(1)}%`}
             valueClass={pnlColor(realizedRoi)}
+          />
+          <KpiTile
+            icon={<Receipt className="h-5 w-5" />}
+            iconClass="bg-stone-100 text-stone-700"
+            label={t('financial.platformFees')}
+            value={formatUSD(Math.max(0, basic.totalGrossSales - basic.totalRevenue))}
           />
         </div>
       </div>
