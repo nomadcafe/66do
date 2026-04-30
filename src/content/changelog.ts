@@ -70,8 +70,8 @@ export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
       items: [
         '全站视觉刷新：登录、404、Landing、空态、表单、域名卡片与表格统一到一套调色板（stone + teal / emerald），整体观感更一致。',
         'Insights 重构：顶部 KPI strip + 分段子 tab（Performance / Portfolio / Renewals / Loss）替代原来的纵向长滚，常用面板一键直达。',
-        '指标口径优化：Win rate 升级为 Success rate（盈利卖出 / 历史持有），更贴合域名投资真实命中率；Performance 图表与 KPI 口径对齐，砍掉容易爆表的 Annualized Return / Sharpe。',
-        '其他：续费预测与 YTD 对齐、Loss Analysis 重做、Yearly Cashflow 改为现金流方向、若干表单文案简化。',
+        '域名追踪算法优化：核心指标口径更清晰、更贴合真实业绩，图表数字与 KPI 卡片相互对齐。',
+        'Bug 修复、续费预测功能上线，以及其他小功能优化。',
       ],
     },
     {
@@ -138,8 +138,8 @@ export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
       items: [
         'Visual refresh: login, 404, landing, empty states, forms, domain cards, and tables all moved onto one palette (stone + teal / emerald) for a more cohesive look.',
         'Insights restructure: a top KPI strip plus segmented sub-tabs (Performance / Portfolio / Renewals / Loss) replace the old vertical scroll — the panel you want is one click away.',
-        'Metrics tuned: Win rate is replaced by Success rate (profitable sales / total domains ever owned), closer to a domain investor\'s real hit rate. Performance chart aligned with the KPI tiles, and the easy-to-explode Annualized Return / Sharpe are out.',
-        'Also: renewal forecasting unified with YTD, Loss Analysis recolored, Yearly Cashflow re-labeled by direction, and a sweep of form copy simplification.',
+        'Domain tracking refined: core metrics now read more clearly and reflect real performance, with charts and KPI tiles consistent.',
+        'Bug fixes, new renewal forecasting, and other small improvements.',
       ],
     },
     {
