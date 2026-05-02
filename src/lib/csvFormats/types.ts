@@ -21,7 +21,7 @@ export type MappedDomain = Partial<
 
 export interface CsvFormat {
   /** 稳定 id，用于 i18n / 调试 */
-  id: 'godaddy' | 'namecheap' | 'dynadot' | 'spaceship' | 'generic'
+  id: 'godaddy' | 'namecheap' | 'dynadot' | 'spaceship' | 'namecom' | 'generic'
   /** UI 显示名 */
   displayName: string
   /** 识别签名：CSV 头里**必须**全部出现这些列（大小写/空格不敏感）才算命中。
