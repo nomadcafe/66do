@@ -80,7 +80,8 @@ interface DomainTableProps {
 
 const TABLE_PAGE_SIZE = 24;
 
-type EditTarget = { id: string; field: 'status' | 'estimated_value' } | null;
+type EditableMoneyField = 'estimated_value' | 'purchase_cost' | 'renewal_cost';
+type EditTarget = { id: string; field: 'status' | EditableMoneyField } | null;
 
 const DomainTable = memo(function DomainTable({ domains, transactions = [], onEdit, onDelete, onView, onUpdateDomain }: DomainTableProps) {
   const [sortField, setSortField] = useState('domain_name');
@@ -100,10 +101,14 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
     setDraftValue(domain.status);
   }, [onUpdateDomain]);
 
-  const beginEditValue = useCallback((domain: DomainWithTags) => {
+  // 通用化"begin a money cell edit"——estimated_value / purchase_cost /
+  // renewal_cost 三个字段在 UX 上完全一致（点击 → 数字输入框 → blur 提交 /
+  // Enter 提交 / Escape 取消），所以收成一份。CSV 导入后用户主要是来这里
+  // 批量补 purchase_cost 的，所以 input 默认全选当前值方便覆盖。
+  const beginEditMoney = useCallback((domain: DomainWithTags, field: EditableMoneyField) => {
     if (!onUpdateDomain) return;
-    setEditing({ id: domain.id, field: 'estimated_value' });
-    setDraftValue(String(domain.estimated_value ?? 0));
+    setEditing({ id: domain.id, field });
+    setDraftValue(String(domain[field] ?? 0));
     setTimeout(() => valueInputRef.current?.select(), 0);
   }, [onUpdateDomain]);
 
@@ -120,12 +125,13 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
     cancelEdit();
   }, [onUpdateDomain, cancelEdit]);
 
-  const commitValue = useCallback(async (domain: DomainWithTags) => {
+  const commitMoney = useCallback(async (domain: DomainWithTags, field: EditableMoneyField) => {
     if (!onUpdateDomain) return;
     const parsed = Number(draftValue);
     if (!Number.isFinite(parsed) || parsed < 0) { cancelEdit(); return; }
-    if (parsed === (domain.estimated_value ?? 0)) { cancelEdit(); return; }
-    await onUpdateDomain(domain, { estimated_value: parsed });
+    const current = (domain[field] as number | null) ?? 0;
+    if (parsed === current) { cancelEdit(); return; }
+    await onUpdateDomain(domain, { [field]: parsed } as Partial<DomainWithTags>);
     cancelEdit();
   }, [onUpdateDomain, draftValue, cancelEdit]);
 
@@ -200,6 +206,52 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
     } else {
       setSortField(field);
       setSortDirection('asc');
+    }
+  };
+
+  // Tab / Shift+Tab：保存当前 cell 的值，焦点跳到上 / 下一行同一列继续编辑。
+  // CSV 导入完用户最痛的场景就是顺着列一行行填 purchase_cost / renewal_cost；
+  // 没 Tab 就要每行 click，体验差一档。跨页时 cancelEdit 让用户主动翻页——
+  // 避免编辑焦点跳到屏幕外的不可见行。
+  // 不用 useCallback —— 这函数仅在 keydown 事件中调用一次，且依赖的
+  // displayedDomains / draftValue 每次 render 都变；包 useCallback 反而搞复杂。
+  const handleMoneyKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    domain: DomainWithTags,
+    field: EditableMoneyField
+  ) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commitMoney(domain, field);
+      return;
+    }
+    if (e.key === 'Escape') {
+      cancelEdit();
+      return;
+    }
+    if (e.key !== 'Tab') return;
+
+    e.preventDefault();
+    // commit 当前值（不调 cancelEdit，下面会 setEditing 到下一行）
+    const parsed = Number(draftValue);
+    const current = (domain[field] as number | null) ?? 0;
+    if (
+      onUpdateDomain &&
+      Number.isFinite(parsed) &&
+      parsed >= 0 &&
+      parsed !== current
+    ) {
+      void onUpdateDomain(domain, { [field]: parsed } as Partial<DomainWithTags>);
+    }
+    const idx = displayedDomains.findIndex((d) => d.id === domain.id);
+    const dir = e.shiftKey ? -1 : 1;
+    const target = displayedDomains[idx + dir];
+    if (target) {
+      setEditing({ id: target.id, field });
+      setDraftValue(String((target[field] as number | null) ?? 0));
+      setTimeout(() => valueInputRef.current?.select(), 0);
+    } else {
+      cancelEdit();
     }
   };
 
@@ -347,6 +399,8 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                 const isExpanded = expandedId === domain.id;
                 const isEditingStatus = editing?.id === domain.id && editing.field === 'status';
                 const isEditingValue = editing?.id === domain.id && editing.field === 'estimated_value';
+                const isEditingCost = editing?.id === domain.id && editing.field === 'purchase_cost';
+                const isEditingRenewal = editing?.id === domain.id && editing.field === 'renewal_cost';
                 const domainEvents = transactionsByDomainId.get(domain.id) ?? [];
 
                 return (
@@ -400,12 +454,77 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="text-sm text-stone-900">{formatCurrency(domain.purchase_cost || 0)}</div>
-                      {domain.renewal_count > 0 && (
-                        <div className="text-xs text-stone-500">
-                          +{domain.renewal_count} {t('domain.renewals')}
-                        </div>
+                      {/* purchase_cost — click 编辑 / 空值显示占位符邀请填写。
+                          CSV 导入后绝大多数行都是空的，所以默认渲染要让"该填"
+                          这件事一目了然，不能再悄悄渲染 "$0.00"。 */}
+                      {isEditingCost ? (
+                        <input
+                          ref={valueInputRef}
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={draftValue}
+                          onChange={(e) => setDraftValue(e.target.value)}
+                          onBlur={() => commitMoney(domain, 'purchase_cost')}
+                          onKeyDown={(e) => handleMoneyKeyDown(e, domain, 'purchase_cost')}
+                          className="w-24 text-sm rounded border border-stone-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => beginEditMoney(domain, 'purchase_cost')}
+                          disabled={!onUpdateDomain}
+                          title={onUpdateDomain ? t('domainList.table.clickToUpdateCost') : undefined}
+                          className={`text-sm ${onUpdateDomain ? 'cursor-pointer hover:bg-stone-100 rounded px-1 -mx-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500' : 'cursor-default'} ${
+                            domain.purchase_cost && domain.purchase_cost > 0
+                              ? 'text-stone-900'
+                              : 'text-stone-400 italic'
+                          }`}
+                        >
+                          {domain.purchase_cost && domain.purchase_cost > 0
+                            ? formatCurrency(domain.purchase_cost)
+                            : t('domainList.table.costNotSet')}
+                        </button>
                       )}
+                      {/* renewal_cost — 同款 inline edit，做成"$X/yr"形态附在
+                          purchase_cost 下方。续费次数指示挪到 +N renewals
+                          那行后面，避免再加一列。 */}
+                      <div className="mt-1 flex items-center gap-2 text-xs">
+                        {isEditingRenewal ? (
+                          <input
+                            ref={valueInputRef}
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={draftValue}
+                            onChange={(e) => setDraftValue(e.target.value)}
+                            onBlur={() => commitMoney(domain, 'renewal_cost')}
+                            onKeyDown={(e) => handleMoneyKeyDown(e, domain, 'renewal_cost')}
+                            className="w-20 text-xs rounded border border-stone-300 px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                          />
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => beginEditMoney(domain, 'renewal_cost')}
+                            disabled={!onUpdateDomain}
+                            title={onUpdateDomain ? t('domainList.table.clickToUpdateRenewalCost') : undefined}
+                            className={`${onUpdateDomain ? 'cursor-pointer hover:bg-stone-100 rounded px-1 -mx-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500' : 'cursor-default'} ${
+                              domain.renewal_cost && domain.renewal_cost > 0
+                                ? 'text-stone-500'
+                                : 'text-stone-400 italic'
+                            }`}
+                          >
+                            {domain.renewal_cost && domain.renewal_cost > 0
+                              ? `${formatCurrency(domain.renewal_cost)}/yr`
+                              : t('domainList.table.costNotSet')}
+                          </button>
+                        )}
+                        {domain.renewal_count > 0 && (
+                          <span className="text-stone-400">
+                            · +{domain.renewal_count} {t('domain.renewals')}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       {domain.status === 'sold' && domain.sale_price ? (
@@ -421,22 +540,25 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                           step="1"
                           value={draftValue}
                           onChange={(e) => setDraftValue(e.target.value)}
-                          onBlur={() => commitValue(domain)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') { e.preventDefault(); commitValue(domain); }
-                            if (e.key === 'Escape') cancelEdit();
-                          }}
+                          onBlur={() => commitMoney(domain, 'estimated_value')}
+                          onKeyDown={(e) => handleMoneyKeyDown(e, domain, 'estimated_value')}
                           className="w-24 text-sm rounded border border-stone-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-teal-500"
                         />
                       ) : (
                         <button
                           type="button"
-                          onClick={() => beginEditValue(domain)}
+                          onClick={() => beginEditMoney(domain, 'estimated_value')}
                           disabled={!onUpdateDomain}
                           title={onUpdateDomain ? t('domainList.table.clickToUpdateValue') : undefined}
-                          className={`text-sm text-stone-900 ${onUpdateDomain ? 'cursor-pointer hover:bg-stone-100 rounded px-1 -mx-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500' : 'cursor-default'}`}
+                          className={`text-sm ${onUpdateDomain ? 'cursor-pointer hover:bg-stone-100 rounded px-1 -mx-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500' : 'cursor-default'} ${
+                            domain.estimated_value && domain.estimated_value > 0
+                              ? 'text-stone-900'
+                              : 'text-stone-400 italic'
+                          }`}
                         >
-                          {formatCurrency(domain.estimated_value || 0)}
+                          {domain.estimated_value && domain.estimated_value > 0
+                            ? formatCurrency(domain.estimated_value)
+                            : t('domainList.table.costNotSet')}
                         </button>
                       )}
                     </td>

@@ -15,6 +15,7 @@ import { godaddyFormat } from './formats/godaddy'
 import { namecheapFormat } from './formats/namecheap'
 import { dynadotFormat } from './formats/dynadot'
 import { spaceshipFormat } from './formats/spaceship'
+import { namecomFormat } from './formats/namecom'
 import { genericFormat } from './formats/generic'
 
 const REGISTRY: CsvFormat[] = [
@@ -22,6 +23,7 @@ const REGISTRY: CsvFormat[] = [
   namecheapFormat,
   dynadotFormat,
   spaceshipFormat,
+  namecomFormat,
   genericFormat,
 ]
 

@@ -37,7 +37,7 @@ const en = {
     export: 'Data Export',
     backup: 'Restore',
     importInstructions: 'Import Instructions',
-    importDescription: 'Supports JSON, our own CSV export, and registrar exports (GoDaddy, Namecheap, Dynadot, Spaceship). The format is detected automatically.',
+    importDescription: 'Supports JSON, our own CSV export, and registrar exports (GoDaddy, Namecheap, Dynadot, Spaceship, Name.com). The format is detected automatically.',
     detectedFormat: 'Detected format: {format}',
     detectedRows: 'Found {count} domain rows',
     previewNewCount: '{count} new',
@@ -781,6 +781,9 @@ const en = {
         collapseHistory: 'Collapse history',
         clickToChangeStatus: 'Click to change status',
         clickToUpdateValue: 'Click to update value',
+        clickToUpdateCost: 'Click to set purchase cost',
+        clickToUpdateRenewalCost: 'Click to set annual renewal cost',
+        costNotSet: 'Set',
         sortBy: 'Sort by',
         estimatedValue: 'Estimated Value'
       }

@@ -82,6 +82,13 @@ foo.com,ns1.spaceship.net ns2.spaceship.net,2/20/2024,2/20/2030,On,active`
     expect(detectFormat(headers)?.format.id).toBe('spaceship')
   })
 
+  it('recognises Name.com export by Domain Name + Expire Date', () => {
+    const csv = `Domain Name,Create Date,Expire Date
+353ie.com,6/5/2025,6/5/2026`
+    const { headers } = parse(csv)
+    expect(detectFormat(headers)?.format.id).toBe('namecom')
+  })
+
   it('GoDaddy beats generic when both could match a CSV with snake_case + GoDaddy markers', () => {
     // 罕见但可能的边界：CSV 同时出现 domain_name 和 Domain Name + Expiration
     // Date。GoDaddy 的 requiredHeaders 长度更大，应当胜出。
@@ -137,6 +144,22 @@ mony.fund,2026-12-18,On,Active`
       expiry_date: '2026-12-18',
     })
     expect(mapped[0].purchase_date).toBeUndefined()
+  })
+
+  it('maps Name.com rows with US M/D/YYYY dates', () => {
+    const csv = `Domain Name,Create Date,Expire Date
+353ie.com,6/5/2025,6/5/2026
+358FI.com,6/5/2025,6/5/2026`
+    const { headers, rows } = parse(csv)
+    const detection = detectFormat(headers)!
+    const mapped = mapRows(rows, detection.format)
+    expect(mapped[0]).toMatchObject({
+      domain_name: '353ie.com',
+      registrar: 'Name.com',
+      expiry_date: '2026-06-05',
+      purchase_date: '2025-06-05',
+    })
+    expect(mapped[1].domain_name).toBe('358fi.com')
   })
 
   it('maps Spaceship rows with US M/D/YYYY dates', () => {
