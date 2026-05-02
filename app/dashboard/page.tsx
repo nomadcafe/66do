@@ -52,6 +52,7 @@ import { totalHoldingCostForDomain } from '../../src/lib/renewalCostBasis';
 import { getEffectiveExpiry } from '../../src/lib/effectiveExpiry';
 import { expandRenewalEvents } from '../../src/lib/expandRenewalEvents';
 import { totalRealizedPnL, realizedPnLByMonth, portfolioAtCost } from '../../src/lib/realizedPnL';
+import { mergeCsvImportWithExisting } from '../../src/lib/csvFormats/mergeWithExisting';
 import {
   Plus,
   AlertTriangle,
@@ -997,12 +998,32 @@ export default function DashboardPage() {
         dataNode={
           <LazyWrapper>
             <LazyDataImportExport
+              existingDomainNames={domains.map((d) => d.domain_name)}
               onImport={async (data: unknown) => {
                 try {
-                  const importData = data as { domains?: Domain[]; transactions?: TransactionWithRequiredFields[] };
+                  const importData = data as {
+                    domains?: Array<Partial<Domain> & { domain_name: string }>;
+                    transactions?: TransactionWithRequiredFields[];
+                  };
                   let typedDomains = domains;
                   let typedTransactions = transactions;
-                  if (importData.domains) typedDomains = importData.domains.map(ensureDomainWithTags);
+                  if (importData.domains && importData.domains.length > 0) {
+                    // 两条路径：
+                    //   1) JSON 备份：每行带 id（自家导出格式），直接 ensureDomainWithTags
+                    //      然后整体替换——saveData 会按 id 增量 diff，行为跟以前一致。
+                    //   2) CSV 智能导入：每行不带 id（来自 MappedDomain），按 name
+                    //      合并到现有 domains 上，user 已填字段保留、空字段被 CSV 填补，
+                    //      新名字生成新 id。
+                    const hasAnyId = importData.domains.some(
+                      (d) => typeof (d as { id?: string }).id === 'string' && (d as { id?: string }).id
+                    );
+                    if (hasAnyId) {
+                      typedDomains = (importData.domains as Domain[]).map(ensureDomainWithTags);
+                    } else {
+                      const merged = mergeCsvImportWithExisting(domains, importData.domains);
+                      typedDomains = merged.mergedDomains;
+                    }
+                  }
                   if (importData.transactions) typedTransactions = importData.transactions.map(ensureTransactionWithRequiredFields);
                   await saveData(typedDomains, typedTransactions);
                   logger.log(t('common.dataImportedSuccessfully'));
