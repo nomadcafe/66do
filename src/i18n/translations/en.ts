@@ -37,7 +37,7 @@ const en = {
     export: 'Data Export',
     backup: 'Restore',
     importInstructions: 'Import Instructions',
-    importDescription: 'Supports JSON, our own CSV export, and registrar exports (GoDaddy, Namecheap). The format is detected automatically.',
+    importDescription: 'Supports JSON, our own CSV export, and registrar exports (GoDaddy, Namecheap, Dynadot, Spaceship). The format is detected automatically.',
     detectedFormat: 'Detected format: {format}',
     detectedRows: 'Found {count} domain rows',
     previewNewCount: '{count} new',

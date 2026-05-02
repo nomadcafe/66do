@@ -36,7 +36,7 @@ const zh = {
     export: '数据导出',
     backup: '恢复',
     importInstructions: '导入说明',
-    importDescription: '支持 JSON、自家 CSV 导出，以及注册商导出（GoDaddy、Namecheap）。格式会自动识别。',
+    importDescription: '支持 JSON、自家 CSV 导出，以及注册商导出（GoDaddy、Namecheap、Dynadot、Spaceship）。格式会自动识别。',
     detectedFormat: '识别为：{format}',
     detectedRows: '共 {count} 条域名',
     previewNewCount: '{count} 条新增',

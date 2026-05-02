@@ -13,9 +13,17 @@ import type { CsvFormat, MappedDomain } from './types'
 import { normalizeHeader } from './types'
 import { godaddyFormat } from './formats/godaddy'
 import { namecheapFormat } from './formats/namecheap'
+import { dynadotFormat } from './formats/dynadot'
+import { spaceshipFormat } from './formats/spaceship'
 import { genericFormat } from './formats/generic'
 
-const REGISTRY: CsvFormat[] = [godaddyFormat, namecheapFormat, genericFormat]
+const REGISTRY: CsvFormat[] = [
+  godaddyFormat,
+  namecheapFormat,
+  dynadotFormat,
+  spaceshipFormat,
+  genericFormat,
+]
 
 export interface DetectionResult {
   format: CsvFormat

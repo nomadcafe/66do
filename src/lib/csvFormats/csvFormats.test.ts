@@ -25,9 +25,9 @@ foo.io,active,06/15/2027,No,Public`
     expect(detection?.format.id).toBe('godaddy')
   })
 
-  it('recognises Namecheap export by Domain Name + Expires (not Expiration Date)', () => {
-    const csv = `Domain Name,Status,Expires,Auto-Renew,WhoisGuard,Years
-example.com,active,12/31/2026,Yes,Enabled,1`
+  it('recognises Namecheap export by Domain Name + Domain expiration date', () => {
+    const csv = `Domain Name,Domain privacy protection status,Domain status at NC,Domain auto-renew status,Domain expiration date
+vuno.ai,ON,Active,OFF,Dec 14 2027`
     const { headers } = parse(csv)
     const detection = detectFormat(headers)
     expect(detection?.format.id).toBe('namecheap')
@@ -46,6 +46,31 @@ example.com,Cloudflare,10`
 a,b,c`
     const { headers } = parse(csv)
     expect(detectFormat(headers)).toBeNull()
+  })
+
+  it('recognises Dynadot export by Domain (no "Name") + Expiration Date Timestamp', () => {
+    const csv = `Domain,Expiration Date,Expiration Date Timestamp,Registration Date,Registration Date Timestamp
+xximoney.xyz,2026/04/25 07:59 PRC,1777075199000,2025/04/24 22:18 PRC,1745504314000`
+    const { headers } = parse(csv)
+    const detection = detectFormat(headers)
+    expect(detection?.format.id).toBe('dynadot')
+  })
+
+  it('recognises Spaceship export by Domain + Nameservers + Expiration Date', () => {
+    const csv = `Domain,Nameservers,Category,DNS Preset,Registration Date,Expiration Date,Ownership change,Autorenew,Privacy,Transfer Lock,Status
+01us.com,launch1.spaceship.net launch2.spaceship.net,N/A,N/A,2/20/2024,2/20/2030,N/A,On,Private,Locked,active`
+    const { headers } = parse(csv)
+    const detection = detectFormat(headers)
+    expect(detection?.format.id).toBe('spaceship')
+  })
+
+  it('Spaceship wins over Dynadot when Nameservers column distinguishes them', () => {
+    // 双方都过 `Domain` + `Expiration Date` 这关；靠 Spaceship 的 Nameservers
+    // (required) 在 score 上压过 Dynadot —— required 长度 3 vs 2，无悬念。
+    const csv = `Domain,Nameservers,Registration Date,Expiration Date,Autorenew,Status
+foo.com,ns1.spaceship.net ns2.spaceship.net,2/20/2024,2/20/2030,On,active`
+    const { headers } = parse(csv)
+    expect(detectFormat(headers)?.format.id).toBe('spaceship')
   })
 
   it('GoDaddy beats generic when both could match a CSV with snake_case + GoDaddy markers', () => {
@@ -74,18 +99,61 @@ EXAMPLE.com,12/31/2026,01/15/2024`
     })
   })
 
-  it('maps Namecheap rows including renewal_cycle from Years column', () => {
-    const csv = `Domain Name,Expires,Years
-foo.io,06/15/2027,3`
+  it('maps Spaceship rows with US M/D/YYYY dates', () => {
+    const csv = `Domain,Nameservers,Category,DNS Preset,Registration Date,Expiration Date,Ownership change,Autorenew,Privacy,Transfer Lock,Status
+01us.com,launch1.spaceship.net launch2.spaceship.net,N/A,N/A,2/20/2024,2/20/2030,N/A,On,Private,Locked,active
+163AI.com,NS1.atom.COM NS2.atom.COM,N/A,N/A,12/30/2013,12/30/2029,N/A,On,Private,Locked,active`
+    const { headers, rows } = parse(csv)
+    const detection = detectFormat(headers)!
+    const mapped = mapRows(rows, detection.format)
+    expect(mapped).toHaveLength(2)
+    expect(mapped[0]).toMatchObject({
+      domain_name: '01us.com',
+      registrar: 'Spaceship',
+      expiry_date: '2030-02-20',
+      purchase_date: '2024-02-20',
+    })
+    expect(mapped[1]).toMatchObject({
+      domain_name: '163ai.com',
+      expiry_date: '2029-12-30',
+      purchase_date: '2013-12-30',
+    })
+  })
+
+  it('maps Dynadot rows from text column (not timestamp) to keep user calendar date', () => {
+    // 验证关键不变量：timestamp 1777075199000 = 2026-04-24T23:59:59Z 会得出
+    // 错误的 4-24，正确解析必须从文本 "2026/04/25" 抽到 2026-04-25。
+    const csv = `Domain,Expiration Date,Expiration Date Timestamp,Registration Date,Registration Date Timestamp
+xximoney.xyz,2026/04/25 07:59 PRC,1777075199000,2025/04/24 22:18 PRC,1745504314000
+RUFUS.CHAT,2026/06/03 10:26 PRC,1780453569000,2025/06/03 10:26 PRC,1748917569000`
+    const { headers, rows } = parse(csv)
+    const detection = detectFormat(headers)!
+    const mapped = mapRows(rows, detection.format)
+    expect(mapped).toHaveLength(2)
+    expect(mapped[0]).toMatchObject({
+      domain_name: 'xximoney.xyz',
+      registrar: 'Dynadot',
+      expiry_date: '2026-04-25',
+      purchase_date: '2025-04-24',
+    })
+    // 大小写归一
+    expect(mapped[1].domain_name).toBe('rufus.chat')
+    expect(mapped[1].expiry_date).toBe('2026-06-03')
+  })
+
+  it('maps Namecheap rows from real export (Dec 14 2027 → 2027-12-14)', () => {
+    const csv = `Domain Name,Domain privacy protection status,Domain status at NC,Domain auto-renew status,Domain expiration date
+vuno.ai,ON,Active,OFF,Dec 14 2027`
     const { headers, rows } = parse(csv)
     const detection = detectFormat(headers)!
     const mapped = mapRows(rows, detection.format)
     expect(mapped[0]).toMatchObject({
-      domain_name: 'foo.io',
+      domain_name: 'vuno.ai',
       registrar: 'Namecheap',
-      expiry_date: '2027-06-15',
-      renewal_cycle: 3,
+      expiry_date: '2027-12-14',
     })
+    // Namecheap 导出无注册日期列，purchase_date 应为 undefined
+    expect(mapped[0].purchase_date).toBeUndefined()
   })
 })
 
