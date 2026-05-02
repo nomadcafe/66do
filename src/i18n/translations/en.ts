@@ -784,6 +784,8 @@ const en = {
         clickToUpdateCost: 'Click to set purchase cost',
         clickToUpdateRenewalCost: 'Click to set annual renewal cost',
         costNotSet: 'Set',
+        costLabelBuy: 'Buy',
+        costLabelRenew: 'Renew',
         sortBy: 'Sort by',
         estimatedValue: 'Estimated Value'
       }

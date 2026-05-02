@@ -454,42 +454,49 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      {/* purchase_cost — click 编辑 / 空值显示占位符邀请填写。
-                          CSV 导入后绝大多数行都是空的，所以默认渲染要让"该填"
-                          这件事一目了然，不能再悄悄渲染 "$0.00"。 */}
-                      {isEditingCost ? (
-                        <input
-                          ref={valueInputRef}
-                          type="number"
-                          min="0"
-                          step="1"
-                          value={draftValue}
-                          onChange={(e) => setDraftValue(e.target.value)}
-                          onBlur={() => commitMoney(domain, 'purchase_cost')}
-                          onKeyDown={(e) => handleMoneyKeyDown(e, domain, 'purchase_cost')}
-                          className="w-24 text-sm rounded border border-stone-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                        />
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => beginEditMoney(domain, 'purchase_cost')}
-                          disabled={!onUpdateDomain}
-                          title={onUpdateDomain ? t('domainList.table.clickToUpdateCost') : undefined}
-                          className={`text-sm ${onUpdateDomain ? 'cursor-pointer hover:bg-stone-100 rounded px-1 -mx-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500' : 'cursor-default'} ${
-                            domain.purchase_cost && domain.purchase_cost > 0
-                              ? 'text-stone-900'
-                              : 'text-stone-400 italic'
-                          }`}
-                        >
-                          {domain.purchase_cost && domain.purchase_cost > 0
-                            ? formatCurrency(domain.purchase_cost)
-                            : t('domainList.table.costNotSet')}
-                        </button>
-                      )}
-                      {/* renewal_cost — 同款 inline edit，做成"$X/yr"形态附在
-                          purchase_cost 下方。续费次数指示挪到 +N renewals
-                          那行后面，避免再加一列。 */}
-                      <div className="mt-1 flex items-center gap-2 text-xs">
+                      {/* purchase_cost / renewal_cost 是两个独立财务概念
+                          （一次性买入 vs 年度续费），共用 Cost 列时必须挂明确
+                          标签——否则用户看到两行数字会以为重复填了。Buy/Renew
+                          二字标签足够区分，统一固定宽度让数字纵向对齐，扫起来
+                          像一张迷你财务卡。空值斜体灰显示 "Set" 邀请填写。 */}
+                      <div className="flex items-center gap-2">
+                        <span className="w-10 text-[10px] font-semibold uppercase tracking-wide text-stone-400">
+                          {t('domainList.table.costLabelBuy')}
+                        </span>
+                        {isEditingCost ? (
+                          <input
+                            ref={valueInputRef}
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={draftValue}
+                            onChange={(e) => setDraftValue(e.target.value)}
+                            onBlur={() => commitMoney(domain, 'purchase_cost')}
+                            onKeyDown={(e) => handleMoneyKeyDown(e, domain, 'purchase_cost')}
+                            className="w-24 text-sm rounded border border-stone-300 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                          />
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => beginEditMoney(domain, 'purchase_cost')}
+                            disabled={!onUpdateDomain}
+                            title={onUpdateDomain ? t('domainList.table.clickToUpdateCost') : undefined}
+                            className={`text-sm ${onUpdateDomain ? 'cursor-pointer hover:bg-stone-100 rounded px-1 -mx-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500' : 'cursor-default'} ${
+                              domain.purchase_cost && domain.purchase_cost > 0
+                                ? 'text-stone-900'
+                                : 'text-stone-400 italic'
+                            }`}
+                          >
+                            {domain.purchase_cost && domain.purchase_cost > 0
+                              ? formatCurrency(domain.purchase_cost)
+                              : t('domainList.table.costNotSet')}
+                          </button>
+                        )}
+                      </div>
+                      <div className="mt-1 flex items-center gap-2">
+                        <span className="w-10 text-[10px] font-semibold uppercase tracking-wide text-stone-400">
+                          {t('domainList.table.costLabelRenew')}
+                        </span>
                         {isEditingRenewal ? (
                           <input
                             ref={valueInputRef}
@@ -508,9 +515,9 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                             onClick={() => beginEditMoney(domain, 'renewal_cost')}
                             disabled={!onUpdateDomain}
                             title={onUpdateDomain ? t('domainList.table.clickToUpdateRenewalCost') : undefined}
-                            className={`${onUpdateDomain ? 'cursor-pointer hover:bg-stone-100 rounded px-1 -mx-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500' : 'cursor-default'} ${
+                            className={`text-xs ${onUpdateDomain ? 'cursor-pointer hover:bg-stone-100 rounded px-1 -mx-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500' : 'cursor-default'} ${
                               domain.renewal_cost && domain.renewal_cost > 0
-                                ? 'text-stone-500'
+                                ? 'text-stone-600'
                                 : 'text-stone-400 italic'
                             }`}
                           >
@@ -520,7 +527,7 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                           </button>
                         )}
                         {domain.renewal_count > 0 && (
-                          <span className="text-stone-400">
+                          <span className="text-[11px] text-stone-400">
                             · +{domain.renewal_count} {t('domain.renewals')}
                           </span>
                         )}

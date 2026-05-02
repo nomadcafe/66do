@@ -779,6 +779,8 @@ const zh = {
         clickToUpdateCost: '点击填写购买成本',
         clickToUpdateRenewalCost: '点击填写年度续费成本',
         costNotSet: '填写',
+        costLabelBuy: '购入',
+        costLabelRenew: '续费',
         sortBy: '排序',
         estimatedValue: '估值'
       }
