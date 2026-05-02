@@ -2,7 +2,7 @@
 
 Living document. Add items at the bottom of the appropriate section as they come up; archive done items into a dated bullet under **Recently shipped**. Keep entries one or two lines each — link out for design rationale.
 
-Last updated: 2026-05-01 (NameBio MVP path; Sedo/Afternic moved to deferred)
+Last updated: 2026-05-02 (smart CSV import shipped, registrar API sync deferred until users ask)
 
 ---
 
@@ -52,12 +52,13 @@ These are feature-level bets, not infra follow-ups. Listed roughly in descending
 
 ### 1. Registrar sync — top adoption unlock
 
-- [ ] **Connect a registrar account, auto-import portfolio + renewals**. The single highest-impact feature missing. Manually entering 100+ domains is the #1 reason serious investors stay on spreadsheets. Start with one provider — **Namecheap** (API-friendly, popular with domainers) or **Dynadot** (favoured by serious investors). One integration is enough to validate; expand to GoDaddy / Sav / Porkbun later. Expected impact: 5–10× signup→active conversion.
+- [x] **Smart CSV import** — partial answer shipped 2026-05-02. Adapter layer at `src/lib/csvFormats/` recognises GoDaddy / Namecheap / Dynadot / Spaceship exports automatically; merge-by-name preserves user-filled fields; covers ~95% of "I have hundreds of domains, please don't make me type them" without storing any registrar credentials. Adding more registrars = one file each.
+- [ ] **API-based auto-sync** (deferred). The CSV path requires the user to manually re-export when expiry dates change; a real registrar API integration would close that loop with a daily cron. Pursue when a Pro user asks for it specifically — until then the security cost (encrypted credential store, IP-whitelist headaches with Namecheap) outweighs the marginal value over CSV. GoDaddy / Dynadot / Spaceship would be easiest first targets (no IP whitelist).
 
 ### 2. Bookkeeping → Advisor (positioning shift)
 
 - [ ] **Comparable sales — free MVP (deep-link to NameBio)**. ~1 hour. Add a "Look up comparable sales →" button on each domain card that opens NameBio's public search pre-filled with the keyword + TLD. Zero cost, no API, gives the user 80% of the value (real sales data) without our paying anything. The trade-off is the user leaves our UI, but the positioning shift ("the product knows where to send you") is real.
-- [ ] **Estimated valuation via GoDaddy Appraisal API (free)**. ~3-4 hours. Use GoDaddy's free `/v1/appraisal/{domain}` endpoint to show a rough ML valuation on each domain card. Quality is below true comparable sales — it's a model estimate, not a real-trade datapoint — but it's a visible number with no external cost.
+- [x] **GoDaddy Appraisal — captured for free via CSV import** (shipped 2026-05-02). The CSV adapter pulls GoDaddy's `Estimated Value` column straight into our `estimated_value` field, so any user who imports their GoDaddy portfolio gets the appraisal number without us calling the API. The live `/v1/appraisal/{domain}` endpoint integration (to refresh appraisals on demand for non-GoDaddy domains) is deferred — the static snapshot from CSV satisfies the "visible valuation" goal for the dominant use case.
 - [ ] **NameBio paid API integration** — defer until **50+ paying Pro subscribers**. The API runs ~$300/month; with Pro at $12/month, 25 subs is the break-even and 50 makes it comfortable. Until then the deep-link MVP carries the load. Implementation when triggered: ~6-8 hours (replace deep-link with inline median-sale display + filtering).
 - [ ] **Forward-looking action recommendations**. Today's Insights are retrospective ("you sold X for Y profit"). Add prospective:
   - "These 3 domains held >5 yrs with no inquiries — drop on next renewal? ($XXX saved)"
@@ -101,6 +102,7 @@ So we don't re-litigate these:
 
 ## Recently shipped
 
+- 2026-05-02 — Smart CSV import: GoDaddy / Namecheap / Dynadot / Spaceship adapters, merge-by-name preserves user-filled fields, GoDaddy Appraisal pulled into `estimated_value`, fixes pre-existing 409 dedup bug on bulk import (`9a977ae`, `60cbf47`, `bc9d8ac`)
 - 2026-04-30 — In-app activity log replacing email alerts (`956038d`)
 - 2026-04-30 — Privacy / Terms / Cookies pages aligned to redesigned palette (`fa98a89`); honesty pass on Privacy claims (`5764c03`, `ef2c07c`, `ac2b615`, `b671822`, `71cc3b8`, `fcd060b`)
 - 2026-04-30 — SEO: OG / Twitter image, viewport export, JSON-LD on homepage (`55cdc99`)
