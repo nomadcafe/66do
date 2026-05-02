@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import * as Papa from 'papaparse'
 import { detectFormat, mapRows } from './index'
 import { mergeCsvImportWithExisting } from './mergeWithExisting'
+import { parseMoneyAmount } from './parseMoney'
 import type { DomainWithTags } from '../../types/dashboard'
 
 // 真实场景下的 papaparse 一致：用同样的 header:true / skipEmptyLines。
@@ -23,6 +24,14 @@ foo.io,active,06/15/2027,No,Public`
     const { headers } = parse(csv)
     const detection = detectFormat(headers)
     expect(detection?.format.id).toBe('godaddy')
+  })
+
+  it('recognises GoDaddy minimum export (only 4 cols, ISO date)', () => {
+    // 用户实测：只勾必选列时导出就这 4 列，日期已是 ISO。
+    const csv = `Domain Name,Expiration Date,Auto-renew,Status
+mony.fund,2026-12-18,On,Active`
+    const { headers } = parse(csv)
+    expect(detectFormat(headers)?.format.id).toBe('godaddy')
   })
 
   it('recognises Namecheap export by Domain Name + Domain expiration date', () => {
@@ -99,6 +108,37 @@ EXAMPLE.com,12/31/2026,01/15/2024`
     })
   })
 
+  it('maps GoDaddy export with Estimated Value (Appraisal) into estimated_value', () => {
+    // 用户实测：勾上 "Estimated Value" 时导出含 "$ 402.00" 形态。$ 后带空格、
+    // 千分位等都要稳。
+    const csv = `Domain Name,Expiration Date,Auto-renew,Status,Protection Plan,Privacy,Estimated Value
+mony.fund,2026-12-18,On,Active,No Protection,On,$ 402.00`
+    const { headers, rows } = parse(csv)
+    const detection = detectFormat(headers)!
+    expect(detection.format.id).toBe('godaddy')
+    const mapped = mapRows(rows, detection.format)
+    expect(mapped[0]).toMatchObject({
+      domain_name: 'mony.fund',
+      registrar: 'GoDaddy',
+      expiry_date: '2026-12-18',
+      estimated_value: 402,
+    })
+  })
+
+  it('maps GoDaddy minimum export (ISO date passes through, no Created column)', () => {
+    const csv = `Domain Name,Expiration Date,Auto-renew,Status
+mony.fund,2026-12-18,On,Active`
+    const { headers, rows } = parse(csv)
+    const detection = detectFormat(headers)!
+    const mapped = mapRows(rows, detection.format)
+    expect(mapped[0]).toMatchObject({
+      domain_name: 'mony.fund',
+      registrar: 'GoDaddy',
+      expiry_date: '2026-12-18',
+    })
+    expect(mapped[0].purchase_date).toBeUndefined()
+  })
+
   it('maps Spaceship rows with US M/D/YYYY dates', () => {
     const csv = `Domain,Nameservers,Category,DNS Preset,Registration Date,Expiration Date,Ownership change,Autorenew,Privacy,Transfer Lock,Status
 01us.com,launch1.spaceship.net launch2.spaceship.net,N/A,N/A,2/20/2024,2/20/2030,N/A,On,Private,Locked,active
@@ -154,6 +194,26 @@ vuno.ai,ON,Active,OFF,Dec 14 2027`
     })
     // Namecheap 导出无注册日期列，purchase_date 应为 undefined
     expect(mapped[0].purchase_date).toBeUndefined()
+  })
+})
+
+describe('parseMoneyAmount', () => {
+  it('strips $ + space ("$ 402.00" → 402)', () => {
+    expect(parseMoneyAmount('$ 402.00')).toBe(402)
+  })
+  it('handles thousands separators ("$1,234.56" → 1234.56)', () => {
+    expect(parseMoneyAmount('$1,234.56')).toBe(1234.56)
+  })
+  it('returns null for empty / N/A / Free / non-numeric strings', () => {
+    expect(parseMoneyAmount('')).toBeNull()
+    expect(parseMoneyAmount('   ')).toBeNull()
+    expect(parseMoneyAmount('N/A')).toBeNull()
+    expect(parseMoneyAmount('Free')).toBeNull()
+    expect(parseMoneyAmount(undefined)).toBeNull()
+  })
+  it('parses bare numbers', () => {
+    expect(parseMoneyAmount('402')).toBe(402)
+    expect(parseMoneyAmount('0.5')).toBe(0.5)
   })
 })
 
