@@ -80,12 +80,22 @@ export function changelogPageMetadata(locale: HomeLocale): Metadata {
 export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
   zh: [
     {
+      version: '2026-05-02',
+      date: '2026-05-02',
+      items: [
+        '智能 CSV 导入：上传 GoDaddy、Namecheap、Dynadot 或 Spaceship 任一注册商的导出 CSV，自动识别格式并按域名合并到现有投资组合。',
+        '修复 CSV 批量导入的一些 bug。',
+      ],
+    },
+    {
       version: '2026-04-30',
       date: '2026-04-30',
       items: [
         '全站 UI 大升级：各类样式整体优化，页面之间观感更协调统一。',
         '底层模块布局重构：信息分组更合理，常用面板更易触达，整体浏览路径更顺。',
         '域名追踪算法优化：核心指标口径更清晰、更贴合真实业绩，图表数字与 KPI 卡片相互对齐。',
+        '安全提醒改为仪表板内的「近期活动」面板，登录与敏感操作即时可见，不再依赖邮件。',
+        'SEO 优化：分享图与首页结构化数据。',
         'Bug 修复、续费预测功能上线，以及其他小功能优化。',
       ],
     },
@@ -148,12 +158,22 @@ export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
   ],
   en: [
     {
+      version: '2026-05-02',
+      date: '2026-05-02',
+      items: [
+        'Smart CSV import: upload an export from GoDaddy, Namecheap, Dynadot or Spaceship — the format is detected automatically and rows merge into your portfolio by domain name.',
+        'Bulk CSV import bug fixes.',
+      ],
+    },
+    {
       version: '2026-04-30',
       date: '2026-04-30',
       items: [
         'Major UI overhaul: styles refined across the app, with a more cohesive feel between pages.',
         'Module layout reworked: information is grouped more sensibly and common panels are easier to reach.',
         'Domain tracking refined: core metrics now read more clearly and reflect real performance, with charts and KPI tiles consistent.',
+        'Security alerts moved from email into a "Recent Activity" panel in Settings — sign-ins and sensitive actions show up immediately.',
+        'SEO: refreshed share image and structured data on the homepage.',
         'Bug fixes, new renewal forecasting, and other small improvements.',
       ],
     },
