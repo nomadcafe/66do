@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
   Upload,
   Download,
@@ -16,11 +16,15 @@ import {
 import * as Papa from 'papaparse';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { MAX_FILE_SIZE, ALLOWED_FILE_TYPES, ALLOWED_EXTENSIONS } from '../../lib/constants';
+import { detectFormat, mapRows, type MappedDomain } from '../../lib/csvFormats';
 
 interface ImportExportProps {
   onImport: (data: unknown) => void;
   onExport: (format: string) => void;
   onRestore: (backup: unknown) => void;
+  /** 已有域名 name 列表（小写）。用来在预览时统计「N 新增 / M 更新」。
+   *  上层把整个 domains 数组的 name 抽出来传进来即可；不传时预览只显示总数。 */
+  existingDomainNames?: string[];
 }
 
 interface ImportResult {
@@ -30,16 +34,41 @@ interface ImportResult {
   errors: string[];
 }
 
+interface CsvPreview {
+  formatId: string;
+  formatDisplayName: string;
+  rows: MappedDomain[];
+  newCount: number;
+  updateCount: number;
+}
+
 export default function DataImportExport({
   onImport,
   onExport,
-  onRestore
+  onRestore,
+  existingDomainNames
 }: ImportExportProps) {
   const { t } = useI18nContext();
   const [activeTab, setActiveTab] = useState<'import' | 'export' | 'restore'>('import');
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [csvPreview, setCsvPreview] = useState<CsvPreview | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 已有 name 集合，用于预览阶段判断"新增 vs 更新"——预览前 lower-case 一次，
+  // 行数大时避免每行 toLowerCase。
+  const existingNameSet = useMemo(
+    () => new Set((existingDomainNames ?? []).map((n) => n.toLowerCase())),
+    [existingDomainNames]
+  );
+
+  const interpolate = (template: string, vars: Record<string, string | number>): string => {
+    let out = template;
+    for (const [k, v] of Object.entries(vars)) {
+      out = out.replace(`{${k}}`, String(v));
+    }
+    return out;
+  };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -47,6 +76,7 @@ export default function DataImportExport({
 
     setIsProcessing(true);
     setImportResult(null);
+    setCsvPreview(null);
 
     try {
       // 验证文件大小
@@ -78,42 +108,78 @@ export default function DataImportExport({
       }
 
       const text = await file.text();
-      let data;
 
-      // 根据文件类型解析数据
       if (file.name.endsWith('.json')) {
-        data = JSON.parse(text);
-      } else if (file.name.endsWith('.csv')) {
-        data = parseCSV(text);
-      } else if (file.name.endsWith('.xlsx')) {
-        // 这里需要添加 xlsx 解析库
-        throw new Error(t('data.excelNotSupported'));
-      } else {
-        throw new Error(t('data.unsupportedFormat'));
-      }
-
-      // 验证数据格式
-      const validation = validateImportData(data);
-      if (!validation.valid) {
+        // JSON 路径：保持旧行为——data 里必须有 domains 数组，原样下发。
+        // 这是「自家备份恢复」的兼容形态，不走识别 / 预览。
+        const data = JSON.parse(text);
+        const validation = validateJsonImportData(data);
+        if (!validation.valid) {
+          setImportResult({
+            success: false,
+            message: t('data.invalidFormat'),
+            importedCount: 0,
+            errors: validation.errors,
+          });
+          return;
+        }
+        await onImport(data);
         setImportResult({
-          success: false,
-          message: t('data.invalidFormat'),
-          importedCount: 0,
-          errors: validation.errors
+          success: true,
+          message: t('data.importSuccess'),
+          importedCount: (data as { domains?: unknown[] }).domains?.length ?? 0,
+          errors: [],
         });
         return;
       }
 
-      // 执行导入
-      await onImport(data);
-      
-      setImportResult({
-        success: true,
-        message: t('data.importSuccess'),
-        importedCount: data.domains?.length || data.length || 0,
-        errors: []
-      });
+      if (file.name.endsWith('.csv')) {
+        // CSV 路径：解析 → 识别 → 映射 → 进预览。预览确认后才真正 onImport。
+        const parsed = parseCsvRaw(text);
+        if (parsed.errors.length > 0) {
+          throw new Error(`CSV parsing errors: ${parsed.errors.join('; ')}`);
+        }
 
+        const detection = detectFormat(parsed.headers);
+        if (!detection) {
+          setImportResult({
+            success: false,
+            message: t('data.unknownFormat'),
+            importedCount: 0,
+            errors: parsed.headers.length ? [`Headers: ${parsed.headers.join(', ')}`] : [],
+          });
+          return;
+        }
+
+        const mapped = mapRows(parsed.rows, detection.format);
+        if (mapped.length === 0) {
+          setImportResult({
+            success: false,
+            message: t('data.noRowsMapped'),
+            importedCount: 0,
+            errors: [],
+          });
+          return;
+        }
+
+        let newCount = 0;
+        let updateCount = 0;
+        for (const row of mapped) {
+          if (existingNameSet.has(row.domain_name)) updateCount++;
+          else newCount++;
+        }
+
+        setCsvPreview({
+          formatId: detection.format.id,
+          formatDisplayName: detection.format.displayName,
+          rows: mapped,
+          newCount,
+          updateCount,
+        });
+        return;
+      }
+
+      throw new Error(t('data.unsupportedFormat'));
     } catch (error) {
       setImportResult({
         success: false,
@@ -123,59 +189,71 @@ export default function DataImportExport({
       });
     } finally {
       setIsProcessing(false);
+      // 复用同一 file input 时重置 value，否则相同文件二次选不会触发 change
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
-  const parseCSV = (csvText: string): { domains: unknown[] } => {
-    // 使用 papaparse 库进行可靠的 CSV 解析
-    // 支持引号内的逗号、转义字符、多行字段等复杂情况
-    // papaparse 默认支持 RFC 4180 标准，包括引号处理
+  const confirmCsvImport = async () => {
+    if (!csvPreview) return;
+    setIsProcessing(true);
+    try {
+      await onImport({ domains: csvPreview.rows });
+      setImportResult({
+        success: true,
+        message: t('data.importSuccess'),
+        importedCount: csvPreview.rows.length,
+        errors: [],
+      });
+      setCsvPreview(null);
+    } catch (error) {
+      setImportResult({
+        success: false,
+        message: error instanceof Error ? error.message : t('data.importFailed'),
+        importedCount: 0,
+        errors: [error instanceof Error ? error.message : t('data.unknownError')],
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const cancelCsvImport = () => {
+    setCsvPreview(null);
+    setImportResult(null);
+  };
+
+  const parseCsvRaw = (csvText: string): { headers: string[]; rows: Record<string, string>[]; errors: string[] } => {
     const result = Papa.parse<Record<string, string>>(csvText, {
       header: true,
       skipEmptyLines: true,
       transformHeader: (header: string) => header.trim(),
       transform: (value: string) => value.trim(),
-      // 处理转义字符（默认使用双引号）
       escapeChar: '"',
-      // 处理多行字段
       newline: '\n',
     });
-
-    if (result.errors.length > 0) {
-      const errorMessages = result.errors.map((err) => 
-        `Row ${err.row ?? 'unknown'}: ${err.message ?? 'Unknown error'}`
-      ).join('; ');
-      throw new Error(`CSV parsing errors: ${errorMessages}`);
-    }
-
-    return { domains: result.data };
+    const errors = result.errors.map((err) => `Row ${err.row ?? 'unknown'}: ${err.message ?? 'Unknown error'}`);
+    const headers = result.meta.fields ?? [];
+    return { headers, rows: result.data, errors };
   };
 
-  const validateImportData = (data: unknown) => {
+  const validateJsonImportData = (data: unknown) => {
     const errors: string[] = [];
-
-    if (!data || typeof data !== 'object' || !('domains' in data) || !Array.isArray((data as {domains: unknown[]}).domains)) {
+    if (!data || typeof data !== 'object' || !('domains' in data) || !Array.isArray((data as { domains: unknown[] }).domains)) {
       errors.push(t('data.mustContainDomains'));
       return { valid: false, errors };
     }
-
-    const requiredFields = ['domain_name', 'purchase_date', 'purchase_cost'];
-    const domains = (data as {domains: unknown[]}).domains;
-    
+    const domains = (data as { domains: unknown[] }).domains;
     domains.forEach((domain: unknown, index: number) => {
       if (typeof domain !== 'object' || domain === null) {
         errors.push(t('data.rowFormatError').replace('{row}', (index + 1).toString()));
         return;
       }
-      
-      const domainObj = domain as Record<string, unknown>;
-      requiredFields.forEach(field => {
-        if (!domainObj[field]) {
-          errors.push(t('data.missingRequiredField').replace('{row}', (index + 1).toString()).replace('{field}', field));
-        }
-      });
+      const obj = domain as Record<string, unknown>;
+      if (!obj.domain_name || typeof obj.domain_name !== 'string') {
+        errors.push(t('data.missingRequiredField').replace('{row}', (index + 1).toString()).replace('{field}', 'domain_name'));
+      }
     });
-
     return { valid: errors.length === 0, errors };
   };
 
@@ -218,19 +296,19 @@ export default function DataImportExport({
           onChange={handleFileUpload}
           className="hidden"
         />
-        
+
         <div className="space-y-4">
           <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
             <FileText className="h-6 w-6 text-gray-600" />
           </div>
-          
+
           <div>
             <h3 className="text-lg font-medium text-gray-900">{t('data.selectFile')}</h3>
             <p className="text-sm text-gray-600 mt-1">
               {t('data.fileDescription')}
             </p>
           </div>
-          
+
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isProcessing}
@@ -246,10 +324,47 @@ export default function DataImportExport({
         </div>
       </div>
 
+      {csvPreview && (
+        <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
+          <h4 className="text-sm font-semibold text-blue-900 mb-3">
+            {t('data.importPreviewTitle')}
+          </h4>
+          <ul className="text-sm text-blue-900 space-y-1 mb-3">
+            <li>{interpolate(t('data.detectedFormat'), { format: csvPreview.formatDisplayName })}</li>
+            <li>{interpolate(t('data.detectedRows'), { count: csvPreview.rows.length })}</li>
+            <li className="font-medium">
+              {interpolate(t('data.previewSummary'), {
+                newCount: csvPreview.newCount,
+                updateCount: csvPreview.updateCount,
+              })}
+            </li>
+          </ul>
+          {csvPreview.updateCount > 0 && (
+            <p className="text-xs text-blue-700 mb-3">{t('data.fieldsKeptOnExisting')}</p>
+          )}
+          <div className="flex space-x-2">
+            <button
+              onClick={confirmCsvImport}
+              disabled={isProcessing}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+            >
+              {isProcessing ? t('data.processing') : t('data.confirmImport')}
+            </button>
+            <button
+              onClick={cancelCsvImport}
+              disabled={isProcessing}
+              className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 disabled:opacity-50 text-sm font-medium"
+            >
+              {t('data.cancelImport')}
+            </button>
+          </div>
+        </div>
+      )}
+
       {importResult && (
         <div className={`border rounded-lg p-4 ${
-          importResult.success 
-            ? 'border-green-200 bg-green-50' 
+          importResult.success
+            ? 'border-green-200 bg-green-50'
             : 'border-red-200 bg-red-50'
         }`}>
           <div className="flex items-start space-x-3">
