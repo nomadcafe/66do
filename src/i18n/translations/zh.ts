@@ -48,6 +48,7 @@ const zh = {
     noRowsMapped: 'CSV 已识别，但没有可解析的域名行。',
     importPreviewTitle: '导入前确认',
     fieldsKeptOnExisting: '您已填写的字段（购买价格等）会保留；只有空字段会从 CSV 填入。',
+    purchaseDateNotFilled: '购买日期与购买成本会留空——CSV 里的注册日期往往不等于您实际购入这个域名的日期（米市买入尤其明显）。导入后请自行补上。',
     selectFile: '选择文件',
     fileDescription: '支持 JSON 和 CSV 格式，最大 10MB',
     processing: '处理中...',
@@ -324,6 +325,9 @@ const zh = {
       registrarLabel: '注册商',
       registrarPlaceholder: 'GoDaddy、Namecheap 等',
       purchaseDateLabel: '购买日期',
+      registrationDateLabel: '注册日期（选填）',
+      registrationDateHelp:
+        '域名在注册商那边首次注册的日期，跟"您何时获取这个域名"是两回事——米市买入 / drop-catch / 转入注册商时两者会差几年。GoDaddy / Dynadot / Spaceship / Name.com 的 CSV 导入会自动填这一列。',
       nextRenewalDateLabel: '下次续费日期',
       expiryDateLabel: '到期日期（选填）',
       expiryDateOptionalHint:
@@ -690,6 +694,9 @@ const zh = {
       domainNameLabel: '域名名称',
       registrarLabel: '注册商',
       purchaseDateLabel: '购买日期',
+      registrationDateLabel: '注册日期（选填）',
+      registrationDateHelp:
+        '域名在注册商那边首次注册的日期，跟"您何时获取这个域名"是两回事——米市买入 / drop-catch / 转入注册商时两者会差几年。GoDaddy / Dynadot / Spaceship / Name.com 的 CSV 导入会自动填这一列。',
       nextRenewalDateLabel: '下次续费日期',
       expiryDateLabel: '到期日期（选填）',
       expiryDateOptionalHint:

@@ -23,13 +23,15 @@ export const spaceshipFormat: CsvFormat = {
     const name = pickColumn(row, ['Domain', 'Domain Name'])?.toLowerCase()
     if (!name) return null
     const expiry = parseLooseDate(pickColumn(row, ['Expiration Date']))
+    // Registration Date → registration_date（不是 purchase_date——见 godaddy.ts
+    // 注释）。
     const registered = parseLooseDate(pickColumn(row, ['Registration Date']))
     return {
       domain_name: name,
       registrar: 'Spaceship',
       expiry_date: expiry ?? undefined,
       next_renewal_date: expiry ?? undefined,
-      purchase_date: registered ?? undefined,
+      registration_date: registered ?? undefined,
     }
   },
 }

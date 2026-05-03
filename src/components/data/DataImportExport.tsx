@@ -342,6 +342,13 @@ export default function DataImportExport({
           {csvPreview.updateCount > 0 && (
             <p className="text-xs text-blue-700 mb-3">{t('data.fieldsKeptOnExisting')}</p>
           )}
+          {/* Registrar adapter 不再自动填 purchase_date（registration date ≠
+              purchase date，米市买入尤其差很多）。给新增行时提示用户导入后
+              手动补 cost / date。Generic 格式跳过——那是用户自家 CSV，
+              purchase_date 由用户显式控制。 */}
+          {csvPreview.newCount > 0 && csvPreview.formatId !== 'generic' && (
+            <p className="text-xs text-blue-700 mb-3">{t('data.purchaseDateNotFilled')}</p>
+          )}
           <div className="flex space-x-2">
             <button
               onClick={confirmCsvImport}

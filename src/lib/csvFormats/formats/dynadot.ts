@@ -42,13 +42,15 @@ export const dynadotFormat: CsvFormat = {
     const name = pickColumn(row, ['Domain', 'Domain Name'])?.toLowerCase()
     if (!name) return null
     const expiry = parseDynadotCalendar(pickColumn(row, ['Expiration Date']))
+    // Registration Date → registration_date（不是 purchase_date——见 godaddy.ts
+    // 注释）。
     const registered = parseDynadotCalendar(pickColumn(row, ['Registration Date', 'Created']))
     return {
       domain_name: name,
       registrar: 'Dynadot',
       expiry_date: expiry ?? undefined,
       next_renewal_date: expiry ?? undefined,
-      purchase_date: registered ?? undefined,
+      registration_date: registered ?? undefined,
     }
   },
 }

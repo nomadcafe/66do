@@ -45,6 +45,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
     domain_name: '',
     registrar: '',
     purchase_date: '',
+    registration_date: '',
     purchase_cost: 0,
     renewal_cost: 0,
     renewal_cycle: 1, // 默认1年续费
@@ -93,6 +94,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
         domain_name: domain.domain_name,
         registrar: domain.registrar || '',
         purchase_date: domain.purchase_date || '',
+        registration_date: domain.registration_date || '',
         purchase_cost: domain.purchase_cost || 0,
         renewal_cost: domain.renewal_cost || 0,
         renewal_cycle: domain.renewal_cycle,
@@ -113,6 +115,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
         domain_name: '',
         registrar: '',
         purchase_date: '',
+        registration_date: '',
         purchase_cost: 0,
         renewal_cost: 0,
         renewal_cycle: 1,
@@ -304,6 +307,23 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
               required
               className="w-full"
             />
+
+            {/* registration_date 跟 purchase_date 是两件事：前者是域名在
+                registrar 端的原始注册日期，后者是 this user 何时获取该域名。
+                米市买入的域名两者差几年是常态。CSV 导入时自动从注册商导出
+                的 Created/Registration Date 列填这一格；用户也可以手动改。 */}
+            <div className="md:col-span-2 space-y-1">
+              <DateInput
+                label={t('dashboard.registrationDateLabel')}
+                icon={<Calendar className="h-4 w-4" />}
+                value={formData.registration_date}
+                onChange={(value) => setFormData((prev) => ({ ...prev, registration_date: value }))}
+                className="w-full max-w-md"
+              />
+              <p className="text-xs text-stone-500">
+                {t('dashboard.registrationDateHelp')}
+              </p>
+            </div>
 
             <div className="md:col-span-2 space-y-1">
               <DateInput

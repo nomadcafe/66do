@@ -133,6 +133,22 @@ export function validateDomain(domain: unknown): ValidationResult {
     }
   }
 
+  // 注册日期（可选）：域名在 registrar 那边的原始注册日，跟 purchase_date
+  // 不同（aftermarket 买入时差几年都正常）。只检查格式合法 + 不在未来；
+  // 不限制最远过去（域名可以是 1990 年代的）。
+  if (domainObj.registration_date !== null && domainObj.registration_date !== undefined && domainObj.registration_date !== '') {
+    if (typeof domainObj.registration_date !== 'string') {
+      errors.push('注册日期格式不正确');
+    } else {
+      const d = new Date(domainObj.registration_date as string);
+      if (isNaN(d.getTime())) {
+        errors.push('注册日期格式不正确');
+      } else if (d.getTime() > new Date().getTime() + 24 * 60 * 60 * 1000) {
+        errors.push('注册日期不能是未来的日期');
+      }
+    }
+  }
+
   // 续费成本基线日（可选）
   if (domainObj.baseline_renewal_as_of !== null && domainObj.baseline_renewal_as_of !== undefined && domainObj.baseline_renewal_as_of !== '') {
     if (typeof domainObj.baseline_renewal_as_of !== 'string') {
@@ -513,6 +529,11 @@ export function sanitizeDomainData(domain: unknown): Record<string, unknown> {
     baselineRenewalAsOf = domainObj.baseline_renewal_as_of.trim().slice(0, 10);
   }
 
+  let registrationDate: string | null = null;
+  if (typeof domainObj.registration_date === 'string' && domainObj.registration_date.trim()) {
+    registrationDate = domainObj.registration_date.trim().slice(0, 10);
+  }
+
   let expiryDate: string | null = null;
   if (typeof domainObj.expiry_date === 'string' && domainObj.expiry_date.trim()) {
     expiryDate = domainObj.expiry_date.trim().slice(0, 10);
@@ -535,6 +556,7 @@ export function sanitizeDomainData(domain: unknown): Record<string, unknown> {
     renewal_cycle: renewalCycle,
     renewal_count: renewalCount,
     baseline_renewal_as_of: baselineRenewalAsOf,
+    registration_date: registrationDate,
     estimated_value: estimatedValue,
     tags
   };
