@@ -20,7 +20,21 @@ function buildLimiters(): Limiters | null {
     return null
   }
 
-  const redis = new Redis({ url, token })
+  // Wrap construction in try-catch — Upstash 的 `new Redis({...})` 会同步抛
+  // UrlError 等异常（实测：env var 里多写了一对引号 → URL 不以 https 开头 →
+  // 抛错）。如果 throw 冒泡上去，会被路由 outer catch 当作 500 返回，**整
+  // 个登录流程被一个 rate-limit 配置错误打挂**。我们的设计契约是 fail-open：
+  // 配置坏只让限流停摆，**绝不**阻塞 sign-in / API。
+  let redis
+  try {
+    redis = new Redis({ url, token })
+  } catch (err) {
+    serverLogger.error(
+      'Rate limiting disabled: Upstash Redis client construction failed (likely bad URL/token):',
+      err
+    )
+    return null
+  }
 
   return {
     ip: new Ratelimit({
