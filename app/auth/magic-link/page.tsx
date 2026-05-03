@@ -40,6 +40,15 @@ function MagicLinkContent() {
         }
 
         if (session) {
+          // Supabase singleton client has detectSessionInUrl: true (default),
+          // which means by the time this useEffect runs the SDK has already
+          // consumed the URL hash and called setSession internally. From here
+          // the access_token / refresh_token branches below are unreachable
+          // — getSession() always returns the just-created session and we land
+          // here. Without this fireSignInNotification call, every magic-link
+          // sign-in goes silently unrecorded into auth_events (the bug that
+          // left the table at 0 rows for weeks).
+          fireSignInNotification(session);
           router.replace('/dashboard');
           return;
         }
