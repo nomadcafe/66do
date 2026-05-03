@@ -51,6 +51,17 @@ function AuthCallbackContent() {
         setStatus('ok');
         router.replace(redirectTo);
       } else {
+        // Hash didn't have tokens at this point — but Supabase singleton has
+        // detectSessionInUrl: true (default) so the SDK consumed them on
+        // import and already set up the session before this useEffect ran.
+        // Confirm session and fire signin notification so the magic-link
+        // sign-in flow actually populates auth_events. Without this, the
+        // setSession branch above is unreachable and every sign-in went
+        // unrecorded.
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          fireSignInNotification(session);
+        }
         const redirectTo = getSafeRedirect(searchParams.get('redirect'));
         router.replace(redirectTo);
       }

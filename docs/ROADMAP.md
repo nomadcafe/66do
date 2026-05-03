@@ -2,13 +2,13 @@
 
 Living document. Add items at the bottom of the appropriate section as they come up; archive done items into a dated bullet under **Recently shipped**. Keep entries one or two lines each — link out for design rationale.
 
-Last updated: 2026-05-02 (smart CSV import shipped, registrar API sync deferred until users ask)
+Last updated: 2026-05-03 (data-storage audit, dead-user cleanup, auth_events client-side bug fixed)
 
 ---
 
 ## Now (operational, do before the next deploy)
 
-- [ ] Run `database/add_auth_events.sql` against Supabase prod. Until this lands, every successful sign-in / data export silently fails the audit insert (caught + logged, no user impact, but the Recent Activity panel stays empty).
+_(empty)_
 
 ---
 
@@ -102,6 +102,11 @@ So we don't re-litigate these:
 
 ## Recently shipped
 
+- 2026-05-03 — Fix auth_events silent-failure bug: client never called `fireSignInNotification` because Supabase SDK's `detectSessionInUrl` consumed the URL hash before the page handler ran, leaving the setSession/verifyOtp branches unreachable. Added the call to the early-return path in both `/auth/magic-link` and `/auth/callback`. Recent Activity panel now actually populates.
+- 2026-05-03 — Data-storage audit: confirmed all date columns are `date` typed in prod (repo's old TEXT migration was superseded), all expected FKs exist with CASCADE, 0 orphan transaction rows. Added `database/_audit_schema_state.sql` to keep the audit queries reproducible.
+- 2026-05-03 — `schema_migrations` tracker table added (`add_schema_migrations_tracker.sql`) so future migrations can record their own application — solves the "did this run yet?" question that bit `add_auth_events`, `add_ical_token`, `add_registration_date` in turn.
+- 2026-05-03 — Dead-user cleanup: 782 → 225 in `public.users` + `auth.users` (557 unverified-30d-no-data accounts removed; ~35% of the deleted set were Gmail dot-trick bot signups). Funnel/conversion math is meaningful again.
+- 2026-05-03 — Registration date split (`add_registration_date.sql` + `4d36901`): registrar's "Created / Registration Date / Create Date" CSV columns now write to a separate `registration_date` field instead of being conflated with `purchase_date` (which stayed wrong for aftermarket-bought domains).
 - 2026-05-02 — Smart CSV import: GoDaddy / Namecheap / Dynadot / Spaceship adapters, merge-by-name preserves user-filled fields, GoDaddy Appraisal pulled into `estimated_value`, fixes pre-existing 409 dedup bug on bulk import (`9a977ae`, `60cbf47`, `bc9d8ac`)
 - 2026-04-30 — In-app activity log replacing email alerts (`956038d`)
 - 2026-04-30 — Privacy / Terms / Cookies pages aligned to redesigned palette (`fa98a89`); honesty pass on Privacy claims (`5764c03`, `ef2c07c`, `ac2b615`, `b671822`, `71cc3b8`, `fcd060b`)
