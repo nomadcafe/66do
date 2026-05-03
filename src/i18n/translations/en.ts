@@ -49,6 +49,7 @@ const en = {
     noRowsMapped: 'CSV recognized but no domain rows could be parsed.',
     importPreviewTitle: 'Review before importing',
     fieldsKeptOnExisting: 'Fields you have already filled (purchase cost, etc.) will be kept; only empty fields will be filled from the CSV.',
+    purchaseDateNotFilled: 'Purchase date and cost are left empty — registration dates from the CSV often differ from when you actually bought the domain (e.g. aftermarket purchases). Fill them in after import.',
     selectFile: 'Select File',
     fileDescription: 'Supports JSON and CSV formats, max 10MB',
     processing: 'Processing...',
@@ -329,6 +330,9 @@ const en = {
       registrarLabel: 'Registrar',
       registrarPlaceholder: 'GoDaddy, Namecheap, etc.',
       purchaseDateLabel: 'Purchase Date',
+      registrationDateLabel: 'Registration date (optional)',
+      registrationDateHelp:
+        'When the domain was first created at the registrar — distinct from when YOU acquired it. For aftermarket / drop-catch / inbound-transfer purchases the two differ. CSV imports from GoDaddy / Dynadot / Spaceship / Name.com auto-fill this from the export.',
       nextRenewalDateLabel: 'Next Renewal Date',
       expiryDateLabel: 'Expiry date (optional)',
       expiryDateOptionalHint:
@@ -695,6 +699,9 @@ const en = {
       domainNameLabel: 'Domain Name',
       registrarLabel: 'Registrar',
       purchaseDateLabel: 'Purchase Date',
+      registrationDateLabel: 'Registration date (optional)',
+      registrationDateHelp:
+        'When the domain was first created at the registrar — distinct from when YOU acquired it. For aftermarket / drop-catch / inbound-transfer purchases the two differ. CSV imports from GoDaddy / Dynadot / Spaceship / Name.com auto-fill this from the export.',
       nextRenewalDateLabel: 'Next Renewal Date',
       expiryDateLabel: 'Expiry date (optional)',
       expiryDateOptionalHint:

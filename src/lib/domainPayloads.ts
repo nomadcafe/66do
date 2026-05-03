@@ -47,6 +47,8 @@ export function buildDomainInsertPayload(
         : 0,
     baseline_renewal_as_of:
       typeof domain.baseline_renewal_as_of === 'string' ? domain.baseline_renewal_as_of : null,
+    registration_date:
+      typeof domain.registration_date === 'string' ? domain.registration_date : null,
     next_renewal_date:
       typeof domain.next_renewal_date === 'string' ? domain.next_renewal_date : null,
     expiry_date: typeof domain.expiry_date === 'string' ? domain.expiry_date : null,
@@ -100,6 +102,10 @@ export function buildDomainUpdatePayload(
   if ('baseline_renewal_as_of' in domain) {
     out.baseline_renewal_as_of =
       typeof domain.baseline_renewal_as_of === 'string' ? domain.baseline_renewal_as_of : null
+  }
+  if ('registration_date' in domain) {
+    out.registration_date =
+      typeof domain.registration_date === 'string' ? domain.registration_date : null
   }
   if ('next_renewal_date' in domain) {
     out.next_renewal_date =

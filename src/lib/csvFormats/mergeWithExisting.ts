@@ -22,6 +22,7 @@
 import type { Domain } from '../supabaseService'
 import type { DomainWithTags } from '../../types/dashboard'
 import type { MappedDomain } from './types'
+import { localCalendarDateISO } from '../localCalendarDate'
 
 export interface MergeResult {
   mergedDomains: DomainWithTags[]
@@ -42,7 +43,8 @@ function mergeOneExisting(existing: DomainWithTags, mapped: MappedDomain): Domai
   type FillKey = Extract<
     keyof Domain & keyof MappedDomain,
     'registrar' | 'purchase_date' | 'purchase_cost' | 'renewal_cost'
-      | 'baseline_renewal_as_of' | 'next_renewal_date' | 'expiry_date' | 'estimated_value'
+      | 'baseline_renewal_as_of' | 'registration_date' | 'next_renewal_date'
+      | 'expiry_date' | 'estimated_value'
   >
   const fillKeys: FillKey[] = [
     'registrar',
@@ -50,6 +52,7 @@ function mergeOneExisting(existing: DomainWithTags, mapped: MappedDomain): Domai
     'purchase_cost',
     'renewal_cost',
     'baseline_renewal_as_of',
+    'registration_date',
     'next_renewal_date',
     'expiry_date',
     'estimated_value',
@@ -66,7 +69,13 @@ function mergeOneExisting(existing: DomainWithTags, mapped: MappedDomain): Domai
 
 /** 用一行 CSV 构造一个全新 DomainWithTags（赋默认值）。
  *  注意 user_id / created_at / updated_at 不在这里赋值——saveData 路径下
- *  POST /api/domains 会从认证态注入 user_id，DB 默认值填时间戳。 */
+ *  POST /api/domains 会从认证态注入 user_id，DB 默认值填时间戳。
+ *
+ *  baseline_renewal_as_of 默认填**导入当天**：CSV 导入语义就是"过去用
+ *  count × cost 估算，从今天起按真实 renew 交易跟踪"，正好对应 baseline
+ *  的设计目的。如果不填（保持 null），用户后面录入的真实续费交易会被
+ *  renewalCostBasis 路径忽略——这是用户最不期望的"我录了交易但没生效"。
+ *  这里跟 DomainForm 的 Add 路径（DomainForm.tsx:120）行为对齐。 */
 function buildNewFromMapped(mapped: MappedDomain): DomainWithTags {
   return {
     id: crypto.randomUUID(),
@@ -78,7 +87,8 @@ function buildNewFromMapped(mapped: MappedDomain): DomainWithTags {
     renewal_cost: mapped.renewal_cost ?? null,
     renewal_cycle: mapped.renewal_cycle ?? 1,
     renewal_count: mapped.renewal_count ?? 0,
-    baseline_renewal_as_of: mapped.baseline_renewal_as_of ?? null,
+    baseline_renewal_as_of: mapped.baseline_renewal_as_of ?? localCalendarDateISO(),
+    registration_date: mapped.registration_date ?? null,
     next_renewal_date: mapped.next_renewal_date ?? null,
     expiry_date: mapped.expiry_date ?? null,
     status: mapped.status ?? 'active',

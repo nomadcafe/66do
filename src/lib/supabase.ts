@@ -53,6 +53,7 @@ export interface Database {
           renewal_cycle: number
           renewal_count: number
           baseline_renewal_as_of: string | null
+          registration_date: string | null
           next_renewal_date: string | null
           expiry_date: string | null
           status: string
@@ -75,6 +76,7 @@ export interface Database {
           renewal_cycle?: number
           renewal_count?: number
           baseline_renewal_as_of?: string | null
+          registration_date?: string | null
           next_renewal_date?: string | null
           expiry_date?: string | null
           status?: string
@@ -97,6 +99,7 @@ export interface Database {
           renewal_cycle?: number
           renewal_count?: number
           baseline_renewal_as_of?: string | null
+          registration_date?: string | null
           next_renewal_date?: string | null
           expiry_date?: string | null
           status?: string

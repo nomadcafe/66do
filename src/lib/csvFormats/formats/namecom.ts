@@ -18,13 +18,14 @@ export const namecomFormat: CsvFormat = {
     const name = pickColumn(row, ['Domain Name', 'Domain'])?.toLowerCase()
     if (!name) return null
     const expiry = parseLooseDate(pickColumn(row, ['Expire Date']))
-    const created = parseLooseDate(pickColumn(row, ['Create Date']))
+    // Create Date → registration_date（不是 purchase_date——见 godaddy.ts 同款注释）。
+    const registered = parseLooseDate(pickColumn(row, ['Create Date']))
     return {
       domain_name: name,
       registrar: 'Name.com',
       expiry_date: expiry ?? undefined,
       next_renewal_date: expiry ?? undefined,
-      purchase_date: created ?? undefined,
+      registration_date: registered ?? undefined,
     }
   },
 }

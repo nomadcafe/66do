@@ -22,6 +22,7 @@ export const genericFormat: CsvFormat = {
       domain_name: name,
       registrar: row.registrar || undefined,
       purchase_date: parseLooseDate(row.purchase_date) ?? undefined,
+      registration_date: parseLooseDate(row.registration_date) ?? undefined,
       purchase_cost: Number.isFinite(purchaseCost) ? purchaseCost : undefined,
       renewal_cost: Number.isFinite(renewalCost) ? renewalCost : undefined,
       renewal_cycle: Number.isFinite(renewalCycle) ? renewalCycle : undefined,

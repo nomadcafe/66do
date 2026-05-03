@@ -23,7 +23,11 @@ export const godaddyFormat: CsvFormat = {
     const name = pickColumn(row, ['Domain Name', 'Domain'])?.toLowerCase()
     if (!name) return null
     const expiry = parseLooseDate(pickColumn(row, ['Expiration Date', 'Expires']))
-    const created = parseLooseDate(pickColumn(row, ['Created', 'Year Created', 'Creation Date']))
+    // Created/Year Created 是 registrar 端的原始注册日 → registration_date。
+    // **不**写进 purchase_date —— purchase_date 表示"this user 何时获取
+    // 该域名"，对米市/drop/aftermarket 买入的域名跟 registration 日期差很多。
+    // 用户导入后再自行补 purchase_date。
+    const registered = parseLooseDate(pickColumn(row, ['Created', 'Year Created', 'Creation Date']))
     // GoDaddy Appraisal 在导出里就是 "Estimated Value" 列，值形如 "$ 402.00"。
     // 直接进我们 estimated_value 字段，跟手填的 ML 估值复用同一列。
     const estimated = parseMoneyAmount(pickColumn(row, ['Estimated Value']))
@@ -32,7 +36,7 @@ export const godaddyFormat: CsvFormat = {
       registrar: 'GoDaddy',
       expiry_date: expiry ?? undefined,
       next_renewal_date: expiry ?? undefined,
-      purchase_date: created ?? undefined,
+      registration_date: registered ?? undefined,
       estimated_value: estimated ?? undefined,
     }
   },

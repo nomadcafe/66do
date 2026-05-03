@@ -100,7 +100,10 @@ example.com,12/31/2026,example.com`
 })
 
 describe('mapRows', () => {
-  it('maps GoDaddy rows to our schema with normalised dates', () => {
+  it('maps GoDaddy rows: Created → registration_date, purchase_date stays empty', () => {
+    // 不变量：CSV 里的 Created/Year Created 是 registrar 端的注册日期，
+    // 写进 registration_date（独立字段），**不**写进 purchase_date——
+    // 米市买入的域名两者差几年。purchase_date 由用户导入后自填。
     const csv = `Domain Name,Expiration Date,Created
 EXAMPLE.com,12/31/2026,01/15/2024`
     const { headers, rows } = parse(csv)
@@ -111,8 +114,9 @@ EXAMPLE.com,12/31/2026,01/15/2024`
       domain_name: 'example.com',
       registrar: 'GoDaddy',
       expiry_date: '2026-12-31',
-      purchase_date: '2024-01-15',
+      registration_date: '2024-01-15',
     })
+    expect(mapped[0].purchase_date).toBeUndefined()
   })
 
   it('maps GoDaddy export with Estimated Value (Appraisal) into estimated_value', () => {
@@ -146,7 +150,7 @@ mony.fund,2026-12-18,On,Active`
     expect(mapped[0].purchase_date).toBeUndefined()
   })
 
-  it('maps Name.com rows with US M/D/YYYY dates', () => {
+  it('maps Name.com rows: Create Date → registration_date, purchase_date stays empty', () => {
     const csv = `Domain Name,Create Date,Expire Date
 353ie.com,6/5/2025,6/5/2026
 358FI.com,6/5/2025,6/5/2026`
@@ -157,12 +161,13 @@ mony.fund,2026-12-18,On,Active`
       domain_name: '353ie.com',
       registrar: 'Name.com',
       expiry_date: '2026-06-05',
-      purchase_date: '2025-06-05',
+      registration_date: '2025-06-05',
     })
+    expect(mapped[0].purchase_date).toBeUndefined()
     expect(mapped[1].domain_name).toBe('358fi.com')
   })
 
-  it('maps Spaceship rows with US M/D/YYYY dates', () => {
+  it('maps Spaceship rows: Registration Date → registration_date, purchase_date stays empty', () => {
     const csv = `Domain,Nameservers,Category,DNS Preset,Registration Date,Expiration Date,Ownership change,Autorenew,Privacy,Transfer Lock,Status
 01us.com,launch1.spaceship.net launch2.spaceship.net,N/A,N/A,2/20/2024,2/20/2030,N/A,On,Private,Locked,active
 163AI.com,NS1.atom.COM NS2.atom.COM,N/A,N/A,12/30/2013,12/30/2029,N/A,On,Private,Locked,active`
@@ -174,13 +179,15 @@ mony.fund,2026-12-18,On,Active`
       domain_name: '01us.com',
       registrar: 'Spaceship',
       expiry_date: '2030-02-20',
-      purchase_date: '2024-02-20',
+      registration_date: '2024-02-20',
     })
+    expect(mapped[0].purchase_date).toBeUndefined()
     expect(mapped[1]).toMatchObject({
       domain_name: '163ai.com',
       expiry_date: '2029-12-30',
-      purchase_date: '2013-12-30',
+      registration_date: '2013-12-30',
     })
+    expect(mapped[1].purchase_date).toBeUndefined()
   })
 
   it('maps Dynadot rows from text column (not timestamp) to keep user calendar date', () => {
@@ -197,8 +204,9 @@ RUFUS.CHAT,2026/06/03 10:26 PRC,1780453569000,2025/06/03 10:26 PRC,1748917569000
       domain_name: 'xximoney.xyz',
       registrar: 'Dynadot',
       expiry_date: '2026-04-25',
-      purchase_date: '2025-04-24',
+      registration_date: '2025-04-24',
     })
+    expect(mapped[0].purchase_date).toBeUndefined()
     // 大小写归一
     expect(mapped[1].domain_name).toBe('rufus.chat')
     expect(mapped[1].expiry_date).toBe('2026-06-03')
@@ -254,6 +262,7 @@ describe('mergeCsvImportWithExisting', () => {
       renewal_cycle: 1,
       renewal_count: 0,
       baseline_renewal_as_of: null,
+      registration_date: null,
       next_renewal_date: null,
       expiry_date: null,
       status: 'active',
@@ -306,6 +315,19 @@ describe('mergeCsvImportWithExisting', () => {
     expect(newRow.id).not.toBe('existing-id-1')
     expect(newRow.id).toMatch(/^[0-9a-f-]{36}$/i)
     expect(newRow.registrar).toBe('GoDaddy')
+  })
+
+  it('defaults baseline_renewal_as_of to import day for new rows', () => {
+    // 跟 DomainForm Add 路径行为对齐——baseline=null 会让用户日后录的真实
+    // renew 交易被忽略（renewalCostBasis 路径）。CSV 默认 today 是
+    // 用户预期。
+    const existing: DomainWithTags[] = []
+    const result = mergeCsvImportWithExisting(existing, [
+      { domain_name: 'fresh.com', registrar: 'GoDaddy' },
+    ])
+    const today = new Date()
+    const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+    expect(result.mergedDomains[0].baseline_renewal_as_of).toBe(todayIso)
   })
 
   it('keeps existing domains absent from CSV (no deletes)', () => {
