@@ -105,6 +105,13 @@ export async function recordSensitiveOp(
   await record(user, event, request);
 }
 
+// 同一 user + 同一 event_type 在这个窗口内的重复写入会被跳过。
+// 真实场景：magic-link 登录时 /auth/callback 与 /auth/magic-link 两个页面
+// 都会调 fireSignInNotification（detectSessionInUrl 让两个回调路径都触发），
+// 间隔 ~1 秒。5 秒窗口足够吸收这种 UI 层的双触发，又不会遮盖真实的"用户在
+// 5 秒内连续登录两次"——后者罕见到可以接受。
+const AUTH_EVENT_DEDUP_WINDOW_SECONDS = 5;
+
 async function record(
   user: AuthUser,
   eventType: 'sign_in' | SensitiveOpEvent,
@@ -114,6 +121,27 @@ async function record(
     const signals = readRequestSignals(request.headers);
     const ua = summarizeUA(signals.userAgent);
     const supabase = createServiceRoleSupabaseClient();
+
+    // Best-effort dedup：先查同 user + 同 event 在窗口内是否已有记录，有则
+    // 跳过 insert。竞态窗口（两个并发请求都通过 SELECT 后再各自 INSERT）
+    // 在毫秒级，不做更强的原子性保证——这是 cosmetic dedup，多写一条也
+    // 不会造成数据损坏，只是 UI 上多一行。
+    const dedupSince = new Date(Date.now() - AUTH_EVENT_DEDUP_WINDOW_SECONDS * 1000).toISOString();
+    const { data: recent, error: recentError } = await supabase
+      .from('auth_events')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('event_type', eventType)
+      .gte('created_at', dedupSince)
+      .limit(1);
+    if (recentError) {
+      // 查询失败时降级：继续 insert，不让 dedup 检查反而阻塞正常记录。
+      logger.warn('auth_events dedup lookup failed:', recentError.message);
+    } else if (recent && recent.length > 0) {
+      // 已有最近记录，跳过本次写入。
+      return;
+    }
+
     // `as never` cast: Supabase typed client surfaces inserts as `never`
     // for this codebase's type setup — same workaround used in
     // supabaseService.ts (see line 79 there).
