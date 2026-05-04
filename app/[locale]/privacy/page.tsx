@@ -106,6 +106,8 @@ export default function PrivacyPage() {
                   t('privacy.dataSecurity.encryption.atRest'),
                   t('privacy.dataSecurity.encryption.rls'),
                   t('privacy.dataSecurity.encryption.authVerification'),
+                  t('privacy.dataSecurity.encryption.rateLimit'),
+                  t('privacy.dataSecurity.encryption.browserHardening'),
                 ]}
               />
             </div>
@@ -212,10 +214,6 @@ export default function PrivacyPage() {
                 <li className="flex gap-3">
                   <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-teal-500" />
                   <span><strong className="text-stone-900">Vercel</strong> — {t('privacy.thirdParty.services.vercel')}</span>
-                </li>
-                <li className="flex gap-3">
-                  <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-teal-500" />
-                  <span><strong className="text-stone-900">Resend</strong> — {t('privacy.thirdParty.services.resend')}</span>
                 </li>
               </ul>
             </div>

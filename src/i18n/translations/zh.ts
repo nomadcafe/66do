@@ -1086,9 +1086,11 @@ const zh = {
         encryption: {
           title: '已实施的防护',
           https: 'HTTPS / TLS 传输加密 —— 浏览器与服务器之间的每一次请求都在网络上加密。',
-          atRest: '数据库静态加密由基础设施提供商（Supabase，托管于 Amazon RDS）负责。',
-          rls: '数据库行级安全（RLS）—— 每次查询都携带您的用户身份，数据库会拒绝返回不属于您的行。即使其他用户拿到自己的会话 token，也无法读取您的数据。',
-          authVerification: '所有 API 端点在执行任何数据库操作前都先验证身份；未认证的请求在接触数据前就被拒绝。'
+          atRest: '数据库静态加密由 Supabase 负责。',
+          rls: '数据按用户严格隔离，保障用户的数据安全。',
+          authVerification: '只有已登录用户才能访问数据 —— 未登录的请求会被立即拒绝，用户数据更安全。',
+          rateLimit: '登录和数据修改设置了限制，同时保障用户的使用体验。',
+          browserHardening: '设置白名单调用 API 服务，API 调用更安全。'
         },
         notifications: {
           title: '登录与敏感操作记录',
@@ -1146,8 +1148,7 @@ const zh = {
         services: {
           title: '服务提供商',
           supabase: 'Supabase —— 数据库、身份认证以及邮件 Magic Link 投递。',
-          vercel: 'Vercel —— 网站托管、边缘网络、隐私友好的访问统计。',
-          resend: 'Resend —— 事务性邮件投递（仅限通知与安全提醒）。'
+          vercel: 'Vercel —— 网站托管、边缘网络、隐私友好的访问统计。'
         }
       },
       changes: {
