@@ -61,7 +61,7 @@ export interface Database {
           sale_date: string | null
           sale_price: number | null
           platform_fee: number | null
-          tags: string | null
+          tags: string[] | null
           created_at: string
           updated_at: string
         }
@@ -84,7 +84,7 @@ export interface Database {
           sale_date?: string | null
           sale_price?: number | null
           platform_fee?: number | null
-          tags?: string | null
+          tags?: string[] | null
           created_at?: string
           updated_at?: string
         }
@@ -107,7 +107,7 @@ export interface Database {
           sale_date?: string | null
           sale_price?: number | null
           platform_fee?: number | null
-          tags?: string | null
+          tags?: string[] | null
           created_at?: string
           updated_at?: string
         }

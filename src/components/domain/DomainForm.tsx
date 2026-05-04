@@ -85,10 +85,13 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
     if (!isOpen) return;
     setSubmitError(null);
     if (domain) {
+      // tags 从 jsonb 列加载是数组；DomainWithTags 类型也保证为数组。string
+      // 分支留作"老 JSON 备份恢复"路径的最后兜底——如果哪天有人上传一份
+      // 跨版本的备份文件，里面 tags 是 JSON 字符串形态，也别炸。
       const tagsArray = Array.isArray(domain.tags)
         ? domain.tags
         : typeof domain.tags === 'string'
-          ? (() => { try { const p = JSON.parse(domain.tags); return Array.isArray(p) ? p : []; } catch { return []; } })()
+          ? (() => { try { const p = JSON.parse(domain.tags as string); return Array.isArray(p) ? p : []; } catch { return []; } })()
           : [];
       setFormData({
         domain_name: domain.domain_name,

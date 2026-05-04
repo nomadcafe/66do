@@ -143,8 +143,22 @@ export function buildDomainUpdatePayload(
   return out
 }
 
-function normalizeTagsForDb(tags: unknown): string {
-  if (Array.isArray(tags)) return JSON.stringify(tags)
-  if (typeof tags === 'string') return tags
-  return '[]'
+// 输出 string[] 直接喂给 jsonb 列。string 输入是为了兼容老 JSON 备份恢复
+// 路径——历史导出文件里 tags 是 JSON 字符串形态（"[\"foo\"]"），新版导出是
+// 数组形态。既然两个都能进系统，这里都接，统一吐数组。
+function normalizeTagsForDb(tags: unknown): string[] {
+  if (Array.isArray(tags)) {
+    return tags.filter((t): t is string => typeof t === 'string')
+  }
+  if (typeof tags === 'string' && tags.trim()) {
+    try {
+      const parsed = JSON.parse(tags)
+      if (Array.isArray(parsed)) {
+        return parsed.filter((t): t is string => typeof t === 'string')
+      }
+    } catch {
+      // 不是合法 JSON 就当空
+    }
+  }
+  return []
 }

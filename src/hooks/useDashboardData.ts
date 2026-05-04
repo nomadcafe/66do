@@ -269,7 +269,10 @@ export function useDashboardData(
         sale_date: domain.sale_date || null,
         sale_price: domain.sale_price || null,
         platform_fee: domain.platform_fee || null,
-        tags: JSON.stringify(domain.tags),
+        // tags 列已迁移到 jsonb（migrate_tags_to_jsonb.sql）。直接传数组，
+        // supabase-js 会原样作为 jsonb 写入。**不要**再 JSON.stringify——那
+        // 会变成 string-of-array-of-strings，在 jsonb 列里形成双重编码。
+        tags: domain.tags,
       });
 
       const handleSaveResponseError = async (response: Response, op: 'add' | 'update') => {

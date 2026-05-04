@@ -77,21 +77,27 @@ export interface SaleSuccessModalProps {
   transaction: TransactionWithRequiredFields;
 }
 
-// 类型转换工具函数
+// 类型转换工具函数。
+//
+// tags 字段 2026-05 从 text(JSON-encoded) 迁移到 jsonb，DB 现在直接返回
+// 数组，所以 Array.isArray 分支才是常规情况。string 分支保留是为了让用户
+// 上传"老版本 JSON 备份恢复"——历史导出格式里 tags 是 JSON 字符串形态。
 export function ensureDomainWithTags(domain: Domain | unknown): DomainWithTags {
   const d = domain as Domain;
   let tagsArray: string[] = [];
-  
+
   if (Array.isArray(d.tags)) {
     tagsArray = d.tags;
-  } else if (typeof d.tags === 'string' && d.tags.trim()) {
+  } else if (typeof d.tags === 'string' && (d.tags as string).trim()) {
+    // 兼容旧 JSON 备份：tags 是 JSON 字符串形态
     try {
-      tagsArray = JSON.parse(d.tags);
+      const parsed = JSON.parse(d.tags as string);
+      if (Array.isArray(parsed)) tagsArray = parsed;
     } catch {
-      tagsArray = d.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+      tagsArray = (d.tags as string).split(',').map(tag => tag.trim()).filter(tag => tag);
     }
   }
-  
+
   return {
     ...d,
     tags: tagsArray
