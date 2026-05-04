@@ -82,7 +82,9 @@ export function useDashboardData(
 
       const sessionReady = await waitForSupabaseSession(userId);
       if (!sessionReady) {
-        logger.error('Dashboard load: Supabase session not ready for userId', userId);
+        // 不打 userId 进日志——UUID 是 PII；Vercel server log 留痕没必要
+        // 引入额外暴露面。如果将来真的需要按用户区分这条 error 再加 hash 后缀。
+        logger.error('Dashboard load: Supabase session not ready');
         setError(t('common.authError') || 'Please sign in again to load your data.');
         if (showLoading) setLoading(false);
         return;
