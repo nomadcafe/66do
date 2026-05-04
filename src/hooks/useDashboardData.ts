@@ -21,6 +21,7 @@ import {
 } from '../lib/validation';
 import { mergeRenewTransactionDomainUpdates } from '../lib/renewDomainPatch';
 import { logger } from '../lib/logger';
+import { MAX_BULK_OPERATION_SIZE } from '../lib/constants';
 
 interface LoadOptions {
   showLoading?: boolean;
@@ -153,6 +154,7 @@ export function useDashboardData(
         purchase_cost: domain.purchase_cost || null,
         renewal_cost: domain.renewal_cost || null,
         baseline_renewal_as_of: domain.baseline_renewal_as_of || null,
+        registration_date: domain.registration_date || null,
         next_renewal_date: domain.next_renewal_date || null,
         expiry_date: domain.expiry_date || null,
         estimated_value: domain.estimated_value || null,
@@ -245,55 +247,88 @@ export function useDashboardData(
       };
       if (refreshTok) (headers as Record<string, string>)['X-Refresh-Token'] = refreshTok;
 
-      // 增量保存 domains（仅新增/变更）
-      for (const domain of changedDomains) {
-        const isExisting = domains.find(d => d.id === domain.id);
-        const domainPayload = {
-          ...domain,
-          id: domain.id,
-          domain_name: domain.domain_name,
-          status: domain.status,
-          renewal_cycle: domain.renewal_cycle ?? 1,
-          renewal_count: domain.renewal_count ?? 0,
-          registrar: domain.registrar || null,
-          purchase_date: domain.purchase_date || null,
-          purchase_cost: domain.purchase_cost || null,
-          renewal_cost: domain.renewal_cost || null,
-          baseline_renewal_as_of: domain.baseline_renewal_as_of || null,
-          next_renewal_date: domain.next_renewal_date || null,
-          expiry_date: domain.expiry_date || null,
-          estimated_value: domain.estimated_value || null,
-          sale_date: domain.sale_date || null,
-          sale_price: domain.sale_price || null,
-          platform_fee: domain.platform_fee || null,
-          tags: JSON.stringify(domain.tags)
-        };
+      // 把 domain row 序列化成 API 期望的 payload 形态。提出来好让单条
+      // POST / 批量 POST / 单条 PUT 三条路径共用，避免漂移。registration_date
+      // 不能漏（之前漏过：CSV 导入填了的注册日期会被默默丢掉）。
+      const buildPayload = (domain: DomainWithTags) => ({
+        ...domain,
+        id: domain.id,
+        domain_name: domain.domain_name,
+        status: domain.status,
+        renewal_cycle: domain.renewal_cycle ?? 1,
+        renewal_count: domain.renewal_count ?? 0,
+        registrar: domain.registrar || null,
+        purchase_date: domain.purchase_date || null,
+        purchase_cost: domain.purchase_cost || null,
+        renewal_cost: domain.renewal_cost || null,
+        baseline_renewal_as_of: domain.baseline_renewal_as_of || null,
+        registration_date: domain.registration_date || null,
+        next_renewal_date: domain.next_renewal_date || null,
+        expiry_date: domain.expiry_date || null,
+        estimated_value: domain.estimated_value || null,
+        sale_date: domain.sale_date || null,
+        sale_price: domain.sale_price || null,
+        platform_fee: domain.platform_fee || null,
+        tags: JSON.stringify(domain.tags),
+      });
 
-        let response: Response;
-        if (isExisting) {
-          // Update existing domain - PUT /api/domains/[id]
-          response = await fetch(`/api/domains/${domain.id}`, {
-            method: 'PUT',
-            headers,
-            body: JSON.stringify(domainPayload)
-          });
-        } else {
-          // Create new domain - POST /api/domains
-          response = await fetch('/api/domains', {
+      const handleSaveResponseError = async (response: Response, op: 'add' | 'update') => {
+        const errorData = await response.json().catch(() => ({}));
+        const details = errorData.details
+          ? (Array.isArray(errorData.details)
+              ? translateValidationMessages(errorData.details, t).join('; ')
+              : String(errorData.details))
+          : (errorData.error || response.statusText);
+        throw new Error(`Failed to ${op} domain: ${details}`);
+      };
+
+      // 拆分：已存在的（PUT 一条条更新）vs 新建的（多条用 bulk POST 节省
+      // rate-limit 槽位）。背景：userWrite rate limit 是 60/min/user，CSV
+      // 导入 100+ 行时单条 POST 会从第 61 行开始 429 失败。bulk POST 全批
+      // 共享 1 个 rate-limit 检查，223 行 → 3 批 → 3 个槽位，绝对够用。
+      const existingChanges = changedDomains.filter((d) => domains.find((x) => x.id === d.id));
+      const newChanges = changedDomains.filter((d) => !domains.find((x) => x.id === d.id));
+
+      // 先处理 update（PUT 没有批量端点，逐条来；但更新通常远少于新增）。
+      for (const domain of existingChanges) {
+        const response = await fetch(`/api/domains/${domain.id}`, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify(buildPayload(domain)),
+        });
+        if (!response.ok) {
+          await handleSaveResponseError(response, 'update');
+        }
+      }
+
+      if (newChanges.length === 1) {
+        // 单条新增走单条 POST：保留 server 端的"按 name 去重 / 409"语义，
+        // 防止用户从 form 里手填一个重名域名时静默插入重复。
+        const response = await fetch('/api/domains', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ domain: buildPayload(newChanges[0]), refreshToken: refreshTok }),
+        });
+        if (!response.ok) {
+          await handleSaveResponseError(response, 'add');
+        }
+      } else if (newChanges.length > 1) {
+        // 多条新增走 bulk POST，按 MAX_BULK_OPERATION_SIZE 分批。CSV 导入
+        // 已经在客户端 mergeWithExisting 阶段按 name 去过重了，bulk 端点没
+        // server-side 去重也 OK——能进到这条路的 newChanges 都是真新行。
+        for (let i = 0; i < newChanges.length; i += MAX_BULK_OPERATION_SIZE) {
+          const chunk = newChanges.slice(i, i + MAX_BULK_OPERATION_SIZE);
+          const response = await fetch('/api/domains', {
             method: 'POST',
             headers,
-            body: JSON.stringify({ domain: domainPayload, refreshToken: refreshTok })
+            body: JSON.stringify({
+              domains: chunk.map(buildPayload),
+              refreshToken: refreshTok,
+            }),
           });
-        }
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          const details = errorData.details
-            ? (Array.isArray(errorData.details)
-                ? translateValidationMessages(errorData.details, t).join('; ')
-                : String(errorData.details))
-            : (errorData.error || response.statusText);
-          throw new Error(`Failed to ${isExisting ? 'update' : 'add'} domain: ${details}`);
+          if (!response.ok) {
+            await handleSaveResponseError(response, 'add');
+          }
         }
       }
 
