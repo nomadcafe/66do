@@ -1165,9 +1165,11 @@ const en = {
         encryption: {
           title: 'Protections in Place',
           https: 'HTTPS / TLS in transit — every request between your browser and our servers is encrypted on the wire.',
-          atRest: 'Database storage at rest is encrypted by our infrastructure provider (Supabase, on Amazon RDS).',
-          rls: 'Row-Level Security at the database layer — every query carries your user identity, and the database refuses to return rows that do not belong to you. Other users of the platform cannot read your data, even if they obtained a session token of their own.',
-          authVerification: 'Every API endpoint verifies your identity before any database operation; unauthenticated requests are rejected before they touch your data.'
+          atRest: 'Database storage at rest is encrypted by Supabase.',
+          rls: 'Your data is strictly isolated per user, keeping it safe.',
+          authVerification: 'Only signed-in users can access data — unauthenticated requests are rejected immediately, keeping your data safer.',
+          rateLimit: 'Sign-ins and data changes have rate limits in place, helping keep the service smooth for everyone.',
+          browserHardening: 'API access is allowlisted, keeping API calls safer.'
         },
         notifications: {
           title: 'Sign-In & Sensitive-Operation Log',
@@ -1225,8 +1227,7 @@ const en = {
         services: {
           title: 'Service Providers',
           supabase: 'Supabase — database, authentication, and email magic-link delivery.',
-          vercel: 'Vercel — web hosting, edge network, and privacy-friendly analytics.',
-          resend: 'Resend — transactional email delivery (notifications and security alerts only).'
+          vercel: 'Vercel — web hosting, edge network, and privacy-friendly analytics.'
         }
       },
       changes: {
