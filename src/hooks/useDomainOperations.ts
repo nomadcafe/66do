@@ -5,12 +5,10 @@ import type { RenewalSubmission } from '../components/domain/RenewalModal';
 interface UseDomainOperationsReturn {
   editingDomain: DomainWithTags | undefined;
   showDomainForm: boolean;
-  showSmartDomainForm: boolean;
   showRenewalModal: boolean;
   renewalDomain: DomainWithTags | null;
   setEditingDomain: (domain: DomainWithTags | undefined) => void;
   setShowDomainForm: (show: boolean) => void;
-  setShowSmartDomainForm: (show: boolean) => void;
   setShowRenewalModal: (show: boolean) => void;
   setRenewalDomain: (domain: DomainWithTags | null) => void;
   handleAddDomain: () => void;
@@ -31,7 +29,6 @@ export function useDomainOperations(
 ): UseDomainOperationsReturn {
   const [editingDomain, setEditingDomain] = useState<DomainWithTags | undefined>();
   const [showDomainForm, setShowDomainForm] = useState(false);
-  const [showSmartDomainForm, setShowSmartDomainForm] = useState(false);
   const [showRenewalModal, setShowRenewalModal] = useState(false);
   const [renewalDomain, setRenewalDomain] = useState<DomainWithTags | null>(null);
 
@@ -132,12 +129,10 @@ export function useDomainOperations(
   return {
     editingDomain,
     showDomainForm,
-    showSmartDomainForm,
     showRenewalModal,
     renewalDomain,
     setEditingDomain,
     setShowDomainForm,
-    setShowSmartDomainForm,
     setShowRenewalModal,
     setRenewalDomain,
     handleAddDomain,

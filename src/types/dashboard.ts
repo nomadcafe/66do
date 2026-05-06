@@ -48,13 +48,6 @@ export interface DomainFormProps {
   onSave: (domain: Omit<DomainWithTags, 'id'>) => void;
 }
 
-export interface SmartDomainFormProps {
-  domain?: DomainWithTags;
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (domain: Omit<DomainWithTags, 'id'>) => void;
-}
-
 export interface TransactionFormProps {
   transaction?: TransactionWithRequiredFields;
   domains: DomainWithTags[];

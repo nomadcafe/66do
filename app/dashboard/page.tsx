@@ -8,7 +8,6 @@ import { logger } from '../../src/lib/logger';
 import { fireSensitiveOpNotification } from '../../src/lib/securityNotify';
 import DomainList from '../../src/components/domain/DomainList';
 import DomainForm from '../../src/components/domain/DomainForm';
-import SmartDomainForm from '../../src/components/domain/SmartDomainForm';
 import TransactionList from '../../src/components/transaction/TransactionList';
 import TransactionForm from '../../src/components/transaction/TransactionForm';
 import MobileNavigation from '../../src/components/layout/MobileNavigation';
@@ -608,7 +607,6 @@ export default function DashboardPage() {
         await saveData(updatedDomains, transactions, { domainsOnly: true });
         domainOps.setEditingDomain(undefined);
         domainOps.setShowDomainForm(false);
-        domainOps.setShowSmartDomainForm(false);
     } else {
         const newDomain: DomainWithTags = {
           ...domainData,
@@ -620,7 +618,6 @@ export default function DashboardPage() {
         const updatedDomains = [...domains, newDomain];
         await saveData(updatedDomains, transactions, { domainsOnly: true });
         domainOps.setShowDomainForm(false);
-        domainOps.setShowSmartDomainForm(false);
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
@@ -1089,17 +1086,6 @@ export default function DashboardPage() {
         onSave={handleSaveDomain}
         closeRef={domainFormCloseRef}
         existingDomains={domains}
-      />
-
-      {/* Smart Domain Form Modal */}
-      <SmartDomainForm
-        domain={domainOps.editingDomain}
-        isOpen={domainOps.showSmartDomainForm}
-        onClose={() => {
-          domainOps.setShowSmartDomainForm(false);
-          domainOps.setEditingDomain(undefined);
-        }}
-        onSave={handleSaveDomain}
       />
 
       {/* Transaction Form Modal */}
