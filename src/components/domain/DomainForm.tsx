@@ -311,6 +311,17 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
               className="w-full"
             />
 
+            <div className="md:col-span-2 space-y-1">
+              <DateInput
+                label={t('dashboard.expiryDateLabel')}
+                icon={<Calendar className="h-4 w-4" />}
+                value={formData.expiry_date}
+                onChange={(value) => setFormData((prev) => ({ ...prev, expiry_date: value }))}
+                className="w-full max-w-md"
+              />
+              <p className="text-xs text-stone-500">{t('dashboard.expiryDateOptionalHint')}</p>
+            </div>
+
             {/* registration_date 跟 purchase_date 是两件事：前者是域名在
                 registrar 端的原始注册日期，后者是 this user 何时获取该域名。
                 米市买入的域名两者差几年是常态。CSV 导入时自动从注册商导出
@@ -326,17 +337,6 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
               <p className="text-xs text-stone-500">
                 {t('dashboard.registrationDateHelp')}
               </p>
-            </div>
-
-            <div className="md:col-span-2 space-y-1">
-              <DateInput
-                label={t('dashboard.expiryDateLabel')}
-                icon={<Calendar className="h-4 w-4" />}
-                value={formData.expiry_date}
-                onChange={(value) => setFormData((prev) => ({ ...prev, expiry_date: value }))}
-                className="w-full max-w-md"
-              />
-              <p className="text-xs text-stone-500">{t('dashboard.expiryDateOptionalHint')}</p>
             </div>
 
             <div>
