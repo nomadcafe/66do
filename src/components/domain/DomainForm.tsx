@@ -347,7 +347,6 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
               <input
                 id="domain-form-purchase_cost"
                 type="number"
-                required
                 min="0"
                 step="0.01"
                 value={formData.purchase_cost === 0 ? '' : formData.purchase_cost}
