@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { domainCache } from '../lib/cache';
 import {
   loadDomainsFromSupabase,
+  loadInstallmentReceiptsFromSupabase,
   loadTransactionsFromSupabase,
   TransactionService,
   type TransactionUpdate,
@@ -92,15 +93,40 @@ export function useDashboardData(
 
       // 不再走内存 cache 捷径：曾导致刷新后仍展示旧列表或 session 未就绪时空列表被当作有效数据
       logger.log('Loading data from Supabase database...');
-      const [domainsResult, transactionsResult] = await Promise.all([
+      const [domainsResult, transactionsResult, receiptsResult] = await Promise.all([
         loadDomainsFromSupabase(userId),
         loadTransactionsFromSupabase(userId),
+        loadInstallmentReceiptsFromSupabase(userId),
       ]);
       if (!domainsResult.success || !transactionsResult.success) {
         throw new Error('Failed to load data from Supabase database');
       }
+      // installment_receipts 加载失败不阻塞 dashboard——退化成"分期收款=0"，UI
+      // 仍可用，避免一个非核心表故障让所有数据空白。
+      const receipts = receiptsResult.success ? (receiptsResult.data || []) : [];
+      const receiptsByTx = new Map<string, typeof receipts>();
+      for (const r of receipts) {
+        const list = receiptsByTx.get(r.transaction_id) || [];
+        list.push(r);
+        receiptsByTx.set(r.transaction_id, list);
+      }
       const typedDomains = (domainsResult.data || []).map(ensureDomainWithTags);
-      const typedTransactions = (transactionsResult.data || []).map(ensureTransactionWithRequiredFields);
+      const typedTransactions = (transactionsResult.data || []).map((tx) => {
+        const ensured = ensureTransactionWithRequiredFields(tx);
+        const txReceipts = receiptsByTx.get(ensured.id);
+        return txReceipts && txReceipts.length > 0
+          ? { ...ensured, receipts: txReceipts.map((r) => ({
+              id: r.id,
+              transaction_id: r.transaction_id,
+              received_date: r.received_date,
+              amount: Number(r.amount),
+              period_no: r.period_no ?? null,
+              notes: r.notes ?? null,
+              created_at: r.created_at,
+              updated_at: r.updated_at,
+            })) }
+          : ensured;
+      });
       setDomains(typedDomains);
       setTransactions(typedTransactions);
       setDataSource('supabase');
@@ -186,7 +212,6 @@ export function useDashboardData(
         installment_amount: transaction.installment_amount || null,
         final_payment_amount: transaction.final_payment_amount || null,
         total_installment_amount: transaction.total_installment_amount || null,
-        paid_periods: transaction.paid_periods || null,
         installment_status: transaction.installment_status || null,
         platform_fee_type: transaction.platform_fee_type || null,
         user_input_fee_rate: transaction.user_input_fee_rate || null,

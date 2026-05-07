@@ -137,7 +137,6 @@ export interface Database {
           installment_amount: number | null
           final_payment_amount: number | null
           total_installment_amount: number | null
-          paid_periods: number | null
           installment_status: string | null
           installment_first_payment_date: string | null
           platform_fee_type: string | null
@@ -176,7 +175,6 @@ export interface Database {
           installment_amount?: number | null
           final_payment_amount?: number | null
           total_installment_amount?: number | null
-          paid_periods?: number | null
           installment_status?: string | null
           installment_first_payment_date?: string | null
           platform_fee_type?: string | null
@@ -215,7 +213,6 @@ export interface Database {
           installment_amount?: number | null
           final_payment_amount?: number | null
           total_installment_amount?: number | null
-          paid_periods?: number | null
           installment_status?: string | null
           installment_first_payment_date?: string | null
           platform_fee_type?: string | null
@@ -229,6 +226,41 @@ export interface Database {
           escrow_lease_type?: string | null
           escrow_transaction_fee?: number | null
           renewal_period_years?: number | null
+        }
+      }
+      installment_receipts: {
+        Row: {
+          id: string
+          transaction_id: string
+          user_id: string
+          received_date: string
+          amount: number
+          period_no: number | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          transaction_id: string
+          user_id: string
+          received_date: string
+          amount: number
+          period_no?: number | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          transaction_id?: string
+          user_id?: string
+          received_date?: string
+          amount?: number
+          period_no?: number | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
         }
       }
       verification_tokens: {

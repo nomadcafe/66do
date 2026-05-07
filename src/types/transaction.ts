@@ -1,5 +1,19 @@
 import { sellNetUSD } from '../lib/sellProceeds';
 
+/** 分期到账明细。一行=一笔真实收到的款项；amount 可为负（退款 / 中断）。
+ *  父交易必须是 type='sell' & payment_plan='installment'。 */
+export interface InstallmentReceipt {
+  id: string;
+  transaction_id: string;
+  received_date: string;
+  amount: number;
+  /** 用户填写的期号（"第几期"），仅供显示；不参与计算。 */
+  period_no?: number | null;
+  notes?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 // 统一的Transaction接口定义
 export interface Transaction {
   id: string;
@@ -27,12 +41,15 @@ export interface Transaction {
   installment_amount?: number;
   final_payment_amount?: number;
   total_installment_amount?: number;
-  
+
   // 分期进度跟踪
-  paid_periods?: number;
+  /** 真实到账明细（来自 installment_receipts 表）。一行=一笔到账，amount 可为
+   *  负数表示退款。expandSellToCashReceipts / 计算层都按这个数组算，paid_periods
+   *  字段已下线。dashboard 加载时挂上来；DB 不直接存。 */
+  receipts?: InstallmentReceipt[];
   installment_status?: 'active' | 'completed' | 'cancelled' | 'paused';
-  /** 首期付款日期（YYYY-MM-DD）。可空：填了用作 expandSellToCashReceipts
-   *  的基准；没填则回退到 "t.date + N 个月" 近似（旧数据兼容）。 */
+  /** 首期付款日期（YYYY-MM-DD）。仅作为 UI 上"下一期默认日期"的种子；
+   *  实际到账日全部走 installment_receipts.received_date。 */
   installment_first_payment_date?: string | null;
   platform_fee_type?: 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment';
 
@@ -106,7 +123,6 @@ export interface CreateTransactionInput {
   total_installment_amount?: number;
   
   // 分期进度跟踪
-  paid_periods?: number;
   installment_status?: 'active' | 'completed' | 'cancelled' | 'paused';
   installment_first_payment_date?: string | null;
   platform_fee_type?: 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment';
@@ -290,7 +306,10 @@ export class TransactionUtils {
   }
 
   static isCompletedInstallment(transaction: Transaction): boolean {
-    return transaction.installment_status === 'completed';
+    if (transaction.installment_status === 'completed') return true;
+    const totalPeriods = transaction.installment_period || 0;
+    const paid = transaction.receipts?.length ?? 0;
+    return totalPeriods > 0 && paid >= totalPeriods;
   }
 
   static getRemainingInstallments(transaction: Transaction): number {
@@ -298,7 +317,7 @@ export class TransactionUtils {
       return 0;
     }
     const totalPeriods = transaction.installment_period || 0;
-    const paidPeriods = transaction.paid_periods || 0;
+    const paidPeriods = transaction.receipts?.length ?? 0;
     return Math.max(0, totalPeriods - paidPeriods);
   }
 

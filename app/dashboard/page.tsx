@@ -10,6 +10,7 @@ import DomainList from '../../src/components/domain/DomainList';
 import DomainForm from '../../src/components/domain/DomainForm';
 import TransactionList from '../../src/components/transaction/TransactionList';
 import TransactionForm from '../../src/components/transaction/TransactionForm';
+import AddReceiptModal from '../../src/components/transaction/AddReceiptModal';
 import MobileNavigation from '../../src/components/layout/MobileNavigation';
 import ShareModal from '../../src/components/share/ShareModal';
 import SaleSuccessModal from '../../src/components/share/SaleSuccessModal';
@@ -152,6 +153,7 @@ export default function DashboardPage() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [pendingDeleteDomainId, setPendingDeleteDomainId] = useState<string | null>(null);
   const [pendingDeleteTransactionId, setPendingDeleteTransactionId] = useState<string | null>(null);
+  const [addReceiptTarget, setAddReceiptTarget] = useState<TransactionWithRequiredFields | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
   
   // 使用自定义Hooks管理数据和操作
@@ -188,7 +190,7 @@ export default function DashboardPage() {
           isInstallmentSell &&
           (transaction.installment_amount != null ||
             transaction.downpayment_amount != null ||
-            (transaction.paid_periods != null && transaction.installment_period != null));
+            ((transaction.receipts?.length ?? 0) > 0 && transaction.installment_period != null));
         // 带"平台规则"的分期类型：费率由平台决定（Spaceship 5% / Atom 阶梯
         // surcharge / Afternic 阶梯佣金 / Escrow 加项费），表单的"平台费用计算"
         // 黄框只是展示，不会自动写入 transaction.platform_fee。所以 stored 值
@@ -207,21 +209,22 @@ export default function DashboardPage() {
           hasInstallmentData &&
           typeof transaction.platform_fee_type === 'string' &&
           brandedInstallmentTypes.has(transaction.platform_fee_type);
+        const paidPeriodsFromReceipts = transaction.receipts?.length ?? 0;
         const isInstallmentPartialOrCancelled =
           isInstallmentSell &&
           hasInstallmentData &&
           (transaction.installment_status === 'cancelled' ||
-            ((transaction.paid_periods ?? 0) < (transaction.installment_period ?? 1)));
+            (paidPeriodsFromReceipts < (transaction.installment_period ?? 1)));
         if (isBrandedInstallment) {
           const down = transaction.downpayment_amount ?? 0;
           const perPeriod = transaction.installment_amount ?? 0;
           const totalPeriods = transaction.installment_period ?? 0;
-          // 对 status='completed' 的数据保险：哪怕 paid_periods 没被同步到 ==
+          // 对 status='completed' 的数据保险：哪怕 receipts 还没补齐到 ==
           // installment_period，也按全付计算，避免显示成部分付。
           const effectivePaidPeriods =
             transaction.installment_status === 'completed'
               ? totalPeriods
-              : Math.min(totalPeriods, transaction.paid_periods ?? 0);
+              : Math.min(totalPeriods, paidPeriodsFromReceipts);
           const customRate =
             transaction.platform_fee_percentage != null && transaction.platform_fee_percentage > 0
               ? transaction.platform_fee_percentage / 100
@@ -253,9 +256,11 @@ export default function DashboardPage() {
           netAmount = result.sellerNetAmount;
         } else if (isInstallmentPartialOrCancelled) {
           const down = transaction.downpayment_amount ?? 0;
-          const paid = transaction.paid_periods ?? 0;
-          const perPeriod = transaction.installment_amount ?? 0;
-          const actualReceived = down + paid * perPeriod;
+          const receiptsTotal = (transaction.receipts ?? []).reduce(
+            (s, r) => s + (Number(r.amount) || 0),
+            0
+          );
+          const actualReceived = down + receiptsTotal;
           if (fullAmount > 0 && actualReceived >= 0) {
             const ratio = actualReceived / fullAmount;
             amountUSD = actualReceived;
@@ -911,6 +916,7 @@ export default function DashboardPage() {
               onEdit={transactionOps.handleEditTransaction}
               onDelete={setPendingDeleteTransactionId}
               onAdd={transactionOps.handleAddTransaction}
+              onAddReceipt={setAddReceiptTarget}
             />
           </div>
         )}
@@ -967,6 +973,21 @@ export default function DashboardPage() {
           if (!id) return;
           await transactionOps.handleDeleteTransaction(id);
           setPendingDeleteTransactionId(null);
+        }}
+      />
+
+      <AddReceiptModal
+        isOpen={!!addReceiptTarget}
+        onClose={() => setAddReceiptTarget(null)}
+        transaction={addReceiptTarget}
+        domainName={
+          addReceiptTarget
+            ? domains.find((d) => d.id === addReceiptTarget.domain_id)?.domain_name
+            : undefined
+        }
+        userId={user?.id ?? ''}
+        onAdded={async () => {
+          await refreshData();
         }}
       />
 
