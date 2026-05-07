@@ -371,8 +371,14 @@ export function useDashboardData(
       const serverTransactionsById = new Map<string, TransactionWithRequiredFields>();
       for (const transaction of changedTransactions) {
         const isExisting = transactions.find(t => t.id === transaction.id);
+        // receipts 是 dashboard 加载时挂在 sell tx 上的内存视图（来自
+        // installment_receipts 子表），DB 的 domain_transactions 表没这个列。
+        // 走 PUT/upsert 时若直接 spread 整个 transaction 会把 receipts 一并
+        // 透传到 PostgREST，supabase 试图写不存在的列就 400/404 失败。
+        // 这里显式剥离，让 payload 只携带 domain_transactions 的真实列。
+        const { receipts: _receipts, ...txWithoutReceipts } = transaction;
         const transactionPayload = {
-          ...transaction,
+          ...txWithoutReceipts,
           platform_fee: transaction.platform_fee || null,
           platform_fee_percentage: transaction.platform_fee_percentage || null,
           net_amount: transaction.net_amount || null,
