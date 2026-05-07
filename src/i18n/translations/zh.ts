@@ -603,6 +603,7 @@ const zh = {
       renewPeriodYears: '续费年数',
       renewUseCustomYears: '自定义续费年数',
       renewUseDomainCycle: '使用域名续费周期（{years} 年）',
+      renewAmountHint: '填本次续费的总额，不是每年单价。',
       sell: '出售',
       transfer: '转移',
       fee: '费用',

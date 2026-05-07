@@ -608,6 +608,7 @@ const en = {
       renewPeriodYears: 'Renewal period (years)',
       renewUseCustomYears: 'Custom renewal years',
       renewUseDomainCycle: 'Use domain renewal cycle ({years} yr)',
+      renewAmountHint: 'Total paid for this renewal — not the per-year price.',
       sell: 'Sell',
       transfer: 'Transfer',
       fee: 'Fee',
