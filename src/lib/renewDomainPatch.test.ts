@@ -6,6 +6,7 @@ import type { TransactionWithRequiredFields } from '../types/transaction';
 function makeDomain(overrides: Partial<DomainWithTags> = {}): DomainWithTags {
   return {
     id: 'd1',
+    user_id: 'u1',
     domain_name: 'foo.com',
     status: 'active',
     registrar: 'a',
@@ -15,11 +16,18 @@ function makeDomain(overrides: Partial<DomainWithTags> = {}): DomainWithTags {
     renewal_cycle: 1,
     renewal_count: 0,
     expiry_date: '2025-01-15',
+    baseline_renewal_as_of: null,
+    next_renewal_date: null,
+    registration_date: null,
+    sale_date: null,
+    sale_price: null,
+    platform_fee: null,
+    estimated_value: null,
     tags: [],
     created_at: '',
     updated_at: '',
     ...overrides,
-  };
+  } as DomainWithTags;
 }
 
 function makeRenewTx(overrides: Partial<TransactionWithRequiredFields> = {}): TransactionWithRequiredFields {

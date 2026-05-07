@@ -6,30 +6,37 @@ import { localCalendarDateISO } from './localCalendarDate';
 const DEFAULT_RENEWAL_CYCLE = 1;
 
 // 续费时延长域名到期日，并把 renewal_count +1。
-// 优先在现有 expiry_date 上加年；没 expiry_date 时用 purchase_date + (renewal_count+1) * cycle 兜底。
+// 关键：renewalYears 是「这次续费要加几年」（可由用户在 RenewalModal 选 1/2/3/5），
+// 不能跟 domain.renewal_cycle（域名自身的标准续费周期）混用。
+//   - 有 expiry_date：直接 expiry + renewalYears。
+//   - 无 expiry_date：先按 effectiveExpiry 同样的公式估算「当前到期日」
+//     = purchase + (renewal_count + 1) × renewal_cycle，再 + renewalYears。
+//     旧实现把 renewalYears 和 renewal_cycle 在 fallback 里同当一个量用，
+//     count=0 时 +2yr 实际只多走了 1 个 cycle，账面显示「续了两年只延长一年」。
 export function handleDomainRenewal(domain: Domain, renewalYears?: number): Domain {
-  const renewalCycle = renewalYears || domain.renewal_cycle || DEFAULT_RENEWAL_CYCLE;
+  const yearsToAdd = renewalYears || domain.renewal_cycle || DEFAULT_RENEWAL_CYCLE;
+  const ownCycle = Math.max(1, Math.floor(domain.renewal_cycle || DEFAULT_RENEWAL_CYCLE));
 
-  let newExpiryDate: Date;
-
+  let baseDate: Date | null = null;
   if (domain.expiry_date) {
-    newExpiryDate = new Date(domain.expiry_date);
-    if (Number.isNaN(newExpiryDate.getTime())) {
-      newExpiryDate = domain.purchase_date ? new Date(domain.purchase_date) : new Date();
-    }
-    newExpiryDate.setFullYear(newExpiryDate.getFullYear() + renewalCycle);
-  } else {
-    const purchaseDate = domain.purchase_date ? new Date(domain.purchase_date) : new Date();
-    newExpiryDate = Number.isNaN(purchaseDate.getTime()) ? new Date() : new Date(purchaseDate);
-    newExpiryDate.setFullYear(newExpiryDate.getFullYear() + renewalCycle);
-    if (domain.renewal_count > 0) {
-      newExpiryDate.setFullYear(newExpiryDate.getFullYear() + (domain.renewal_count * renewalCycle));
+    const d = new Date(domain.expiry_date);
+    if (!Number.isNaN(d.getTime())) baseDate = d;
+  }
+  if (!baseDate && domain.purchase_date) {
+    const purchase = new Date(domain.purchase_date);
+    if (!Number.isNaN(purchase.getTime())) {
+      baseDate = new Date(purchase);
+      const priorCycles = (domain.renewal_count || 0) + 1;
+      baseDate.setFullYear(baseDate.getFullYear() + priorCycles * ownCycle);
     }
   }
 
+  let newExpiryDate = baseDate ? new Date(baseDate) : new Date();
+  newExpiryDate.setFullYear(newExpiryDate.getFullYear() + yearsToAdd);
+
   if (Number.isNaN(newExpiryDate.getTime())) {
     const repair = new Date();
-    repair.setFullYear(repair.getFullYear() + renewalCycle);
+    repair.setFullYear(repair.getFullYear() + yearsToAdd);
     newExpiryDate = repair;
   }
 
