@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { TransactionService } from '../../../../src/lib/supabaseService'
 import { validateTransaction, sanitizeTransactionData } from '../../../../src/lib/validation'
+import { buildTransactionUpdatePayload } from '../../../../src/lib/transactionInsertPayload'
 import { getAuthInfoFromRequest } from '../../../../src/lib/auth-helper'
 import { createAuthenticatedSupabaseClient } from '../../../../src/lib/supabaseAuthClient'
 import { getCorsHeaders, getCorsHeadersForError } from '../../../../src/lib/cors'
@@ -135,10 +136,14 @@ export async function PUT(
         { status: 403, headers: corsHeaders }
       )
     }
+    // 用白名单 payload，避免任何 client-only 字段（receipts、renewal_years_use_custom、
+    // extend_domain_expiry_on_renew 等）漏到 supabase update。之前 spread sanitized
+    // 直接交给 PostgREST，多一个不存在的列就让整个 update 静默失败 → 这里回 404。
+    const updatePayload = buildTransactionUpdatePayload(sanitizedUpdateTransaction)
     const updatedTransaction = await TransactionService.updateTransactionWithClient(
       client,
       transactionId,
-      { ...sanitizedUpdateTransaction, user_id: userId },
+      updatePayload,
       userId
     )
     
