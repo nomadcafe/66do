@@ -115,6 +115,44 @@ export function useTransactionOperations(
         });
 
         await onSave(updatedDomains, updatedTransactions);
+      } else if (
+        transactionToDelete.type === 'renew' &&
+        transactionToDelete.domain_id &&
+        transactionToDelete.extend_domain_expiry_on_renew !== false
+      ) {
+        // 删除续费交易要把当时延长的到期日 + renewal_count 撤回去——否则
+        // 用户在 Domain Portfolio 里看到的依旧是旧的"被续过"的日期。
+        // 用这笔 tx 的 renewal_period_years 倒推；缺时退化到 domain.renewal_cycle。
+        const targetDomainId = transactionToDelete.domain_id;
+        const yearsToRollback = Math.max(
+          1,
+          Math.floor(
+            Number(transactionToDelete.renewal_period_years) ||
+              domains.find((d) => d.id === targetDomainId)?.renewal_cycle ||
+              1
+          )
+        );
+        const updatedDomains = domains.map((domain) => {
+          if (domain.id !== targetDomainId) return domain;
+          let nextExpiry = domain.expiry_date ?? null;
+          if (typeof nextExpiry === 'string' && nextExpiry) {
+            const d = new Date(nextExpiry);
+            if (!Number.isNaN(d.getTime())) {
+              d.setFullYear(d.getFullYear() - yearsToRollback);
+              const y = d.getFullYear();
+              const m = String(d.getMonth() + 1).padStart(2, '0');
+              const day = String(d.getDate()).padStart(2, '0');
+              nextExpiry = `${y}-${m}-${day}`;
+            }
+          }
+          return {
+            ...domain,
+            expiry_date: nextExpiry,
+            renewal_count: Math.max(0, (domain.renewal_count ?? 0) - 1),
+            updated_at: new Date().toISOString(),
+          };
+        });
+        await onSave(updatedDomains, updatedTransactions);
       } else {
         await onSave(domains, updatedTransactions);
       }
