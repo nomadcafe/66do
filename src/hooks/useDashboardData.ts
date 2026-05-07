@@ -371,14 +371,22 @@ export function useDashboardData(
       const serverTransactionsById = new Map<string, TransactionWithRequiredFields>();
       for (const transaction of changedTransactions) {
         const isExisting = transactions.find(t => t.id === transaction.id);
-        // receipts 是 dashboard 加载时挂在 sell tx 上的内存视图（来自
-        // installment_receipts 子表），DB 的 domain_transactions 表没这个列。
-        // 走 PUT/upsert 时若直接 spread 整个 transaction 会把 receipts 一并
-        // 透传到 PostgREST，supabase 试图写不存在的列就 400/404 失败。
-        // 这里显式剥离，让 payload 只携带 domain_transactions 的真实列。
-        const { receipts: _receipts, ...txWithoutReceipts } = transaction;
+        // 剥掉所有「Transaction 类型上有、但 domain_transactions 表没有」的
+        // 纯客户端字段。spread 整个对象直接发去 PostgREST，supabase update 写
+        // 到不存在的列会失败 → API PUT 路径回 404。每多挂一个内存字段都要在
+        // 这儿加进 omit 列表（可考虑把 buildTransactionInsertPayload 那种
+        // whitelist 拿来共用，避免漏字段）：
+        //   - receipts:                来自 installment_receipts 子表的 view
+        //   - renewal_years_use_custom: TransactionForm 的 UI toggle
+        //   - extend_domain_expiry_on_renew: merger 用的延期 flag
+        const {
+          receipts: _receipts,
+          renewal_years_use_custom: _useCustom,
+          extend_domain_expiry_on_renew: _extendExpiry,
+          ...txWithoutClientOnly
+        } = transaction;
         const transactionPayload = {
-          ...txWithoutReceipts,
+          ...txWithoutClientOnly,
           platform_fee: transaction.platform_fee || null,
           platform_fee_percentage: transaction.platform_fee_percentage || null,
           net_amount: transaction.net_amount || null,
