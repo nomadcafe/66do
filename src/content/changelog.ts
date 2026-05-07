@@ -85,8 +85,7 @@ export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
       items: [
         '优化分期收款记账：每一期到账可单独记录（金额填负数 = 退款），月度收入按真实到账月落账，更简单易记。',
         '分期中的域名更显眼：Domain Portfolio 里加了「分期 N/M」徽章，「This week」也会按预期到账日推送提醒，一键录入，不再忘记记账。',
-        '续费体验修复：在 RenewalModal 里点 2 年 / 3 年时，金额会跟着按倍数自动算；之前点了年数但金额没变，导致只记到 1 年的账。',
-        '续费到期日算错：没有设 expiry_date 的域名续费时，多年续费只延长 1 年的 bug 修了。',
+        '多年续费修复：选 2 / 3 年时金额会按倍数自动计算；未设到期日的域名也会正确延长对应年数。',
         '删除续费交易时，域名的到期日和续费次数也会同步回退，不再留下「续了但没续」的脏数据。',
         '在 Add Transaction 里录续费时，Amount 旁边多了行小提示——填总额，不是单价。',
       ],
@@ -175,8 +174,7 @@ export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
       items: [
         'Installment bookkeeping refined: log each receipt as it lands (negative amount = refund). Monthly revenue follows the real receipt date — simpler and more accurate.',
         'Active installments are easier to spot and never get forgotten: a "Installment N/M" chip in Domain Portfolio plus a one-click receipt prompt in "This Week" near each expected receipt date.',
-        'Renewal modal fix: clicking 2 / 3 / 5 years also rescales the amount, so picking a longer term no longer leaves you with one year\'s cost saved.',
-        'Renewal expiry math fix: domains without an explicit expiry_date now extend by the full chosen years on renewal — previously a 2-year renewal only added 1 year.',
+        'Multi-year renewal fixes: picking 2 / 3 years rescales the amount accordingly, and domains without an explicit expiry date now extend by the full chosen years.',
         'Deleting a renewal now rolls back the domain\'s expiry_date and renewal count, instead of leaving the extension behind as orphan data.',
         'Add Transaction: a hint under the Amount field reminds you to enter the total renewal cost, not the per-year price.',
       ],
