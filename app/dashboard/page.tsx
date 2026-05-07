@@ -52,6 +52,7 @@ import { totalHoldingCostForDomain } from '../../src/lib/renewalCostBasis';
 import { getEffectiveExpiry } from '../../src/lib/effectiveExpiry';
 import { expandRenewalEvents } from '../../src/lib/expandRenewalEvents';
 import { totalRealizedPnL, realizedPnLByMonth, portfolioAtCost } from '../../src/lib/realizedPnL';
+import { getReceiptsDueSoon } from '../../src/lib/installmentDue';
 import { mergeCsvImportWithExisting } from '../../src/lib/csvFormats/mergeWithExisting';
 import {
   Plus,
@@ -594,6 +595,11 @@ export default function DashboardPage() {
     return expiringThisWeek.reduce((sum, d) => sum + (d.renewal_cost ?? 0), 0);
   }, [expiringThisWeek]);
 
+  // 本周应收分期：含轻微逾期（前 3 天还没记的也露出来）。
+  const receiptsDueThisWeek = useMemo(() => {
+    return getReceiptsDueSoon(domains, transactions);
+  }, [domains, transactions]);
+
 
   // 处理域名保存（保留此函数因为需要特殊处理）- 使用useCallback优化
   const handleSaveDomain = useCallback(async (domainData: Omit<DomainWithTags, 'id'>) => {
@@ -858,11 +864,13 @@ export default function DashboardPage() {
                 recentTransactions,
                 stuckDomains,
                 domains,
+                receiptsDueThisWeek,
                 t,
                 formatCurrency: formatCurrencyEnhanced,
                 formatTransactionDate,
                 onRenew: domainOps.handleRenewDomain,
                 onViewActivity: () => setActiveTab('activity'),
+                onAddReceipt: setAddReceiptTarget,
                 domainListAnchorId: 'dashboard-domain-list-anchor',
               })}
             />

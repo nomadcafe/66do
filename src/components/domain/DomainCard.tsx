@@ -241,12 +241,38 @@ const DomainCard = memo(function DomainCard({ domain, transactions = [], onEdit,
       })()}
 
       <div className="mt-auto">
-        <div className="flex items-center justify-between">
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(domain.status)}`}>
-            {statusLabel(domain.status, t)}
-          </span>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(domain.status)}`}>
+              {statusLabel(domain.status, t)}
+            </span>
+            {(() => {
+              // sold 域名如果还在分期收款，加一枚薄荷色 chip 提示。同 DomainTable
+              // 的视觉语言一致，让用户扫卡片网格也能一眼看到"还有钱在路上"。
+              const activeInstallment = transactions.find(
+                (tx) =>
+                  tx.domain_id === domain.id &&
+                  tx.type === 'sell' &&
+                  tx.payment_plan === 'installment' &&
+                  tx.installment_status !== 'cancelled' &&
+                  tx.installment_status !== 'completed'
+              );
+              if (!activeInstallment) return null;
+              const total = activeInstallment.installment_period ?? 0;
+              const paid = activeInstallment.receipts?.length ?? 0;
+              if (total > 0 && paid >= total) return null;
+              return (
+                <span
+                  className="inline-flex items-center px-2 py-0.5 text-[11px] font-medium rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                  title={t('transaction.installmentConfig')}
+                >
+                  {t('transaction.installment')} {paid}/{total}
+                </span>
+              );
+            })()}
+          </div>
           {domain.status !== 'sold' && (domain.estimated_value || 0) > 0 && (
-            <div className="text-right">
+            <div className="text-right shrink-0">
               <p className="text-xs text-stone-500">{t('domainList.table.estimatedValue')}</p>
               <p className="text-sm font-semibold text-stone-900">{formatCurrency(domain.estimated_value!)}</p>
             </div>
