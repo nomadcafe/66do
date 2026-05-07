@@ -175,9 +175,13 @@ export class TransactionService {
     client: SupabaseClient<Database>,
     transaction: TransactionInsert
   ): Promise<{ data: Transaction | null; error: string | null }> {
+    // upsert 而不是 insert：避免「上一次 POST 成功但客户端没收到响应 → 重发」
+    // 这类场景拿 409 PK 冲突砸到用户脸上。RLS 还是按 user_id WITH CHECK 守住——
+    // 不是自己的行 upsert 也会被拒。onConflict=id 让 PG 走 ON CONFLICT DO UPDATE，
+    // 同 id 时刷字段；新 id 时正常 insert。
     const { data, error } = await (client
       .from('domain_transactions')
-      .insert(transaction as never)
+      .upsert(transaction as never, { onConflict: 'id' })
       .select()
       .single() as unknown as Promise<{ data: Transaction | null; error: { message: string; details?: string } | null }>)
 
