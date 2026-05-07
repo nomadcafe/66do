@@ -246,7 +246,14 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
               {[1, 2, 3, 5].map((years) => (
                 <button
                   key={years}
-                  onClick={() => setRenewalYears(years)}
+                  onClick={() => {
+                    setRenewalYears(years);
+                    // 用「stored 单价 × 新年数」覆盖金额。之前点年数只改了 renewalYears、
+                    // amount 没动，导致 1 年费用配 2 年期限的错账。stored 单价取 domain.renewal_cost
+                    // （表单初始就是这个口径），用户点完仍可手动改 amount 覆写。
+                    const perYear = domain.renewal_cost || 0;
+                    if (perYear > 0) setAmount(perYear * years);
+                  }}
                   disabled={isProcessing}
                   className={`px-4 py-3 rounded-lg font-medium transition-all ${
                     renewalYears === years
