@@ -47,7 +47,6 @@ const buildEmptyFormData = ({ preserveDomainId = '' }: { preserveDomainId?: stri
   installment_amount: 0,
   final_payment_amount: 0,
   total_installment_amount: 0,
-  paid_periods: 0,
   installment_status: 'active' as 'active' | 'completed' | 'cancelled' | 'paused',
   installment_first_payment_date: '',
   platform_fee_type:
@@ -199,8 +198,7 @@ export default function TransactionForm({
         installment_amount: transaction.installment_amount || 0,
         final_payment_amount: transaction.final_payment_amount || 0,
         total_installment_amount: transaction.total_installment_amount || 0,
-        // 分期进度跟踪
-        paid_periods: transaction.paid_periods || 0,
+        // 分期进度跟踪：paid_periods 现由 installment_receipts.length 推导，编辑表单不直接管
         installment_status: transaction.installment_status || 'active',
         installment_first_payment_date: transaction.installment_first_payment_date || '',
         platform_fee_type: transaction.platform_fee_type || 'standard',
@@ -721,6 +719,11 @@ export default function TransactionForm({
               amount={formData.amount}
               currency={formData.currency}
               platformFeePercentage={formData.platform_fee_percentage}
+              paidPeriodsCount={transaction?.receipts?.length ?? 0}
+              receivedAmount={
+                (formData.downpayment_amount || 0) +
+                (transaction?.receipts ?? []).reduce((s, r) => s + (Number(r.amount) || 0), 0)
+              }
               onChange={(patch) => setFormData((prev) => ({ ...prev, ...patch }))}
             />
           )}

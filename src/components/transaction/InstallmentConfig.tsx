@@ -20,7 +20,6 @@ export type InstallmentConfigValues = {
     | 'atom_installment'
     | 'spaceship_installment'
     | 'escrow_installment';
-  paid_periods: number;
   installment_status: 'active' | 'completed' | 'cancelled' | 'paused';
   installment_first_payment_date: string;
   user_input_fee_rate: number;
@@ -39,6 +38,10 @@ interface InstallmentConfigProps {
   amount: number;
   currency: string;
   platformFeePercentage: number;
+  /** 已付期数：来自 installment_receipts.length（只读，加期通过列表行的"+ 收款"按钮）。 */
+  paidPeriodsCount: number;
+  /** 已收总额（含 downpayment + 所有 receipts.amount，receipt 含负数=退款）。 */
+  receivedAmount: number;
   onChange: (patch: Partial<InstallmentConfigValues>) => void;
 }
 
@@ -47,6 +50,8 @@ export default function InstallmentConfig({
   amount,
   currency,
   platformFeePercentage,
+  paidPeriodsCount,
+  receivedAmount,
   onChange
 }: InstallmentConfigProps) {
   const { t } = useI18nContext();
@@ -157,19 +162,15 @@ export default function InstallmentConfig({
             </div>
 
             <div>
-              <label htmlFor="transaction-form-paid-periods" className="block text-sm font-medium text-blue-800 mb-2">
+              <label className="block text-sm font-medium text-blue-800 mb-2">
                 {t('transaction.paidPeriods')}
               </label>
-              <input
-                id="transaction-form-paid-periods"
-                type="number"
-                min="0"
-                max={values.installment_period}
-                value={values.paid_periods === 0 ? '' : values.paid_periods}
-                onChange={(e) => onChange({ paid_periods: parseInt(e.target.value) || 0 })}
-                className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="0"
-              />
+              <div className="px-3 py-2 bg-blue-100 text-blue-900 rounded-md">
+                {paidPeriodsCount} / {values.installment_period}
+              </div>
+              <p className="text-xs text-blue-600 mt-1">
+                {t('transaction.paidPeriodsReadonlyHint')}
+              </p>
             </div>
 
             <div>
@@ -475,7 +476,7 @@ export default function InstallmentConfig({
 
             <div className="mt-2 pt-2 border-t border-blue-200">
               <p className="text-blue-700">
-                {t('transaction.paidPeriods')}: {values.paid_periods} / {values.installment_period}
+                {t('transaction.paidPeriods')}: {paidPeriodsCount} / {values.installment_period}
               </p>
               <p className="text-blue-700">
                 {t('transaction.installmentStatus')}: {t(`transaction.${values.installment_status}`)}
@@ -484,7 +485,7 @@ export default function InstallmentConfig({
                 {t('transaction.platformFeeType')}: {t(`transaction.${values.platform_fee_type}`)}
               </p>
 
-              {values.paid_periods > 0 && values.installment_amount > 0 && (
+              {paidPeriodsCount > 0 && values.installment_amount > 0 && (
                 <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
                   <h5 className="text-sm font-medium text-green-900 mb-2">{t('transaction.paidAmountCalculation')}</h5>
                   {(() => {
@@ -493,7 +494,7 @@ export default function InstallmentConfig({
                         platformFeePercentage > 0 ? platformFeePercentage / 100 : undefined;
                       const result = calculatePaidAmountFromInstallment(
                         values.installment_amount,
-                        values.paid_periods,
+                        paidPeriodsCount,
                         values.installment_period,
                         values.platform_fee_type || 'standard',
                         installmentFeeRateOverride,
@@ -566,13 +567,12 @@ export default function InstallmentConfig({
                   values.installment_period,
                   values.final_payment_amount
                 );
-                const receivedSoFar =
-                  values.downpayment_amount + values.paid_periods * values.installment_amount;
+                const receivedSoFar = receivedAmount;
                 const pct =
                   totalAmount > 0
-                    ? Math.min(100, Math.round((receivedSoFar / totalAmount) * 100))
+                    ? Math.min(100, Math.max(0, Math.round((receivedSoFar / totalAmount) * 100)))
                     : values.installment_period > 0
-                      ? Math.round((values.paid_periods / values.installment_period) * 100)
+                      ? Math.round((paidPeriodsCount / values.installment_period) * 100)
                       : 0;
                 return (
                   <div className="mt-2">

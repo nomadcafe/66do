@@ -137,9 +137,12 @@ export function useTransactionOperations(
       if (editingTransaction) {
         // Update existing transaction
         const oldTransaction = editingTransaction;
+        // 保留 receipts：表单不管 receipts，编辑后立即在内存里继续展示原有到账明细，
+        // 不必等下一次 refreshData 才回填，避免 X/Y 进度短暂回落到 0/N。
         const newTransaction = ensureTransactionWithRequiredFields({
           ...transactionData,
-          id: editingTransaction.id
+          id: editingTransaction.id,
+          receipts: editingTransaction.receipts,
         });
 
         updatedTransactions = transactions.map(transaction =>

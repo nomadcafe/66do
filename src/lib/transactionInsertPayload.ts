@@ -33,7 +33,6 @@ export function buildTransactionInsertPayload(
     installment_amount: transaction.installment_amount != null ? Number(transaction.installment_amount) : null,
     final_payment_amount: transaction.final_payment_amount != null ? Number(transaction.final_payment_amount) : null,
     total_installment_amount: transaction.total_installment_amount != null ? Number(transaction.total_installment_amount) : null,
-    paid_periods: transaction.paid_periods != null ? Number(transaction.paid_periods) : null,
     installment_status: (transaction.installment_status as string) || null,
     installment_first_payment_date:
       typeof transaction.installment_first_payment_date === 'string' &&

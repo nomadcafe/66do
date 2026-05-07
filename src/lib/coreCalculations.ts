@@ -125,16 +125,11 @@ export interface CashReceiptEvent {
  * - 一次性付款 (lump_sum)：原样返回单条 (t.date, sellNetUSD)
  * - 分期 (installment)：
  *   · 首付计入 t.date 当月（downpayment_amount > 0 时）
- *   · 已付期分布在月份上：
- *       - 若 installment_first_payment_date 已填，第 1 期 = 该日，
- *         第 2 期 = +1 月，… 以此类推
- *       - 否则回退到 "t.date + i 个月"（i ∈ [1, paid_periods]）的近似
- *   · 平台费按比例分摊到每条事件，保证 sum(netAmount) === sellNetUSD(t)
- *   · 未付期不展开（还没到账）
- *
- * 用于 Monthly Cash Flow / 累计 Revenue 等"按月"展示，原实现把整笔 sell
- * 都归到 t.date 那一个月，3 个月分期的收入会一起 spike 在销售当月，1-2
- * 月间隔的柱子全是 0。
+ *   · 每条 installment_receipts 行 → 一条事件，月份取 r.received_date
+ *   · 平台费按 tx 自身的 fee/gross 比例分摊到每条事件
+ *   · receipt.amount 可为负数（退款 / 中断分期）→ 当月 netAmount 为负
+ *   · 没有任何 receipt 也没有 downpayment 时，保底返回单条 (t.date, sellNetUSD)，
+ *     避免数据缺失场景下分期 sell 在报表中直接消失。
  */
 export function expandSellToCashReceipts(t: TransactionWithRequiredFields): CashReceiptEvent[] {
   if (t.type !== 'sell') return [];
@@ -150,21 +145,18 @@ export function expandSellToCashReceipts(t: TransactionWithRequiredFields): Cash
   }
 
   const down = t.downpayment_amount ?? 0;
-  const perPeriod = t.installment_amount ?? 0;
-  const paidPeriods = t.paid_periods ?? 0;
-  const totalGrossPaid = down + paidPeriods * perPeriod;
+  const receipts = t.receipts ?? [];
+  const totalReceiptAmount = receipts.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+  const totalGrossPaid = down + totalReceiptAmount;
   if (totalGrossPaid <= 0) {
-    // 数据缺失或还没付任何一期：保底回到原口径，避免直接消失
+    // 没有 receipts 也没有 downpayment：保底回到原口径，避免直接消失。
+    // 也覆盖了"加载顺序问题导致 receipts 暂时为 undefined"的边界情况。
     return [{ monthKey: monthKeyOf(txDate), netAmount: sellNetUSD(t) }];
   }
 
   // feeRate 直接从 tx 自身算（自洽）：fee/gross 比例与 transactionsForMetrics
   // 是否缩放都无关 —— 缩放时 fee 和 gross 都按同比例缩，比例不变；不缩放
   // 时也是 tx 上的真实比例。
-  // 旧公式 1 - sellNetUSD/totalGrossPaid 的隐含假设是"二者尺度一致"，在
-  // 部分付清但 transactionsForMetrics 因数据缺失没缩放（hasInstallmentData
-  // = false）的边界 case 上会失败：分母是 partial gross，分子是 full net，
-  // feeRate 算出来可能是负数甚至 > 1。
   const grossOnTx = sellGrossUSD(t);
   const fee = Math.max(0, grossOnTx - sellNetUSD(t));
   const feeRate = grossOnTx > 0 ? fee / grossOnTx : 0;
@@ -177,23 +169,12 @@ export function expandSellToCashReceipts(t: TransactionWithRequiredFields): Cash
     });
   }
 
-  // 第一期付款日：优先用 installment_first_payment_date，没填回退到 t.date + 1 月
-  let firstPayment: Date | null = null;
-  if (t.installment_first_payment_date) {
-    const d = new Date(t.installment_first_payment_date);
-    if (!Number.isNaN(d.getTime())) firstPayment = d;
-  }
-  if (!firstPayment) {
-    firstPayment = new Date(txDate);
-    firstPayment.setMonth(firstPayment.getMonth() + 1);
-  }
-
-  for (let i = 0; i < paidPeriods; i++) {
-    const d = new Date(firstPayment);
-    d.setMonth(d.getMonth() + i);
+  for (const r of receipts) {
+    const d = new Date(r.received_date);
+    if (Number.isNaN(d.getTime())) continue;
     events.push({
       monthKey: monthKeyOf(d),
-      netAmount: perPeriod * (1 - feeRate),
+      netAmount: Number(r.amount) * (1 - feeRate),
     });
   }
   return events;

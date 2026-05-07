@@ -8,12 +8,15 @@ type Tables = Database['public']['Tables']
 // 类型定义
 export type Domain = Tables['domains']['Row']
 export type Transaction = Tables['domain_transactions']['Row']
+export type InstallmentReceiptRow = Tables['installment_receipts']['Row']
 
 export type DomainInsert = Tables['domains']['Insert']
 export type TransactionInsert = Tables['domain_transactions']['Insert']
+export type InstallmentReceiptInsert = Tables['installment_receipts']['Insert']
 
 export type DomainUpdate = Tables['domains']['Update']
 export type TransactionUpdate = Tables['domain_transactions']['Update']
+export type InstallmentReceiptUpdate = Tables['installment_receipts']['Update']
 
 // 数据服务结果类型
 export interface DataServiceResult<T> {
@@ -238,6 +241,118 @@ export class TransactionService {
     return true
   }
 
+}
+
+// 分期到账记录 CRUD
+export class InstallmentReceiptService {
+  private static readonly PAGE_SIZE = 1000
+
+  static async getReceiptsWithClient(
+    client: SupabaseClient<Database>,
+    userId: string
+  ): Promise<InstallmentReceiptRow[]> {
+    const all: InstallmentReceiptRow[] = []
+    for (let from = 0; ; from += InstallmentReceiptService.PAGE_SIZE) {
+      const { data, error } = await client
+        .from('installment_receipts')
+        .select('*')
+        .eq('user_id', userId)
+        .order('received_date', { ascending: true })
+        .range(from, from + InstallmentReceiptService.PAGE_SIZE - 1)
+
+      if (error) {
+        logger.error('Error fetching installment receipts:', error)
+        return all
+      }
+      const batch = data || []
+      all.push(...batch)
+      if (batch.length < InstallmentReceiptService.PAGE_SIZE) break
+    }
+    return all
+  }
+
+  static async createReceiptWithClient(
+    client: SupabaseClient<Database>,
+    receipt: InstallmentReceiptInsert
+  ): Promise<{ data: InstallmentReceiptRow | null; error: string | null }> {
+    const { data, error } = await (client
+      .from('installment_receipts')
+      .insert(receipt as never)
+      .select()
+      .single() as unknown as Promise<{ data: InstallmentReceiptRow | null; error: { message: string; details?: string } | null }>)
+
+    if (error) {
+      const errMsg = error?.message || error?.details || 'Unknown error'
+      logger.error('Error creating installment receipt:', errMsg)
+      return { data: null, error: errMsg }
+    }
+    return { data, error: null }
+  }
+
+  static async updateReceiptWithClient(
+    client: SupabaseClient<Database>,
+    id: string,
+    updates: InstallmentReceiptUpdate,
+    userId?: string
+  ): Promise<InstallmentReceiptRow | null> {
+    let query = client
+      .from('installment_receipts')
+      .update(updates as never)
+      .eq('id', id)
+
+    if (userId) {
+      query = query.eq('user_id', userId) as typeof query
+    }
+
+    const { data, error } = await (query
+      .select()
+      .single() as unknown as Promise<{ data: InstallmentReceiptRow | null; error: { message: string } | null }>)
+
+    if (error) {
+      logger.error('Error updating installment receipt:', error)
+      return null
+    }
+    return data
+  }
+
+  static async deleteReceiptWithClient(
+    client: SupabaseClient<Database>,
+    id: string,
+    userId?: string
+  ): Promise<boolean> {
+    let query = client
+      .from('installment_receipts')
+      .delete()
+      .eq('id', id)
+
+    if (userId) {
+      query = query.eq('user_id', userId) as typeof query
+    }
+
+    const { error } = await query
+
+    if (error) {
+      logger.error('Error deleting installment receipt:', error)
+      return false
+    }
+    return true
+  }
+}
+
+export async function loadInstallmentReceiptsFromSupabase(
+  userId: string
+): Promise<DataServiceResult<InstallmentReceiptRow[]>> {
+  try {
+    const data = await InstallmentReceiptService.getReceiptsWithClient(supabase, userId)
+    return { success: true, data, source: 'supabase' }
+  } catch (error) {
+    logger.error('Error loading installment receipts from Supabase:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      source: 'supabase'
+    }
+  }
 }
 
 // 数据加载函数

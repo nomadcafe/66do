@@ -36,15 +36,20 @@ export default function SaleSuccessModal({
   const mascots = useMascotImage();
   const [imageGenerated, setImageGenerated] = useState(false);
 
-  // 出售总价（客户总付款）：分期且已取消/未付清时只算实际已收，否则分期用合同总额或一口价
+  // 出售总价（客户总付款）：分期且已取消/未付清时只算实际已收，否则分期用合同总额或一口价。
+  // "实际已收" = downpayment + Σ receipts.amount（receipts 含负数=退款）。
+  const receiptsTotal = (transaction.receipts ?? []).reduce(
+    (s, r) => s + (Number(r.amount) || 0),
+    0
+  );
   const getSalePriceUSD = (): number => {
     if (transaction.payment_plan === 'installment' && (transaction.downpayment_amount != null || transaction.installment_amount != null)) {
+      const paidPeriods = transaction.receipts?.length ?? 0;
       const isPartialOrCancelled =
         transaction.installment_status === 'cancelled' ||
-        (transaction.paid_periods ?? 0) < (transaction.installment_period ?? 1);
+        paidPeriods < (transaction.installment_period ?? 1);
       if (isPartialOrCancelled) {
-        const actualReceived =
-          (transaction.downpayment_amount ?? 0) + (transaction.paid_periods ?? 0) * (transaction.installment_amount ?? 0);
+        const actualReceived = (transaction.downpayment_amount ?? 0) + receiptsTotal;
         if (actualReceived >= 0) return actualReceived;
       }
       const total = calculateTotalInstallmentAmount(
@@ -61,13 +66,13 @@ export default function SaleSuccessModal({
   // 卖家净收入（已扣平台费）：分期按实收比例缩放平台费（每笔付款按合同比例扣，断约则少扣）
   const getSellerNetUSD = (): number => {
     const fullAmount = transaction.amount;
+    const paidPeriods = transaction.receipts?.length ?? 0;
     const isPartialOrCancelled =
       transaction.payment_plan === 'installment' &&
       (transaction.installment_status === 'cancelled' ||
-        (transaction.paid_periods ?? 0) < (transaction.installment_period ?? 1));
+        paidPeriods < (transaction.installment_period ?? 1));
     if (isPartialOrCancelled && fullAmount > 0) {
-      const actualReceived =
-        (transaction.downpayment_amount ?? 0) + (transaction.paid_periods ?? 0) * (transaction.installment_amount ?? 0);
+      const actualReceived = (transaction.downpayment_amount ?? 0) + receiptsTotal;
       const ratio = actualReceived / fullAmount;
       const proportionalFee = (transaction.platform_fee ?? 0) * ratio;
       return actualReceived - proportionalFee;
