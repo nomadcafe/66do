@@ -84,6 +84,26 @@ type EditableMoneyField = 'estimated_value' | 'purchase_cost' | 'renewal_cost';
 type EditTarget = { id: string; field: 'status' | EditableMoneyField } | null;
 
 const DomainTable = memo(function DomainTable({ domains, transactions = [], onEdit, onDelete, onView, onUpdateDomain }: DomainTableProps) {
+  // 每个域名当下还在分期收款的摘要（找一次，行渲染直接读 map）。chip 文案
+  // 只显示 paid/total，不带金额——表格里多一个货币会让第三列变拥挤。
+  const activeInstallmentByDomain = useMemo(() => {
+    const map = new Map<string, { paid: number; total: number }>();
+    for (const tx of transactions) {
+      if (tx.type !== 'sell') continue;
+      if (tx.payment_plan !== 'installment') continue;
+      if (tx.installment_status === 'cancelled' || tx.installment_status === 'completed') continue;
+      const total = tx.installment_period ?? 0;
+      const paid = tx.receipts?.length ?? 0;
+      if (total > 0 && paid >= total) continue;
+      // 同一域名理论上只有一条 active；多于一条时取最新交易日。
+      const existing = map.get(tx.domain_id);
+      if (!existing) {
+        map.set(tx.domain_id, { paid, total });
+      }
+    }
+    return map;
+  }, [transactions]);
+
   const [sortField, setSortField] = useState('domain_name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [showShareModal, setShowShareModal] = useState(false);
@@ -427,31 +447,45 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      {isEditingStatus ? (
-                        <select
-                          autoFocus
-                          value={draftValue}
-                          onChange={(e) => { setDraftValue(e.target.value); commitStatus(domain, e.target.value); }}
-                          onBlur={cancelEdit}
-                          onKeyDown={(e) => { if (e.key === 'Escape') cancelEdit(); }}
-                          className="text-xs font-medium rounded-full border border-stone-300 bg-white px-2 py-1 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                        >
-                          <option value="active">{t('common.active')}</option>
-                          <option value="for_sale">{t('common.forSale')}</option>
-                          <option value="sold">{t('common.sold')}</option>
-                          <option value="expired">{t('common.expired')}</option>
-                        </select>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => beginEditStatus(domain)}
-                          disabled={!onUpdateDomain}
-                          title={onUpdateDomain ? t('domainList.table.clickToChangeStatus') : undefined}
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(domain.status)} ${onUpdateDomain ? 'cursor-pointer hover:ring-2 hover:ring-stone-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500' : 'cursor-default'}`}
-                        >
-                          {statusLabel(domain.status, t)}
-                        </button>
-                      )}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {isEditingStatus ? (
+                          <select
+                            autoFocus
+                            value={draftValue}
+                            onChange={(e) => { setDraftValue(e.target.value); commitStatus(domain, e.target.value); }}
+                            onBlur={cancelEdit}
+                            onKeyDown={(e) => { if (e.key === 'Escape') cancelEdit(); }}
+                            className="text-xs font-medium rounded-full border border-stone-300 bg-white px-2 py-1 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                          >
+                            <option value="active">{t('common.active')}</option>
+                            <option value="for_sale">{t('common.forSale')}</option>
+                            <option value="sold">{t('common.sold')}</option>
+                            <option value="expired">{t('common.expired')}</option>
+                          </select>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => beginEditStatus(domain)}
+                            disabled={!onUpdateDomain}
+                            title={onUpdateDomain ? t('domainList.table.clickToChangeStatus') : undefined}
+                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(domain.status)} ${onUpdateDomain ? 'cursor-pointer hover:ring-2 hover:ring-stone-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500' : 'cursor-default'}`}
+                          >
+                            {statusLabel(domain.status, t)}
+                          </button>
+                        )}
+                        {(() => {
+                          const inst = activeInstallmentByDomain.get(domain.id);
+                          if (!inst) return null;
+                          return (
+                            <span
+                              className="inline-flex items-center px-2 py-0.5 text-[11px] font-medium rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                              title={t('transaction.installmentConfig')}
+                            >
+                              {t('transaction.installment')} {inst.paid}/{inst.total}
+                            </span>
+                          );
+                        })()}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       {/* purchase_cost / renewal_cost 是两个独立财务概念

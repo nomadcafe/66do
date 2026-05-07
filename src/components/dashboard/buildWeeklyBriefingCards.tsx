@@ -1,6 +1,7 @@
-import { AlertTriangle, Award, Calendar, FileText, Plus, RefreshCw, TrendingUp } from 'lucide-react';
+import { AlertTriangle, Award, Calendar, DollarSign, FileText, Plus, RefreshCw, TrendingUp } from 'lucide-react';
 import type { BriefingCard } from './WeeklyBriefing';
 import type { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
+import type { ActiveInstallmentSummary } from '../../lib/installmentDue';
 
 interface BuildWeeklyBriefingCardsInput {
   expiringThisWeek: DomainWithTags[];
@@ -8,11 +9,15 @@ interface BuildWeeklyBriefingCardsInput {
   recentTransactions: TransactionWithRequiredFields[];
   stuckDomains: DomainWithTags[];
   domains: DomainWithTags[];
+  /** 本周（含轻微逾期）应收的分期，按最早到期排序。 */
+  receiptsDueThisWeek: ActiveInstallmentSummary[];
   t: (key: string) => string;
   formatCurrency: (n: number) => string;
   formatTransactionDate: (date: string) => string;
   onRenew: (domain: DomainWithTags) => void;
   onViewActivity: () => void;
+  /** 点 "+ 收款" 时弹 AddReceiptModal —— 复用 dashboard 已有的状态。 */
+  onAddReceipt: (transaction: TransactionWithRequiredFields) => void;
   /** Element id of the domain list section so the "review" card can scroll to it. */
   domainListAnchorId: string;
 }
@@ -31,11 +36,13 @@ export function buildWeeklyBriefingCards({
   recentTransactions,
   stuckDomains,
   domains,
+  receiptsDueThisWeek,
   t,
   formatCurrency,
   formatTransactionDate,
   onRenew,
   onViewActivity,
+  onAddReceipt,
   domainListAnchorId,
 }: BuildWeeklyBriefingCardsInput): BriefingCard[] {
   const expiringCard: BriefingCard = expiringThisWeek.length > 0
@@ -118,6 +125,56 @@ export function buildWeeklyBriefingCards({
         empty: true,
       };
 
+  // 本周应收分期：跟 expiringCard 一个套路 — 一笔时直接 "+ 收款"，多笔时
+  // 给数量 + 滚动去 list / activity tab 让用户挑。
+  const receiptsCard: BriefingCard = receiptsDueThisWeek.length > 0
+    ? (() => {
+        const top = receiptsDueThisWeek[0];
+        const expectedAmount = top.transaction.installment_amount ?? 0;
+        const dueLabel = top.nextDue ? formatTransactionDate(top.nextDue.toISOString().slice(0, 10)) : '';
+        const primary = receiptsDueThisWeek.length === 1
+          ? t('dashboard.briefingReceiptsDuePrimaryOne')
+              .replace('{domain}', top.domain.domain_name)
+              .replace('{paid}', String(top.paid + 1))
+              .replace('{total}', String(top.total))
+          : t('dashboard.briefingReceiptsDuePrimaryMany')
+              .replace('{count}', String(receiptsDueThisWeek.length));
+        const secondary = receiptsDueThisWeek.length === 1 && expectedAmount > 0
+          ? t('dashboard.briefingReceiptsDueSecondary')
+              .replace('{amount}', formatCurrency(expectedAmount))
+              .replace('{date}', dueLabel)
+          : dueLabel
+            ? t('dashboard.briefingReceiptsDueSecondaryNearest').replace('{date}', dueLabel)
+            : undefined;
+        return {
+          icon: <DollarSign className="h-4 w-4" />,
+          iconBg: 'bg-emerald-50 text-emerald-600',
+          title: t('dashboard.briefingReceiptsDueTitle'),
+          primary,
+          secondary,
+          action: receiptsDueThisWeek.length === 1
+            ? {
+                label: t('transaction.addReceipt'),
+                onClick: () => onAddReceipt(top.transaction),
+              }
+            : {
+                label: t('dashboard.briefingReview'),
+                onClick: () => {
+                  document
+                    .getElementById(domainListAnchorId)
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                },
+              },
+        };
+      })()
+    : {
+        icon: <DollarSign className="h-4 w-4" />,
+        iconBg: 'bg-stone-100 text-stone-500',
+        title: t('dashboard.briefingReceiptsDueTitle'),
+        primary: t('dashboard.briefingReceiptsDueNone'),
+        empty: true,
+      };
+
   const stuckCard: BriefingCard = stuckDomains.length > 0
     ? {
         icon: <Award className="h-4 w-4" />,
@@ -142,5 +199,8 @@ export function buildWeeklyBriefingCards({
         empty: true,
       };
 
-  return [expiringCard, activityCard, stuckCard];
+  // 顺序：到期续费 → 本周应收 → 最近活动 → 卡住域名。
+  // 把"应收"放第二，是因为这两件事都属于"本周该做"，时间敏感；活动卡是
+  // 回顾性的，stuck 是长期信号。empty 状态用 stone-50 灰底降权重。
+  return [expiringCard, receiptsCard, activityCard, stuckCard];
 }
