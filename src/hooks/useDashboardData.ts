@@ -444,6 +444,30 @@ export function useDashboardData(
           );
           const { data: created, error: insertError } = await TransactionService.createTransactionWithClient(supabase, payload);
           if (insertError || !created) {
+            // 本地 state 不知道这条 tx 但 DB 已经有同 id —— 上一次 POST 实际
+            // 成功了但响应没回到 client（断网 / tab 切换 / 半挂的 sw），或两个
+            // 同 id 的 save 互相赛跑。兜底 UPDATE 一次让两边对上，跟上面 PUT-
+            // fallback-INSERT-conflict 路径保持对称，不要直接 throw 把表单卡死。
+            const msg = insertError || '';
+            const isDuplicatePkey =
+              msg.includes('duplicate key') ||
+              msg.includes('domain_transactions_pkey') ||
+              msg.includes('23505');
+            if (isDuplicatePkey) {
+              const { id: txId, user_id: _uid, ...updates } = payload;
+              const updated = await TransactionService.updateTransactionWithClient(
+                supabase,
+                txId,
+                updates as TransactionUpdate,
+                userId
+              );
+              if (!updated) {
+                throw new Error(insertError || 'Failed to reconcile duplicate transaction');
+              }
+              const ensured = ensureTransactionWithRequiredFields(updated);
+              serverTransactionsById.set(ensured.id, ensured);
+              continue;
+            }
             throw new Error(insertError || 'Failed to add transaction');
           }
           const ensured = ensureTransactionWithRequiredFields(created);
