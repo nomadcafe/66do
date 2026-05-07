@@ -84,8 +84,7 @@ export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
       date: '2026-05-07',
       items: [
         '优化分期收款记账：每一期到账可单独记录（金额填负数 = 退款），月度收入按真实到账月落账，更简单易记。',
-        '分期中的域名在「This week」会按预期到账日提醒，一键录入，不漏单。',
-        '正在分期的域名在 Domain Portfolio 里多了一枚「分期 N/M」徽章，sold 但还有钱在路上的域名一眼能看到。',
+        '分期中的域名更显眼：Domain Portfolio 里加了「分期 N/M」徽章，「This week」也会按预期到账日推送提醒，一键录入，不再忘记记账。',
         '续费体验修复：在 RenewalModal 里点 2 年 / 3 年时，金额会跟着按倍数自动算；之前点了年数但金额没变，导致只记到 1 年的账。',
         '续费到期日算错：没有设 expiry_date 的域名续费时，多年续费只延长 1 年的 bug 修了。',
         '删除续费交易时，域名的到期日和续费次数也会同步回退，不再留下「续了但没续」的脏数据。',
@@ -175,8 +174,7 @@ export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
       date: '2026-05-07',
       items: [
         'Installment bookkeeping refined: log each receipt as it lands (negative amount = refund). Monthly revenue follows the real receipt date — simpler and more accurate.',
-        'Domains in mid-installment now appear in "This Week" near their expected receipt date with a one-click entry, so nothing slips through.',
-        'Active installments now show a "Installment N/M" chip in Domain Portfolio so a sold domain with money still in flight is obvious at a glance.',
+        'Active installments are easier to spot and never get forgotten: a "Installment N/M" chip in Domain Portfolio plus a one-click receipt prompt in "This Week" near each expected receipt date.',
         'Renewal modal fix: clicking 2 / 3 / 5 years also rescales the amount, so picking a longer term no longer leaves you with one year\'s cost saved.',
         'Renewal expiry math fix: domains without an explicit expiry_date now extend by the full chosen years on renewal — previously a 2-year renewal only added 1 year.',
         'Deleting a renewal now rolls back the domain\'s expiry_date and renewal count, instead of leaving the extension behind as orphan data.',
