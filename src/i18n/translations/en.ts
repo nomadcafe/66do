@@ -50,6 +50,8 @@ const en = {
     importPreviewTitle: 'Review before importing',
     fieldsKeptOnExisting: 'Fields you have already filled (purchase cost, etc.) will be kept; only empty fields will be filled from the CSV.',
     purchaseDateNotFilled: 'Purchase date and cost are left empty — registration dates from the CSV often differ from when you actually bought the domain (e.g. aftermarket purchases). Fill them in after import.',
+    skippedRowsWarning: '{count} row(s) were skipped because they had no domain name.',
+    truncatedRowsWarning: 'File contains more than {max} rows; only the first {max} were loaded. Split the file and import the rest separately.',
     selectFile: 'Select File',
     fileDescription: 'Supports JSON and CSV formats, max 10MB',
     processing: 'Processing...',

@@ -44,6 +44,9 @@ export const CONSTANTS = {
   // 文件上传相关常量
   FILE_UPLOAD: {
     MAX_FILE_SIZE: 10 * 1024 * 1024, // 最大文件大小：10MB
+    // 解析后允许进入预览的最大行数。typical 域名投资组合在百到千级；
+    // 5000 远超合理边界，又防止单 CSV 解出几十万行把浏览器卡死。
+    MAX_CSV_IMPORT_ROWS: 5000,
     ALLOWED_CSV_TYPES: ['text/csv', 'text/plain', 'application/vnd.ms-excel'],
     ALLOWED_JSON_TYPES: ['application/json', 'text/json'],
     ALLOWED_EXTENSIONS: ['.csv', '.json'],
@@ -71,6 +74,7 @@ export const CONSTANTS = {
 export const ERROR_MESSAGE_TIMEOUT = CONSTANTS.UI.ERROR_MESSAGE_TIMEOUT;
 export const MAX_BULK_OPERATION_SIZE = CONSTANTS.API.MAX_BULK_OPERATION_SIZE;
 export const MAX_FILE_SIZE = CONSTANTS.FILE_UPLOAD.MAX_FILE_SIZE;
+export const MAX_CSV_IMPORT_ROWS = CONSTANTS.FILE_UPLOAD.MAX_CSV_IMPORT_ROWS;
 export const ALLOWED_FILE_TYPES = [
   ...CONSTANTS.FILE_UPLOAD.ALLOWED_CSV_TYPES,
   ...CONSTANTS.FILE_UPLOAD.ALLOWED_JSON_TYPES,
