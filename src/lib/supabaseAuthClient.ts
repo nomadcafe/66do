@@ -41,7 +41,11 @@ export async function createAuthenticatedSupabaseClient(
         access_token: accessToken,
         refresh_token: refreshToken || '',
       })
-      if (error) {
+      // AuthSessionMissingError is the expected outcome when the caller only
+      // sends an access token (no refresh token) — the SDK refuses to consider
+      // it a "full" session but the Authorization header above still works.
+      // Don't log it; everything else is a real signal.
+      if (error && error.message !== 'Auth session missing!') {
         serverLogger.error(
           'Supabase setSession returned error; falling back to Authorization header:',
           error
