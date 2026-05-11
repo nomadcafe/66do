@@ -182,6 +182,10 @@ const en = {
     icalLoadFailed: 'Failed to load subscription URL',
     icalCopyFailed: 'Copy failed',
     icalRegenerateFailed: 'Regenerate failed',
+    icalLastUsedLabel: 'Last fetched',
+    icalLastUsedFrom: 'from',
+    icalLastUsedNever: 'Not fetched yet — share or subscribe to the URL above to activate it.',
+    icalLastUsedHint: 'If this looks unfamiliar — wrong country, unexpected time — click Regenerate to invalidate the URL.',
     security: {
       introTitle: 'Sign-in & sensitive activity log',
       introBody: 'Every sign-in and every sensitive action on your account is recorded here. If you spot one you didn\'t do, sign out from any other devices and rotate your sign-in method (Google or email) immediately.',

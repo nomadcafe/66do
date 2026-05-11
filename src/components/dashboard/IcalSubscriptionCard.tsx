@@ -19,9 +19,11 @@ import { logger } from '../../lib/logger';
  */
 export default function IcalSubscriptionCard() {
   const { session } = useSupabaseAuth();
-  const { t } = useI18nContext();
+  const { t, locale } = useI18nContext();
 
   const [token, setToken] = useState<string | null>(null);
+  const [lastUsedAt, setLastUsedAt] = useState<string | null>(null);
+  const [lastUsedIp, setLastUsedIp] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [regenerating, setRegenerating] = useState(false);
   const [copiedKind, setCopiedKind] = useState<null | 'http' | 'webcal'>(null);
@@ -40,7 +42,11 @@ export default function IcalSubscriptionCard() {
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        if (!cancelled) setToken(data.token ?? null);
+        if (!cancelled) {
+          setToken(data.token ?? null);
+          setLastUsedAt(data.lastUsedAt ?? null);
+          setLastUsedIp(data.lastUsedIp ?? null);
+        }
       } catch (e) {
         logger.error('Failed to load iCal token', e);
         if (!cancelled) setError(t('settings.icalLoadFailed'));
@@ -81,6 +87,8 @@ export default function IcalSubscriptionCard() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setToken(data.token);
+      setLastUsedAt(data.lastUsedAt ?? null);
+      setLastUsedIp(data.lastUsedIp ?? null);
       setError(null);
     } catch (e) {
       logger.error('iCal regenerate failed', e);
@@ -89,6 +97,16 @@ export default function IcalSubscriptionCard() {
       setRegenerating(false);
     }
   };
+
+  const formattedLastUsed = lastUsedAt
+    ? new Date(lastUsedAt).toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : null;
 
   return (
     <div className="bg-white rounded-2xl border border-stone-200/80 p-5 shadow-sm">
@@ -164,6 +182,27 @@ export default function IcalSubscriptionCard() {
             <p className="text-xs text-stone-500 mt-1.5">
               {t('settings.icalHttpHint')}
             </p>
+          </div>
+
+          <div className="pt-2 border-t border-stone-100 space-y-1">
+            {formattedLastUsed ? (
+              <p className="text-xs text-stone-600">
+                <span className="font-medium text-stone-700">{t('settings.icalLastUsedLabel')}：</span>
+                {formattedLastUsed}
+                {lastUsedIp ? (
+                  <>
+                    {' '}
+                    {t('settings.icalLastUsedFrom')}{' '}
+                    <code className="px-1 py-0.5 bg-stone-100 rounded text-[11px] text-stone-700">{lastUsedIp}</code>
+                  </>
+                ) : null}
+              </p>
+            ) : (
+              <p className="text-xs text-stone-500">{t('settings.icalLastUsedNever')}</p>
+            )}
+            {formattedLastUsed && (
+              <p className="text-[11px] text-stone-500">{t('settings.icalLastUsedHint')}</p>
+            )}
           </div>
 
           <div className="pt-2 border-t border-stone-100">

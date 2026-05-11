@@ -6,31 +6,35 @@ type Limiters = {
   ip: Ratelimit
   email: Ratelimit
   userWrite: Ratelimit
+  userAudit: Ratelimit
+  icalToken: Ratelimit
 }
 
 let cached: Limiters | null | undefined
+
+function isProduction(): boolean {
+  return process.env.NODE_ENV === 'production'
+}
 
 function buildLimiters(): Limiters | null {
   const url = process.env.UPSTASH_REDIS_REST_URL
   const token = process.env.UPSTASH_REDIS_REST_TOKEN
   if (!url || !token) {
     serverLogger.error(
-      'Rate limiting disabled: UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN not set'
+      'Rate limiting unavailable: UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN not set'
     )
     return null
   }
 
   // Wrap construction in try-catch — Upstash 的 `new Redis({...})` 会同步抛
   // UrlError 等异常（实测：env var 里多写了一对引号 → URL 不以 https 开头 →
-  // 抛错）。如果 throw 冒泡上去，会被路由 outer catch 当作 500 返回，**整
-  // 个登录流程被一个 rate-limit 配置错误打挂**。我们的设计契约是 fail-open：
-  // 配置坏只让限流停摆，**绝不**阻塞 sign-in / API。
+  // 抛错）。如果 throw 冒泡上去，会被路由 outer catch 当作 500 返回。
   let redis
   try {
     redis = new Redis({ url, token })
   } catch (err) {
     serverLogger.error(
-      'Rate limiting disabled: Upstash Redis client construction failed (likely bad URL/token):',
+      'Rate limiting unavailable: Upstash Redis client construction failed (likely bad URL/token):',
       err
     )
     return null
@@ -55,6 +59,27 @@ function buildLimiters(): Limiters | null {
       prefix: 'ratelimit:write:user',
       analytics: false,
     }),
+    // Audit endpoints (notify-signin, notify-sensitive) cap aggressively:
+    // they get one legitimate ping per sign-in / sensitive op, so 60/h is
+    // ample headroom while bounding the SNR-flooding attack on the Recent
+    // Activity panel from "drown 1 legit event in 10,000 fakes" to "in ~60".
+    userAudit: new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(60, '1 h'),
+      prefix: 'ratelimit:audit:user',
+      analytics: false,
+    }),
+    // /api/ical/[token] is unauthenticated except for the token in the URL.
+    // 30/min/IP is well above legitimate use (Google/Apple Calendar refresh
+    // every 1-3h per subscription) and slows scanners enumerating tokens.
+    // UUIDv4 entropy already makes brute-force infeasible; the limiter is
+    // about DoS + log-noise from random scanners, not guessing the secret.
+    icalToken: new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(30, '1 m'),
+      prefix: 'ratelimit:ical:ip',
+      analytics: false,
+    }),
   }
 }
 
@@ -66,19 +91,26 @@ function getLimiters(): Limiters | null {
 
 export type RateLimitCheck =
   | { limited: false }
-  | { limited: true; reason: 'ip' | 'email' }
+  | { limited: true; reason: 'ip' | 'email' | 'backend' }
 
 /**
- * Check magic-link rate limits. Fails open if Upstash is misconfigured or
- * unreachable -- blocking sign-in because a rate-limit backend is down
- * is worse than a short window of unthrottled abuse.
+ * Check magic-link rate limits.
+ *
+ * Production: fails *closed* on missing config or backend errors — callers
+ *   get `{ limited: true, reason: 'backend' }` and should return 503. A
+ *   silent fail-open here would turn one bad deploy into an open relay for
+ *   email-enumeration / Supabase quota burn.
+ * Dev/local: fails *open* so contributors don't need Upstash creds to run
+ *   sign-in locally.
  */
 export async function checkMagicLinkRateLimit(
   ip: string,
   email: string
 ): Promise<RateLimitCheck> {
   const limiters = getLimiters()
-  if (!limiters) return { limited: false }
+  if (!limiters) {
+    return isProduction() ? { limited: true, reason: 'backend' } : { limited: false }
+  }
 
   try {
     const ipResult = await limiters.ip.limit(ip)
@@ -89,28 +121,112 @@ export async function checkMagicLinkRateLimit(
 
     return { limited: false }
   } catch (err) {
-    serverLogger.error('Rate limit check failed; failing open:', err)
-    return { limited: false }
+    serverLogger.error('Rate limit check failed:', err)
+    return isProduction() ? { limited: true, reason: 'backend' } : { limited: false }
+  }
+}
+
+export type WriteRateLimitCheck =
+  | { limited: false }
+  | { limited: true; reason: 'rate' | 'backend' }
+
+/**
+ * Per-user rate limit for state-changing API routes. Same prod-vs-dev
+ * posture as checkMagicLinkRateLimit: fails closed in production so a
+ * misconfigured rate-limit backend cannot silently disable write-flood
+ * protection.
+ */
+export async function checkUserWriteRateLimit(
+  userId: string
+): Promise<WriteRateLimitCheck> {
+  const limiters = getLimiters()
+  if (!limiters) {
+    return isProduction() ? { limited: true, reason: 'backend' } : { limited: false }
+  }
+
+  try {
+    const res = await limiters.userWrite.limit(userId)
+    return res.success ? { limited: false } : { limited: true, reason: 'rate' }
+  } catch (err) {
+    serverLogger.error('User write rate limit check failed:', err)
+    return isProduction() ? { limited: true, reason: 'backend' } : { limited: false }
+  }
+}
+
+export type AuditRateLimitCheck =
+  | { limited: false }
+  | { limited: true; reason: 'rate' | 'backend' }
+
+/**
+ * Per-user rate limit for audit-log endpoints (notify-signin,
+ * notify-sensitive). Tighter cap than userWrite — these endpoints are
+ * append-only signal records, so abuse looks like flooding to bury legit
+ * events in noise.
+ *
+ * Unlike checkUserWriteRateLimit, callers should *silently drop* on
+ * `reason: 'rate'` (return 200 without writing) so the attacker gets no
+ * feedback about the cap. On `reason: 'backend'`, callers should allow the
+ * write through — losing audit during an Upstash outage is worse than the
+ * brief flood-window it leaves open.
+ */
+export async function checkUserAuditRateLimit(
+  userId: string
+): Promise<AuditRateLimitCheck> {
+  const limiters = getLimiters()
+  if (!limiters) {
+    return isProduction() ? { limited: true, reason: 'backend' } : { limited: false }
+  }
+
+  try {
+    const res = await limiters.userAudit.limit(userId)
+    return res.success ? { limited: false } : { limited: true, reason: 'rate' }
+  } catch (err) {
+    serverLogger.error('User audit rate limit check failed:', err)
+    return isProduction() ? { limited: true, reason: 'backend' } : { limited: false }
+  }
+}
+
+export type IcalTokenRateLimitCheck =
+  | { limited: false }
+  | { limited: true; reason: 'rate' | 'backend' }
+
+/**
+ * IP rate limit for /api/ical/[token]. The endpoint is unauthenticated
+ * except for the token in the path, so throttling per IP is the only knob
+ * we have against scanners that enumerate `/api/ical/RANDOM_UUID`.
+ *
+ * Posture: prod fails closed (return 429), dev fails open. Backend errors
+ * in prod also return limited:true so a Redis outage doesn't turn this
+ * into an open scanner target.
+ */
+export async function checkIcalTokenRateLimit(
+  ip: string,
+): Promise<IcalTokenRateLimitCheck> {
+  const limiters = getLimiters()
+  if (!limiters) {
+    return isProduction() ? { limited: true, reason: 'backend' } : { limited: false }
+  }
+
+  try {
+    const res = await limiters.icalToken.limit(ip)
+    return res.success ? { limited: false } : { limited: true, reason: 'rate' }
+  } catch (err) {
+    serverLogger.error('iCal token rate limit check failed:', err)
+    return isProduction() ? { limited: true, reason: 'backend' } : { limited: false }
   }
 }
 
 /**
- * Per-user rate limit for state-changing API routes (create/update/delete on
- * domains, transactions, renewal cost history). Fails open on backend errors
- * to match checkMagicLinkRateLimit; see M3 in the security audit for the
- * trade-off discussion.
+ * Startup probe. In production, throws if the rate-limit backend can't be
+ * initialised so a bad deploy fails loud at boot instead of every request
+ * silently sliding through unthrottled. Invoked from instrumentation.ts.
  */
-export async function checkUserWriteRateLimit(
-  userId: string
-): Promise<{ limited: boolean }> {
-  const limiters = getLimiters()
-  if (!limiters) return { limited: false }
-
-  try {
-    const res = await limiters.userWrite.limit(userId)
-    return { limited: !res.success }
-  } catch (err) {
-    serverLogger.error('User write rate limit check failed; failing open:', err)
-    return { limited: false }
+export function assertRateLimitReadyInProd(): void {
+  if (!isProduction()) return
+  if (!getLimiters()) {
+    throw new Error(
+      'Rate limiting required in production but Upstash is unconfigured or unreachable. ' +
+        'Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN and verify the values.'
+    )
   }
 }
