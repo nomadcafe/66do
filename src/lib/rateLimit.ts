@@ -7,7 +7,6 @@ type Limiters = {
   email: Ratelimit
   userWrite: Ratelimit
   userAudit: Ratelimit
-  icalToken: Ratelimit
 }
 
 let cached: Limiters | null | undefined
@@ -67,17 +66,6 @@ function buildLimiters(): Limiters | null {
       redis,
       limiter: Ratelimit.slidingWindow(60, '1 h'),
       prefix: 'ratelimit:audit:user',
-      analytics: false,
-    }),
-    // /api/ical/[token] is unauthenticated except for the token in the URL.
-    // 30/min/IP is well above legitimate use (Google/Apple Calendar refresh
-    // every 1-3h per subscription) and slows scanners enumerating tokens.
-    // UUIDv4 entropy already makes brute-force infeasible; the limiter is
-    // about DoS + log-noise from random scanners, not guessing the secret.
-    icalToken: new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(30, '1 m'),
-      prefix: 'ratelimit:ical:ip',
       analytics: false,
     }),
   }
@@ -182,36 +170,6 @@ export async function checkUserAuditRateLimit(
     return res.success ? { limited: false } : { limited: true, reason: 'rate' }
   } catch (err) {
     serverLogger.error('User audit rate limit check failed:', err)
-    return isProduction() ? { limited: true, reason: 'backend' } : { limited: false }
-  }
-}
-
-export type IcalTokenRateLimitCheck =
-  | { limited: false }
-  | { limited: true; reason: 'rate' | 'backend' }
-
-/**
- * IP rate limit for /api/ical/[token]. The endpoint is unauthenticated
- * except for the token in the path, so throttling per IP is the only knob
- * we have against scanners that enumerate `/api/ical/RANDOM_UUID`.
- *
- * Posture: prod fails closed (return 429), dev fails open. Backend errors
- * in prod also return limited:true so a Redis outage doesn't turn this
- * into an open scanner target.
- */
-export async function checkIcalTokenRateLimit(
-  ip: string,
-): Promise<IcalTokenRateLimitCheck> {
-  const limiters = getLimiters()
-  if (!limiters) {
-    return isProduction() ? { limited: true, reason: 'backend' } : { limited: false }
-  }
-
-  try {
-    const res = await limiters.icalToken.limit(ip)
-    return res.success ? { limited: false } : { limited: true, reason: 'rate' }
-  } catch (err) {
-    serverLogger.error('iCal token rate limit check failed:', err)
     return isProduction() ? { limited: true, reason: 'backend' } : { limited: false }
   }
 }

@@ -24,7 +24,6 @@ import DashboardLoadingSkeleton from '../../src/components/dashboard/DashboardLo
 import DeleteConfirmDialog from '../../src/components/dashboard/DeleteConfirmDialog';
 import DashboardTabsNav from '../../src/components/dashboard/DashboardTabsNav';
 import InsightsTab from '../../src/components/dashboard/InsightsTab';
-import IcalSubscriptionCard from '../../src/components/dashboard/IcalSubscriptionCard';
 import { buildWeeklyBriefingCards } from '../../src/components/dashboard/buildWeeklyBriefingCards';
 import { formatCurrency as formatCurrencyEnhanced } from '../../src/lib/financialCalculations';
 // 懒加载组件
@@ -1014,12 +1013,9 @@ export default function DashboardPage() {
           close: t('dashboard.settingsClose'),
         }}
         preferencesNode={
-          <div className="space-y-5">
-            <IcalSubscriptionCard />
-            <LazyWrapper>
-              <LazyUserPreferencesPanel />
-            </LazyWrapper>
-          </div>
+          <LazyWrapper>
+            <LazyUserPreferencesPanel />
+          </LazyWrapper>
         }
         dataNode={
           <LazyWrapper>
