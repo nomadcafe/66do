@@ -4,10 +4,10 @@ import type { Database } from './supabase';
 /**
  * Creates a Supabase client using the service-role key, bypassing RLS.
  *
- * Used only by routes that have to read user-scoped data without a
- * user JWT — currently just /api/ical/[token], where the request
- * comes anonymously from the user's calendar app and is authorised
- * solely by the opaque token in the URL.
+ * Used only by code paths that need to write to a table with no INSERT
+ * policy — currently just src/lib/securityEvents.ts, which appends rows
+ * to public.auth_events (append-only by design; no RLS write policy
+ * exists). The user_id written is always sourced from a verified JWT.
  *
  * Throws if SUPABASE_SERVICE_ROLE_KEY isn't set so misconfiguration
  * surfaces as a clear 5xx rather than mysterious empty results.
