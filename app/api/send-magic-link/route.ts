@@ -59,8 +59,14 @@ export async function POST(request: NextRequest) {
     const ip = getClientIp(request)
     const rl = await checkMagicLinkRateLimit(ip, email)
     if (rl.limited) {
-      // Unified message -- distinguishing ip vs email would let a caller probe
-      // whether a given address has recently requested a link.
+      if (rl.reason === 'backend') {
+        return NextResponse.json(
+          { error: 'Service temporarily unavailable. Please try again shortly.' },
+          { status: 503, headers: corsHeaders }
+        )
+      }
+      // Unified message for ip/email -- distinguishing them would let a caller
+      // probe whether a given address has recently requested a link.
       return NextResponse.json(
         { error: 'Too many requests. Please try again later.' },
         { status: 429, headers: corsHeaders }

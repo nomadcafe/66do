@@ -20,6 +20,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { recordSignIn } from '../../../../src/lib/securityEvents';
 import { logger } from '../../../../src/lib/logger';
+import { checkUserAuditRateLimit } from '../../../../src/lib/rateLimit';
 
 export const runtime = 'nodejs';
 
@@ -49,6 +50,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const { data, error } = await client.auth.getUser(token);
   if (error || !data?.user) {
     return NextResponse.json({ ok: false }, { status: 401 });
+  }
+
+  // Silently drop on rate-limit hit: returning 200 without writing keeps an
+  // attacker from probing the cap, while preventing them from drowning legit
+  // sign-in rows in the user's Recent Activity panel. On `backend` (Upstash
+  // down) we still write — audit during outage > flood window.
+  const rl = await checkUserAuditRateLimit(data.user.id);
+  if (rl.limited && rl.reason === 'rate') {
+    return NextResponse.json({ ok: true });
   }
 
   // Fire and forget — recordSignIn handles its own errors.

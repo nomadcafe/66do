@@ -76,6 +76,12 @@ export async function PUT(
 
     const rl = await checkUserWriteRateLimit(userId)
     if (rl.limited) {
+      if (rl.reason === 'backend') {
+        return NextResponse.json(
+          { error: 'Service temporarily unavailable. Please try again shortly.' },
+          { status: 503, headers: corsHeaders }
+        )
+      }
       return NextResponse.json(
         { error: 'Too many requests. Please try again later.' },
         { status: 429, headers: corsHeaders }
@@ -178,6 +184,12 @@ export async function DELETE(
 
     const rl = await checkUserWriteRateLimit(userId)
     if (rl.limited) {
+      if (rl.reason === 'backend') {
+        return NextResponse.json(
+          { error: 'Service temporarily unavailable. Please try again shortly.' },
+          { status: 503, headers: corsHeaders }
+        )
+      }
       return NextResponse.json(
         { error: 'Too many requests. Please try again later.' },
         { status: 429, headers: corsHeaders }

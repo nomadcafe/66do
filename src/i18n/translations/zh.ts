@@ -181,6 +181,10 @@ const zh = {
     icalLoadFailed: '加载订阅链接失败',
     icalCopyFailed: '复制失败',
     icalRegenerateFailed: '重新生成失败',
+    icalLastUsedLabel: '上次拉取',
+    icalLastUsedFrom: '来自',
+    icalLastUsedNever: '链接尚未被拉取过——分享或在日历应用中订阅后即可生效。',
+    icalLastUsedHint: '如果这条记录看起来不对劲（陌生地区、异常时间），请点击"重新生成"立即失效旧链接。',
     security: {
       introTitle: '登录与敏感操作记录',
       introBody: '账号的每次登录与每次敏感操作都会记录在这里。如果发现不是您本人做的，请立即在其他设备退出登录，并修改您的登录方式（Google 或邮箱）。',
