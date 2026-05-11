@@ -49,6 +49,8 @@ const zh = {
     importPreviewTitle: '导入前确认',
     fieldsKeptOnExisting: '您已填写的字段（购买价格等）会保留；只有空字段会从 CSV 填入。',
     purchaseDateNotFilled: '购买日期与购买成本会留空——CSV 里的注册日期往往不等于您实际购入这个域名的日期（米市买入尤其明显）。导入后请自行补上。',
+    skippedRowsWarning: '{count} 行因缺失域名被跳过。',
+    truncatedRowsWarning: '文件超过 {max} 行；仅加载前 {max} 行。请把剩余部分另存为新文件再导入。',
     selectFile: '选择文件',
     fileDescription: '支持 JSON 和 CSV 格式，最大 10MB',
     processing: '处理中...',

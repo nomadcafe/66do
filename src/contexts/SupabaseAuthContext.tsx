@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { getSiteUrl } from '../lib/siteUrl';
 
 interface AuthContextType {
   user: User | null;
@@ -67,9 +68,13 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
   const signInWithMagicLink = async (email: string) => {
     setLoading(true);
     try {
-      const redirectUrl = typeof window !== 'undefined'
-        ? `${window.location.origin}/auth/magic-link`
-        : (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://www.domain.financial') + '/auth/magic-link';
+      // Always derive the redirect from NEXT_PUBLIC_SITE_URL (via getSiteUrl)
+      // rather than window.location.origin. If the Supabase Auth allow-list
+      // is configured with a wildcard (e.g. *.domain.financial for previews),
+      // a request originating from a malicious subdomain could otherwise
+      // route the magic-link token to that subdomain. Canonicalising on the
+      // env-configured host closes that defence-in-depth gap.
+      const redirectUrl = new URL('/auth/magic-link', getSiteUrl()).toString();
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
@@ -88,10 +93,10 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
 
   const signInWithGoogle = async (redirectAfter?: string): Promise<{ error: AuthError | null }> => {
     try {
-      const origin = typeof window !== 'undefined'
-        ? window.location.origin
-        : (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000');
-      const callbackUrl = new URL('/auth/callback', origin);
+      // Same rationale as magic-link: canonicalise to the env host so a
+      // misconfigured wildcard in Supabase Auth allow-list can't route the
+      // OAuth callback to an attacker subdomain.
+      const callbackUrl = new URL('/auth/callback', getSiteUrl());
       if (redirectAfter) callbackUrl.searchParams.set('redirect', redirectAfter);
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',

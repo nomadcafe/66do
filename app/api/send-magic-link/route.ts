@@ -11,17 +11,27 @@ const supabase = createClient(supabaseUrl, supabaseKey)
 const MAX_EMAIL_LENGTH = 254
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-// Assumes a Vercel deployment (see vercel.json). Vercel rewrites these
-// headers at the edge, so the values here reflect the real client IP and
-// can't be spoofed by incoming requests. If we ever deploy this code behind
-// a different proxy (or with no proxy), this function is vulnerable to
-// header spoofing and the rate limit becomes bypassable -- revisit then.
+// Vercel rewrites x-forwarded-for at the edge, making it the real client IP.
+// Other environments (Docker compose, bare Node behind no proxy, etc.) leave
+// the header attacker-controlled — trusting it there lets the magic-link
+// rate limit be bypassed by spoofing a fresh IP per request. The VERCEL env
+// var is auto-injected on Vercel and absent elsewhere, so it's the cleanest
+// signal that "x-forwarded-for is trustworthy here".
 function getClientIp(request: NextRequest): string {
-  return (
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    request.headers.get('x-real-ip') ||
-    'unknown'
-  )
+  const onVercel = process.env.VERCEL === '1'
+  if (onVercel) {
+    return (
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      request.headers.get('x-real-ip') ||
+      'unknown'
+    )
+  }
+  // Off-Vercel: fall back to an empty token so all requests share a single
+  // rate-limit bucket. That's strictly *more* aggressive than per-IP and
+  // closes the spoof window — at the cost of a self-hosted operator
+  // sharing the bucket across legitimate users. The expected deploy target
+  // is Vercel, so this path is mostly for local dev safety.
+  return 'unknown'
 }
 
 function validateEmail(email: unknown): string | null {

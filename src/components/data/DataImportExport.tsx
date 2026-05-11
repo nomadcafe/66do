@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import * as Papa from 'papaparse';
 import { useI18nContext } from '../../contexts/I18nProvider';
-import { MAX_FILE_SIZE, ALLOWED_FILE_TYPES, ALLOWED_EXTENSIONS } from '../../lib/constants';
+import { MAX_FILE_SIZE, MAX_CSV_IMPORT_ROWS, ALLOWED_FILE_TYPES, ALLOWED_EXTENSIONS } from '../../lib/constants';
 import { detectFormat, mapRows, type MappedDomain } from '../../lib/csvFormats';
 
 interface ImportExportProps {
@@ -40,6 +40,13 @@ interface CsvPreview {
   rows: MappedDomain[];
   newCount: number;
   updateCount: number;
+  /** Rows the parser produced but that failed the basic shape check
+   *  (missing domain_name). Surfaced as a warning so the user knows the
+   *  preview count and the file's row count won't match. */
+  skippedCount: number;
+  /** True when the CSV had more rows than MAX_CSV_IMPORT_ROWS and was
+   *  truncated to that ceiling. */
+  truncated: boolean;
 }
 
 export default function DataImportExport({
@@ -140,6 +147,12 @@ export default function DataImportExport({
           throw new Error(`CSV parsing errors: ${parsed.errors.join('; ')}`);
         }
 
+        // 截断到上限。10MB 大小限是字节级，但单元格简短的 CSV 也能塞下
+        // 几十万行 → 浏览器解析 / 渲染都会卡。MAX_CSV_IMPORT_ROWS 是更
+        // 直接的"组合规模"边界。
+        const truncated = parsed.rows.length > MAX_CSV_IMPORT_ROWS;
+        const rowsToMap = truncated ? parsed.rows.slice(0, MAX_CSV_IMPORT_ROWS) : parsed.rows;
+
         const detection = detectFormat(parsed.headers);
         if (!detection) {
           setImportResult({
@@ -151,20 +164,27 @@ export default function DataImportExport({
           return;
         }
 
-        const mapped = mapRows(parsed.rows, detection.format);
-        if (mapped.length === 0) {
+        const mapped = mapRows(rowsToMap, detection.format);
+        // mapRows 返回所有产出行，包括 domain_name 缺失/为空的。这里二次
+        // 过滤：缺 domain_name 的视作"行结构异常"，单独计数显示给用户，
+        // 不让它们悄悄进 onImport（后端 validateDomain 也会拒，但用户在
+        // 客户端就该看到）。
+        const usableRows = mapped.filter((r) => r.domain_name && r.domain_name.trim().length > 0);
+        const skippedCount = mapped.length - usableRows.length;
+
+        if (usableRows.length === 0) {
           setImportResult({
             success: false,
             message: t('data.noRowsMapped'),
             importedCount: 0,
-            errors: [],
+            errors: skippedCount > 0 ? [`${skippedCount} rows skipped (missing domain_name)`] : [],
           });
           return;
         }
 
         let newCount = 0;
         let updateCount = 0;
-        for (const row of mapped) {
+        for (const row of usableRows) {
           if (existingNameSet.has(row.domain_name)) updateCount++;
           else newCount++;
         }
@@ -172,9 +192,11 @@ export default function DataImportExport({
         setCsvPreview({
           formatId: detection.format.id,
           formatDisplayName: detection.format.displayName,
-          rows: mapped,
+          rows: usableRows,
           newCount,
           updateCount,
+          skippedCount,
+          truncated,
         });
         return;
       }
@@ -339,6 +361,16 @@ export default function DataImportExport({
               })}
             </li>
           </ul>
+          {csvPreview.skippedCount > 0 && (
+            <p className="text-xs text-amber-700 mb-3">
+              {interpolate(t('data.skippedRowsWarning'), { count: csvPreview.skippedCount })}
+            </p>
+          )}
+          {csvPreview.truncated && (
+            <p className="text-xs text-amber-700 mb-3">
+              {interpolate(t('data.truncatedRowsWarning'), { max: MAX_CSV_IMPORT_ROWS })}
+            </p>
+          )}
           {csvPreview.updateCount > 0 && (
             <p className="text-xs text-blue-700 mb-3">{t('data.fieldsKeptOnExisting')}</p>
           )}
@@ -463,18 +495,30 @@ export default function DataImportExport({
           accept=".json"
           onChange={(e) => {
             const file = e.target.files?.[0];
-            if (file) {
-              const reader = new FileReader();
-              reader.onload = (event) => {
-                try {
-                  const backup = JSON.parse(event.target?.result as string) as unknown;
-                  onRestore(backup);
-                } catch (error) {
-                  console.error('恢复备份失败:', error);
-                }
-              };
-              reader.readAsText(file);
+            if (!file) return;
+            // Mirror the import-tab size cap. Without this, a hostile or
+            // accidentally huge .json would read into memory and JSON.parse
+            // before the UI got a chance to reject it.
+            if (file.size > MAX_FILE_SIZE) {
+              setImportResult({
+                success: false,
+                message: t('data.fileTooLarge') || `文件大小不能超过${(MAX_FILE_SIZE / 1024 / 1024).toFixed(0)}MB`,
+                importedCount: 0,
+                errors: [`文件大小: ${(file.size / 1024 / 1024).toFixed(2)}MB，最大允许: ${(MAX_FILE_SIZE / 1024 / 1024).toFixed(0)}MB`],
+              });
+              e.target.value = '';
+              return;
             }
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              try {
+                const backup = JSON.parse(event.target?.result as string) as unknown;
+                onRestore(backup);
+              } catch (error) {
+                console.error('恢复备份失败:', error);
+              }
+            };
+            reader.readAsText(file);
           }}
           className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
         />
