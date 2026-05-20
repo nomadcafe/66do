@@ -342,15 +342,21 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
           ) : (
             <button
               onClick={() => {
+                // setSearchTerm is debounced (local state + delayed URL
+                // write) so it doesn't race; all the synchronous URL writes
+                // (status / tag / pseudo-filters) have to go through ONE
+                // updateParams call — separate calls would each read the
+                // same stale searchParams snapshot and the last router.replace
+                // would clobber the others.
                 setSearchTerm('');
-                setStatusFilter('all');
-                setTagFilter('all');
-                // Clear pseudo-filters in one updateParams so we don't fire
-                // two router.replace calls in quick succession (the second
-                // would read pre-first searchParams and clobber).
-                if (stuckFilterActive || expiringFilterActive) {
-                  updateParams({ dmstuck: null, dmexpiring: null, dmpage: null });
-                }
+                updateParams({
+                  dmq: null,
+                  dmstatus: null,
+                  dmtag: null,
+                  dmstuck: null,
+                  dmexpiring: null,
+                  dmpage: null,
+                });
               }}
               className="inline-flex items-center px-4 py-2.5 border border-stone-300 bg-white text-stone-700 rounded-xl text-sm font-medium hover:bg-stone-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
             >
