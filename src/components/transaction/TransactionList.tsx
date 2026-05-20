@@ -772,9 +772,17 @@ const TransactionList = memo(function TransactionList({
           ) : (
             <button
               onClick={() => {
+                // Same batching rule as DomainList — setTypeFilter and
+                // clearReceiptsDueFilter both do updateParams off the same
+                // searchParams snapshot, so calling them in sequence loses
+                // the first write. Collapse to one updateParams.
                 setSearchTerm('');
-                setTypeFilter('all');
-                if (receiptsDueFilterActive) clearReceiptsDueFilter();
+                updateParams({
+                  txq: null,
+                  txtype: null,
+                  txdue: null,
+                  txpage: null,
+                });
               }}
               className="inline-flex items-center px-4 py-2.5 border border-stone-300 bg-white text-stone-700 rounded-xl text-sm font-medium hover:bg-stone-100 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
             >

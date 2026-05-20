@@ -35,12 +35,14 @@ interface BuildWeeklyBriefingCardsInput {
 }
 
 /**
- * Builds the three-card payload for the WeeklyBriefing component on the
+ * Builds the four-card payload for the WeeklyBriefing component on the
  * Portfolio tab. Pulled out of dashboard/page.tsx where it had grown to
  * an 80-line inline array literal — too dense to read or modify safely.
  *
  * Each card has a "live" branch (something to do) and a calm "empty"
- * branch (you're good). Order is intentional: expiry → activity → stuck.
+ * branch (you're good). Order is intentional: expiry → receipts → activity → stuck
+ * (see the trailing comment on the return for the rationale — receipts sit
+ * second because they're also time-sensitive "this week" work).
  */
 export function buildWeeklyBriefingCards({
   expiringThisWeek,
