@@ -27,6 +27,11 @@ interface TransactionListProps {
   /** 在分期-active 的 sell 行上点击 "+ 收款" — 新增一笔 installment receipt。
    *  没传时按钮不渲染（向后兼容，比如某些裁剪页面）。 */
   onAddReceipt?: (transaction: TransactionWithRequiredFields) => void;
+  /** Transaction ids that have an installment receipt due this week. Drives
+   *  the ?txdue=1 pseudo-filter used by the WeeklyBriefing "Installment due"
+   *  card so clicking Review narrows the list to those rows instead of
+   *  dumping the user into the full activity log. */
+  receiptsDueIds?: Set<string>;
 }
 
 const TRANSACTIONS_PAGE_SIZE = 30;
@@ -132,7 +137,8 @@ const TransactionList = memo(function TransactionList({
   onEdit,
   onDelete,
   onAdd,
-  onAddReceipt
+  onAddReceipt,
+  receiptsDueIds
 }: TransactionListProps) {
   const { t, locale } = useI18nContext();
   const localeTag = locale === 'zh' ? 'zh-CN' : 'en-US';
@@ -145,6 +151,10 @@ const TransactionList = memo(function TransactionList({
   type SortDir = 'asc' | 'desc';
   const urlSearchTerm = searchParams.get('txq') ?? '';
   const typeFilter = searchParams.get('txtype') ?? 'all';
+  // Receipts-due pseudo filter — driven from the WeeklyBriefing "Installment
+  // due" card. Without it, clicking Review used to scroll to the domain list
+  // (wrong destination) and never narrowed to the actual installments.
+  const receiptsDueFilter = searchParams.get('txdue') === '1';
   const sortField: SortField = ((): SortField => {
     const raw = searchParams.get('txsort');
     return raw === 'amount' || raw === 'type' ? raw : 'date';
@@ -176,6 +186,7 @@ const TransactionList = memo(function TransactionList({
 
   const setTypeFilter = (s: string) => updateParams({ txtype: s === 'all' ? null : s, txpage: null });
   const setPage = (n: number) => updateParams({ txpage: n <= 1 ? null : String(n) });
+  const clearReceiptsDueFilter = () => updateParams({ txdue: null, txpage: null });
   const setViewMode = (mode: 'list' | 'timeline') => updateParams({ txview: mode === 'list' ? null : 'timeline' });
   const setSelectedDomainId = (id: string) => updateParams({ txdomain: id || null });
 
@@ -292,6 +303,10 @@ const TransactionList = memo(function TransactionList({
     return domainById.get(domainId)?.domain_name || t('transactionList.unknownDomain');
   }, [domainById, t]);
 
+  // Same guard as DomainList: ignore the URL flag when the parent didn't
+  // hand us an id set, so the list doesn't silently collapse to empty.
+  const receiptsDueFilterActive = receiptsDueFilter && !!receiptsDueIds;
+
   const filteredTransactions = useMemo(() => {
     const q = searchTerm.toLowerCase();
     const filtered = transactions.filter(transaction => {
@@ -306,8 +321,9 @@ const TransactionList = memo(function TransactionList({
         getTypeLabel(transaction.type).toLowerCase().includes(q);
 
       const matchesType = typeFilter === 'all' || transaction.type === typeFilter;
+      const matchesReceiptsDue = !receiptsDueFilterActive || receiptsDueIds!.has(transaction.id);
 
-      return matchesSearch && matchesType;
+      return matchesSearch && matchesType && matchesReceiptsDue;
     });
     const sorted = filtered.slice().sort((a, b) => {
       let cmp = 0;
@@ -321,7 +337,7 @@ const TransactionList = memo(function TransactionList({
       return sortDir === 'asc' ? cmp : -cmp;
     });
     return sorted;
-  }, [transactions, getDomainName, getTypeLabel, searchTerm, typeFilter, sortField, sortDir]);
+  }, [transactions, getDomainName, getTypeLabel, searchTerm, typeFilter, sortField, sortDir, receiptsDueFilterActive, receiptsDueIds]);
 
   // Period KPIs reflecting the *visible* (filtered) set, computed from installment-adjusted
   // amounts (when parent supplies metricsTransactions). Inflow uses sellNetUSD — actual cash
@@ -592,6 +608,22 @@ const TransactionList = memo(function TransactionList({
         </div>
       </div>
 
+      {/* Receipts-due pseudo-filter banner — only when the WeeklyBriefing
+          "Installment due" card drove the user here. Explains why the list
+          is short and offers a one-tap escape. Emerald to match the card. */}
+      {receiptsDueFilterActive && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50/70 px-3.5 py-2 text-sm text-emerald-900">
+          <span>{t('transactionList.receiptsDueFilterBanner')}</span>
+          <button
+            type="button"
+            onClick={clearReceiptsDueFilter}
+            className="rounded-md px-2 py-1 text-xs font-medium text-emerald-900 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+          >
+            {t('transactionList.clearFilters')}
+          </button>
+        </div>
+      )}
+
       {/* Type chip strip — primary type filter, replaces the old dropdown.
           Only rendered when there's at least one transaction; hidden in
           timeline mode (which has its own filtering semantics). Each chip
@@ -724,12 +756,12 @@ const TransactionList = memo(function TransactionList({
         <div className="text-center py-14 bg-white rounded-2xl border border-stone-200/80 shadow-sm">
           <FileText className="h-10 w-10 mx-auto text-stone-300 mb-4" />
           <h3 className="text-base font-semibold text-stone-900 mb-2">
-            {searchTerm || typeFilter !== 'all' ? t('transactionList.noTransactionsFound') : t('transactionList.noTransactionsYet')}
+            {searchTerm || typeFilter !== 'all' || receiptsDueFilterActive ? t('transactionList.noTransactionsFound') : t('transactionList.noTransactionsYet')}
           </h3>
           <p className="text-sm text-stone-500 mb-5 max-w-sm mx-auto">
-            {searchTerm || typeFilter !== 'all' ? t('transactionList.adjustSearch') : t('transactionList.getStarted')}
+            {searchTerm || typeFilter !== 'all' || receiptsDueFilterActive ? t('transactionList.adjustSearch') : t('transactionList.getStarted')}
           </p>
-          {!searchTerm && typeFilter === 'all' ? (
+          {!searchTerm && typeFilter === 'all' && !receiptsDueFilterActive ? (
             <button
               onClick={onAdd}
               className="inline-flex items-center px-4 py-2.5 bg-teal-600 text-white rounded-xl text-sm font-medium hover:bg-teal-700 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
@@ -739,7 +771,11 @@ const TransactionList = memo(function TransactionList({
             </button>
           ) : (
             <button
-              onClick={() => { setSearchTerm(''); setTypeFilter('all'); }}
+              onClick={() => {
+                setSearchTerm('');
+                setTypeFilter('all');
+                if (receiptsDueFilterActive) clearReceiptsDueFilter();
+              }}
               className="inline-flex items-center px-4 py-2.5 border border-stone-300 bg-white text-stone-700 rounded-xl text-sm font-medium hover:bg-stone-100 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
             >
               {t('transactionList.clearFilters')}

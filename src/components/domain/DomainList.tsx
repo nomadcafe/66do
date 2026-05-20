@@ -23,11 +23,15 @@ interface DomainListProps {
   // upstream where we already have transactionsForMetrics in scope, so the
   // briefing card and this list filter agree by construction.
   stuckDomainIds?: Set<string>;
+  // Same idea for "expiring within 7 days" — the dashboard already derives
+  // this set for the briefing; sharing it keeps the count on the card and
+  // the rows in the filtered list from drifting apart.
+  expiringDomainIds?: Set<string>;
 }
 
 const DOMAINS_PAGE_SIZE = 24;
 
-const DomainList = memo(function DomainList({ domains, transactions = [], onEdit, onDelete, onView, onAdd, onUpdateDomain, stuckDomainIds }: DomainListProps) {
+const DomainList = memo(function DomainList({ domains, transactions = [], onEdit, onDelete, onView, onAdd, onUpdateDomain, stuckDomainIds, expiringDomainIds }: DomainListProps) {
   const { t } = useI18nContext();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -43,6 +47,8 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
   // dumping the user into the full table. Only meaningful when the parent
   // passed stuckDomainIds (i.e. when we're on the dashboard).
   const stuckFilter = searchParams.get('dmstuck') === '1';
+  // Same mechanism for the "Expiring soon" briefing card.
+  const expiringFilter = searchParams.get('dmexpiring') === '1';
   const viewMode: 'grid' | 'table' = searchParams.get('dmview') === 'grid' ? 'grid' : 'table';
   const pageRaw = Math.max(1, Number(searchParams.get('dmpage')) || 1);
 
@@ -70,6 +76,7 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
   const setViewMode = (m: 'grid' | 'table') => updateParams({ dmview: m === 'table' ? null : m });
   const setPage = (n: number) => updateParams({ dmpage: n <= 1 ? null : String(n) });
   const clearStuckFilter = () => updateParams({ dmstuck: null, dmpage: null });
+  const clearExpiringFilter = () => updateParams({ dmexpiring: null, dmpage: null });
 
   // Force card (grid) view on mobile — wide table is unusable on phone.
   // Track viewport so the effective render mode flips at lg breakpoint regardless of URL.
@@ -88,10 +95,12 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
     [...new Set(domains.flatMap(d => d.tags))].sort(),
   [domains]);
 
-  // dmstuck=1 only does something when the parent supplied stuckDomainIds.
-  // If absent (e.g. a future caller forgets to pass it), fall back to no-op
-  // rather than silently filtering everything to empty.
+  // The pseudo-filters (dmstuck / dmexpiring) only do something when the
+  // parent supplied the matching id set. If absent (e.g. a future caller
+  // forgets to pass it), fall back to no-op rather than silently filtering
+  // everything to empty.
   const stuckFilterActive = stuckFilter && !!stuckDomainIds;
+  const expiringFilterActive = expiringFilter && !!expiringDomainIds;
 
   const filteredDomains = useMemo(() => domains.filter(domain => {
     const tagsArray = domain.tags;
@@ -101,8 +110,9 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
     const matchesStatus = statusFilter === 'all' || domain.status === statusFilter;
     const matchesTag = tagFilter === 'all' || tagsArray.includes(tagFilter);
     const matchesStuck = !stuckFilterActive || stuckDomainIds!.has(domain.id);
-    return matchesSearch && matchesStatus && matchesTag && matchesStuck;
-  }), [domains, searchTerm, statusFilter, tagFilter, stuckFilterActive, stuckDomainIds]);
+    const matchesExpiring = !expiringFilterActive || expiringDomainIds!.has(domain.id);
+    return matchesSearch && matchesStatus && matchesTag && matchesStuck && matchesExpiring;
+  }), [domains, searchTerm, statusFilter, tagFilter, stuckFilterActive, stuckDomainIds, expiringFilterActive, expiringDomainIds]);
 
   const totalPages = Math.max(1, Math.ceil(filteredDomains.length / DOMAINS_PAGE_SIZE));
   const page = Math.min(pageRaw, totalPages);
@@ -184,10 +194,12 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
         <p className="text-sm text-stone-500 mt-0.5">{t('domainList.subtitle')}</p>
       </div>
 
-      {/* "Stuck" filter banner — visible only when the WeeklyBriefing
-          "Worth a review" card drove the user here with ?dmstuck=1. Spelled
-          out so it's obvious *why* the list is suddenly short, and gives a
-          one-tap way back to the full list. */}
+      {/* Briefing-driven pseudo-filter banners (dmstuck / dmexpiring). One
+          row per active flag so users see *why* the list is short and have
+          a one-tap escape. Rendered before the chip strip because the chip
+          counts below are computed against the unfiltered status set — the
+          banner is the explanation for the mismatch between "5 active" and
+          the much shorter table below. */}
       {stuckFilterActive && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50/70 px-3.5 py-2 text-sm text-amber-900">
           <span>{t('domainList.stuckFilterBanner')}</span>
@@ -195,6 +207,18 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
             type="button"
             onClick={clearStuckFilter}
             className="rounded-md px-2 py-1 text-xs font-medium text-amber-900 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+          >
+            {t('domainList.clearFilters')}
+          </button>
+        </div>
+      )}
+      {expiringFilterActive && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-rose-200 bg-rose-50/70 px-3.5 py-2 text-sm text-rose-900">
+          <span>{t('domainList.expiringFilterBanner')}</span>
+          <button
+            type="button"
+            onClick={clearExpiringFilter}
+            className="rounded-md px-2 py-1 text-xs font-medium text-rose-900 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
           >
             {t('domainList.clearFilters')}
           </button>
@@ -305,12 +329,12 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
         <div className="text-center py-14 bg-white rounded-2xl border border-stone-200/80 shadow-sm">
           <Search className="h-10 w-10 mx-auto text-stone-300 mb-4" />
           <h3 className="text-base font-semibold text-stone-900 mb-2">
-            {searchTerm || statusFilter !== 'all' || tagFilter !== 'all' || stuckFilterActive ? t('domainList.noDomainsFound') : t('domainList.noDomainsYet')}
+            {searchTerm || statusFilter !== 'all' || tagFilter !== 'all' || stuckFilterActive || expiringFilterActive ? t('domainList.noDomainsFound') : t('domainList.noDomainsYet')}
           </h3>
           <p className="text-sm text-stone-500 mb-5 max-w-sm mx-auto">
-            {searchTerm || statusFilter !== 'all' || tagFilter !== 'all' || stuckFilterActive ? t('domainList.adjustSearch') : t('domainList.getStarted')}
+            {searchTerm || statusFilter !== 'all' || tagFilter !== 'all' || stuckFilterActive || expiringFilterActive ? t('domainList.adjustSearch') : t('domainList.getStarted')}
           </p>
-          {!searchTerm && statusFilter === 'all' && tagFilter === 'all' && !stuckFilterActive ? (
+          {!searchTerm && statusFilter === 'all' && tagFilter === 'all' && !stuckFilterActive && !expiringFilterActive ? (
             <button onClick={onAdd} className="inline-flex items-center px-4 py-2.5 bg-teal-600 text-white rounded-xl text-sm font-medium hover:bg-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2">
               <Plus className="h-4 w-4 mr-2" />
               {t('domainList.addFirstDomain')}
@@ -321,7 +345,12 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
                 setSearchTerm('');
                 setStatusFilter('all');
                 setTagFilter('all');
-                if (stuckFilterActive) clearStuckFilter();
+                // Clear pseudo-filters in one updateParams so we don't fire
+                // two router.replace calls in quick succession (the second
+                // would read pre-first searchParams and clobber).
+                if (stuckFilterActive || expiringFilterActive) {
+                  updateParams({ dmstuck: null, dmexpiring: null, dmpage: null });
+                }
               }}
               className="inline-flex items-center px-4 py-2.5 border border-stone-300 bg-white text-stone-700 rounded-xl text-sm font-medium hover:bg-stone-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
             >

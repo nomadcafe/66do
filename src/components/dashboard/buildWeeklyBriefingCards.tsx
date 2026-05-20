@@ -23,10 +23,15 @@ interface BuildWeeklyBriefingCardsInput {
   /** Multi-stuck path: switch DomainList into ?dmstuck=1 mode + scroll. The
    *  page owns the URL/scroll mechanics so this builder stays presentational. */
   onReviewStuck: () => void;
+  /** Same idea for the "Expiring soon" multi case — sets ?dmexpiring=1 and
+   *  scrolls to the domain list. */
+  onReviewExpiring: () => void;
+  /** Multi receipts-due path — switches to the activity tab AND sets
+   *  ?txdue=1 in one shot so the list is already filtered when the user
+   *  lands there, instead of scrolling to the domain list (wrong page). */
+  onReviewReceiptsDue: () => void;
   /** 点 "+ 收款" 时弹 AddReceiptModal —— 复用 dashboard 已有的状态。 */
   onAddReceipt: (transaction: TransactionWithRequiredFields) => void;
-  /** Element id of the domain list section so the "review" card can scroll to it. */
-  domainListAnchorId: string;
 }
 
 /**
@@ -51,8 +56,9 @@ export function buildWeeklyBriefingCards({
   onViewActivity,
   onViewDomain,
   onReviewStuck,
+  onReviewExpiring,
+  onReviewReceiptsDue,
   onAddReceipt,
-  domainListAnchorId,
 }: BuildWeeklyBriefingCardsInput): BriefingCard[] {
   const expiringCard: BriefingCard = expiringThisWeek.length > 0
     ? {
@@ -69,8 +75,9 @@ export function buildWeeklyBriefingCards({
           ? t('dashboard.briefingExpiringSecondary').replace('{cost}', formatCurrency(expiringThisWeekCost))
           : undefined,
         // Single domain → renew action goes straight to that one's modal.
-        // Multiple domains → "Review" instead, scrolling to the list so the
-        // user can pick which one to renew. We never auto-pick "the first".
+        // Multiple → "Review" sets ?dmexpiring=1 so the list narrows to just
+        // those domains (matches the stuck card's pattern). We never auto-
+        // pick "the first" because the user needs to choose which to renew.
         action: expiringThisWeek.length === 1
           ? {
               label: t('common.renew'),
@@ -78,11 +85,7 @@ export function buildWeeklyBriefingCards({
             }
           : {
               label: t('dashboard.briefingReview'),
-              onClick: () => {
-                document
-                  .getElementById(domainListAnchorId)
-                  ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              },
+              onClick: onReviewExpiring,
             },
       }
     : {
@@ -161,6 +164,11 @@ export function buildWeeklyBriefingCards({
           title: t('dashboard.briefingReceiptsDueTitle'),
           primary,
           secondary,
+          // Single due → straight to the AddReceipt modal for that tx.
+          // Multiple → flip the activity tab into ?txdue=1 (so the page
+          // owns tab switch + URL filter + scroll). Previously this scrolled
+          // to the domain list, which was the wrong destination since
+          // installments live on the activity tab.
           action: receiptsDueThisWeek.length === 1
             ? {
                 label: t('transaction.addReceipt'),
@@ -168,11 +176,7 @@ export function buildWeeklyBriefingCards({
               }
             : {
                 label: t('dashboard.briefingReview'),
-                onClick: () => {
-                  document
-                    .getElementById(domainListAnchorId)
-                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                },
+                onClick: onReviewReceiptsDue,
               },
         };
       })()
