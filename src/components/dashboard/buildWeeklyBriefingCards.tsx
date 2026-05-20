@@ -16,6 +16,13 @@ interface BuildWeeklyBriefingCardsInput {
   formatTransactionDate: (date: string) => string;
   onRenew: (domain: DomainWithTags) => void;
   onViewActivity: () => void;
+  /** Open the domain detail/edit drawer for a single domain — used by the
+   *  stuck card when there's only one stuck domain so Review lands directly
+   *  on the item instead of dumping the user at the list anchor. */
+  onViewDomain: (domain: DomainWithTags) => void;
+  /** Multi-stuck path: switch DomainList into ?dmstuck=1 mode + scroll. The
+   *  page owns the URL/scroll mechanics so this builder stays presentational. */
+  onReviewStuck: () => void;
   /** 点 "+ 收款" 时弹 AddReceiptModal —— 复用 dashboard 已有的状态。 */
   onAddReceipt: (transaction: TransactionWithRequiredFields) => void;
   /** Element id of the domain list section so the "review" card can scroll to it. */
@@ -42,6 +49,8 @@ export function buildWeeklyBriefingCards({
   formatTransactionDate,
   onRenew,
   onViewActivity,
+  onViewDomain,
+  onReviewStuck,
   onAddReceipt,
   domainListAnchorId,
 }: BuildWeeklyBriefingCardsInput): BriefingCard[] {
@@ -180,16 +189,24 @@ export function buildWeeklyBriefingCards({
         icon: <Award className="h-4 w-4" />,
         iconBg: 'bg-amber-50 text-amber-600',
         title: t('dashboard.briefingStuckTitle'),
-        primary: t('dashboard.briefingStuckPrimary').replace('{count}', String(stuckDomains.length)),
+        // One stuck domain → name it; matches the expiring card's pattern so
+        // Review goes straight to the only item we could have meant.
+        primary: stuckDomains.length === 1
+          ? stuckDomains[0].domain_name
+          : t('dashboard.briefingStuckPrimary').replace('{count}', String(stuckDomains.length)),
         secondary: t('dashboard.briefingStuckSecondary'),
-        action: {
-          label: t('dashboard.briefingReview'),
-          onClick: () => {
-            document
-              .getElementById(domainListAnchorId)
-              ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          },
-        },
+        // Single stuck → open that domain's detail directly. Multiple → flip
+        // DomainList into the dmstuck filter so the user only sees the ones
+        // the card is talking about, instead of scrolling into the full list.
+        action: stuckDomains.length === 1
+          ? {
+              label: t('dashboard.briefingReview'),
+              onClick: () => onViewDomain(stuckDomains[0]),
+            }
+          : {
+              label: t('dashboard.briefingReview'),
+              onClick: onReviewStuck,
+            },
       }
     : {
         icon: <Award className="h-4 w-4" />,
