@@ -778,6 +778,7 @@ const en = {
       adjustSearch: 'Try adjusting your search or filter criteria',
       clearFilters: 'Clear filters',
       stuckFilterBanner: 'Showing only domains held over 1 year, not yet sold',
+      expiringFilterBanner: 'Showing only domains expiring within 7 days',
       getStarted: 'Get started by adding your first domain investment',
       table: {
         domainName: 'Domain Name',
@@ -820,6 +821,7 @@ const en = {
       noTransactionsYet: 'No transactions yet',
       adjustSearch: 'Try adjusting your search or filter criteria',
       clearFilters: 'Clear filters',
+      receiptsDueFilterBanner: 'Showing only installments due this week',
       sortBy: 'Sort',
       sortByDate: 'By Date',
       sortByAmount: 'By Amount',

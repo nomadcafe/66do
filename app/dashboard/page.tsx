@@ -119,7 +119,12 @@ export default function DashboardPage() {
         ? 'security'
         : 'preferences'
   );
-  const setActiveTab = useCallback((next: TabType) => {
+  // extraParams lets briefing-card handlers fold a tab switch and a sibling
+  // URL filter into a single router.replace. Doing two separate replaces in
+  // the same tick races (the second reads a stale searchParams snapshot and
+  // clobbers the first), which is how a "switch to activity AND set txdue=1"
+  // path can lose the filter.
+  const setActiveTab = useCallback((next: TabType, extraParams?: Record<string, string | null>) => {
     // 同步更新 state（即时 UI 响应）+ visited（已挂载 tab 不再重挂）
     setActiveTabState(next);
     setVisited((prev) => (prev.has(next) ? prev : new Set([...prev, next])));
@@ -127,6 +132,12 @@ export default function DashboardPage() {
     const params = new URLSearchParams(searchParams.toString());
     if (next === 'portfolio') params.delete('tab'); else params.set('tab', next);
     params.delete('settings');
+    if (extraParams) {
+      for (const [k, v] of Object.entries(extraParams)) {
+        if (v === null || v === '' || v === undefined) params.delete(k);
+        else params.set(k, v);
+      }
+    }
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }, [searchParams, pathname, router]);
@@ -606,6 +617,20 @@ export default function DashboardPage() {
     return getReceiptsDueSoon(domains, transactions);
   }, [domains, transactions]);
 
+  // Briefing card id sets, paired with their target list's URL flag:
+  //   expiringDomainIdSet → ?dmexpiring=1 in DomainList
+  //   receiptsDueIdSet    → ?txdue=1     in TransactionList
+  // Computed here (where the briefing already gets the same source data) so
+  // the count on the card and the rows in the filtered list cannot drift.
+  const expiringDomainIdSet = useMemo(
+    () => new Set(expiringThisWeek.map((d) => d.id)),
+    [expiringThisWeek]
+  );
+  const receiptsDueIdSet = useMemo(
+    () => new Set(receiptsDueThisWeek.map((r) => r.transaction.id)),
+    [receiptsDueThisWeek]
+  );
+
 
   // 处理域名保存（保留此函数因为需要特殊处理）- 使用useCallback优化
   const handleSaveDomain = useCallback(async (domainData: Omit<DomainWithTags, 'id'>) => {
@@ -666,14 +691,17 @@ export default function DashboardPage() {
     domainOps.setShowDomainForm(true);
   }, [domainOps]);
 
-  // Briefing "Worth a review" with multiple stuck domains — set the dmstuck
-  // URL flag so DomainList narrows to those rows, then scroll the list into
-  // view. rAF gives DomainList one render to apply the new filter before we
-  // scroll, so the user lands on the filtered (short) list rather than the
-  // full one momentarily flashing past.
-  const handleReviewStuck = useCallback(() => {
+  // Shared helper for the briefing-card handlers that flip a DomainList
+  // pseudo-filter on. They all share the same shape: set N URL params, then
+  // rAF + scroll into the list. rAF gives DomainList one render to apply
+  // the new filter before we scroll, so the user lands on the filtered
+  // (short) list rather than the full one momentarily flashing past.
+  const setDomainListFilterAndScroll = useCallback((updates: Record<string, string | null>) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set('dmstuck', '1');
+    for (const [k, v] of Object.entries(updates)) {
+      if (v === null || v === '' || v === undefined) params.delete(k);
+      else params.set(k, v);
+    }
     params.delete('dmpage');
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
@@ -684,12 +712,35 @@ export default function DashboardPage() {
     });
   }, [searchParams, pathname, router]);
 
-  // Briefing "Recent activity" — switching the tab alone leaves the user
-  // scrolled wherever the portfolio tab left them, so the most recent
-  // transaction (the one the card is talking about) ends up off-screen.
-  // Scroll into the activity section after the tab is mounted/visible.
+  const handleReviewStuck = useCallback(
+    () => setDomainListFilterAndScroll({ dmstuck: '1', dmexpiring: null }),
+    [setDomainListFilterAndScroll]
+  );
+  const handleReviewExpiring = useCallback(
+    () => setDomainListFilterAndScroll({ dmexpiring: '1', dmstuck: null }),
+    [setDomainListFilterAndScroll]
+  );
+
+  // Briefing "Recent activity" → activity tab + scroll to anchor. Also clear
+  // txpage (so the user lands on page 1 where the most recent tx is, not on
+  // page 5 they happened to leave the list on) and txdue (so they're not
+  // landing in a stale receipts-due filtered view). Tab switch + URL params
+  // go through setActiveTab's extraParams so it's one router.replace.
   const handleViewActivity = useCallback(() => {
-    setActiveTab('activity');
+    setActiveTab('activity', { txpage: null, txdue: null });
+    requestAnimationFrame(() => {
+      document
+        .getElementById('dashboard-activity-anchor')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, [setActiveTab]);
+
+  // Briefing "Installment due" with multiple receipts — switch to activity
+  // and turn on ?txdue=1 in one shot so the TransactionList lands already
+  // filtered to those transactions. Previously this scrolled to the *domain*
+  // list, which was the wrong page entirely.
+  const handleReviewReceiptsDue = useCallback(() => {
+    setActiveTab('activity', { txdue: '1', txpage: null });
     requestAnimationFrame(() => {
       document
         .getElementById('dashboard-activity-anchor')
@@ -909,8 +960,9 @@ export default function DashboardPage() {
                 onViewActivity: handleViewActivity,
                 onViewDomain: handleViewDomain,
                 onReviewStuck: handleReviewStuck,
+                onReviewExpiring: handleReviewExpiring,
+                onReviewReceiptsDue: handleReviewReceiptsDue,
                 onAddReceipt: setAddReceiptTarget,
-                domainListAnchorId: 'dashboard-domain-list-anchor',
               })}
             />
 
@@ -948,6 +1000,7 @@ export default function DashboardPage() {
                   onAdd={domainOps.handleAddDomain}
                   onUpdateDomain={handleQuickUpdateDomain}
                   stuckDomainIds={stuckDomainIdSet}
+                  expiringDomainIds={expiringDomainIdSet}
                 />
               </div>
             )}
@@ -965,6 +1018,7 @@ export default function DashboardPage() {
               onDelete={setPendingDeleteTransactionId}
               onAdd={transactionOps.handleAddTransaction}
               onAddReceipt={setAddReceiptTarget}
+              receiptsDueIds={receiptsDueIdSet}
             />
           </div>
         )}
