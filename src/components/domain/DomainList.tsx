@@ -19,11 +19,15 @@ interface DomainListProps {
   onView: (domain: DomainWithTags) => void;
   onAdd: () => void;
   onUpdateDomain?: (domain: DomainWithTags, patch: Partial<DomainWithTags>) => Promise<void> | void;
+  // The set of domain ids that count as "stuck" (held >1y, not sold). Computed
+  // upstream where we already have transactionsForMetrics in scope, so the
+  // briefing card and this list filter agree by construction.
+  stuckDomainIds?: Set<string>;
 }
 
 const DOMAINS_PAGE_SIZE = 24;
 
-const DomainList = memo(function DomainList({ domains, transactions = [], onEdit, onDelete, onView, onAdd, onUpdateDomain }: DomainListProps) {
+const DomainList = memo(function DomainList({ domains, transactions = [], onEdit, onDelete, onView, onAdd, onUpdateDomain, stuckDomainIds }: DomainListProps) {
   const { t } = useI18nContext();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -34,6 +38,11 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
   const urlSearchTerm = searchParams.get('dmq') ?? '';
   const statusFilter = searchParams.get('dmstatus') ?? 'all';
   const tagFilter = searchParams.get('dmtag') ?? 'all';
+  // Stuck filter is driven from the WeeklyBriefing "Worth a review" card so
+  // clicking Review actually narrows the list to those domains instead of
+  // dumping the user into the full table. Only meaningful when the parent
+  // passed stuckDomainIds (i.e. when we're on the dashboard).
+  const stuckFilter = searchParams.get('dmstuck') === '1';
   const viewMode: 'grid' | 'table' = searchParams.get('dmview') === 'grid' ? 'grid' : 'table';
   const pageRaw = Math.max(1, Number(searchParams.get('dmpage')) || 1);
 
@@ -60,6 +69,7 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
   const setTagFilter = (s: string) => updateParams({ dmtag: s === 'all' ? null : s, dmpage: null });
   const setViewMode = (m: 'grid' | 'table') => updateParams({ dmview: m === 'table' ? null : m });
   const setPage = (n: number) => updateParams({ dmpage: n <= 1 ? null : String(n) });
+  const clearStuckFilter = () => updateParams({ dmstuck: null, dmpage: null });
 
   // Force card (grid) view on mobile — wide table is unusable on phone.
   // Track viewport so the effective render mode flips at lg breakpoint regardless of URL.
@@ -78,6 +88,11 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
     [...new Set(domains.flatMap(d => d.tags))].sort(),
   [domains]);
 
+  // dmstuck=1 only does something when the parent supplied stuckDomainIds.
+  // If absent (e.g. a future caller forgets to pass it), fall back to no-op
+  // rather than silently filtering everything to empty.
+  const stuckFilterActive = stuckFilter && !!stuckDomainIds;
+
   const filteredDomains = useMemo(() => domains.filter(domain => {
     const tagsArray = domain.tags;
     const matchesSearch = domain.domain_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -85,8 +100,9 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
                          tagsArray.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = statusFilter === 'all' || domain.status === statusFilter;
     const matchesTag = tagFilter === 'all' || tagsArray.includes(tagFilter);
-    return matchesSearch && matchesStatus && matchesTag;
-  }), [domains, searchTerm, statusFilter, tagFilter]);
+    const matchesStuck = !stuckFilterActive || stuckDomainIds!.has(domain.id);
+    return matchesSearch && matchesStatus && matchesTag && matchesStuck;
+  }), [domains, searchTerm, statusFilter, tagFilter, stuckFilterActive, stuckDomainIds]);
 
   const totalPages = Math.max(1, Math.ceil(filteredDomains.length / DOMAINS_PAGE_SIZE));
   const page = Math.min(pageRaw, totalPages);
@@ -167,6 +183,23 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
         <h2 className="text-xl font-semibold text-stone-900">{t('domainList.title')}</h2>
         <p className="text-sm text-stone-500 mt-0.5">{t('domainList.subtitle')}</p>
       </div>
+
+      {/* "Stuck" filter banner — visible only when the WeeklyBriefing
+          "Worth a review" card drove the user here with ?dmstuck=1. Spelled
+          out so it's obvious *why* the list is suddenly short, and gives a
+          one-tap way back to the full list. */}
+      {stuckFilterActive && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50/70 px-3.5 py-2 text-sm text-amber-900">
+          <span>{t('domainList.stuckFilterBanner')}</span>
+          <button
+            type="button"
+            onClick={clearStuckFilter}
+            className="rounded-md px-2 py-1 text-xs font-medium text-amber-900 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+          >
+            {t('domainList.clearFilters')}
+          </button>
+        </div>
+      )}
 
       {/* Status chip strip — primary filter, replaces the old dropdown.
           Each chip shows count and is colored by status semantics; brings
@@ -272,19 +305,24 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
         <div className="text-center py-14 bg-white rounded-2xl border border-stone-200/80 shadow-sm">
           <Search className="h-10 w-10 mx-auto text-stone-300 mb-4" />
           <h3 className="text-base font-semibold text-stone-900 mb-2">
-            {searchTerm || statusFilter !== 'all' || tagFilter !== 'all' ? t('domainList.noDomainsFound') : t('domainList.noDomainsYet')}
+            {searchTerm || statusFilter !== 'all' || tagFilter !== 'all' || stuckFilterActive ? t('domainList.noDomainsFound') : t('domainList.noDomainsYet')}
           </h3>
           <p className="text-sm text-stone-500 mb-5 max-w-sm mx-auto">
-            {searchTerm || statusFilter !== 'all' || tagFilter !== 'all' ? t('domainList.adjustSearch') : t('domainList.getStarted')}
+            {searchTerm || statusFilter !== 'all' || tagFilter !== 'all' || stuckFilterActive ? t('domainList.adjustSearch') : t('domainList.getStarted')}
           </p>
-          {!searchTerm && statusFilter === 'all' && tagFilter === 'all' ? (
+          {!searchTerm && statusFilter === 'all' && tagFilter === 'all' && !stuckFilterActive ? (
             <button onClick={onAdd} className="inline-flex items-center px-4 py-2.5 bg-teal-600 text-white rounded-xl text-sm font-medium hover:bg-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2">
               <Plus className="h-4 w-4 mr-2" />
               {t('domainList.addFirstDomain')}
             </button>
           ) : (
             <button
-              onClick={() => { setSearchTerm(''); setStatusFilter('all'); setTagFilter('all'); }}
+              onClick={() => {
+                setSearchTerm('');
+                setStatusFilter('all');
+                setTagFilter('all');
+                if (stuckFilterActive) clearStuckFilter();
+              }}
               className="inline-flex items-center px-4 py-2.5 border border-stone-300 bg-white text-stone-700 rounded-xl text-sm font-medium hover:bg-stone-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
             >
               {t('domainList.clearFilters')}

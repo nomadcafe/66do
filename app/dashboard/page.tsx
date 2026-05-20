@@ -585,6 +585,13 @@ export default function DashboardPage() {
       return heldMs > oneYearMs;
     });
   }, [domains, transactionsForMetrics]);
+  // ID set passed to DomainList so the ?dmstuck=1 URL flag can filter to
+  // exactly the same domains the briefing card was counting — single source
+  // of truth.
+  const stuckDomainIdSet = useMemo(
+    () => new Set(stuckDomains.map((d) => d.id)),
+    [stuckDomains]
+  );
 
   // Expiring within 7 days, with annual renewal cost summed
   const expiringThisWeek = useMemo(() => {
@@ -658,6 +665,37 @@ export default function DashboardPage() {
     domainOps.setEditingDomain(domain);
     domainOps.setShowDomainForm(true);
   }, [domainOps]);
+
+  // Briefing "Worth a review" with multiple stuck domains — set the dmstuck
+  // URL flag so DomainList narrows to those rows, then scroll the list into
+  // view. rAF gives DomainList one render to apply the new filter before we
+  // scroll, so the user lands on the filtered (short) list rather than the
+  // full one momentarily flashing past.
+  const handleReviewStuck = useCallback(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('dmstuck', '1');
+    params.delete('dmpage');
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    requestAnimationFrame(() => {
+      document
+        .getElementById('dashboard-domain-list-anchor')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, [searchParams, pathname, router]);
+
+  // Briefing "Recent activity" — switching the tab alone leaves the user
+  // scrolled wherever the portfolio tab left them, so the most recent
+  // transaction (the one the card is talking about) ends up off-screen.
+  // Scroll into the activity section after the tab is mounted/visible.
+  const handleViewActivity = useCallback(() => {
+    setActiveTab('activity');
+    requestAnimationFrame(() => {
+      document
+        .getElementById('dashboard-activity-anchor')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, [setActiveTab]);
 
   // Share 数据与 Analytics 一致：基于按分期调整后的交易（实际已收），非 domain.sale_price
   const shareData = useMemo(() => {
@@ -868,7 +906,9 @@ export default function DashboardPage() {
                 formatCurrency: formatCurrencyEnhanced,
                 formatTransactionDate,
                 onRenew: domainOps.handleRenewDomain,
-                onViewActivity: () => setActiveTab('activity'),
+                onViewActivity: handleViewActivity,
+                onViewDomain: handleViewDomain,
+                onReviewStuck: handleReviewStuck,
                 onAddReceipt: setAddReceiptTarget,
                 domainListAnchorId: 'dashboard-domain-list-anchor',
               })}
@@ -907,6 +947,7 @@ export default function DashboardPage() {
                   onView={handleViewDomain}
                   onAdd={domainOps.handleAddDomain}
                   onUpdateDomain={handleQuickUpdateDomain}
+                  stuckDomainIds={stuckDomainIdSet}
                 />
               </div>
             )}
@@ -915,7 +956,7 @@ export default function DashboardPage() {
         )}
 
         {visited.has('activity') && (
-          <div hidden={activeTab !== 'activity'}>
+          <div id="dashboard-activity-anchor" className="scroll-mt-24" hidden={activeTab !== 'activity'}>
             <TransactionList
               transactions={transactions}
               metricsTransactions={transactionsForMetrics}

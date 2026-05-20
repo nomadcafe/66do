@@ -772,6 +772,7 @@ const zh = {
       noDomainsYet: '暂无域名',
       adjustSearch: '请调整搜索或筛选条件',
       clearFilters: '清除筛选',
+      stuckFilterBanner: '仅显示持有 1 年以上未售出的域名',
       getStarted: '添加您的第一个域名投资以开始',
       table: {
         domainName: '域名',

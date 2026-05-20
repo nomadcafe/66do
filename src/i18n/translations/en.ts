@@ -777,6 +777,7 @@ const en = {
       noDomainsYet: 'No domains yet',
       adjustSearch: 'Try adjusting your search or filter criteria',
       clearFilters: 'Clear filters',
+      stuckFilterBanner: 'Showing only domains held over 1 year, not yet sold',
       getStarted: 'Get started by adding your first domain investment',
       table: {
         domainName: 'Domain Name',
