@@ -80,6 +80,16 @@ export function changelogPageMetadata(locale: HomeLocale): Metadata {
 export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
   zh: [
     {
+      version: '2026-05-20',
+      date: '2026-05-20',
+      items: [
+        '优化「本周提醒」功能，加入分期提醒等。',
+        '修复了筛选功能的一些 bug。',
+        '修复若干安全 bug，改善 CSV 导入等。',
+        '删除了域名到期的日历提醒订阅功能。',
+      ],
+    },
+    {
       version: '2026-05-07',
       date: '2026-05-07',
       items: [
@@ -168,6 +178,16 @@ export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
     },
   ],
   en: [
+    {
+      version: '2026-05-20',
+      date: '2026-05-20',
+      items: [
+        '"This Week" briefing improvements, including installment-due reminders and more.',
+        'Fixed some filter-related bugs.',
+        'Fixed assorted security issues, improved CSV import, and more.',
+        'Removed the calendar-subscription reminder for domain expiry.',
+      ],
+    },
     {
       version: '2026-05-07',
       date: '2026-05-07',
