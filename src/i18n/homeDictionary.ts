@@ -111,6 +111,7 @@ export interface HomeDictionary {
     cookiesShort: string;
     termsOfService: string;
     socialComingSoon: string;
+    followOnX: string;
     copyrightSuffix: string;
   };
 }
@@ -227,6 +228,7 @@ const zh: HomeDictionary = {
     cookiesShort: 'Cookie',
     termsOfService: '服务条款',
     socialComingSoon: '即将推出',
+    followOnX: '在 X 上关注我们',
     copyrightSuffix: '保留所有权利。',
   },
 };
@@ -343,6 +345,7 @@ const en: HomeDictionary = {
     cookiesShort: 'Cookies',
     termsOfService: 'Terms of Service',
     socialComingSoon: 'Coming soon',
+    followOnX: 'Follow on X',
     copyrightSuffix: 'All rights reserved.',
   },
 };

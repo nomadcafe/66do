@@ -501,24 +501,42 @@ export default async function HomePage({ params }: PageProps) {
             <p className="text-xs text-stone-500">
               &copy; {year} Domain.Financial. {d.footer.copyrightSuffix}
             </p>
-            <div className="flex gap-6 text-xs">
-              <Link href={`/${locale}/privacy`} className="transition hover:text-white">
-                {d.footer.privacyShort}
-              </Link>
-              <Link
-                href={`/${locale}/terms`}
-                className="transition hover:text-white"
-                title={d.footer.termsOfService}
+            <div className="flex items-center gap-5">
+              {/* X (formerly Twitter) — handle @domainverse. Lucide's `X` is
+                  the close icon, not the brand mark, so the logo is inlined
+                  as SVG. Keep it as the only social until a second channel
+                  is actually being maintained. */}
+              <a
+                href="https://x.com/domainverse"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={d.footer.followOnX}
+                title={d.footer.followOnX}
+                className="text-stone-400 transition hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-950 rounded"
               >
-                {d.footer.termsShort}
-              </Link>
-              <Link
-                href={`/${locale}/cookies`}
-                className="transition hover:text-white"
-                title={d.footer.cookiesShort}
-              >
-                {d.footer.cookiesShort}
-              </Link>
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                </svg>
+              </a>
+              <div className="flex gap-6 text-xs">
+                <Link href={`/${locale}/privacy`} className="transition hover:text-white">
+                  {d.footer.privacyShort}
+                </Link>
+                <Link
+                  href={`/${locale}/terms`}
+                  className="transition hover:text-white"
+                  title={d.footer.termsOfService}
+                >
+                  {d.footer.termsShort}
+                </Link>
+                <Link
+                  href={`/${locale}/cookies`}
+                  className="transition hover:text-white"
+                  title={d.footer.cookiesShort}
+                >
+                  {d.footer.cookiesShort}
+                </Link>
+              </div>
             </div>
           </div>
         </div>
