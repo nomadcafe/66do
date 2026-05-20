@@ -696,12 +696,22 @@ export default function DashboardPage() {
   // rAF + scroll into the list. rAF gives DomainList one render to apply
   // the new filter before we scroll, so the user lands on the filtered
   // (short) list rather than the full one momentarily flashing past.
+  //
+  // Sibling filters (dmq / dmstatus / dmtag) are cleared as part of the
+  // entry: the briefing card promises "show me exactly the N items I
+  // counted", and the resulting list would otherwise be the intersection
+  // {pseudo-filter} ∩ {user's prior chip/tag/search} — which can be 0 rows
+  // when the user came from e.g. a status=sold view. Pagination resets to
+  // page 1 for the same reason. Sort + view mode are presentational, kept.
   const setDomainListFilterAndScroll = useCallback((updates: Record<string, string | null>) => {
     const params = new URLSearchParams(searchParams.toString());
     for (const [k, v] of Object.entries(updates)) {
       if (v === null || v === '' || v === undefined) params.delete(k);
       else params.set(k, v);
     }
+    params.delete('dmq');
+    params.delete('dmstatus');
+    params.delete('dmtag');
     params.delete('dmpage');
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
@@ -739,8 +749,13 @@ export default function DashboardPage() {
   // and turn on ?txdue=1 in one shot so the TransactionList lands already
   // filtered to those transactions. Previously this scrolled to the *domain*
   // list, which was the wrong page entirely.
+  //
+  // Also clear txq / txtype (same reason as the domain-side helper above):
+  // the card promised "show me exactly these N installments", and a leftover
+  // type=buy chip would intersect that to 0 rows and break the contract.
+  // txsort/txdir/txview stay — they're presentational, not gates.
   const handleReviewReceiptsDue = useCallback(() => {
-    setActiveTab('activity', { txdue: '1', txpage: null });
+    setActiveTab('activity', { txdue: '1', txpage: null, txq: null, txtype: null });
     requestAnimationFrame(() => {
       document
         .getElementById('dashboard-activity-anchor')
