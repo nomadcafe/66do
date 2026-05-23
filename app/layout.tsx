@@ -18,14 +18,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Default OG image — 612×408 (the only branded asset we have today). Below
-// the 1200×630 ideal, but having one beats having none for FB / LinkedIn /
-// Slack unfurls. Listed in metadata so per-page generateMetadata that
+// Default OG image — 2400×1260 (2× of 1200×630, the FB/LinkedIn ideal ratio,
+// retina-friendly). Listed in metadata so per-page generateMetadata that
 // doesn't override openGraph.images inherits this fallback.
 const OG_IMAGE = {
-  url: "/domainfinancialpng.png",
-  width: 612,
-  height: 408,
+  url: "/domainfinancial_og.png",
+  width: 2400,
+  height: 1260,
   alt: "Domain.Financial",
 } as const;
 

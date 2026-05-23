@@ -40,9 +40,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       siteName: 'Domain.Financial',
       images: [
         {
-          url: '/domainfinancialpng.png',
-          width: 612,
-          height: 408,
+          url: '/domainfinancial_og.png',
+          width: 2400,
+          height: 1260,
           alt: 'Domain.Financial',
         },
       ],
@@ -53,7 +53,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: isZh
         ? 'Domain.Financial 隐私政策与用户数据说明。'
         : 'Domain.Financial privacy policy and how we handle your data.',
-      images: ['/domainfinancialpng.png'],
+      images: ['/domainfinancial_og.png'],
     },
   };
 }
