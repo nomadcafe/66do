@@ -19,6 +19,7 @@ import PortfolioHealthCard from '../../src/components/dashboard/PortfolioHealthC
 import WeeklyBriefing from '../../src/components/dashboard/WeeklyBriefing';
 import SettingsDrawer from '../../src/components/dashboard/SettingsDrawer';
 import RecentActivityPanel from '../../src/components/settings/RecentActivityPanel';
+import AccountDangerZonePanel from '../../src/components/settings/AccountDangerZonePanel';
 import DashboardHeader from '../../src/components/dashboard/DashboardHeader';
 import DashboardLoadingSkeleton from '../../src/components/dashboard/DashboardLoadingSkeleton';
 import DeleteConfirmDialog from '../../src/components/dashboard/DeleteConfirmDialog';
@@ -1205,7 +1206,13 @@ export default function DashboardPage() {
           </LazyWrapper>
         }
         securityNode={
-          <RecentActivityPanel accessToken={session?.access_token ?? null} />
+          <div className="space-y-6">
+            <RecentActivityPanel accessToken={session?.access_token ?? null} />
+            <AccountDangerZonePanel
+              accessToken={session?.access_token ?? null}
+              email={user?.email ?? null}
+            />
+          </div>
         }
       />
 

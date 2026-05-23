@@ -2,7 +2,7 @@
 
 Living document. Add items at the bottom of the appropriate section as they come up; archive done items into a dated bullet under **Recently shipped**. Keep entries one or two lines each — link out for design rationale.
 
-Last updated: 2026-05-03 (data-storage audit, dead-user cleanup, auth_events client-side bug fixed)
+Last updated: 2026-05-23 (delete-account UI + cascade endpoint shipped)
 
 ---
 
@@ -15,7 +15,7 @@ _(empty)_
 ## Next (small wireups — 1 line each, code already in place)
 
 - [ ] **Change sign-in email** UI in Settings → Account. When wired, call `fireSensitiveOpNotification(session, 'email_change')`. Endpoint scaffold + activity-panel icon + i18n strings already exist.
-- [ ] **Delete account** UI + cascade. Same pattern: `fireSensitiveOpNotification(session, 'account_delete')`. Need to also clean up `domains`, `domain_transactions`, `auth_events`, `users` rows. Supabase `auth.users` cascade + ON DELETE CASCADE on FKs covers most of it.
+- [x] ~~**Delete account** UI + cascade.~~ Shipped 2026-05-23. Type-email-to-confirm panel in Settings → Security; `POST /api/auth/delete-account` records the audit event, deletes the `public.users` mirror, then `auth.admin.deleteUser` cascades to `domains` / `domain_transactions` / `auth_events` / `installment_receipts`.
 - [ ] **Unlink Google OAuth** in Settings. `fireSensitiveOpNotification(session, 'oauth_unbind')`.
 - [ ] **Auth events retention job**: cron / pg_cron to delete `auth_events` rows older than ~12 months. Table is append-only by design but unbounded growth isn't desirable.
 
@@ -102,6 +102,7 @@ So we don't re-litigate these:
 
 ## Recently shipped
 
+- 2026-05-23 — Delete account UI + cascade. New `POST /api/auth/delete-account` endpoint (Bearer-auth, write-rate-limited, service-role) records the `account_delete` audit row, deletes `public.users` mirror, then `auth.admin.deleteUser` to cascade `domains` / `domain_transactions` / `auth_events` / `installment_receipts`. New `AccountDangerZonePanel` mounts below Recent Activity in Settings → Security; type-the-email-to-confirm flow, signs out + redirects to `/` on success. zh/en strings added.
 - 2026-05-03 — Fix auth_events silent-failure bug: client never called `fireSignInNotification` because Supabase SDK's `detectSessionInUrl` consumed the URL hash before the page handler ran, leaving the setSession/verifyOtp branches unreachable. Added the call to the early-return path in both `/auth/magic-link` and `/auth/callback`. Recent Activity panel now actually populates.
 - 2026-05-03 — Data-storage audit: confirmed all date columns are `date` typed in prod (repo's old TEXT migration was superseded), all expected FKs exist with CASCADE, 0 orphan transaction rows. Added `database/_audit_schema_state.sql` to keep the audit queries reproducible.
 - 2026-05-03 — `schema_migrations` tracker table added (`add_schema_migrations_tracker.sql`) so future migrations can record their own application — solves the "did this run yet?" question that bit `add_auth_events`, `add_ical_token`, `add_registration_date` in turn.

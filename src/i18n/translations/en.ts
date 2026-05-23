@@ -187,7 +187,18 @@ const en = {
       eventDataExport: 'Exported your data',
       eventEmailChange: 'Changed sign-in email',
       eventAccountDelete: 'Account deletion requested',
-      eventOauthUnbind: 'Third-party sign-in changed'
+      eventOauthUnbind: 'Third-party sign-in changed',
+      dangerZoneTitle: 'Danger zone',
+      dangerZoneBody: 'Deleting your account permanently removes all your domains, transactions, and activity history. This cannot be undone or recovered.',
+      deleteAccountAction: 'Delete my account',
+      deleteAccountConfirmTitle: 'Confirm account deletion',
+      deleteAccountConfirmBody: 'This action is irreversible. To continue, type your sign-in email {email} below.',
+      deleteAccountConfirmInputLabel: 'Sign-in email',
+      deleteAccountConfirmButton: 'Permanently delete account',
+      deleteAccountCancel: 'Cancel',
+      deleteAccountDeleting: 'Deleting…',
+      deleteAccountFailed: 'Deletion failed. Please try again.',
+      deleteAccountRateLimited: 'Too many attempts. Please try again later.'
     }
   },
     dashboard: {

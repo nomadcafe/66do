@@ -186,7 +186,18 @@ const zh = {
       eventDataExport: '导出账户数据',
       eventEmailChange: '修改登录邮箱',
       eventAccountDelete: '请求删除账号',
-      eventOauthUnbind: '修改第三方登录绑定'
+      eventOauthUnbind: '修改第三方登录绑定',
+      dangerZoneTitle: '危险区域',
+      dangerZoneBody: '删除账号将永久移除您的所有域名、交易记录与活动日志。此操作无法撤销，也无法恢复。',
+      deleteAccountAction: '删除我的账号',
+      deleteAccountConfirmTitle: '确认删除账号',
+      deleteAccountConfirmBody: '此操作不可逆。要继续，请在下方输入您的登录邮箱 {email}。',
+      deleteAccountConfirmInputLabel: '登录邮箱',
+      deleteAccountConfirmButton: '永久删除账号',
+      deleteAccountCancel: '取消',
+      deleteAccountDeleting: '正在删除…',
+      deleteAccountFailed: '删除失败，请稍后再试。',
+      deleteAccountRateLimited: '操作过于频繁，请稍后再试。'
     }
   },
     dashboard: {
