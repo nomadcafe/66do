@@ -79,7 +79,7 @@ export default async function HomePage({ params }: PageProps) {
       name: 'Domain.Financial',
       url: siteUrl,
       logo: `${siteUrl}/favicon.png`,
-      image: `${siteUrl}/domainfinancialpng.png`,
+      image: `${siteUrl}/domainfinancial_og.png`,
       description: d.home.subtitle,
     },
     {

@@ -381,9 +381,9 @@ export function homePageMetadata(locale: HomeLocale): Metadata {
       siteName: 'Domain.Financial',
       images: [
         {
-          url: '/domainfinancialpng.png',
-          width: 612,
-          height: 408,
+          url: '/domainfinancial_og.png',
+          width: 2400,
+          height: 1260,
           alt: 'Domain.Financial',
         },
       ],
@@ -392,7 +392,7 @@ export function homePageMetadata(locale: HomeLocale): Metadata {
       card: 'summary_large_image',
       title: d.home.title,
       description: d.home.subtitle,
-      images: ['/domainfinancialpng.png'],
+      images: ['/domainfinancial_og.png'],
     },
   };
 }

@@ -61,9 +61,9 @@ export function changelogPageMetadata(locale: HomeLocale): Metadata {
       siteName: 'Domain.Financial',
       images: [
         {
-          url: '/domainfinancialpng.png',
-          width: 612,
-          height: 408,
+          url: '/domainfinancial_og.png',
+          width: 2400,
+          height: 1260,
           alt: 'Domain.Financial',
         },
       ],
@@ -72,7 +72,7 @@ export function changelogPageMetadata(locale: HomeLocale): Metadata {
       card: 'summary_large_image',
       title: `${c.metaTitle} · Domain.Financial`,
       description: c.metaDescription,
-      images: ['/domainfinancialpng.png'],
+      images: ['/domainfinancial_og.png'],
     },
   };
 }

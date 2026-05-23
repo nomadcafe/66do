@@ -39,9 +39,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       siteName: 'Domain.Financial',
       images: [
         {
-          url: '/domainfinancialpng.png',
-          width: 612,
-          height: 408,
+          url: '/domainfinancial_og.png',
+          width: 2400,
+          height: 1260,
           alt: 'Domain.Financial',
         },
       ],
@@ -50,7 +50,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       card: 'summary_large_image',
       title: isZh ? 'Cookie 政策 · Domain.Financial' : 'Cookies Policy · Domain.Financial',
       description,
-      images: ['/domainfinancialpng.png'],
+      images: ['/domainfinancial_og.png'],
     },
   };
 }
