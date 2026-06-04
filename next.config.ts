@@ -12,38 +12,7 @@ const nextConfig: NextConfig = {
   
   // Optimize for production
   compress: true,
-  
-  // Optimize bundle size for Cloudflare Pages
-  // experimental: {
-  //   optimizeCss: true, // Requires critters package
-  // },
-  
-  // Vercel optimized webpack configuration
-  webpack: (config: any, { isServer }: any) => {
-    // Vercel handles optimization automatically, minimal custom config
-    if (!isServer) {
-      // Basic client optimization
-      config.optimization.splitChunks = {
-        chunks: 'all',
-        cacheGroups: {
-          default: {
-            minChunks: 2,
-            priority: -20,
-            reuseExistingChunk: true,
-          },
-          vendor: {
-            test: /[\\/]node_modules[\\/]/,
-            name: 'vendors',
-            priority: -10,
-            chunks: 'all',
-          },
-        },
-      };
-    }
-    
-    return config;
-  },
-  
+
   // External packages for server components (minimal set to avoid conflicts)
   serverExternalPackages: [
     '@supabase/supabase-js',
