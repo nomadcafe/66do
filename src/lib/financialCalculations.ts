@@ -2,6 +2,7 @@
 // （ROI、年化、夏普、波动率、年化收益率等）一律走 coreCalculations.ts。
 
 import { totalRenewalCostForHolding } from './renewalCostBasis';
+import { isDomainLost } from './domainLossStatus';
 
 /**
  * 计算单个域名的 ROI（Domain Portfolio 表格/卡片使用）
@@ -49,13 +50,8 @@ export function calculateDomainROI(
     return ((netRevenue - totalHoldingCost) / totalHoldingCost) * 100;
   }
 
-  if (domain.status === 'expired') return -100;
-
-  if (domain.expiry_date) {
-    const now = new Date();
-    const expiryDate = new Date(domain.expiry_date);
-    if (!isNaN(expiryDate.getTime()) && expiryDate < now) return -100;
-  }
+  // 已放弃续费，或过期超过宽限期未续 → 视为 -100%（口径见 domainLossStatus）
+  if (isDomainLost(domain)) return -100;
 
   if (domain.estimated_value != null && domain.estimated_value > 0) {
     return ((domain.estimated_value - totalHoldingCost) / totalHoldingCost) * 100;
@@ -78,6 +74,7 @@ export function formatCurrency(
 
 /**
  * 过期域名损失口径（与续费持有成本一致）：
+ * - 计入条件：status=expired，或过期超过 EXPIRY_GRACE_DAYS 仍未续费（见 isDomainLost）
  * - 损失金额 = 购买成本 + renewal_count × renewal_cost（已发生续费成本）
  * - 视为全额冲销：未扣减任何售出/回款；若曾部分出售需在交易层单独体现
  * - 无 expiry_date 但 status=expired 时，仍计入列表；年度归桶优先用 purchase_date 年，否则归入 unknown
@@ -121,10 +118,10 @@ export function calculateExpiredDomainLoss(
   let totalLoss = 0;
 
   domains.forEach(domain => {
-    // 损失只算用户明确标 expired 的域名（= 主动放弃续费）。
-    // 仅 expiry_date < now 但状态仍是 active/for_sale 的，是"逾期催办"信号，
-    // 属于到期监控范畴，不在损失分析里归账，避免与 dashboard 的 next-expiry 提示重复。
-    if (domain.status !== 'expired') return;
+    // 损失 = 用户手动标 expired（主动放弃）+ 过期超过宽限期仍未续费（自动冲销）。
+    // 宽限期内（刚过期但未到 EXPIRY_GRACE_DAYS）只是"逾期催办"信号，由 dashboard
+    // 的 next-expiry 提示负责，不在损失里归账，避免误把可能续费的域名当成损失。
+    if (!isDomainLost(domain)) return;
 
     const expiryDateStr: string | null = domain.expiry_date ?? null;
     const expiryDate: Date | null = domain.expiry_date ? new Date(domain.expiry_date) : null;

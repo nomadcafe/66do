@@ -414,6 +414,9 @@ const en = {
       forSale: 'For Sale',
       sold: 'Sold',
       expired: 'Expired',
+      overdueUnrenewed: 'Lapsed',
+      overdueUnrenewedTooltip:
+        'Past expiry by more than the 30-day grace period without renewal — counted as a loss. Status is left unchanged; mark it Expired to confirm you have given it up.',
       critical: 'Critical',
       urgent: 'Urgent',
       normal: 'Normal',
@@ -985,7 +988,7 @@ const en = {
       thisYear: 'This year',
       cumulativeAverageHint: 'No expirations this year',
       expiredLossDefinition:
-        'Loss = purchase + renewals already paid (renewal_count × renewal cost), full write-off; sales proceeds not deducted.',
+        'Counted when marked expired, or past expiry by more than the 30-day grace period without renewal. Loss = purchase + renewals already paid (renewal_count × renewal cost), full write-off; sales proceeds not deducted.',
       lossYearUnknown: 'Unknown expiry',
       expiryDateMissing: '—',
       annualLossTrend: 'Annual Loss Trend',
