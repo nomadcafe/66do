@@ -3,6 +3,7 @@
 
 import { sellGrossUSD, sellNetUSD } from './coreCalculations';
 import { totalRenewalCostForHolding } from './renewalCostBasis';
+import { isDomainLost } from './domainLossStatus';
 
 interface DomainROI {
   domainId: string;
@@ -60,15 +61,8 @@ export function calculateDomainROI(
   const totalSales = salesTransactions.reduce((sum, t) => sum + sellGrossUSD(t), 0);
   const netRevenue = salesTransactions.reduce((sum, t) => sum + sellNetUSD(t), 0);
   
-  // 检查域名是否过期
-  let isExpired = false;
-  if (domain.status === 'expired') {
-    isExpired = true;
-  } else if (domain.expiry_date) {
-    const now = new Date();
-    const expiryDate = new Date(domain.expiry_date);
-    isExpired = expiryDate < now && domain.status !== 'sold';
-  }
+  // 检查域名是否构成损失（手动 expired 或过期超过宽限期未续，口径见 domainLossStatus）
+  const isExpired = isDomainLost(domain);
   
   // 利润和ROI
   let grossProfit: number;

@@ -9,6 +9,7 @@ import { calculateDomainROI } from '../../lib/financialCalculations';
 import { totalHoldingCostForDomain } from '../../lib/renewalCostBasis';
 import { domainStatusLabel as statusLabel } from '../../lib/domainStatusLabel';
 import { daysUntilEffectiveExpiry } from '../../lib/effectiveExpiry';
+import { isExpiredButNotMarked } from '../../lib/domainLossStatus';
 import type { TransactionWithRequiredFields } from '../../types/transaction';
 
 /** Days past effective expiry after which a still-active domain is "stale".
@@ -246,6 +247,14 @@ const DomainCard = memo(function DomainCard({ domain, transactions = [], onEdit,
             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(domain.status)}`}>
               {statusLabel(domain.status, t)}
             </span>
+            {isExpiredButNotMarked(domain) && (
+              <span
+                title={t('common.overdueUnrenewedTooltip')}
+                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-200"
+              >
+                {t('common.overdueUnrenewed')}
+              </span>
+            )}
             {(() => {
               // sold 域名如果还在分期收款，加一枚薄荷色 chip 提示。同 DomainTable
               // 的视觉语言一致，让用户扫卡片网格也能一眼看到"还有钱在路上"。

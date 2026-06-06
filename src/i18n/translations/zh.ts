@@ -409,6 +409,9 @@ const zh = {
       forSale: '待售',
       sold: '已售',
       expired: '已过期',
+      overdueUnrenewed: '逾期未续',
+      overdueUnrenewedTooltip:
+        '已过期超过 30 天宽限期仍未续费，已计入损失。状态未自动更改；如确认放弃可手动标记为「已过期」。',
       critical: '紧急',
       urgent: '紧急',
       normal: '正常',
@@ -980,7 +983,7 @@ const zh = {
       thisYear: '本年过期',
       cumulativeAverageHint: '本年无过期',
       expiredLossDefinition:
-        '损失口径：购买成本 + 已发生续费成本（renewal_count×续费单价），按全额冲销计；未扣减售出回款。',
+        '计入条件：手动标记为过期，或过期超过 30 天宽限期仍未续费。损失口径：购买成本 + 已发生续费成本（renewal_count×续费单价），按全额冲销计；未扣减售出回款。',
       lossYearUnknown: '未填到期日',
       expiryDateMissing: '—',
       annualLossTrend: '年度损失趋势',

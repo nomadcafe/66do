@@ -8,6 +8,7 @@ import type { TransactionWithRequiredFields } from '../../types/transaction';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { calculateDomainROI } from '../../lib/financialCalculations';
 import { domainStatusLabel as statusLabel } from '../../lib/domainStatusLabel';
+import { isExpiredButNotMarked } from '../../lib/domainLossStatus';
 import { ListPagination } from '../ui/ListPagination';
 
 // 共享 sortable header：原本每列各写一份 div + onClick + ↑/↓ 字符，
@@ -472,6 +473,14 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                           >
                             {statusLabel(domain.status, t)}
                           </button>
+                        )}
+                        {isExpiredButNotMarked(domain) && (
+                          <span
+                            title={t('common.overdueUnrenewedTooltip')}
+                            className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-200"
+                          >
+                            {t('common.overdueUnrenewed')}
+                          </span>
                         )}
                         {(() => {
                           const inst = activeInstallmentByDomain.get(domain.id);
