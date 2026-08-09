@@ -371,6 +371,7 @@ const en = {
     validation: {
       domain: {
         invalidFormat: 'Invalid domain data format',
+        duplicate: 'This domain name is already in your portfolio',
         nameRequired: 'Domain name is required',
         nameEmpty: 'Domain name cannot be empty',
         nameTooLong: 'Domain name cannot exceed 255 characters',

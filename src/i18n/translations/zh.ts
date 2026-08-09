@@ -366,6 +366,7 @@ const zh = {
     validation: {
       domain: {
         invalidFormat: '域名数据格式不正确',
+        duplicate: '该域名已在你的组合中',
         nameRequired: '域名名称是必需的',
         nameEmpty: '域名名称不能为空',
         nameTooLong: '域名名称长度不能超过 255 个字符',
