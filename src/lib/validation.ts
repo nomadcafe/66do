@@ -25,6 +25,12 @@ const MAX_ESTIMATED_VALUE = 100000000; // $100M
 const MAX_RENEWAL_CYCLE = 10; // 10 years
 const MAX_RENEWAL_COUNT = 100; // 100 renewals
 
+/**
+ * 「该域名已在组合里」的报错键。不是 validateDomain 发出的——重名只有数据库
+ * 的唯一索引能可靠判定，由路由层在捕获 23505 后放进 409 响应的 details 里。
+ */
+export const DUPLICATE_DOMAIN_MESSAGE_KEY = 'validation.domain.duplicate';
+
 // 验证域名数据（errors 使用 i18n 键，由前端 t() 或 translateValidationMessages 展示）
 export function validateDomain(domain: unknown): ValidationResult {
   const errors: string[] = [];

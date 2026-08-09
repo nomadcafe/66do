@@ -2,6 +2,7 @@ import { supabase } from './supabase'
 import type { Database } from './supabase'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { logger } from './logger'
+import type { WriteError } from './domainWriteErrors'
 
 type Tables = Database['public']['Tables']
 
@@ -25,6 +26,10 @@ export interface DataServiceResult<T> {
   error?: string;
   source: 'supabase' | 'cache';
 }
+
+// WriteError / isDuplicateDomainNameError 放在 domainWriteErrors.ts：本文件顶层
+// 会实例化 supabase 客户端（需要 env vars），纯判定逻辑单独放才能被单测直接引入。
+export type { WriteError } from './domainWriteErrors'
 
 // 域名相关操作
 export class DomainService {
@@ -107,21 +112,24 @@ export class DomainService {
   static async createDomainWithClient(
     client: SupabaseClient<Database>,
     domain: DomainInsert
-  ): Promise<Domain | null> {
+  ): Promise<{ data: Domain | null; error: WriteError | null }> {
     // 注意：由于 Supabase 类型系统的限制，这里需要使用类型断言
     // 实际运行时类型是正确的，只是 TypeScript 无法正确推断
     const { data, error } = await (client
       .from('domains')
       .insert(domain as never)
       .select()
-      .single() as unknown as Promise<{ data: Domain | null; error: { message: string; code?: string } | null }>)
-    
+      .single() as unknown as Promise<{ data: Domain | null; error: { message: string; code?: string; details?: string } | null }>)
+
     if (error) {
       logger.error('Error creating domain:', error)
-      return null
+      return {
+        data: null,
+        error: { message: error.message || error.details || 'Unknown error', code: error.code }
+      }
     }
-    
-    return data as Domain
+
+    return { data: data as Domain, error: null }
   }
 
   /**
@@ -131,7 +139,7 @@ export class DomainService {
   static async createDomainsWithClient(
     client: SupabaseClient<Database>,
     domains: DomainInsert[]
-  ): Promise<{ data: Domain[]; error: string | null }> {
+  ): Promise<{ data: Domain[]; error: WriteError | null }> {
     if (domains.length === 0) return { data: [], error: null }
 
     // 注意：由于 Supabase 类型系统的限制，这里需要使用类型断言
@@ -139,12 +147,12 @@ export class DomainService {
     const { data, error } = await (client
       .from('domains')
       .insert(domains as never)
-      .select() as unknown as Promise<{ data: Domain[] | null; error: { message: string; details?: string } | null }>)
+      .select() as unknown as Promise<{ data: Domain[] | null; error: { message: string; code?: string; details?: string } | null }>)
 
     if (error) {
       const errMsg = error?.message || error?.details || 'Unknown error'
       logger.error('Error creating domains in bulk:', errMsg)
-      return { data: [], error: errMsg }
+      return { data: [], error: { message: errMsg, code: error.code } }
     }
 
     return { data: (data || []) as Domain[], error: null }

@@ -28,6 +28,17 @@ interface LoadOptions {
   showLoading?: boolean;
 }
 
+/** 带 HTTP 状态码的保存错误，供上层按状态分流（409 重名 / 401 掉登录）而不是匹配报错文案 */
+class SaveRequestError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'SaveRequestError';
+    this.status = status;
+  }
+}
+
 /** 硬刷新后 Supabase 客户端可能尚未恢复 JWT，此时 RLS 会返回空列表，表现为「交易消失」 */
 async function waitForSupabaseSession(
   userId: string,
@@ -318,7 +329,7 @@ export function useDashboardData(
               ? translateValidationMessages(errorData.details, tRef.current).join('; ')
               : String(errorData.details))
           : (errorData.error || response.statusText);
-        throw new Error(`Failed to ${op} domain: ${details}`);
+        throw new SaveRequestError(`Failed to ${op} domain: ${details}`, response.status);
       };
 
       // 拆分：已存在的（PUT 一条条更新）vs 新建的（多条用 bulk POST 节省
@@ -507,10 +518,9 @@ export function useDashboardData(
       logger.log('Data saved to Supabase database successfully');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      const isDuplicateDomain =
-        errorMessage.includes('already in your portfolio') ||
-        errorMessage.includes('Domain already exists') ||
-        errorMessage.includes('域名已在');
+      const status = error instanceof SaveRequestError ? error.status : undefined;
+      // 按状态码判定，不再匹配报错文案——文案已经 i18n 化，中英文各是一套字符串
+      const isDuplicateDomain = status === 409;
 
       if (isDuplicateDomain) {
         logger.log('Add domain skipped: domain already in portfolio');
@@ -524,7 +534,8 @@ export function useDashboardData(
       }
 
       const isNetworkError = errorMessage.includes('fetch') || errorMessage.includes('network');
-      const isAuthError = errorMessage.includes('401') || errorMessage.includes('Unauthorized');
+      const isAuthError =
+        status === 401 || errorMessage.includes('401') || errorMessage.includes('Unauthorized');
 
       if (isAuthError) {
         setError(tRef.current('common.authError') || 'Authentication failed. Please log in again.');

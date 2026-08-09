@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { DomainService } from '../../../src/lib/supabaseService'
-import { validateDomain, sanitizeDomainData } from '../../../src/lib/validation'
+import { isDuplicateDomainNameError } from '../../../src/lib/domainWriteErrors'
+import { validateDomain, sanitizeDomainData, DUPLICATE_DOMAIN_MESSAGE_KEY } from '../../../src/lib/validation'
 import { buildDomainInsertPayload } from '../../../src/lib/domainPayloads'
 import { getAuthInfoFromRequest } from '../../../src/lib/auth-helper'
 import { createAuthenticatedSupabaseClient } from '../../../src/lib/supabaseAuthClient'
@@ -111,12 +112,22 @@ export async function POST(request: NextRequest) {
       }
 
       const bulkResult = await DomainService.createDomainsWithClient(authenticatedClient, payloads)
+      if (isDuplicateDomainNameError(bulkResult.error)) {
+        // 批内自带重复，或与库里已有域名重名。整批未写入（单条 insert 语句原子）
+        return NextResponse.json({
+          error: 'Domain already exists',
+          details: [DUPLICATE_DOMAIN_MESSAGE_KEY]
+        }, {
+          status: 409,
+          headers: corsHeaders
+        })
+      }
       if (bulkResult.error) {
         const isProduction = process.env.NODE_ENV === 'production'
         console.error('Bulk domain insert failed:', bulkResult.error)
         return NextResponse.json({
           error: 'Failed to create domains',
-          ...(isProduction ? {} : { details: bulkResult.error })
+          ...(isProduction ? {} : { details: bulkResult.error.message })
         }, {
           status: 500,
           headers: corsHeaders
@@ -145,36 +156,35 @@ export async function POST(request: NextRequest) {
       })
     }
     
-    const existingDomains = await DomainService.getDomainsWithClient(authenticatedClient, userId)
-    const domainName = domain.domain_name?.toLowerCase().trim()
-    const isDuplicate = existingDomains.some(d => 
-      d.domain_name.toLowerCase().trim() === domainName
-    )
-    
-    if (isDuplicate) {
-      return NextResponse.json({ 
-        error: 'Domain already exists', 
-        details: ['This domain name is already in your portfolio']
-      }, { 
+    // 去重不再在应用层做「拉全表 → 内存比对」：那是 TOCTOU（并发两个请求会
+    // 同时通过），批量分支还完全跳过。改由 domains 上的唯一索引兜底，冲突时
+    // Postgres 报 23505，这里翻译成 409。
+    const sanitizedDomain = sanitizeDomainData(domain) as Record<string, unknown>
+    const payload = buildDomainInsertPayload(sanitizedDomain, userId)
+    const { data: newDomain, error: insertError } = await DomainService.createDomainWithClient(authenticatedClient, payload)
+
+    if (isDuplicateDomainNameError(insertError)) {
+      return NextResponse.json({
+        error: 'Domain already exists',
+        details: [DUPLICATE_DOMAIN_MESSAGE_KEY]
+      }, {
         status: 409,
         headers: corsHeaders
       })
     }
-    
-    const sanitizedDomain = sanitizeDomainData(domain) as Record<string, unknown>
-    const payload = buildDomainInsertPayload(sanitizedDomain, userId)
-    const newDomain = await DomainService.createDomainWithClient(authenticatedClient, payload)
 
-    if (!newDomain) {
-      console.error('Failed to create domain - see server logs for details')
+    if (insertError || !newDomain) {
+      const isProduction = process.env.NODE_ENV === 'production'
+      console.error('Failed to create domain:', insertError)
       return NextResponse.json({
-        error: 'Failed to create domain'
+        error: 'Failed to create domain',
+        ...(isProduction ? {} : { details: insertError?.message || 'Unknown error' })
       }, {
         status: 500,
         headers: corsHeaders
       })
     }
-    
+
     return NextResponse.json({ success: true, data: newDomain }, { headers: corsHeaders })
   } catch (error) {
     const isProduction = process.env.NODE_ENV === 'production'
