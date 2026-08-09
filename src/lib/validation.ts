@@ -25,12 +25,12 @@ const MAX_ESTIMATED_VALUE = 100000000; // $100M
 const MAX_RENEWAL_CYCLE = 10; // 10 years
 const MAX_RENEWAL_COUNT = 100; // 100 renewals
 
-// 验证域名数据
+// 验证域名数据（errors 使用 i18n 键，由前端 t() 或 translateValidationMessages 展示）
 export function validateDomain(domain: unknown): ValidationResult {
   const errors: string[] = [];
 
   if (!domain || typeof domain !== 'object' || domain === null) {
-    errors.push('域名数据格式不正确');
+    errors.push('validation.domain.invalidFormat');
     return { valid: false, errors };
   }
 
@@ -38,37 +38,37 @@ export function validateDomain(domain: unknown): ValidationResult {
 
   // 域名名称验证
   if (!domainObj.domain_name || typeof domainObj.domain_name !== 'string') {
-    errors.push('域名名称是必需的');
+    errors.push('validation.domain.nameRequired');
   } else {
     const domainName = domainObj.domain_name as string;
     if (domainName.trim().length === 0) {
-      errors.push('域名名称不能为空');
+      errors.push('validation.domain.nameEmpty');
     } else if (domainName.length > MAX_DOMAIN_NAME_LENGTH) {
-      errors.push(`域名名称长度不能超过${MAX_DOMAIN_NAME_LENGTH}个字符`);
+      errors.push('validation.domain.nameTooLong');
     } else if (!/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(domainName)) {
-      errors.push('域名格式不正确');
+      errors.push('validation.domain.nameInvalidFormat');
     }
   }
 
   // 注册商验证
   if (domainObj.registrar !== null && domainObj.registrar !== undefined) {
     if (typeof domainObj.registrar !== 'string') {
-      errors.push('注册商格式不正确');
+      errors.push('validation.domain.registrarMustBeString');
     } else if ((domainObj.registrar as string).length > MAX_REGISTRAR_LENGTH) {
-      errors.push(`注册商名称长度不能超过${MAX_REGISTRAR_LENGTH}个字符`);
+      errors.push('validation.domain.registrarTooLong');
     }
   }
 
   // 购买日期验证
   if (domainObj.purchase_date !== null && domainObj.purchase_date !== undefined) {
     if (typeof domainObj.purchase_date !== 'string') {
-      errors.push('购买日期格式不正确');
+      errors.push('validation.domain.purchaseDateInvalid');
     } else {
       const date = new Date(domainObj.purchase_date as string);
       if (isNaN(date.getTime())) {
-        errors.push('购买日期格式不正确');
+        errors.push('validation.domain.purchaseDateInvalid');
       } else if (isDateBeyondAllowedFuture(date)) {
-        errors.push(`购买日期不能是当前起 ${MAX_DATE_YEARS_IN_FUTURE} 年之后的日期`);
+        errors.push('validation.domain.purchaseDateBeyondMaxFuture');
       }
     }
   }
@@ -77,11 +77,11 @@ export function validateDomain(domain: unknown): ValidationResult {
   if (domainObj.purchase_cost !== null && domainObj.purchase_cost !== undefined) {
     const cost = Number(domainObj.purchase_cost);
     if (isNaN(cost) || !isFinite(cost)) {
-      errors.push('购买成本必须是有效数字');
+      errors.push('validation.domain.purchaseCostInvalidNumber');
     } else if (cost < 0) {
-      errors.push('购买成本必须是非负数');
+      errors.push('validation.domain.purchaseCostNonNegative');
     } else if (cost > MAX_PURCHASE_COST) {
-      errors.push(`购买成本不能超过$${MAX_PURCHASE_COST.toLocaleString()}`);
+      errors.push('validation.domain.purchaseCostExceedsMax');
     }
   }
 
@@ -89,11 +89,11 @@ export function validateDomain(domain: unknown): ValidationResult {
   if (domainObj.renewal_cost !== null && domainObj.renewal_cost !== undefined) {
     const cost = Number(domainObj.renewal_cost);
     if (isNaN(cost) || !isFinite(cost)) {
-      errors.push('续费成本必须是有效数字');
+      errors.push('validation.domain.renewalCostInvalidNumber');
     } else if (cost < 0) {
-      errors.push('续费成本必须是非负数');
+      errors.push('validation.domain.renewalCostNonNegative');
     } else if (cost > MAX_RENEWAL_COST) {
-      errors.push(`续费成本不能超过$${MAX_RENEWAL_COST.toLocaleString()}`);
+      errors.push('validation.domain.renewalCostExceedsMax');
     }
   }
 
@@ -101,11 +101,11 @@ export function validateDomain(domain: unknown): ValidationResult {
   if (domainObj.renewal_cycle !== null && domainObj.renewal_cycle !== undefined) {
     const cycle = Number(domainObj.renewal_cycle);
     if (isNaN(cycle) || !isFinite(cycle) || !Number.isInteger(cycle)) {
-      errors.push('续费周期必须是整数');
+      errors.push('validation.domain.renewalCycleMustBeInteger');
     } else if (cycle < 1) {
-      errors.push('续费周期必须大于0');
+      errors.push('validation.domain.renewalCyclePositive');
     } else if (cycle > MAX_RENEWAL_CYCLE) {
-      errors.push(`续费周期不能超过${MAX_RENEWAL_CYCLE}年`);
+      errors.push('validation.domain.renewalCycleExceedsMax');
     }
   }
 
@@ -113,22 +113,22 @@ export function validateDomain(domain: unknown): ValidationResult {
   if (domainObj.renewal_count !== null && domainObj.renewal_count !== undefined) {
     const count = Number(domainObj.renewal_count);
     if (isNaN(count) || !isFinite(count) || !Number.isInteger(count)) {
-      errors.push('续费次数必须是整数');
+      errors.push('validation.domain.renewalCountMustBeInteger');
     } else if (count < 0) {
-      errors.push('续费次数必须是非负整数');
+      errors.push('validation.domain.renewalCountNonNegative');
     } else if (count > MAX_RENEWAL_COUNT) {
-      errors.push(`续费次数不能超过${MAX_RENEWAL_COUNT}次`);
+      errors.push('validation.domain.renewalCountExceedsMax');
     }
   }
 
   // 到期日期验证
   if (domainObj.expiry_date !== null && domainObj.expiry_date !== undefined) {
     if (typeof domainObj.expiry_date !== 'string') {
-      errors.push('到期日期格式不正确');
+      errors.push('validation.domain.expiryDateInvalid');
     } else {
       const date = new Date(domainObj.expiry_date as string);
       if (isNaN(date.getTime())) {
-        errors.push('到期日期格式不正确');
+        errors.push('validation.domain.expiryDateInvalid');
       }
     }
   }
@@ -138,13 +138,13 @@ export function validateDomain(domain: unknown): ValidationResult {
   // 不限制最远过去（域名可以是 1990 年代的）。
   if (domainObj.registration_date !== null && domainObj.registration_date !== undefined && domainObj.registration_date !== '') {
     if (typeof domainObj.registration_date !== 'string') {
-      errors.push('注册日期格式不正确');
+      errors.push('validation.domain.registrationDateInvalid');
     } else {
       const d = new Date(domainObj.registration_date as string);
       if (isNaN(d.getTime())) {
-        errors.push('注册日期格式不正确');
+        errors.push('validation.domain.registrationDateInvalid');
       } else if (d.getTime() > new Date().getTime() + 24 * 60 * 60 * 1000) {
-        errors.push('注册日期不能是未来的日期');
+        errors.push('validation.domain.registrationDateInFuture');
       }
     }
   }
@@ -152,31 +152,31 @@ export function validateDomain(domain: unknown): ValidationResult {
   // 续费成本基线日（可选）
   if (domainObj.baseline_renewal_as_of !== null && domainObj.baseline_renewal_as_of !== undefined && domainObj.baseline_renewal_as_of !== '') {
     if (typeof domainObj.baseline_renewal_as_of !== 'string') {
-      errors.push('续费成本基线日格式不正确');
+      errors.push('validation.domain.baselineRenewalAsOfInvalid');
     } else {
       const d = new Date(domainObj.baseline_renewal_as_of as string);
       if (isNaN(d.getTime())) {
-        errors.push('续费成本基线日格式不正确');
+        errors.push('validation.domain.baselineRenewalAsOfInvalid');
       }
     }
   }
 
   // 状态验证
   if (!domainObj.status || typeof domainObj.status !== 'string') {
-    errors.push('域名状态是必需的');
+    errors.push('validation.domain.statusRequired');
   } else if (!['active', 'for_sale', 'sold', 'expired'].includes(domainObj.status as string)) {
-    errors.push('域名状态不正确');
+    errors.push('validation.domain.statusInvalid');
   }
 
   // 估值验证
   if (domainObj.estimated_value !== null && domainObj.estimated_value !== undefined) {
     const value = Number(domainObj.estimated_value);
     if (isNaN(value) || !isFinite(value)) {
-      errors.push('估值必须是有效数字');
+      errors.push('validation.domain.estimatedValueInvalidNumber');
     } else if (value < 0) {
-      errors.push('估值必须是非负数');
+      errors.push('validation.domain.estimatedValueNonNegative');
     } else if (value > MAX_ESTIMATED_VALUE) {
-      errors.push(`估值不能超过$${MAX_ESTIMATED_VALUE.toLocaleString()}`);
+      errors.push('validation.domain.estimatedValueExceedsMax');
     }
   }
 
@@ -190,7 +190,7 @@ export function validateDomain(domain: unknown): ValidationResult {
     const purchase = new Date(domainObj.purchase_date as string);
     const expiry = new Date(domainObj.expiry_date as string);
     if (!isNaN(purchase.getTime()) && !isNaN(expiry.getTime()) && expiry < purchase) {
-      errors.push('到期日期不能早于购买日期');
+      errors.push('validation.domain.expiryBeforePurchase');
     }
   }
   if (
@@ -202,7 +202,7 @@ export function validateDomain(domain: unknown): ValidationResult {
     const purchase = new Date(domainObj.purchase_date as string);
     const sale = new Date(domainObj.sale_date as string);
     if (!isNaN(purchase.getTime()) && !isNaN(sale.getTime()) && sale < purchase) {
-      errors.push('出售日期不能早于购买日期');
+      errors.push('validation.domain.saleBeforePurchase');
     }
   }
 
@@ -210,13 +210,14 @@ export function validateDomain(domain: unknown): ValidationResult {
   if (domainObj.tags !== null && domainObj.tags !== undefined) {
     if (Array.isArray(domainObj.tags)) {
       if (domainObj.tags.length > MAX_TAGS_COUNT) {
-        errors.push(`标签数量不能超过${MAX_TAGS_COUNT}个`);
+        errors.push('validation.domain.tagsTooMany');
       }
       domainObj.tags.forEach((tag, index) => {
+        // 竖线后是位置参数，译文里的 {0} 会被替换成第几个标签
         if (typeof tag !== 'string') {
-          errors.push(`标签${index + 1}必须是字符串`);
+          errors.push(`validation.domain.tagMustBeString|${index + 1}`);
         } else if (tag.length > MAX_TAG_LENGTH) {
-          errors.push(`标签${index + 1}长度不能超过${MAX_TAG_LENGTH}个字符`);
+          errors.push(`validation.domain.tagTooLong|${index + 1}`);
         }
       });
     } else if (typeof domainObj.tags === 'string') {
@@ -224,7 +225,7 @@ export function validateDomain(domain: unknown): ValidationResult {
       try {
         const parsedTags = JSON.parse(domainObj.tags);
         if (Array.isArray(parsedTags) && parsedTags.length > MAX_TAGS_COUNT) {
-          errors.push(`标签数量不能超过${MAX_TAGS_COUNT}个`);
+          errors.push('validation.domain.tagsTooMany');
         }
       } catch {
         // 如果不是JSON，忽略
@@ -245,17 +246,28 @@ const MAX_CATEGORY_LENGTH = 100;
 const MAX_RECEIPT_URL_LENGTH = 500;
 const VALID_CURRENCIES = ['USD'];
 
-/** 将校验结果中的 i18n 键（validation.*）转为当前语言文案；非键字符串原样返回（如域名校验仍为中文）。 */
+/**
+ * 将校验结果中的 i18n 键（validation.*）转为当前语言文案；非键字符串原样返回。
+ * 支持 `key|arg0|arg1` 形式的位置参数——译文里的 {0}/{1} 会被依次替换
+ * （目前只有标签序号用到，其余上限值直接写死在译文里，与 transaction 一致）。
+ */
 export function translateValidationMessages(
   errors: string[],
   t: (key: string) => string
 ): string[] {
   return errors.map((e) => {
-    if (e.startsWith('validation.')) {
-      const translated = t(e);
-      return translated !== e ? translated : e;
-    }
-    return e;
+    // 批量创建的报错带 `#3: ` 前缀标明是第几条；先摘掉再翻译，翻完原样补回
+    const itemMatch = /^(#\d+: )(.*)$/.exec(e);
+    const itemPrefix = itemMatch ? itemMatch[1] : '';
+    const raw = itemMatch ? itemMatch[2] : e;
+
+    if (!raw.startsWith('validation.')) return e;
+
+    const [key, ...params] = raw.split('|');
+    const translated = t(key);
+    if (translated === key) return e;
+
+    return itemPrefix + params.reduce((text, param, i) => text.split(`{${i}}`).join(param), translated);
   });
 }
 
