@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Save, Globe, Calendar, DollarSign, Tag, Loader2 } from 'lucide-react';
-import { validateDomain, sanitizeDomainData } from '../../lib/validation';
+import { validateDomain, sanitizeDomainData, translateValidationMessages } from '../../lib/validation';
 import { localCalendarDateISO } from '../../lib/localCalendarDate';
 import { DomainWithTags } from '../../types/dashboard';
 import DateInput from '../ui/DateInput';
@@ -255,7 +255,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
             <div id="domain-form-errors" className="bg-red-50 border border-red-200 rounded-lg p-4" role="alert">
               <h3 className="text-red-800 font-medium mb-2">{t('common.formErrorsHeading')}</h3>
               <ul className="text-red-700 text-sm space-y-1">
-                {validationErrors.map((error, index) => (
+                {translateValidationMessages(validationErrors, t).map((error, index) => (
                   <li key={index}>• {error}</li>
                 ))}
               </ul>
@@ -275,7 +275,9 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
                 onChange={(e) => setFormData((prev) => ({ ...prev, domain_name: e.target.value }))}
                 className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder={t('dashboard.domainNamePlaceholder')}
-                aria-invalid={validationErrors.some((e) => e.toLowerCase().includes('domain'))}
+                // 按 i18n 键判断而不是按译文文本——之前 includes('domain') 只在英文
+                // 文案下偶然成立，中文报错时 aria-invalid 永远是 false
+                aria-invalid={validationErrors.some((e) => e.startsWith('validation.domain.name'))}
               />
             </div>
 
