@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { domainCache } from '../lib/cache';
 import {
   loadDomainsFromSupabase,
@@ -72,6 +72,15 @@ export function useDashboardData(
   const [error, setError] = useState<string | null>(null);
   const [dataSource, setDataSource] = useState<'supabase' | 'cache'>('cache');
 
+  // t 只用来翻错误文案，但它的引用会随 locale / i18n isLoading 变化。若直接进
+  // useCallback 依赖，首屏 isLoading true→false 就会重建 loadDashboardData，
+  // 触发挂载 effect 再跑一遍——domains + transactions + receipts 全量重拉；
+  // 切换中英文同理。放进 ref 里读，依赖里摘掉。
+  const tRef = useRef(t);
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
+
   const loadDashboardData = useCallback(async (options: LoadOptions = {}) => {
     if (!userId) return;
 
@@ -86,7 +95,7 @@ export function useDashboardData(
         // 不打 userId 进日志——UUID 是 PII；Vercel server log 留痕没必要
         // 引入额外暴露面。如果将来真的需要按用户区分这条 error 再加 hash 后缀。
         logger.error('Dashboard load: Supabase session not ready');
-        setError(t('common.authError') || 'Please sign in again to load your data.');
+        setError(tRef.current('common.authError') || 'Please sign in again to load your data.');
         if (showLoading) setLoading(false);
         return;
       }
@@ -135,11 +144,11 @@ export function useDashboardData(
       logger.log('Data loaded from Supabase database successfully');
     } catch (error) {
       logger.error('Error loading data from Supabase:', error);
-      setError(t('common.dataLoadFailed'));
+      setError(tRef.current('common.dataLoadFailed'));
     } finally {
       if (showLoading) setLoading(false);
     }
-  }, [userId, t]);
+  }, [userId]);
 
   const saveData = useCallback(async (
     newDomains: DomainWithTags[],
@@ -167,7 +176,7 @@ export function useDashboardData(
       const refreshTok =
         liveSession?.refresh_token ?? refreshToken ?? null;
       if (!accessToken) {
-        setError(t('common.authError') || 'Please sign in again to save.');
+        setError(tRef.current('common.authError') || 'Please sign in again to save.');
         throw new Error('No access token for save');
       }
 
@@ -253,7 +262,7 @@ export function useDashboardData(
       for (const domain of changedDomains) {
         const validation = validateDomain(domain);
         if (!validation.valid) {
-          const msgs = translateValidationMessages(validation.errors, t);
+          const msgs = translateValidationMessages(validation.errors, tRef.current);
           throw new Error(`Domain validation failed: ${msgs.join(', ')}`);
         }
       }
@@ -262,7 +271,7 @@ export function useDashboardData(
         for (const transaction of changedTransactions) {
           const validation = validateTransaction(transaction);
           if (!validation.valid) {
-            const msgs = translateValidationMessages(validation.errors, t);
+            const msgs = translateValidationMessages(validation.errors, tRef.current);
             throw new Error(`Transaction validation failed: ${msgs.join(', ')}`);
           }
         }
@@ -306,7 +315,7 @@ export function useDashboardData(
         const errorData = await response.json().catch(() => ({}));
         const details = errorData.details
           ? (Array.isArray(errorData.details)
-              ? translateValidationMessages(errorData.details, t).join('; ')
+              ? translateValidationMessages(errorData.details, tRef.current).join('; ')
               : String(errorData.details))
           : (errorData.error || response.statusText);
         throw new Error(`Failed to ${op} domain: ${details}`);
@@ -446,7 +455,7 @@ export function useDashboardData(
             const errorData = await response.json().catch(() => ({}));
             const details = errorData.details
               ? (Array.isArray(errorData.details)
-                  ? translateValidationMessages(errorData.details, t).join('; ')
+                  ? translateValidationMessages(errorData.details, tRef.current).join('; ')
                   : String(errorData.details))
               : (errorData.error || response.statusText);
             throw new Error(`Failed to update transaction: ${details}`);
@@ -518,18 +527,18 @@ export function useDashboardData(
       const isAuthError = errorMessage.includes('401') || errorMessage.includes('Unauthorized');
 
       if (isAuthError) {
-        setError(t('common.authError') || 'Authentication failed. Please log in again.');
+        setError(tRef.current('common.authError') || 'Authentication failed. Please log in again.');
       } else if (isNetworkError) {
-        setError(t('common.networkError') || 'Network error. Please check your connection and try again.');
+        setError(tRef.current('common.networkError') || 'Network error. Please check your connection and try again.');
       } else if (isDuplicateDomain) {
-        setError(t('dashboard.domainAlreadyExistsDesc') || t('dashboard.domainAlreadyExists') || errorMessage);
+        setError(tRef.current('dashboard.domainAlreadyExistsDesc') || tRef.current('dashboard.domainAlreadyExists') || errorMessage);
       } else {
-        setError(t('common.dataSaveFailed') || `Failed to save data: ${errorMessage}`);
+        setError(tRef.current('common.dataSaveFailed') || `Failed to save data: ${errorMessage}`);
       }
 
       throw error;
     }
-  }, [userId, sessionToken, refreshToken, domains, transactions, t]);
+  }, [userId, sessionToken, refreshToken, domains, transactions]);
 
   const refreshData = useCallback(async () => {
     await loadDashboardData({ showLoading: true });
