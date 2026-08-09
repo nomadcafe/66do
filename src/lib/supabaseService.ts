@@ -28,24 +28,80 @@ export interface DataServiceResult<T> {
 
 // 域名相关操作
 export class DomainService {
+  /** PostgREST 默认每页有上限（常见 1000），必须分页否则第 1001 个域名之后全部读不到 */
+  private static readonly DOMAIN_PAGE_SIZE = 1000
+
+  /**
+   * 分页拉取用户全部域名。错误原样返回，由调用方决定是"当空列表"还是"报失败"——
+   * 加载路径要区分这两者，否则一次网络抖动会被当成"用户没有域名"。
+   */
+  static async listDomainsWithClient(
+    client: SupabaseClient<Database>,
+    userId: string
+  ): Promise<{ data: Domain[]; error: { message: string } | null }> {
+    const pageSize = DomainService.DOMAIN_PAGE_SIZE
+    const all: Domain[] = []
+    for (let from = 0; ; from += pageSize) {
+      // 注意：由于 Supabase 类型系统的限制，这里需要使用类型断言
+      // 实际运行时类型是正确的，只是 TypeScript 无法正确推断
+      const { data, error } = await (client
+        .from('domains')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        // created_at 可能撞车（批量导入同一毫秒写入），只按它排序时翻页会重复/漏行；
+        // 补一个 id 作为稳定 tiebreaker。
+        .order('id', { ascending: false })
+        .range(from, from + pageSize - 1) as unknown as Promise<{ data: Domain[] | null; error: { message: string } | null }>)
+
+      if (error) {
+        logger.error('Error fetching domains:', error)
+        return { data: all, error }
+      }
+      const batch = (data || []) as Domain[]
+      all.push(...batch)
+      if (batch.length < pageSize) break
+    }
+    return { data: all, error: null }
+  }
+
   static async getDomainsWithClient(
     client: SupabaseClient<Database>,
     userId: string
   ): Promise<Domain[]> {
+    const { data } = await DomainService.listDomainsWithClient(client, userId)
+    return data
+  }
+
+  /**
+   * 按 id + user_id 取单行。所有权校验/单域名读取都走这里，别再用
+   * getDomainsWithClient 拉全表再 find —— 那条路受 PostgREST 1000 行默认上限影响，
+   * 第 1001 个域名会被判成"不存在"。
+   */
+  static async getDomainByIdWithClient(
+    client: SupabaseClient<Database>,
+    id: string,
+    userId: string
+  ): Promise<Domain | null> {
+    const domainId = typeof id === 'string' ? id.trim() : ''
+    if (!domainId) return null
+
     // 注意：由于 Supabase 类型系统的限制，这里需要使用类型断言
     // 实际运行时类型是正确的，只是 TypeScript 无法正确推断
     const { data, error } = await (client
       .from('domains')
       .select('*')
+      .eq('id', domainId)
       .eq('user_id', userId)
-      .order('created_at', { ascending: false }) as unknown as Promise<{ data: Domain[] | null; error: { message: string } | null }>)
-    
+      .maybeSingle() as unknown as Promise<{ data: Domain | null; error: { message: string } | null }>)
+
     if (error) {
-      logger.error('Error fetching domains:', error)
-      return []
+      // id 不是合法 uuid 时 Postgres 会报 22P02，这里同样按"查不到"处理
+      logger.error('Error fetching domain by id:', error)
+      return null
     }
-    
-    return (data || []) as Domain[]
+
+    return (data ?? null) as Domain | null
   }
 
   static async createDomainWithClient(
@@ -362,11 +418,9 @@ export async function loadInstallmentReceiptsFromSupabase(
 // 数据加载函数
 export async function loadDomainsFromSupabase(userId: string): Promise<DataServiceResult<Domain[]>> {
   try {
-    const { data, error } = await supabase
-      .from('domains')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
+    // 走 DomainService 的分页实现：直接 select 会被 PostgREST 截断在 1000 行，
+    // dashboard 上表现为"域名凭空少了一批"。
+    const { data, error } = await DomainService.listDomainsWithClient(supabase, userId)
 
     if (error) {
       logger.error('Error loading domains from Supabase:', error)

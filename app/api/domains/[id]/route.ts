@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { DomainService } from '../../../../src/lib/supabaseService'
 import { validateDomain, sanitizeDomainData } from '../../../../src/lib/validation'
 import { buildDomainUpdatePayload } from '../../../../src/lib/domainPayloads'
+import { isDomainOwnedByUser } from '../../../../src/lib/domainOwnership'
 import { getAuthInfoFromRequest } from '../../../../src/lib/auth-helper'
 import { createAuthenticatedSupabaseClient } from '../../../../src/lib/supabaseAuthClient'
 import { getCorsHeaders, getCorsHeadersForError } from '../../../../src/lib/cors'
@@ -26,9 +27,8 @@ export async function GET(
     const corsHeaders = getCorsHeaders(request)
     const { id: domainId } = await params
     const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken, refreshToken)
-    const userDomains = await DomainService.getDomainsWithClient(authenticatedClient, userId)
-    const domain = userDomains.find(d => d.id === domainId)
-    
+    const domain = await DomainService.getDomainByIdWithClient(authenticatedClient, domainId, userId)
+
     if (!domain) {
       return NextResponse.json({ 
         error: 'Domain not found or access denied' 
@@ -119,9 +119,8 @@ export async function PUT(
     const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined
     const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken, refreshToken)
 
-    // 验证域名所有权
-    const userDomains = await DomainService.getDomainsWithClient(authenticatedClient, userId)
-    const canUpdate = userDomains.some(d => d.id === domainId)
+    // 验证域名所有权（单行查询，不受列表 1000 行上限影响）
+    const canUpdate = await isDomainOwnedByUser(authenticatedClient, domainId, userId)
 
     if (!canUpdate) {
       return NextResponse.json({
@@ -197,9 +196,8 @@ export async function DELETE(
     }
 
     const authenticatedClientForDelete = await createAuthenticatedSupabaseClient(accessToken, refreshToken)
-    const userDomains = await DomainService.getDomainsWithClient(authenticatedClientForDelete, userId)
-    const canDeleteDomain = userDomains.some(d => d.id === domainId)
-    
+    const canDeleteDomain = await isDomainOwnedByUser(authenticatedClientForDelete, domainId, userId)
+
     if (!canDeleteDomain) {
       return NextResponse.json({ 
         error: 'Domain not found or access denied' 
