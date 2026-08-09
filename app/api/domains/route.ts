@@ -83,30 +83,47 @@ export async function POST(request: NextRequest) {
           headers: corsHeaders
         })
       }
-      const createdDomains = []
-      
-      for (const domainData of domains) {
+      // 先把整批校验完再写库。逐条"校验一条写一条"的话，中途某条不合法就会
+      // 直接 return 400，而前面已经写进去的行不会回滚——客户端以为整批失败，
+      // 库里却躺着一半。
+      const validationErrors: string[] = []
+      const payloads = []
+
+      for (const [index, domainData] of domains.entries()) {
         const domainValidation = validateDomain(domainData)
         if (!domainValidation.valid) {
-          return NextResponse.json({ 
-            error: 'Domain validation failed', 
-            details: domainValidation.errors 
-          }, { 
-            status: 400,
-            headers: corsHeaders
-          })
+          validationErrors.push(...domainValidation.errors.map(e => `#${index + 1}: ${e}`))
+          continue
         }
-        
-        const sanitizedDomain = sanitizeDomainData(domainData) as Record<string, unknown>
-        const payload = buildDomainInsertPayload(sanitizedDomain, userId)
-        const newDomain = await DomainService.createDomainWithClient(authenticatedClient, payload)
 
-        if (newDomain) {
-          createdDomains.push(newDomain)
-        }
+        const sanitizedDomain = sanitizeDomainData(domainData) as Record<string, unknown>
+        payloads.push(buildDomainInsertPayload(sanitizedDomain, userId))
       }
-      
-      return NextResponse.json({ success: true, data: createdDomains }, { headers: corsHeaders })
+
+      if (validationErrors.length > 0) {
+        return NextResponse.json({
+          error: 'Domain validation failed',
+          details: validationErrors
+        }, {
+          status: 400,
+          headers: corsHeaders
+        })
+      }
+
+      const bulkResult = await DomainService.createDomainsWithClient(authenticatedClient, payloads)
+      if (bulkResult.error) {
+        const isProduction = process.env.NODE_ENV === 'production'
+        console.error('Bulk domain insert failed:', bulkResult.error)
+        return NextResponse.json({
+          error: 'Failed to create domains',
+          ...(isProduction ? {} : { details: bulkResult.error })
+        }, {
+          status: 500,
+          headers: corsHeaders
+        })
+      }
+
+      return NextResponse.json({ success: true, data: bulkResult.data }, { headers: corsHeaders })
     }
 
     // 单个域名创建
