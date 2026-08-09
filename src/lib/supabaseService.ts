@@ -124,6 +124,32 @@ export class DomainService {
     return data as Domain
   }
 
+  /**
+   * 批量创建。单次 insert 是一条语句 = 一个隐式事务，要么整批成功要么整批回滚；
+   * 循环里逐条 insert 则会在中途失败时留下"客户端收到 400、库里躺着半批"的脏状态。
+   */
+  static async createDomainsWithClient(
+    client: SupabaseClient<Database>,
+    domains: DomainInsert[]
+  ): Promise<{ data: Domain[]; error: string | null }> {
+    if (domains.length === 0) return { data: [], error: null }
+
+    // 注意：由于 Supabase 类型系统的限制，这里需要使用类型断言
+    // 实际运行时类型是正确的，只是 TypeScript 无法正确推断
+    const { data, error } = await (client
+      .from('domains')
+      .insert(domains as never)
+      .select() as unknown as Promise<{ data: Domain[] | null; error: { message: string; details?: string } | null }>)
+
+    if (error) {
+      const errMsg = error?.message || error?.details || 'Unknown error'
+      logger.error('Error creating domains in bulk:', errMsg)
+      return { data: [], error: errMsg }
+    }
+
+    return { data: (data || []) as Domain[], error: null }
+  }
+
   static async updateDomainWithClient(
     client: SupabaseClient<Database>,
     id: string,
@@ -248,6 +274,30 @@ export class TransactionService {
     }
 
     return { data, error: null }
+  }
+
+  /**
+   * 批量创建。同 createDomainsWithClient：一次调用一个隐式事务，避免半批写入。
+   * 沿用单条版的 upsert(onConflict=id) 语义——重发整批不会被 PK 冲突砸脸。
+   */
+  static async createTransactionsWithClient(
+    client: SupabaseClient<Database>,
+    transactions: TransactionInsert[]
+  ): Promise<{ data: Transaction[]; error: string | null }> {
+    if (transactions.length === 0) return { data: [], error: null }
+
+    const { data, error } = await (client
+      .from('domain_transactions')
+      .upsert(transactions as never, { onConflict: 'id' })
+      .select() as unknown as Promise<{ data: Transaction[] | null; error: { message: string; details?: string } | null }>)
+
+    if (error) {
+      const errMsg = error?.message || error?.details || 'Unknown error'
+      logger.error('Error creating transactions in bulk:', errMsg)
+      return { data: [], error: errMsg }
+    }
+
+    return { data: (data || []) as Transaction[], error: null }
   }
 
   static async updateTransactionWithClient(
