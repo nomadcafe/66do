@@ -426,59 +426,6 @@ export function validateTransaction(transaction: unknown): ValidationResult {
   };
 }
 
-// 验证域名名称格式
-export function isValidDomainName(domainName: string): boolean {
-  const domainRegex = /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  return domainRegex.test(domainName);
-}
-
-// 验证金额格式
-export function isValidAmount(amount: number): boolean {
-  return typeof amount === 'number' && amount >= 0 && !isNaN(amount) && isFinite(amount);
-}
-
-// 验证日期格式
-export function isValidDate(dateString: string): boolean {
-  const date = new Date(dateString);
-  return !isNaN(date.getTime());
-}
-
-// 验证邮箱格式
-export function isValidEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-}
-
-// 验证密码强度
-export function validatePassword(password: string): ValidationResult {
-  const errors: string[] = [];
-
-  if (password.length < 8) {
-    errors.push('密码至少需要8个字符');
-  }
-
-  if (!/[A-Z]/.test(password)) {
-    errors.push('密码必须包含至少一个大写字母');
-  }
-
-  if (!/[a-z]/.test(password)) {
-    errors.push('密码必须包含至少一个小写字母');
-  }
-
-  if (!/\d/.test(password)) {
-    errors.push('密码必须包含至少一个数字');
-  }
-
-  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-    errors.push('密码必须包含至少一个特殊字符');
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors
-  };
-}
-
 // 清理和标准化数据
 export function sanitizeDomainData(domain: unknown): Record<string, unknown> {
   if (!domain || typeof domain !== 'object' || domain === null) {
