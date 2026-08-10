@@ -453,13 +453,9 @@ export function validateTransaction(transaction: unknown): ValidationResult {
 const MAX_RECEIPT_PERIOD_NO = 600;
 
 /**
- * 分期收款校验。
- *
- * 收款目前只能从 AddReceiptModal 直连 Supabase 写入（没有
- * /api/installment-receipts 端点）。RLS 保证了只能写自己名下的行，但此前没有
- * 任何字段校验——填错一笔又没有编辑/删除 UI，用户在界面上无法纠正。
- *
- * 刻意写成与运行位置无关的纯函数：将来补上路由时原样在服务端复用即可。
+ * 分期收款校验。客户端（ReceiptsModal）和服务端
+ * （/api/installment-receipts）跑的是同一个函数——前者为了省掉一次必然失败
+ * 的往返，后者才是真正说了算的那道。
  */
 export function validateInstallmentReceipt(receipt: unknown): ValidationResult {
   const errors: string[] = [];

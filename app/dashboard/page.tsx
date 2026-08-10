@@ -10,7 +10,7 @@ import DomainList from '../../src/components/domain/DomainList';
 import DomainForm from '../../src/components/domain/DomainForm';
 import TransactionList from '../../src/components/transaction/TransactionList';
 import TransactionForm from '../../src/components/transaction/TransactionForm';
-import AddReceiptModal from '../../src/components/transaction/AddReceiptModal';
+import ReceiptsModal from '../../src/components/transaction/ReceiptsModal';
 import MobileNavigation from '../../src/components/layout/MobileNavigation';
 import ShareModal from '../../src/components/share/ShareModal';
 import SaleSuccessModal from '../../src/components/share/SaleSuccessModal';
@@ -164,7 +164,7 @@ export default function DashboardPage() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [pendingDeleteDomainId, setPendingDeleteDomainId] = useState<string | null>(null);
   const [pendingDeleteTransactionId, setPendingDeleteTransactionId] = useState<string | null>(null);
-  const [addReceiptTarget, setAddReceiptTarget] = useState<TransactionWithRequiredFields | null>(null);
+  const [receiptsTarget, setReceiptsTarget] = useState<TransactionWithRequiredFields | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
   
   // 使用自定义Hooks管理数据和操作
@@ -970,7 +970,7 @@ export default function DashboardPage() {
                 onReviewStuck: handleReviewStuck,
                 onReviewExpiring: handleReviewExpiring,
                 onReviewReceiptsDue: handleReviewReceiptsDue,
-                onAddReceipt: setAddReceiptTarget,
+                onOpenReceipts: setReceiptsTarget,
               })}
             />
 
@@ -1025,7 +1025,7 @@ export default function DashboardPage() {
               onEdit={transactionOps.handleEditTransaction}
               onDelete={setPendingDeleteTransactionId}
               onAdd={transactionOps.handleAddTransaction}
-              onAddReceipt={setAddReceiptTarget}
+              onOpenReceipts={setReceiptsTarget}
               receiptsDueIds={receiptsDueIdSet}
             />
           </div>
@@ -1086,22 +1086,22 @@ export default function DashboardPage() {
         }}
       />
 
-      <AddReceiptModal
-        isOpen={!!addReceiptTarget}
-        onClose={() => setAddReceiptTarget(null)}
+      <ReceiptsModal
+        isOpen={!!receiptsTarget}
+        onClose={() => setReceiptsTarget(null)}
         // 用刷新后列表里的那一行，而不是点击时的快照——否则增删收款后
         // refreshData() 更新了 transactions，弹窗里的收款列表还是旧的。
         transaction={
-          addReceiptTarget
-            ? transactions.find((t) => t.id === addReceiptTarget.id) ?? addReceiptTarget
+          receiptsTarget
+            ? transactions.find((t) => t.id === receiptsTarget.id) ?? receiptsTarget
             : null
         }
         domainName={
-          addReceiptTarget
-            ? domains.find((d) => d.id === addReceiptTarget.domain_id)?.domain_name
+          receiptsTarget
+            ? domains.find((d) => d.id === receiptsTarget.domain_id)?.domain_name
             : undefined
         }
-        onAdded={async () => {
+        onChanged={async () => {
           await refreshData();
         }}
       />
