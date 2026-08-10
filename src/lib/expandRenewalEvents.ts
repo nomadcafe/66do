@@ -34,6 +34,7 @@
  */
 
 import type { TransactionWithRequiredFields } from '../types/transaction';
+import { renewTxsForDomain } from './txIndex';
 
 export type RenewalEventSource = 'archive' | 'transaction' | 'projected';
 
@@ -93,8 +94,8 @@ export function expandRenewalEvents(
   let postBaselineTxCount = 0;
   let postBaselineTotalYears = 0;
   if (baseline) {
-    for (const t of transactions) {
-      if (t.domain_id !== domain.id || t.type !== 'renew') continue;
+    // 走索引：这个函数按域名循环调用，全扫交易就是 O(域名 × 交易)
+    for (const t of renewTxsForDomain(transactions, domain.id)) {
       const d = String(t.date).slice(0, 10);
       if (d.length < 10) continue;
       if (d >= baseline) {
@@ -140,8 +141,7 @@ export function expandRenewalEvents(
   // basis books — otherwise this chart could show more renewal spend than
   // the cost basis ever recorded.
   if (baseline) {
-    for (const t of transactions) {
-      if (t.domain_id !== domain.id || t.type !== 'renew') continue;
+    for (const t of renewTxsForDomain(transactions, domain.id)) {
       const d = String(t.date).slice(0, 10);
       if (d.length < 10 || d < baseline) continue;
       const txDate = parseLocalDate(t.date);

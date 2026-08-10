@@ -3,6 +3,7 @@ import { DomainWithTags, TransactionWithRequiredFields } from '../types/dashboar
 import { sellGrossUSD, sellNetUSD } from './sellProceeds';
 import { totalHoldingCostForDomain } from './renewalCostBasis';
 import { expandRenewalEvents } from './expandRenewalEvents';
+import { txsForDomain } from './txIndex';
 
 export type { SellProceedsFields } from './sellProceeds';
 export { sellGrossUSD, sellNetUSD } from './sellProceeds';
@@ -274,13 +275,9 @@ export function calculateYearlyRenewalVsProfit(
     const purchaseY = calendarYearFromIso(d.purchase_date, refYear);
     if (!Number.isFinite(purchaseY)) continue;
 
-    const buyInPurchaseYear = transactions
-      .filter(
-        (t) =>
-          t.domain_id === d.id &&
-          t.type === 'buy' &&
-          txCalendarYear(t) === purchaseY
-      )
+    // 走索引而不是全扫：这在按域名的循环里，全扫就是 O(域名 × 交易)
+    const buyInPurchaseYear = txsForDomain(transactions, d.id)
+      .filter((t) => t.type === 'buy' && txCalendarYear(t) === purchaseY)
       .reduce((sum, t) => sum + amountUSD(t), 0);
 
     if (buyInPurchaseYear === 0 && (d.purchase_cost || 0) > 0) {
