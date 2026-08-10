@@ -61,7 +61,16 @@ export async function getAuthInfoFromRequest(request: NextRequest): Promise<{ us
       }
     }
 
-    logger.error('Error getting user from token:', error);
+    // access token 过期 / 失效、且没有可用 refresh token —— 这是完全正常的
+    // 路径（客户端随后会去刷新或重新登录），不是服务端故障。logger.error 在
+    // prod 也输出（设计如此），用它会被日常过期刷屏，真正的故障反而被淹没。
+    // 只有非 401/403 的失败（Supabase 挂了、网络错误）才算异常。
+    const status = (error as { status?: number } | null)?.status;
+    if (status === 401 || status === 403) {
+      logger.debug('Auth rejected: access token invalid or expired', { status });
+    } else {
+      logger.error('Error getting user from token:', error);
+    }
     return null;
   } catch (error) {
     logger.error('Error in getAuthInfoFromRequest:', error);
