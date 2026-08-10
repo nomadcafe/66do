@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { domainCache } from '../lib/cache';
 import {
   loadDomainsFromSupabase,
   loadInstallmentReceiptsFromSupabase,
@@ -64,7 +63,6 @@ interface UseDashboardDataReturn {
   transactions: TransactionWithRequiredFields[];
   loading: boolean;
   error: string | null;
-  dataSource: 'supabase' | 'cache';
   setError: (error: string | null) => void;
   loadDashboardData: (options?: LoadOptions) => Promise<void>;
   saveData: (newDomains: DomainWithTags[], newTransactions: TransactionWithRequiredFields[], options?: { domainsOnly?: boolean }) => Promise<void>;
@@ -81,7 +79,6 @@ export function useDashboardData(
   const [transactions, setTransactions] = useState<TransactionWithRequiredFields[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dataSource, setDataSource] = useState<'supabase' | 'cache'>('cache');
 
   // t 只用来翻错误文案，但它的引用会随 locale / i18n isLoading 变化。若直接进
   // useCallback 依赖，首屏 isLoading true→false 就会重建 loadDashboardData，
@@ -149,9 +146,6 @@ export function useDashboardData(
       });
       setDomains(typedDomains);
       setTransactions(typedTransactions);
-      setDataSource('supabase');
-      domainCache.cacheDomains(userId, domainsResult.data || []);
-      domainCache.cacheTransactions(userId, transactionsResult.data || []);
       logger.log('Data loaded from Supabase database successfully');
     } catch (error) {
       logger.error('Error loading data from Supabase:', error);
@@ -175,7 +169,6 @@ export function useDashboardData(
       : mergeRenewTransactionDomainUpdates(newDomains, newTransactions, transactions);
 
     // 先乐观更新，再校验与持久化：新增/编辑后立即反映到 UI
-    domainCache.invalidateUserCache(userId);
     setDomains(domainsForSave);
     if (!domainsOnly) setTransactions(newTransactions);
 
@@ -528,10 +521,7 @@ export function useDashboardData(
         logger.error('Error saving data to Supabase:', error);
       }
 
-      if (userId) {
-        domainCache.invalidateUserCache(userId);
-        // 保存失败时不重新拉取，保留当前列表和乐观更新，用户可重试或刷新
-      }
+      // 保存失败时不重新拉取，保留当前列表和乐观更新，用户可重试或刷新
 
       const isNetworkError = errorMessage.includes('fetch') || errorMessage.includes('network');
       const isAuthError =
@@ -570,7 +560,6 @@ export function useDashboardData(
     transactions,
     loading,
     error,
-    dataSource,
     setError,
     loadDashboardData,
     saveData,

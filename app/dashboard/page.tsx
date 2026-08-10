@@ -488,13 +488,6 @@ export default function DashboardPage() {
     : trendWindow === '1Y' ? t('dashboard.last12Months')
     : t('dashboard.allTime');
 
-  // Headline number for the health card: matches the active window so the big number aligns with the sparkline.
-  // For 'All' we use the canonical totalRevenue (not the 60-month-capped series sum).
-  const windowedRevenue = useMemo(() => {
-    if (trendWindow === 'All') return stats.totalRevenue;
-    return monthlyRevenueSeries.reduce((sum, v) => sum + v, 0);
-  }, [trendWindow, stats.totalRevenue, monthlyRevenueSeries]);
-
   // Realized P&L 按月聚合的增量（用于 sparkline）。直接复用 lib，与 IA 黄线同源。
   const realizedPnLMap = useMemo(
     () => realizedPnLByMonth(domains, transactionsForMetrics),
