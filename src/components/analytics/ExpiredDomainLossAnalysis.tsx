@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react';
 import { calculateExpiredDomainLoss } from '../../lib/financialCalculations';
 import { useI18nContext } from '../../contexts/I18nProvider';
-import { TrendingDown, Hash, Scale, AlertTriangle, CheckCircle } from 'lucide-react';
+import { TrendingDown, Hash, Scale, CheckCircle } from 'lucide-react';
 import type { TransactionWithRequiredFields } from '../../types/transaction';
 
 interface ExpiredDomainLossAnalysisProps {

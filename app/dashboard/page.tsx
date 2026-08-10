@@ -55,7 +55,6 @@ import { totalRealizedPnL, realizedPnLByMonth, portfolioAtCost } from '../../src
 import { getReceiptsDueSoon } from '../../src/lib/installmentDue';
 import { mergeCsvImportWithExisting } from '../../src/lib/csvFormats/mergeWithExisting';
 import {
-  Plus,
   AlertTriangle,
   X,
   Globe,
