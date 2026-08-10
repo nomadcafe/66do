@@ -143,6 +143,25 @@ export function validateDomain(domain: unknown): ValidationResult {
     }
   }
 
+  // 下次续费日（可选）。可以在过去——过期未续的域名就是这种状态；只挡格式
+  // 错误和超出注册上限的未来日期，口径与 expiry_date 一致。
+  if (
+    domainObj.next_renewal_date !== null &&
+    domainObj.next_renewal_date !== undefined &&
+    domainObj.next_renewal_date !== ''
+  ) {
+    if (typeof domainObj.next_renewal_date !== 'string') {
+      errors.push('validation.domain.nextRenewalDateInvalid');
+    } else {
+      const date = new Date(domainObj.next_renewal_date as string);
+      if (isNaN(date.getTime())) {
+        errors.push('validation.domain.nextRenewalDateInvalid');
+      } else if (isDateBeyondAllowedFuture(date)) {
+        errors.push('validation.domain.nextRenewalDateBeyondMaxFuture');
+      }
+    }
+  }
+
   // 注册日期（可选）：域名在 registrar 那边的原始注册日，跟 purchase_date
   // 不同（aftermarket 买入时差几年都正常）。只检查格式合法 + 不在未来；
   // 不限制最远过去（域名可以是 1990 年代的）。
