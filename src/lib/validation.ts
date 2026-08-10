@@ -430,6 +430,95 @@ export function validateTransaction(transaction: unknown): ValidationResult {
   };
 }
 
+/** 期数上限：60 期月付已是市面上最长的分期方案，600 留足余量，再大基本是误填 */
+const MAX_RECEIPT_PERIOD_NO = 600;
+
+/**
+ * 分期收款校验。
+ *
+ * 收款目前只能从 AddReceiptModal 直连 Supabase 写入（没有
+ * /api/installment-receipts 端点）。RLS 保证了只能写自己名下的行，但此前没有
+ * 任何字段校验——填错一笔又没有编辑/删除 UI，用户在界面上无法纠正。
+ *
+ * 刻意写成与运行位置无关的纯函数：将来补上路由时原样在服务端复用即可。
+ */
+export function validateInstallmentReceipt(receipt: unknown): ValidationResult {
+  const errors: string[] = [];
+
+  if (!receipt || typeof receipt !== 'object') {
+    errors.push('validation.receipt.invalidFormat');
+    return { valid: false, errors };
+  }
+
+  const receiptObj = receipt as Record<string, unknown>;
+
+  // 所属交易
+  if (
+    !receiptObj.transaction_id ||
+    typeof receiptObj.transaction_id !== 'string' ||
+    receiptObj.transaction_id.trim().length === 0
+  ) {
+    errors.push('validation.receipt.transactionIdRequired');
+  }
+
+  // 到账日。允许未来日期——UI 支持提前登记下一期，默认值就是「上一期 + 1 个月」
+  if (!receiptObj.received_date || typeof receiptObj.received_date !== 'string') {
+    errors.push('validation.receipt.dateRequired');
+  } else {
+    const date = new Date(receiptObj.received_date as string);
+    if (isNaN(date.getTime())) {
+      errors.push('validation.receipt.dateInvalid');
+    } else if (isDateBeyondAllowedFuture(date)) {
+      errors.push('validation.receipt.dateBeyondMaxFuture');
+    }
+  }
+
+  // 金额。负数是合法的——表示退款 / 中断分期（见 add_installment_receipts.sql）；
+  // 0 则没有任何意义，只会在报表里制造一条空事件。
+  if (receiptObj.amount === null || receiptObj.amount === undefined || receiptObj.amount === '') {
+    errors.push('validation.receipt.amountRequired');
+  } else {
+    const amount = Number(receiptObj.amount);
+    if (isNaN(amount) || !isFinite(amount)) {
+      errors.push('validation.receipt.amountInvalidNumber');
+    } else if (amount === 0) {
+      errors.push('validation.receipt.amountNonZero');
+    } else if (Math.abs(amount) > MAX_TRANSACTION_AMOUNT) {
+      errors.push('validation.receipt.amountExceedsMax');
+    }
+  }
+
+  // 期数（可选）
+  if (
+    receiptObj.period_no !== null &&
+    receiptObj.period_no !== undefined &&
+    receiptObj.period_no !== ''
+  ) {
+    const periodNo = Number(receiptObj.period_no);
+    if (isNaN(periodNo) || !isFinite(periodNo) || !Number.isInteger(periodNo)) {
+      errors.push('validation.receipt.periodNoMustBeInteger');
+    } else if (periodNo < 1) {
+      errors.push('validation.receipt.periodNoPositive');
+    } else if (periodNo > MAX_RECEIPT_PERIOD_NO) {
+      errors.push('validation.receipt.periodNoExceedsMax');
+    }
+  }
+
+  // 备注
+  if (receiptObj.notes !== null && receiptObj.notes !== undefined) {
+    if (typeof receiptObj.notes !== 'string') {
+      errors.push('validation.receipt.notesMustBeString');
+    } else if (receiptObj.notes.length > MAX_NOTES_LENGTH) {
+      errors.push('validation.receipt.notesTooLong');
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+}
+
 // 清理和标准化数据
 export function sanitizeDomainData(domain: unknown): Record<string, unknown> {
   if (!domain || typeof domain !== 'object' || domain === null) {
