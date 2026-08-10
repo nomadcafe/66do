@@ -100,7 +100,13 @@ export function calculatePlatformFee(config: PlatformFeeConfig): PlatformFeeResu
       );
 
     case 'spaceship_installment':
-      return calculateSpaceshipInstallmentFee(sellerAmount);
+      // sellerAmount 到这里其实是分期总额（调用方按 installmentAmount × period 传入），
+      // 与 calculateCustomerTotalFromInstallment 的 total-sale 路径同口径。
+      // 旧实现在这里用 sellerAmount / (1 − 5%) 反推，与那条路径给出不同答案。
+      return calculateInstallmentFeeFromTotalSale(
+        sellerAmount,
+        feeRateForTotalSaleInstallmentPath('spaceship_installment')
+      );
 
     case 'escrow_installment':
       return calculateEscrowInstallmentFee(
@@ -424,18 +430,6 @@ function feeRateForTotalSaleInstallmentPath(
     return STANDARD_INSTALLMENT_TOTAL_SALE_FEE_RATE;
   }
   return 0.05;
-}
-
-/**
- * Spaceship 分期：平台费 = 分期总额 × 5%
- */
-function calculateSpaceshipInstallmentFeeFromTotalSale(totalSaleAmount: number): PlatformFeeResult {
-  return calculateInstallmentFeeFromTotalSale(totalSaleAmount, 0.05);
-}
-
-/** @deprecated 旧逻辑用 sellerAmount 反推会错；Spaceship 应使用 calculateSpaceshipInstallmentFeeFromTotalSale */
-function calculateSpaceshipInstallmentFee(sellerAmount: number): PlatformFeeResult {
-  return calculateStandardFee(sellerAmount, 0.05);
 }
 
 /**
