@@ -1,11 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { X, DollarSign, AlertCircle, CheckCircle } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { X, DollarSign, AlertCircle, CheckCircle, Pencil, Trash2 } from 'lucide-react';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { TransactionWithRequiredFields } from '../../types/dashboard';
 import { supabase } from '../../lib/supabase';
-import { InstallmentReceiptService } from '../../lib/supabaseService';
 import { validateInstallmentReceipt, translateValidationMessages } from '../../lib/validation';
 import { logger } from '../../lib/logger';
 
@@ -16,8 +15,6 @@ interface AddReceiptModalProps {
   transaction: TransactionWithRequiredFields | null;
   /** 域名展示用（可选）。 */
   domainName?: string;
-  /** 用户 ID — 写入 RLS scoped 行。 */
-  userId: string;
   /** 写入成功后调用——通常触发 dashboard refresh。 */
   onAdded: () => void | Promise<void>;
 }
@@ -54,7 +51,6 @@ export default function AddReceiptModal({
   onClose,
   transaction,
   domainName,
-  userId,
   onAdded,
 }: AddReceiptModalProps) {
   const { t } = useI18nContext();
@@ -64,6 +60,13 @@ export default function AddReceiptModal({
   const [notes, setNotes] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** 非空表示正在编辑这条收款，空表示新增 */
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const receipts = useMemo(
+    () => [...(transaction?.receipts ?? [])].sort((a, b) => a.received_date.localeCompare(b.received_date)),
+    [transaction]
+  );
 
   const defaults = useMemo(() => {
     const periodCount = transaction?.receipts?.length ?? 0;
@@ -74,14 +77,22 @@ export default function AddReceiptModal({
     };
   }, [transaction]);
 
-  useEffect(() => {
-    if (!isOpen) return;
+  const resetToNew = useCallback(() => {
+    setEditingId(null);
     setReceivedDate(defaults.date);
     setAmount(defaults.amount);
     setPeriodNo(defaults.periodNo);
     setNotes('');
     setError(null);
-  }, [isOpen, defaults]);
+  }, [defaults]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    resetToNew();
+    // 只在打开时重置。resetToNew 依赖 defaults，而 defaults 会随 transaction
+    // 刷新而变——若把它列进依赖，每次增删收款后正在编辑的表单会被冲掉。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -102,18 +113,37 @@ export default function AddReceiptModal({
 
   if (!isOpen || !transaction) return null;
 
+  /** 收款写入全部走 /api/installment-receipts —— 服务端会再校验一遍，并确认
+   *  父交易确实属于当前用户（RLS 只保证 user_id 列是自己的，拦不住把收款挂到
+   *  别人的 transaction_id 上）。 */
+  const authedFetch = async (url: string, init: RequestInit) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session?.access_token ?? ''}`,
+    };
+    if (session?.refresh_token) headers['X-Refresh-Token'] = session.refresh_token;
+    return fetch(url, { ...init, headers });
+  };
+
+  const readError = async (response: Response, fallbackKey: string) => {
+    const body = await response.json().catch(() => ({}));
+    const details = Array.isArray(body?.details)
+      ? translateValidationMessages(body.details, t).join('; ')
+      : body?.details || body?.error;
+    return details || t(fallbackKey);
+  };
+
   const handleSubmit = async () => {
     const receipt = {
       transaction_id: transaction.id,
-      user_id: userId,
       received_date: receivedDate,
       amount,
       period_no: periodNo > 0 ? periodNo : null,
       notes: notes.trim() || null,
     };
 
-    // 这里是收款唯一的写入口，且没有编辑/删除 UI——填错一笔用户自己改不回来，
-    // 所以校验必须在写库之前拦住，而不是等报表里看出数字不对。
+    // 客户端先拦一道，省掉一次必然失败的往返；服务端跑的是同一个函数
     const validation = validateInstallmentReceipt(receipt);
     if (!validation.valid) {
       setError(translateValidationMessages(validation.errors, t).join('; '));
@@ -123,18 +153,62 @@ export default function AddReceiptModal({
     setIsProcessing(true);
     setError(null);
     try {
-      const { error: insertError } = await InstallmentReceiptService.createReceiptWithClient(
-        supabase,
-        receipt
-      );
-      if (insertError) {
-        throw new Error(insertError);
+      const response = editingId
+        ? await authedFetch(`/api/installment-receipts/${editingId}`, {
+            method: 'PUT',
+            body: JSON.stringify(receipt),
+          })
+        : await authedFetch('/api/installment-receipts', {
+            method: 'POST',
+            body: JSON.stringify(receipt),
+          });
+
+      if (!response.ok) {
+        throw new Error(
+          await readError(response, editingId ? 'transaction.receiptUpdateFailed' : 'transaction.receiptAddFailed')
+        );
+      }
+
+      await onAdded();
+      // 编辑完回到「新增」态并留在弹窗里，方便接着录下一期；新增则沿用原来的
+      // 「加完即关」行为。
+      if (editingId) resetToNew();
+      else onClose();
+    } catch (err) {
+      logger.error('Failed to save installment receipt:', err);
+      setError(err instanceof Error ? err.message : t('transaction.receiptAddFailed'));
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleEdit = (receipt: NonNullable<TransactionWithRequiredFields['receipts']>[number]) => {
+    setEditingId(receipt.id);
+    setReceivedDate(receipt.received_date.slice(0, 10));
+    setAmount(Number(receipt.amount));
+    setPeriodNo(receipt.period_no ?? 0);
+    setNotes(receipt.notes ?? '');
+    setError(null);
+  };
+
+  const handleDelete = async (receiptId: string) => {
+    if (!window.confirm(t('transaction.confirmDeleteReceipt'))) return;
+
+    setIsProcessing(true);
+    setError(null);
+    try {
+      const response = await authedFetch(`/api/installment-receipts/${receiptId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error(await readError(response, 'transaction.receiptDeleteFailed'));
       }
       await onAdded();
-      onClose();
+      // 删掉的正是在编辑的那条：表单回到新增态，否则会 PUT 到一个已删除的 id
+      if (editingId === receiptId) resetToNew();
     } catch (err) {
-      logger.error('Failed to add installment receipt:', err);
-      setError(err instanceof Error ? err.message : t('transaction.receiptAddFailed'));
+      logger.error('Failed to delete installment receipt:', err);
+      setError(err instanceof Error ? err.message : t('transaction.receiptDeleteFailed'));
     } finally {
       setIsProcessing(false);
     }
@@ -185,6 +259,81 @@ export default function AddReceiptModal({
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
               <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
               <p className="text-sm font-medium text-red-900 flex-1">{error}</p>
+            </div>
+          )}
+
+          {/* 已录收款：此前完全没有列表，录错一笔在界面上无法纠正 */}
+          <div>
+            <h4 className="text-sm font-medium text-stone-700 mb-2">
+              {t('transaction.receiptsList')}
+            </h4>
+            {receipts.length === 0 ? (
+              <p className="text-sm text-stone-500 py-2">{t('transaction.noReceipts')}</p>
+            ) : (
+              <ul className="divide-y divide-stone-200 border border-stone-200 rounded-lg max-h-48 overflow-y-auto">
+                {receipts.map((receipt) => (
+                  <li
+                    key={receipt.id}
+                    className={`flex items-center gap-2 px-3 py-2 text-sm ${
+                      editingId === receipt.id ? 'bg-emerald-50' : ''
+                    }`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-stone-900 tabular-nums">{receipt.received_date.slice(0, 10)}</span>
+                        <span
+                          className={`font-medium tabular-nums ${
+                            Number(receipt.amount) < 0 ? 'text-rose-600' : 'text-emerald-700'
+                          }`}
+                        >
+                          {Number(receipt.amount).toLocaleString(undefined, {
+                            style: 'currency',
+                            currency: transaction.currency || 'USD',
+                          })}
+                        </span>
+                        {receipt.period_no != null && (
+                          <span className="text-xs text-stone-500">#{receipt.period_no}</span>
+                        )}
+                      </div>
+                      {receipt.notes && (
+                        <p className="text-xs text-stone-500 truncate">{receipt.notes}</p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleEdit(receipt)}
+                      disabled={isProcessing}
+                      aria-label={`${t('common.edit')} ${receipt.received_date.slice(0, 10)}`}
+                      className="shrink-0 p-1.5 rounded text-stone-500 hover:text-stone-900 hover:bg-stone-100 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(receipt.id)}
+                      disabled={isProcessing}
+                      aria-label={`${t('common.delete')} ${receipt.received_date.slice(0, 10)}`}
+                      className="shrink-0 p-1.5 rounded text-stone-500 hover:text-rose-700 hover:bg-rose-50 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {editingId && (
+            <div className="flex items-center justify-between gap-3 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2">
+              <span className="text-sm text-emerald-900">{t('transaction.editingReceipt')}</span>
+              <button
+                type="button"
+                onClick={resetToNew}
+                disabled={isProcessing}
+                className="text-sm font-medium text-emerald-800 underline disabled:opacity-50"
+              >
+                {t('transaction.switchToAddReceipt')}
+              </button>
             </div>
           )}
 
@@ -270,7 +419,13 @@ export default function AddReceiptModal({
             ) : (
               <>
                 <CheckCircle className="h-4 w-4" />
-                <span>{isRefund ? t('transaction.recordRefund') : t('transaction.recordReceipt')}</span>
+                <span>
+                  {editingId
+                    ? t('common.save')
+                    : isRefund
+                      ? t('transaction.recordRefund')
+                      : t('transaction.recordReceipt')}
+                </span>
               </>
             )}
           </button>

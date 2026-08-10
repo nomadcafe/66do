@@ -1090,13 +1090,18 @@ export default function DashboardPage() {
       <AddReceiptModal
         isOpen={!!addReceiptTarget}
         onClose={() => setAddReceiptTarget(null)}
-        transaction={addReceiptTarget}
+        // 用刷新后列表里的那一行，而不是点击时的快照——否则增删收款后
+        // refreshData() 更新了 transactions，弹窗里的收款列表还是旧的。
+        transaction={
+          addReceiptTarget
+            ? transactions.find((t) => t.id === addReceiptTarget.id) ?? addReceiptTarget
+            : null
+        }
         domainName={
           addReceiptTarget
             ? domains.find((d) => d.id === addReceiptTarget.domain_id)?.domain_name
             : undefined
         }
-        userId={user?.id ?? ''}
         onAdded={async () => {
           await refreshData();
         }}
