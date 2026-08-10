@@ -80,6 +80,19 @@ export function changelogPageMetadata(locale: HomeLocale): Metadata {
 export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
   zh: [
     {
+      version: '2026-08-10',
+      date: '2026-08-10',
+      items: [
+        '修复分期收款的一些 bug。',
+        '优化财务指标、仪表板等。',
+        '修复域名重复添加的问题。',
+        '优化批量导入的可靠性。',
+        '修复英文界面下出现中文提示的问题。',
+        '收紧日期与金额的校验规则。',
+        '修复大量域名时无法编辑或删除的问题。',
+      ],
+    },
+    {
       version: '2026-05-20',
       date: '2026-05-20',
       items: [
@@ -178,6 +191,19 @@ export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
     },
   ],
   en: [
+    {
+      version: '2026-08-10',
+      date: '2026-08-10',
+      items: [
+        'Fixed several installment receipt bugs.',
+        'Performance improvements to financial metrics, the dashboard, and more.',
+        'Fixed duplicate domains being added.',
+        'Improved bulk import reliability.',
+        'Fixed Chinese text appearing in the English UI.',
+        'Tightened date and amount validation.',
+        'Fixed domains being uneditable in large portfolios.',
+      ],
+    },
     {
       version: '2026-05-20',
       date: '2026-05-20',
