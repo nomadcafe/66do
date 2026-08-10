@@ -389,6 +389,30 @@ export class InstallmentReceiptService {
     return all
   }
 
+  /** 按 id + user_id 取单行。PUT / DELETE 用它区分「不存在」和「不是你的」。 */
+  static async getReceiptByIdWithClient(
+    client: SupabaseClient<Database>,
+    id: string,
+    userId: string
+  ): Promise<InstallmentReceiptRow | null> {
+    const receiptId = typeof id === 'string' ? id.trim() : ''
+    if (!receiptId) return null
+
+    const { data, error } = await (client
+      .from('installment_receipts')
+      .select('*')
+      .eq('id', receiptId)
+      .eq('user_id', userId)
+      .maybeSingle() as unknown as Promise<{ data: InstallmentReceiptRow | null; error: { message: string } | null }>)
+
+    if (error) {
+      // id 不是合法 uuid 时 Postgres 会报 22P02，这里同样按"查不到"处理
+      logger.error('Error fetching installment receipt by id:', error)
+      return null
+    }
+    return data ?? null
+  }
+
   static async createReceiptWithClient(
     client: SupabaseClient<Database>,
     receipt: InstallmentReceiptInsert
