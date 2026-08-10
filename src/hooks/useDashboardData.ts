@@ -3,11 +3,8 @@ import {
   loadDomainsFromSupabase,
   loadInstallmentReceiptsFromSupabase,
   loadTransactionsFromSupabase,
-  TransactionService,
-  type TransactionUpdate,
 } from '../lib/supabaseService';
 import { supabase } from '../lib/supabase';
-import { buildTransactionInsertPayload } from '../lib/transactionInsertPayload';
 import {
   DomainWithTags,
   TransactionWithRequiredFields,
@@ -315,14 +312,18 @@ export function useDashboardData(
         tags: domain.tags,
       });
 
-      const handleSaveResponseError = async (response: Response, op: 'add' | 'update') => {
+      const handleSaveResponseError = async (
+        response: Response,
+        op: 'add' | 'update',
+        entity: 'domain' | 'transaction' = 'domain'
+      ): Promise<never> => {
         const errorData = await response.json().catch(() => ({}));
         const details = errorData.details
           ? (Array.isArray(errorData.details)
               ? translateValidationMessages(errorData.details, tRef.current).join('; ')
               : String(errorData.details))
           : (errorData.error || response.statusText);
-        throw new SaveRequestError(`Failed to ${op} domain: ${details}`, response.status);
+        throw new SaveRequestError(`Failed to ${op} ${entity}: ${details}`, response.status);
       };
 
       // 拆分：已存在的（PUT 一条条更新）vs 新建的（多条用 bulk POST 节省
@@ -380,25 +381,26 @@ export function useDashboardData(
         return;
       }
 
-      // 增量保存 transactions（仅新增/变更）
+      // 增量保存 transactions（仅新增/变更）。全部走 /api/transactions —— 之前
+      // 新增是在浏览器里直连 Supabase，绕过了服务端的 validateTransaction、
+      // 域名归属校验和写入限流，而删除/更新却走 API，同一个 hook 两套路径。
       const serverTransactionsById = new Map<string, TransactionWithRequiredFields>();
-      for (const transaction of changedTransactions) {
-        const isExisting = transactions.find(t => t.id === transaction.id);
-        // 剥掉所有「Transaction 类型上有、但 domain_transactions 表没有」的
-        // 纯客户端字段。spread 整个对象直接发去 PostgREST，supabase update 写
-        // 到不存在的列会失败 → API PUT 路径回 404。每多挂一个内存字段都要在
-        // 这儿加进 omit 列表（可考虑把 buildTransactionInsertPayload 那种
-        // whitelist 拿来共用，避免漏字段）：
-        //   - receipts:                来自 installment_receipts 子表的 view
-        //   - renewal_years_use_custom: TransactionForm 的 UI toggle
-        //   - extend_domain_expiry_on_renew: merger 用的延期 flag
+
+      // 剥掉所有「Transaction 类型上有、但 domain_transactions 表没有」的纯客户端
+      // 字段。整个对象 spread 出去，服务端 buildTransactionInsertPayload 只按
+      // whitelist 取字段，但 PUT 路径的 update 写到不存在的列会失败 → 回 404。
+      // 每多挂一个内存字段都要在这儿加进 omit 列表：
+      //   - receipts:                 来自 installment_receipts 子表的 view
+      //   - renewal_years_use_custom: TransactionForm 的 UI toggle
+      //   - extend_domain_expiry_on_renew: merger 用的延期 flag
+      const toTransactionPayload = (transaction: TransactionWithRequiredFields) => {
         const {
           receipts: _receipts,
           renewal_years_use_custom: _useCustom,
           extend_domain_expiry_on_renew: _extendExpiry,
           ...txWithoutClientOnly
         } = transaction;
-        const transactionPayload = {
+        return {
           ...txWithoutClientOnly,
           platform_fee: transaction.platform_fee || null,
           platform_fee_percentage: transaction.platform_fee_percentage || null,
@@ -408,97 +410,71 @@ export function useDashboardData(
           receipt_url: transaction.receipt_url || null,
           notes: transaction.notes || null
         };
+      };
 
-        if (isExisting) {
-          const response = await fetch(`/api/transactions/${transaction.id}`, {
-            method: 'PUT',
-            headers,
-            body: JSON.stringify(transactionPayload)
+      const recordServerTransaction = (row: unknown) => {
+        if (!row) return;
+        const ensured = ensureTransactionWithRequiredFields(row as TransactionWithRequiredFields);
+        serverTransactionsById.set(ensured.id, ensured);
+      };
+
+      const postTransactions = async (body: Record<string, unknown>): Promise<unknown> => {
+        const response = await fetch('/api/transactions', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ ...body, refreshToken: refreshTok }),
+        });
+        if (!response.ok) {
+          await handleSaveResponseError(response, 'add', 'transaction');
+        }
+        const json = await response.json().catch(() => ({}));
+        return json?.data;
+      };
+
+      const existingTxChanges = changedTransactions.filter((t) => existingTransactionMap.has(t.id));
+      const newTxChanges = changedTransactions.filter((t) => !existingTransactionMap.has(t.id));
+
+      // 更新：PUT 没有批量端点，逐条来（更新通常远少于新增）
+      for (const transaction of existingTxChanges) {
+        const transactionPayload = toTransactionPayload(transaction);
+        const response = await fetch(`/api/transactions/${transaction.id}`, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify(transactionPayload)
+        });
+        if (response.ok) continue;
+
+        if (response.status === 404 || response.status === 403) {
+          // 交易在本地存在但远端缺失（例如历史保存中断）时回退为创建，避免持续
+          // 404/403 卡死。POST 服务端走的是 upsert(onConflict=id)，所以「行其实
+          // 存在、404 是 RLS 在 token 刷新瞬间误返」这种情况会变成一次 UPDATE，
+          // 不再需要客户端手工识别主键冲突再补 UPDATE。
+          //
+          // 仍未解决的老问题：若 404 是误报且该行的 id 与本地不同，这里会插出
+          // 一条「逻辑重复但 UUID 不同」的记录。drop_renewal_cost_history
+          // migration（commit 3bd5888）清掉的两条孤儿疑似经此路径产生。真要根治
+          // 得在服务端按 (domain_id, date, type, amount) 查一遍。
+          recordServerTransaction(await postTransactions({ transaction: transactionPayload }));
+          continue;
+        }
+
+        await handleSaveResponseError(response, 'update', 'transaction');
+      }
+
+      // 新增：单条走单条 POST；多条走 bulk 并按 MAX_BULK_OPERATION_SIZE 分批。
+      // 与域名同样的理由：userWrite rate limit 是 60/min/user，CSV 导入的交易
+      // 逐条 POST 会从第 61 条开始 429，bulk 全批共享 1 个槽位。
+      if (newTxChanges.length === 1) {
+        recordServerTransaction(
+          await postTransactions({ transaction: toTransactionPayload(newTxChanges[0]) })
+        );
+      } else if (newTxChanges.length > 1) {
+        for (let i = 0; i < newTxChanges.length; i += MAX_BULK_OPERATION_SIZE) {
+          const chunk = newTxChanges.slice(i, i + MAX_BULK_OPERATION_SIZE);
+          const created = await postTransactions({
+            transactions: chunk.map(toTransactionPayload),
           });
-          if (!response.ok) {
-            // 交易在本地存在但远端缺失（例如历史保存中断）时，回退为创建，避免持续 404/403 卡死。
-            // 已知风险：若 PUT 的 404/403 是误报（行其实存在，但 RLS 在 token 刷新瞬间误返），
-            // 这里的 INSERT 可能造成同 (domain_id, date, type, amount) 的重复行。下面的 duplicate-key
-            // 兜底只对主键冲突生效，对"逻辑重复但 UUID 不同"无能为力。drop_renewal_cost_history
-            // migration（commit 3bd5888）清理掉的两条孤儿即疑似经此路径产生。如再出现，考虑
-            // 在 INSERT 前先按 (domain_id, date, type, amount) 查一遍。
-            if (response.status === 404 || response.status === 403) {
-              const payload = buildTransactionInsertPayload(
-                transactionPayload as Record<string, unknown>,
-                userId
-              );
-              const { data: created, error: insertError } =
-                await TransactionService.createTransactionWithClient(supabase, payload);
-              if (!insertError && created) {
-                const ensured = ensureTransactionWithRequiredFields(created);
-                serverTransactionsById.set(ensured.id, ensured);
-                continue;
-              }
-              const msg = insertError || '';
-              const isDuplicatePkey =
-                msg.includes('duplicate key') ||
-                msg.includes('domain_transactions_pkey') ||
-                msg.includes('23505');
-              if (isDuplicatePkey) {
-                const { id: txId, user_id: _uid, ...updates } = payload;
-                const updated = await TransactionService.updateTransactionWithClient(
-                  supabase,
-                  txId,
-                  updates as TransactionUpdate,
-                  userId
-                );
-                if (!updated) {
-                  throw new Error(insertError || 'Failed to update existing transaction after duplicate key');
-                }
-                const ensured = ensureTransactionWithRequiredFields(updated);
-                serverTransactionsById.set(ensured.id, ensured);
-                continue;
-              }
-              throw new Error(insertError || 'Failed to add transaction');
-            }
-            const errorData = await response.json().catch(() => ({}));
-            const details = errorData.details
-              ? (Array.isArray(errorData.details)
-                  ? translateValidationMessages(errorData.details, tRef.current).join('; ')
-                  : String(errorData.details))
-              : (errorData.error || response.statusText);
-            throw new Error(`Failed to update transaction: ${details}`);
-          }
-        } else {
-          const payload = buildTransactionInsertPayload(
-            transactionPayload as Record<string, unknown>,
-            userId
-          );
-          const { data: created, error: insertError } = await TransactionService.createTransactionWithClient(supabase, payload);
-          if (insertError || !created) {
-            // 本地 state 不知道这条 tx 但 DB 已经有同 id —— 上一次 POST 实际
-            // 成功了但响应没回到 client（断网 / tab 切换 / 半挂的 sw），或两个
-            // 同 id 的 save 互相赛跑。兜底 UPDATE 一次让两边对上，跟上面 PUT-
-            // fallback-INSERT-conflict 路径保持对称，不要直接 throw 把表单卡死。
-            const msg = insertError || '';
-            const isDuplicatePkey =
-              msg.includes('duplicate key') ||
-              msg.includes('domain_transactions_pkey') ||
-              msg.includes('23505');
-            if (isDuplicatePkey) {
-              const { id: txId, user_id: _uid, ...updates } = payload;
-              const updated = await TransactionService.updateTransactionWithClient(
-                supabase,
-                txId,
-                updates as TransactionUpdate,
-                userId
-              );
-              if (!updated) {
-                throw new Error(insertError || 'Failed to reconcile duplicate transaction');
-              }
-              const ensured = ensureTransactionWithRequiredFields(updated);
-              serverTransactionsById.set(ensured.id, ensured);
-              continue;
-            }
-            throw new Error(insertError || 'Failed to add transaction');
-          }
-          const ensured = ensureTransactionWithRequiredFields(created);
-          serverTransactionsById.set(ensured.id, ensured);
+          if (Array.isArray(created)) created.forEach(recordServerTransaction);
         }
       }
 
