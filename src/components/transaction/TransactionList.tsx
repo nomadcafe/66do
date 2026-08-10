@@ -26,7 +26,7 @@ interface TransactionListProps {
   onAdd: () => void;
   /** 在分期-active 的 sell 行上点击 "+ 收款" — 新增一笔 installment receipt。
    *  没传时按钮不渲染（向后兼容，比如某些裁剪页面）。 */
-  onAddReceipt?: (transaction: TransactionWithRequiredFields) => void;
+  onOpenReceipts?: (transaction: TransactionWithRequiredFields) => void;
   /** Transaction ids that have an installment receipt due this week. Drives
    *  the ?txdue=1 pseudo-filter used by the WeeklyBriefing "Installment due"
    *  card so clicking Review narrows the list to those rows instead of
@@ -137,7 +137,7 @@ const TransactionList = memo(function TransactionList({
   onEdit,
   onDelete,
   onAdd,
-  onAddReceipt,
+  onOpenReceipts,
   receiptsDueIds
 }: TransactionListProps) {
   const { t, locale } = useI18nContext();
@@ -818,13 +818,13 @@ const TransactionList = memo(function TransactionList({
                     </div>
                   </div>
                   <div className="flex items-center gap-0.5 flex-shrink-0">
-                    {onAddReceipt &&
+                    {onOpenReceipts &&
                       transaction.type === 'sell' &&
                       transaction.payment_plan === 'installment' &&
                       transaction.installment_status !== 'cancelled' &&
                       transaction.installment_status !== 'completed' && (
                         <button
-                          onClick={() => onAddReceipt(transaction)}
+                          onClick={() => onOpenReceipts(transaction)}
                           aria-label={`${t('transaction.addReceipt')} ${getDomainName(transaction.domain_id)}`}
                           className="p-2 text-stone-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                         >
@@ -965,13 +965,13 @@ const TransactionList = memo(function TransactionList({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-0.5">
-                        {onAddReceipt &&
+                        {onOpenReceipts &&
                           transaction.type === 'sell' &&
                           transaction.payment_plan === 'installment' &&
                           transaction.installment_status !== 'cancelled' &&
                           transaction.installment_status !== 'completed' && (
                             <button
-                              onClick={() => onAddReceipt(transaction)}
+                              onClick={() => onOpenReceipts(transaction)}
                               aria-label={`${t('transaction.addReceipt')} ${getDomainName(transaction.domain_id)}`}
                               className="p-2 text-stone-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                             >

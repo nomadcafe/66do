@@ -30,8 +30,8 @@ interface BuildWeeklyBriefingCardsInput {
    *  ?txdue=1 in one shot so the list is already filtered when the user
    *  lands there, instead of scrolling to the domain list (wrong page). */
   onReviewReceiptsDue: () => void;
-  /** 点 "+ 收款" 时弹 AddReceiptModal —— 复用 dashboard 已有的状态。 */
-  onAddReceipt: (transaction: TransactionWithRequiredFields) => void;
+  /** 点 "+ 收款" 时弹 ReceiptsModal —— 复用 dashboard 已有的状态。 */
+  onOpenReceipts: (transaction: TransactionWithRequiredFields) => void;
 }
 
 /**
@@ -60,7 +60,7 @@ export function buildWeeklyBriefingCards({
   onReviewStuck,
   onReviewExpiring,
   onReviewReceiptsDue,
-  onAddReceipt,
+  onOpenReceipts,
 }: BuildWeeklyBriefingCardsInput): BriefingCard[] {
   const expiringCard: BriefingCard = expiringThisWeek.length > 0
     ? {
@@ -166,7 +166,7 @@ export function buildWeeklyBriefingCards({
           title: t('dashboard.briefingReceiptsDueTitle'),
           primary,
           secondary,
-          // Single due → straight to the AddReceipt modal for that tx.
+          // Single due → straight to the receipts modal for that tx.
           // Multiple → flip the activity tab into ?txdue=1 (so the page
           // owns tab switch + URL filter + scroll). Previously this scrolled
           // to the domain list, which was the wrong destination since
@@ -174,7 +174,7 @@ export function buildWeeklyBriefingCards({
           action: receiptsDueThisWeek.length === 1
             ? {
                 label: t('transaction.addReceipt'),
-                onClick: () => onAddReceipt(top.transaction),
+                onClick: () => onOpenReceipts(top.transaction),
               }
             : {
                 label: t('dashboard.briefingReview'),

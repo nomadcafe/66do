@@ -8,15 +8,15 @@ import { supabase } from '../../lib/supabase';
 import { validateInstallmentReceipt, translateValidationMessages } from '../../lib/validation';
 import { logger } from '../../lib/logger';
 
-interface AddReceiptModalProps {
+interface ReceiptsModalProps {
   isOpen: boolean;
   onClose: () => void;
   /** 父 sell 交易（installment）。空则不渲染。 */
   transaction: TransactionWithRequiredFields | null;
   /** 域名展示用（可选）。 */
   domainName?: string;
-  /** 写入成功后调用——通常触发 dashboard refresh。 */
-  onAdded: () => void | Promise<void>;
+  /** 增 / 改 / 删任意一种成功后调用——通常触发 dashboard refresh。 */
+  onChanged: () => void | Promise<void>;
 }
 
 const todayISODate = () => new Date().toISOString().slice(0, 10);
@@ -46,13 +46,13 @@ function suggestNextDate(t: TransactionWithRequiredFields | null): string {
   return todayISODate();
 }
 
-export default function AddReceiptModal({
+export default function ReceiptsModal({
   isOpen,
   onClose,
   transaction,
   domainName,
-  onAdded,
-}: AddReceiptModalProps) {
+  onChanged,
+}: ReceiptsModalProps) {
   const { t } = useI18nContext();
   const [receivedDate, setReceivedDate] = useState<string>(todayISODate());
   const [amount, setAmount] = useState<number>(0);
@@ -169,7 +169,7 @@ export default function AddReceiptModal({
         );
       }
 
-      await onAdded();
+      await onChanged();
       // 编辑完回到「新增」态并留在弹窗里，方便接着录下一期；新增则沿用原来的
       // 「加完即关」行为。
       if (editingId) resetToNew();
@@ -203,7 +203,7 @@ export default function AddReceiptModal({
       if (!response.ok) {
         throw new Error(await readError(response, 'transaction.receiptDeleteFailed'));
       }
-      await onAdded();
+      await onChanged();
       // 删掉的正是在编辑的那条：表单回到新增态，否则会 PUT 到一个已删除的 id
       if (editingId === receiptId) resetToNew();
     } catch (err) {
@@ -220,7 +220,7 @@ export default function AddReceiptModal({
     <div
       role="dialog"
       aria-modal="true"
-      aria-labelledby="add-receipt-modal-title"
+      aria-labelledby="receipts-modal-title"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget && !isProcessing) onClose();
@@ -233,7 +233,7 @@ export default function AddReceiptModal({
               <DollarSign className="h-5 w-5 text-emerald-600" />
             </div>
             <div className="min-w-0 flex-1">
-              <h3 id="add-receipt-modal-title" className="text-lg font-semibold text-stone-900">
+              <h3 id="receipts-modal-title" className="text-lg font-semibold text-stone-900">
                 {t('transaction.addReceipt')}
               </h3>
               {domainName && (
