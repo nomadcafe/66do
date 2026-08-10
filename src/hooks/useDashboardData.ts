@@ -35,24 +35,48 @@ class SaveRequestError extends Error {
   }
 }
 
-/** 硬刷新后 Supabase 客户端可能尚未恢复 JWT，此时 RLS 会返回空列表，表现为「交易消失」 */
-async function waitForSupabaseSession(
-  userId: string,
-  maxAttempts = 40,
-  delayMs = 100
-): Promise<boolean> {
-  for (let i = 0; i < maxAttempts; i++) {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (session?.user?.id === userId) {
-      // getSession() 可能读到本地缓存；getUser() 会向 Auth 校验 JWT，再查库更不容易空列表
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (!error && user?.id === userId) return true;
-    }
-    await new Promise((r) => setTimeout(r, delayMs));
-  }
-  return false;
+/**
+ * 硬刷新后 Supabase 客户端可能尚未恢复 JWT，此时 RLS 会返回空列表，表现为
+ * 「交易消失」。所以加载前先确认 session 就绪。
+ *
+ * 事件驱动而不是轮询：旧实现每 100ms 查一次、最多 40 轮，每轮 getSession() +
+ * getUser() 两次调用，最坏情况 80 次 auth 往返才放弃。现在快路径查一次就返回，
+ * 没就绪则挂到 onAuthStateChange 上等推送（订阅时 Supabase 会立即补发一次
+ * INITIAL_SESSION，所以「订阅建立前刚好就绪」不会被漏掉），超时上限与原来的
+ * 40 × 100ms 保持一致。
+ */
+async function waitForSupabaseSession(userId: string, timeoutMs = 4000): Promise<boolean> {
+  // getSession() 可能读到本地缓存；getUser() 会向 Auth 校验 JWT，再查库更不容易空列表
+  const isReady = async (session: { user?: { id?: string } } | null): Promise<boolean> => {
+    if (session?.user?.id !== userId) return false;
+    const { data: { user }, error } = await supabase.auth.getUser();
+    return !error && user?.id === userId;
+  };
+
+  const { data: { session: current } } = await supabase.auth.getSession();
+  if (await isReady(current)) return true;
+
+  return new Promise<boolean>((resolve) => {
+    let settled = false;
+
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      // isReady 是异步的，所以这个回调永远不会同步调到下面的 finish/timer——
+      // 即使 Supabase 在订阅瞬间就补发 INITIAL_SESSION，.then 也要等到微任务。
+      void isReady(session).then((ready) => {
+        if (ready) finish(true);
+      });
+    });
+
+    const finish = (ok: boolean) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      data.subscription.unsubscribe();
+      resolve(ok);
+    };
+
+    const timer = setTimeout(() => finish(false), timeoutMs);
+  });
 }
 
 interface UseDashboardDataReturn {
