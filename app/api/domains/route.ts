@@ -14,9 +14,9 @@ export async function GET(request: NextRequest) {
   try {
     const authInfo = await getAuthInfoFromRequest(request);
     if (!authInfo || !authInfo.userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { 
+      return NextResponse.json({ error: 'Unauthorized' }, {
         status: 401,
-        headers: { 'Content-Type': 'application/json' }
+        headers: getCorsHeaders(request)
       })
     }
     
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       ...(isProduction ? {} : { details: error instanceof Error ? error.message : 'Unknown error' })
     }, {
       status: 500,
-      headers: getCorsHeadersForError()
+      headers: getCorsHeadersForError(request)
     })
   }
 }
@@ -44,14 +44,13 @@ export async function GET(request: NextRequest) {
 // POST /api/domains - 创建新域名
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { domain, domains, refreshToken } = body
-
+    // 鉴权和限流都在读 body 之前：未认证或已超限的请求不该让我们花代价把
+    // 它的 payload 读进内存并解析。
     const authInfo = await getAuthInfoFromRequest(request);
     if (!authInfo || !authInfo.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, {
         status: 401,
-        headers: { 'Content-Type': 'application/json' }
+        headers: getCorsHeaders(request)
       })
     }
 
@@ -71,6 +70,9 @@ export async function POST(request: NextRequest) {
         { status: 429, headers: corsHeaders }
       )
     }
+
+    const body = await request.json()
+    const { domain, domains, refreshToken } = body
 
     const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken, refreshToken)
 
@@ -195,7 +197,7 @@ export async function POST(request: NextRequest) {
       ...(isProduction ? {} : { details: error instanceof Error ? error.message : 'Unknown error' })
     }, {
       status: 500,
-      headers: getCorsHeadersForError()
+      headers: getCorsHeadersForError(request)
     })
   }
 }

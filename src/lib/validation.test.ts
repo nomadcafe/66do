@@ -58,6 +58,7 @@ describe('validateDomain 的报错全部是可翻译的 i18n 键', () => {
     ['续费次数为负', { domain_name: 'a.com', status: 'active', renewal_count: -1 }],
     ['续费次数超上限', { domain_name: 'a.com', status: 'active', renewal_count: 999 }],
     ['到期日非法', { domain_name: 'a.com', status: 'active', expiry_date: 'garbage' }],
+    ['到期日太远', { domain_name: 'a.com', status: 'active', expiry_date: '9999-01-01' }],
     ['注册日非法', { domain_name: 'a.com', status: 'active', registration_date: 'garbage' }],
     ['注册日在未来', { domain_name: 'a.com', status: 'active', registration_date: '2999-01-01' }],
     ['基线日非法', { domain_name: 'a.com', status: 'active', baseline_renewal_as_of: 'garbage' }],
@@ -98,6 +99,18 @@ describe('validateDomain 的报错全部是可翻译的 i18n 键', () => {
 
   it('合法域名不报错', () => {
     expect(validateDomain({ domain_name: 'example.com', status: 'active' }).valid).toBe(true);
+  });
+
+  it('正常的未来到期日不报错——ICANN 单次注册上限就是 10 年', () => {
+    const inTwoYears = new Date();
+    inTwoYears.setFullYear(inTwoYears.getFullYear() + 2);
+    const result = validateDomain({
+      domain_name: 'example.com',
+      status: 'active',
+      expiry_date: inTwoYears.toISOString().slice(0, 10),
+    });
+    expect(result.errors).toEqual([]);
+    expect(result.valid).toBe(true);
   });
 });
 

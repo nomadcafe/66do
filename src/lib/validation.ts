@@ -135,6 +135,10 @@ export function validateDomain(domain: unknown): ValidationResult {
       const date = new Date(domainObj.expiry_date as string);
       if (isNaN(date.getTime())) {
         errors.push('validation.domain.expiryDateInvalid');
+      } else if (isDateBeyondAllowedFuture(date)) {
+        // ICANN 单次注册上限就是 10 年，到期日不可能超过今天 +10 年。
+        // 不设上限时用户能填 9999 年，图表 X 轴和续费提醒都会被拉爆。
+        errors.push('validation.domain.expiryDateBeyondMaxFuture');
       }
     }
   }

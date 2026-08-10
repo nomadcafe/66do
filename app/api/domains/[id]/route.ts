@@ -48,7 +48,7 @@ export async function GET(
       ...(isProduction ? {} : { details: error instanceof Error ? error.message : 'Unknown error' })
     }, {
       status: 500,
-      headers: getCorsHeadersForError()
+      headers: getCorsHeadersForError(request)
     })
   }
 }
@@ -59,17 +59,16 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const body = await request.json()
-    const domain = body
-
+    // 鉴权和限流都在读 body 之前：未认证或已超限的请求不该让我们花代价把
+    // 它的 payload 读进内存并解析。
     const authInfo = await getAuthInfoFromRequest(request);
     if (!authInfo || !authInfo.userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { 
+      return NextResponse.json({ error: 'Unauthorized' }, {
         status: 401,
         headers: getCorsHeaders(request)
       })
     }
-    
+
     const { userId, accessToken } = authInfo;
     const corsHeaders = getCorsHeaders(request)
     const { id: domainId } = await params
@@ -87,6 +86,8 @@ export async function PUT(
         { status: 429, headers: corsHeaders }
       )
     }
+
+    const domain = await request.json()
 
     if (!domain) {
       return NextResponse.json({ error: 'Domain data is required' }, {
@@ -157,7 +158,7 @@ export async function PUT(
       ...(isProduction ? {} : { details: error instanceof Error ? error.message : 'Unknown error' })
     }, {
       status: 500,
-      headers: getCorsHeadersForError()
+      headers: getCorsHeadersForError(request)
     })
   }
 }
@@ -170,9 +171,9 @@ export async function DELETE(
   try {
     const authInfo = await getAuthInfoFromRequest(request);
     if (!authInfo || !authInfo.userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { 
+      return NextResponse.json({ error: 'Unauthorized' }, {
         status: 401,
-        headers: { 'Content-Type': 'application/json' }
+        headers: getCorsHeaders(request)
       })
     }
     
@@ -228,7 +229,7 @@ export async function DELETE(
       ...(isProduction ? {} : { details: error instanceof Error ? error.message : 'Unknown error' })
     }, {
       status: 500,
-      headers: getCorsHeadersForError()
+      headers: getCorsHeadersForError(request)
     })
   }
 }

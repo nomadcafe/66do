@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
       ...(isProduction ? {} : { details: error instanceof Error ? error.message : 'Unknown error' })
     }, {
       status: 500,
-      headers: getCorsHeadersForError()
+      headers: getCorsHeadersForError(request)
     })
   }
 }

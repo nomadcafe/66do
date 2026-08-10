@@ -393,6 +393,7 @@ const en = {
         renewalCountNonNegative: 'Renewal count must be non-negative',
         renewalCountExceedsMax: 'Renewal count cannot exceed 100',
         expiryDateInvalid: 'Invalid expiry date format',
+        expiryDateBeyondMaxFuture: 'Expiry date cannot be more than 10 years in the future',
         registrationDateInvalid: 'Invalid registration date format',
         registrationDateInFuture: 'Registration date cannot be in the future',
         baselineRenewalAsOfInvalid: 'Invalid renewal cost baseline date format',

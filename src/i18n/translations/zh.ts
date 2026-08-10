@@ -388,6 +388,7 @@ const zh = {
         renewalCountNonNegative: '续费次数必须是非负整数',
         renewalCountExceedsMax: '续费次数不能超过 100 次',
         expiryDateInvalid: '到期日期格式不正确',
+        expiryDateBeyondMaxFuture: '到期日期不能超过当前日期起 10 年',
         registrationDateInvalid: '注册日期格式不正确',
         registrationDateInFuture: '注册日期不能是未来的日期',
         baselineRenewalAsOfInvalid: '续费成本基线日格式不正确',

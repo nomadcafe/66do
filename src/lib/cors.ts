@@ -31,7 +31,14 @@ export function getCorsHeaders(request: NextRequest) {
   };
 }
 
-export function getCorsHeadersForError() {
+/**
+ * catch 块里用的 CORS 头。传 request 时与正常响应走同一套 origin 判定——
+ * 否则本地开发时 500 响应会被浏览器 CORS 拦掉，恰恰是最需要看到报错的时候。
+ * 无法拿到 request 的极端情况才退回生产域名。
+ */
+export function getCorsHeadersForError(request?: NextRequest) {
+  if (request) return getCorsHeaders(request);
+
   return {
     'Access-Control-Allow-Origin': 'https://www.domain.financial',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
