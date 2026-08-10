@@ -4,6 +4,8 @@
  * - 已设置 baseline_renewal_as_of：档案估算 + 基线日及之后的 renew 交易金额（按自然日 date >= 基线日）。
  */
 
+import { renewTxsForDomain } from './txIndex';
+
 export type RenewalCostTx = {
   domain_id: string;
   type: string;
@@ -33,8 +35,8 @@ export function incrementalRenewalFromTransactions(
   if (baselineDate == null || String(baselineDate).trim() === '') return 0;
   const b = String(baselineDate).slice(0, 10);
   let sum = 0;
-  for (const t of transactions) {
-    if (t.domain_id !== domainId || t.type !== 'renew') continue;
+  // 走索引而不是全扫：这个函数被「按域名循环」调用，全扫就是 O(域名 × 交易)
+  for (const t of renewTxsForDomain(transactions, domainId)) {
     const d = String(t.date).slice(0, 10);
     if (d.length < 10 || b.length < 10) continue;
     if (d >= b) sum += Number(t.amount) || 0;
@@ -102,8 +104,7 @@ export function holdingCostAsOf(
     }
     // Post-baseline renew transactions
     const b = String(domain.baseline_renewal_as_of).slice(0, 10);
-    for (const t of transactions) {
-      if (t.domain_id !== domain.id || t.type !== 'renew') continue;
+    for (const t of renewTxsForDomain(transactions, domain.id)) {
       const d = String(t.date).slice(0, 10);
       if (d.length < 10 || b.length < 10) continue;
       if (d < b) continue;
