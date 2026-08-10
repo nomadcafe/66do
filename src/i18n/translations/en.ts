@@ -408,6 +408,22 @@ const en = {
         tagMustBeString: 'Tag {0} must be a string',
         tagTooLong: 'Tag {0} cannot exceed 50 characters'
       },
+      receipt: {
+        invalidFormat: 'Invalid receipt data format',
+        transactionIdRequired: 'A receipt must belong to a transaction',
+        dateRequired: 'Received date is required',
+        dateInvalid: 'Invalid received date format',
+        dateBeyondMaxFuture: 'Received date cannot be more than 10 years in the future',
+        amountRequired: 'Received amount is required',
+        amountInvalidNumber: 'Received amount must be a valid number',
+        amountNonZero: 'Received amount cannot be 0 (use a negative amount for refunds)',
+        amountExceedsMax: 'Received amount cannot exceed $100,000,000',
+        periodNoMustBeInteger: 'Period number must be a whole number',
+        periodNoPositive: 'Period number must be greater than 0',
+        periodNoExceedsMax: 'Period number cannot exceed 600',
+        notesMustBeString: 'Notes must be a string',
+        notesTooLong: 'Notes cannot exceed 1000 characters'
+      },
       transaction: {
         invalidFormat: 'Invalid transaction data format',
         domainIdRequired: 'Domain ID is required',
@@ -676,8 +692,6 @@ const en = {
       receiptNotes: 'Notes',
       receiptsList: 'Receipts',
       refundHint: 'Enter a negative amount to record a refund.',
-      receiptDateRequired: 'Received date is required.',
-      receiptAmountRequired: 'Amount cannot be 0.',
       receiptAddFailed: 'Failed to add receipt.',
       recordReceipt: 'Record Receipt',
       recordRefund: 'Record Refund',

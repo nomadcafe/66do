@@ -6,6 +6,7 @@ import { useI18nContext } from '../../contexts/I18nProvider';
 import { TransactionWithRequiredFields } from '../../types/dashboard';
 import { supabase } from '../../lib/supabase';
 import { InstallmentReceiptService } from '../../lib/supabaseService';
+import { validateInstallmentReceipt, translateValidationMessages } from '../../lib/validation';
 import { logger } from '../../lib/logger';
 
 interface AddReceiptModalProps {
@@ -102,27 +103,29 @@ export default function AddReceiptModal({
   if (!isOpen || !transaction) return null;
 
   const handleSubmit = async () => {
-    if (!receivedDate) {
-      setError(t('transaction.receiptDateRequired'));
+    const receipt = {
+      transaction_id: transaction.id,
+      user_id: userId,
+      received_date: receivedDate,
+      amount,
+      period_no: periodNo > 0 ? periodNo : null,
+      notes: notes.trim() || null,
+    };
+
+    // 这里是收款唯一的写入口，且没有编辑/删除 UI——填错一笔用户自己改不回来，
+    // 所以校验必须在写库之前拦住，而不是等报表里看出数字不对。
+    const validation = validateInstallmentReceipt(receipt);
+    if (!validation.valid) {
+      setError(translateValidationMessages(validation.errors, t).join('; '));
       return;
     }
-    if (!Number.isFinite(amount) || amount === 0) {
-      setError(t('transaction.receiptAmountRequired'));
-      return;
-    }
+
     setIsProcessing(true);
     setError(null);
     try {
       const { error: insertError } = await InstallmentReceiptService.createReceiptWithClient(
         supabase,
-        {
-          transaction_id: transaction.id,
-          user_id: userId,
-          received_date: receivedDate,
-          amount,
-          period_no: periodNo > 0 ? periodNo : null,
-          notes: notes.trim() || null,
-        }
+        receipt
       );
       if (insertError) {
         throw new Error(insertError);

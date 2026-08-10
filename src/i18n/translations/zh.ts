@@ -403,6 +403,22 @@ const zh = {
         tagMustBeString: '第 {0} 个标签必须是字符串',
         tagTooLong: '第 {0} 个标签长度不能超过 50 个字符'
       },
+      receipt: {
+        invalidFormat: '收款数据格式不正确',
+        transactionIdRequired: '收款必须关联一笔交易',
+        dateRequired: '到账日期是必需的',
+        dateInvalid: '到账日期格式不正确',
+        dateBeyondMaxFuture: '到账日期不能超过当前日期起 10 年',
+        amountRequired: '到账金额是必需的',
+        amountInvalidNumber: '到账金额必须是有效数字',
+        amountNonZero: '到账金额不能为 0（退款请填负数）',
+        amountExceedsMax: '到账金额不能超过 $100,000,000',
+        periodNoMustBeInteger: '期数必须是整数',
+        periodNoPositive: '期数必须大于 0',
+        periodNoExceedsMax: '期数不能超过 600',
+        notesMustBeString: '备注必须是字符串',
+        notesTooLong: '备注长度不能超过 1000 个字符'
+      },
       transaction: {
         invalidFormat: '交易数据格式不正确',
         domainIdRequired: '域名ID是必需的',
@@ -671,8 +687,6 @@ const zh = {
       receiptNotes: '备注',
       receiptsList: '到账记录',
       refundHint: '金额填负数 = 退款。',
-      receiptDateRequired: '请填写到账日期。',
-      receiptAmountRequired: '金额不能为 0。',
       receiptAddFailed: '添加到账记录失败。',
       recordReceipt: '记一笔到账',
       recordRefund: '记一笔退款',

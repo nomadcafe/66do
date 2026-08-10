@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { validateDomain, validateTransaction, translateValidationMessages } from './validation';
+import {
+  validateDomain,
+  validateTransaction,
+  validateInstallmentReceipt,
+  translateValidationMessages,
+} from './validation';
 import zh from '../i18n/translations/zh';
 import en from '../i18n/translations/en';
 
@@ -118,6 +123,71 @@ describe('validateTransaction 的报错同样是可翻译的 i18n 键', () => {
   it('缺字段时报错都能翻成中英文', () => {
     const { valid, errors } = validateTransaction({});
     expect(valid).toBe(false);
+
+    for (const dict of [zh, en] as Dict[]) {
+      for (const msg of translateValidationMessages(errors, makeT(dict))) {
+        expect(msg).not.toMatch(/^validation\./);
+      }
+    }
+  });
+});
+
+describe('validateInstallmentReceipt', () => {
+  const valid = {
+    transaction_id: 'tx-1',
+    received_date: '2025-06-01',
+    amount: 100,
+    period_no: 3,
+    notes: 'first payment',
+  };
+
+  it('合法收款不报错', () => {
+    expect(validateInstallmentReceipt(valid).errors).toEqual([]);
+  });
+
+  it('负数金额合法——表示退款 / 中断分期', () => {
+    expect(validateInstallmentReceipt({ ...valid, amount: -50 }).valid).toBe(true);
+  });
+
+  it('未来到账日合法——UI 支持提前登记下一期', () => {
+    const nextMonth = new Date();
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    expect(
+      validateInstallmentReceipt({ ...valid, received_date: nextMonth.toISOString().slice(0, 10) })
+        .valid
+    ).toBe(true);
+  });
+
+  it('period_no 可以省略', () => {
+    expect(validateInstallmentReceipt({ ...valid, period_no: null }).valid).toBe(true);
+  });
+
+  const badReceipts: Array<[string, unknown]> = [
+    ['非对象', 'nope'],
+    ['缺交易 id', { ...valid, transaction_id: '' }],
+    ['缺到账日', { ...valid, received_date: '' }],
+    ['到账日非法', { ...valid, received_date: 'garbage' }],
+    ['到账日太远', { ...valid, received_date: '9999-01-01' }],
+    ['缺金额', { ...valid, amount: null }],
+    ['金额非数字', { ...valid, amount: 'abc' }],
+    ['金额为 0', { ...valid, amount: 0 }],
+    ['金额超上限', { ...valid, amount: 2e8 }],
+    ['负数金额超上限', { ...valid, amount: -2e8 }],
+    ['期数非整数', { ...valid, period_no: 1.5 }],
+    ['期数为 0', { ...valid, period_no: 0 }],
+    ['期数超上限', { ...valid, period_no: 9999 }],
+    ['备注非字符串', { ...valid, notes: 42 }],
+    ['备注过长', { ...valid, notes: 'x'.repeat(1001) }],
+  ];
+
+  it.each(badReceipts)('%s：报错是可翻译的 i18n 键', (_label, input) => {
+    const { valid: isValid, errors } = validateInstallmentReceipt(input);
+    expect(isValid).toBe(false);
+    expect(errors.length).toBeGreaterThan(0);
+
+    for (const err of errors) {
+      expect(err).toMatch(/^validation\.receipt\./);
+    }
 
     for (const dict of [zh, en] as Dict[]) {
       for (const msg of translateValidationMessages(errors, makeT(dict))) {
