@@ -349,6 +349,34 @@ describe('calculateTotalInstallmentAmount', () => {
   });
 });
 
+describe('Spaceship 两个入口口径一致', () => {
+  // 曾经不一致：calculatePlatformFee 走 sellerAmount / (1 − 5%) 反推，
+  // calculateCustomerTotalFromInstallment 走 总额 × 5%，同一笔交易两个答案。
+  it('calculatePlatformFee 与 calculateCustomerTotalFromInstallment 给出同一结果', () => {
+    const viaConfig = calculatePlatformFee({
+      type: 'spaceship_installment',
+      installmentPeriod: 12,
+      sellerAmount: 1200, // = installmentAmount × period，即分期总额
+    });
+    const viaInstallment = calculateCustomerTotalFromInstallment(100, 12, 'spaceship_installment');
+
+    expect(viaConfig.customerTotalAmount).toBeCloseTo(viaInstallment.customerTotalAmount, 4);
+    expect(viaConfig.platformFee).toBeCloseTo(viaInstallment.platformFee, 4);
+    expect(viaConfig.sellerNetAmount).toBeCloseTo(viaInstallment.sellerNetAmount, 4);
+  });
+
+  it('平台费是总额的 5%，不是反推出来的 5.26%', () => {
+    const r = calculatePlatformFee({
+      type: 'spaceship_installment',
+      installmentPeriod: 12,
+      sellerAmount: 1200,
+    });
+    expect(r.platformFee).toBeCloseTo(60, 4); // 反推口径会得到 63.16
+    expect(r.sellerNetAmount).toBeCloseTo(1140, 4); // 反推口径会得到 1200
+    expect(r.platformFeeRate).toBeCloseTo(0.05, 4);
+  });
+});
+
 describe('calculateCustomerTotalFromInstallment', () => {
   it('Spaceship → totalSale × 5%', () => {
     const r = calculateCustomerTotalFromInstallment(100, 12, 'spaceship_installment');
