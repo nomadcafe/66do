@@ -80,6 +80,14 @@ export function changelogPageMetadata(locale: HomeLocale): Metadata {
 export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
   zh: [
     {
+      version: '2026-08-25',
+      date: '2026-08-25',
+      items: [
+        'Transfer 交易的转移费现在计入域名的持有成本，会影响 Total Investment、ROI 和各类利润指标（此前只出现在年度现金流表里）。',
+        'Transfer 交易可以填「本次转移延长到期（年）」了：注册商转入通常自带 +1 年，填了就会顺延到期日；留 0 则不延长。删除该交易时到期日会同步回退。',
+      ],
+    },
+    {
       version: '2026-08-10',
       date: '2026-08-10',
       items: [
@@ -191,6 +199,14 @@ export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
     },
   ],
   en: [
+    {
+      version: '2026-08-25',
+      date: '2026-08-25',
+      items: [
+        'Transfer fees now count toward a domain’s holding cost, so they show up in Total Investment, ROI, and profit metrics (previously they only appeared in the yearly cashflow table).',
+        'Transfer transactions can now record the years added to expiry — a registrar transfer-in usually adds one. Leave it at 0 for no extension; deleting the transaction rolls the expiry date back.',
+      ],
+    },
     {
       version: '2026-08-10',
       date: '2026-08-10',
