@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { totalHoldingCostForDomain } from '../../lib/renewalCostBasis';
 import { sellNetUSD } from '../../lib/coreCalculations';
+import { isHoldingCostType } from '../../lib/transactionTypeGroups';
 
 interface EnhancedFinancialReportProps {
   domains: DomainWithTags[];
@@ -81,8 +82,10 @@ export default function EnhancedFinancialReport({ domains, transactions }: Enhan
   // 计算图表数据
   const chartData = useMemo(() => {
     // 投资趋势数据
+    // 投资趋势 = 持有成本类交易（买入 / 续费 / 转移），与 Total Investment 的
+    // 口径对齐。营销和平台费属于运营支出，不进这条线。
     const investmentTrendData = transactions
-      .filter(t => t.type === 'buy' || t.type === 'renew')
+      .filter(t => isHoldingCostType(t.type))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       .reduce((acc, transaction) => {
         const date = new Date(transaction.date).toISOString().split('T')[0];

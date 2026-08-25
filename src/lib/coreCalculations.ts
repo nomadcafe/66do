@@ -3,7 +3,8 @@ import { DomainWithTags, TransactionWithRequiredFields } from '../types/dashboar
 import { sellGrossUSD, sellNetUSD } from './sellProceeds';
 import { totalHoldingCostForDomain } from './renewalCostBasis';
 import { expandRenewalEvents } from './expandRenewalEvents';
-import { txsForDomain } from './txIndex';
+import { buyTxsForDomain } from './txIndex';
+import { NON_RENEW_OUTFLOW_TYPES } from './transactionTypeGroups';
 
 export type { SellProceedsFields } from './sellProceeds';
 export { sellGrossUSD, sellNetUSD } from './sellProceeds';
@@ -195,14 +196,6 @@ export interface YearlyRenewalProfitRow {
   renewalToSalePercent: number | null;
 }
 
-const OUTFLOW_TYPES: TransactionWithRequiredFields['type'][] = [
-  'buy',
-  'fee',
-  'transfer',
-  'marketing',
-  'advertising',
-];
-
 function txCalendarYear(t: TransactionWithRequiredFields): number {
   const y = new Date(t.date).getFullYear();
   return Number.isFinite(y) ? y : NaN;
@@ -257,7 +250,7 @@ export function calculateYearlyRenewalVsProfit(
       // renew 交易由下面的 expandRenewalEvents 走全量统计；这里跳过，
       // 不在此循环里直接累加，避免与事件流重复。
       continue;
-    } else if (OUTFLOW_TYPES.includes(t.type)) {
+    } else if (NON_RENEW_OUTFLOW_TYPES.includes(t.type)) {
       row.otherOutflow += amt;
     }
   }
@@ -271,16 +264,17 @@ export function calculateYearlyRenewalVsProfit(
       ensureYear(y).renewalSpend += ev.amount;
     }
 
-    // 购入：本年没 buy tx 时用档案 purchase_cost 兜底
+    // 购入：一笔 buy 交易都没有时才用档案 purchase_cost 兜底，落到购入年。
+    // 判断依据是「有没有 buy 交易」而不是「购入年有没有 buy 交易」——后者会让
+    // 一笔记在别的年份的 buy 交易和 purchase_cost 同时进账，同一次购入算两次。
+    // 与 acquisitionCostForDomain 同口径。
     const purchaseY = calendarYearFromIso(d.purchase_date, refYear);
     if (!Number.isFinite(purchaseY)) continue;
 
     // 走索引而不是全扫：这在按域名的循环里，全扫就是 O(域名 × 交易)
-    const buyInPurchaseYear = txsForDomain(transactions, d.id)
-      .filter((t) => t.type === 'buy' && txCalendarYear(t) === purchaseY)
-      .reduce((sum, t) => sum + amountUSD(t), 0);
+    const hasBuyTx = buyTxsForDomain(transactions, d.id).length > 0;
 
-    if (buyInPurchaseYear === 0 && (d.purchase_cost || 0) > 0) {
+    if (!hasBuyTx && (d.purchase_cost || 0) > 0) {
       ensureYear(purchaseY).otherOutflow += d.purchase_cost || 0;
     }
   }
