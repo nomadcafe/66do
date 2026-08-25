@@ -664,6 +664,8 @@ const zh = {
       renewUseCustomYears: '自定义续费年数',
       renewUseDomainCycle: '使用域名续费周期（{years} 年）',
       renewAmountHint: '填本次续费的总额，不是每年单价。',
+      transferExtendYears: '本次转移延长到期（年）',
+      transferExtendYearsHint: '0 = 不延长。注册商转入通常自带 +1 年；同注册商内部转移 / push 一般不加年。',
       sell: '出售',
       transfer: '转移',
       fee: '费用',

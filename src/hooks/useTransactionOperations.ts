@@ -4,6 +4,7 @@ import { DomainWithTags } from '../types/dashboard';
 import { supabase } from '../lib/supabase';
 import { logger } from '../lib/logger';
 import { ERROR_MESSAGE_TIMEOUT } from '../lib/constants';
+import { expiryExtensionYears } from '../lib/renewDomainPatch';
 
 interface UseTransactionOperationsReturn {
   editingTransaction: TransactionWithRequiredFields | undefined;
@@ -19,6 +20,17 @@ interface UseTransactionOperationsReturn {
   handleDeleteTransaction: (id: string) => Promise<void>;
   handleSaveTransaction: (transactionData: Omit<TransactionWithRequiredFields, 'id'>) => Promise<void>;
   handleSaleComplete: (transaction: Omit<TransactionWithRequiredFields, 'id'>, domain: DomainWithTags) => void;
+}
+
+/** 删除一笔交易时应从 expiry_date 里扣回的年数。0 = 这笔交易当初没延长过到期。
+ *  与 mergeRenewTransactionDomainUpdates 的 expiryExtensionYears 保持同一口径。 */
+function rollbackExpiryYears(
+  tx: TransactionWithRequiredFields,
+  domains: DomainWithTags[]
+): number {
+  if (tx.extend_domain_expiry_on_renew === false) return 0;
+  const cycle = domains.find((d) => d.id === tx.domain_id)?.renewal_cycle;
+  return expiryExtensionYears(tx, cycle);
 }
 
 export function useTransactionOperations(
@@ -116,22 +128,15 @@ export function useTransactionOperations(
 
         await onSave(updatedDomains, updatedTransactions);
       } else if (
-        transactionToDelete.type === 'renew' &&
-        transactionToDelete.domain_id &&
-        transactionToDelete.extend_domain_expiry_on_renew !== false
+        rollbackExpiryYears(transactionToDelete, domains) > 0 &&
+        transactionToDelete.domain_id
       ) {
-        // 删除续费交易要把当时延长的到期日 + renewal_count 撤回去——否则
-        // 用户在 Domain Portfolio 里看到的依旧是旧的"被续过"的日期。
-        // 用这笔 tx 的 renewal_period_years 倒推；缺时退化到 domain.renewal_cycle。
+        // 删除会延长到期的交易（renew，或填了年数的 transfer）要把当时加上去的
+        // 年数撤回去——否则用户在 Domain Portfolio 里看到的依旧是被延长过的日期。
+        // renew 还要把 renewal_count −1；transfer 当初就没 +1，这里也不减。
         const targetDomainId = transactionToDelete.domain_id;
-        const yearsToRollback = Math.max(
-          1,
-          Math.floor(
-            Number(transactionToDelete.renewal_period_years) ||
-              domains.find((d) => d.id === targetDomainId)?.renewal_cycle ||
-              1
-          )
-        );
+        const yearsToRollback = rollbackExpiryYears(transactionToDelete, domains);
+        const isRenew = transactionToDelete.type === 'renew';
         const updatedDomains = domains.map((domain) => {
           if (domain.id !== targetDomainId) return domain;
           let nextExpiry = domain.expiry_date ?? null;
@@ -148,7 +153,9 @@ export function useTransactionOperations(
           return {
             ...domain,
             expiry_date: nextExpiry,
-            renewal_count: Math.max(0, (domain.renewal_count ?? 0) - 1),
+            renewal_count: isRenew
+              ? Math.max(0, (domain.renewal_count ?? 0) - 1)
+              : domain.renewal_count,
             updated_at: new Date().toISOString(),
           };
         });

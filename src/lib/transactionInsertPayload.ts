@@ -57,11 +57,18 @@ export function buildTransactionInsertPayload(
         : null,
     escrow_transaction_fee:
       transaction.escrow_transaction_fee != null ? Number(transaction.escrow_transaction_fee) : null,
-    renewal_period_years:
-      transaction.type === 'renew' && transaction.renewal_period_years != null
-        ? Math.max(1, Math.min(10, Math.floor(Number(transaction.renewal_period_years))))
-        : null
+    renewal_period_years: normalizeExtensionYears(transaction.type, transaction.renewal_period_years)
   }
+}
+
+/** renewal_period_years 只对 renew / transfer 有意义（transfer 表示「本次转移额外
+ *  加了几年」）。其它类型一律写 null，避免类型改过之后残留旧年数。 */
+function normalizeExtensionYears(type: unknown, raw: unknown): number | null {
+  if (type !== 'renew' && type !== 'transfer') return null
+  if (raw == null) return null
+  const y = Math.floor(Number(raw))
+  if (!Number.isFinite(y) || y < 1) return null
+  return Math.min(10, y)
 }
 
 /**
@@ -164,13 +171,14 @@ export function buildTransactionUpdatePayload(
       transaction.escrow_transaction_fee != null
         ? Number(transaction.escrow_transaction_fee)
         : null
-  if (transaction.type === 'renew' && 'renewal_period_years' in transaction) {
-    out.renewal_period_years =
-      transaction.renewal_period_years != null
-        ? Math.max(1, Math.min(10, Math.floor(Number(transaction.renewal_period_years))))
-        : null
-  } else if (transaction.type !== 'renew' && 'type' in transaction) {
-    // 类型从 renew 改为别的：把 renewal_period_years 清掉
+  const extendableType = transaction.type === 'renew' || transaction.type === 'transfer'
+  if (extendableType && 'renewal_period_years' in transaction) {
+    out.renewal_period_years = normalizeExtensionYears(
+      transaction.type,
+      transaction.renewal_period_years
+    )
+  } else if (!extendableType && 'type' in transaction) {
+    // 类型改成了不会延长到期的类型：把 renewal_period_years 清掉
     out.renewal_period_years = null
   }
   return out

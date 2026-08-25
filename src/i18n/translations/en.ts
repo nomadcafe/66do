@@ -669,6 +669,8 @@ const en = {
       renewUseCustomYears: 'Custom renewal years',
       renewUseDomainCycle: 'Use domain renewal cycle ({years} yr)',
       renewAmountHint: 'Total paid for this renewal — not the per-year price.',
+      transferExtendYears: 'Years added to expiry by this transfer',
+      transferExtendYearsHint: '0 = no extension. A registrar transfer-in usually adds 1 year; internal moves / pushes usually add none.',
       sell: 'Sell',
       transfer: 'Transfer',
       fee: 'Fee',

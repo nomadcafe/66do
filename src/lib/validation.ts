@@ -431,7 +431,9 @@ export function validateTransaction(transaction: unknown): ValidationResult {
     }
   }
 
-  if (transactionObj.type === 'renew') {
+  // renew 用 renewal_period_years 表示续费年数；transfer 用它表示「本次转移额外
+  // 延长的年数」（可省略 = 不延长）。两者取值范围一致。
+  if (transactionObj.type === 'renew' || transactionObj.type === 'transfer') {
     if (
       transactionObj.renewal_period_years !== null &&
       transactionObj.renewal_period_years !== undefined
@@ -684,7 +686,10 @@ export function sanitizeTransactionData(transaction: unknown): Record<string, un
   }
 
   let renewalPeriodYears: number | null = null;
-  if (transactionObj.type === 'renew' && transactionObj.renewal_period_years != null) {
+  if (
+    (transactionObj.type === 'renew' || transactionObj.type === 'transfer') &&
+    transactionObj.renewal_period_years != null
+  ) {
     const y = Math.floor(Number(transactionObj.renewal_period_years));
     if (Number.isInteger(y) && y >= 1 && y <= 10) renewalPeriodYears = y;
   }
