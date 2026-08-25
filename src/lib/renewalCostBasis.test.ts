@@ -6,6 +6,7 @@ import {
   archiveRenewalCount,
   totalRenewalCostForHolding,
   acquisitionCostForDomain,
+  knownRenewalTxs,
 } from './renewalCostBasis';
 
 const domain = {
@@ -54,10 +55,10 @@ describe('holdingCostAsOf', () => {
   });
 });
 
-// baseline 之后的 renew 交易既会让 mergeRenewTransactionDomainUpdates 把
-// renewal_count +1，又会被 incrementalRenewalFromTransactions 按金额累加。
-// archiveRenewalCount 负责把那部分计数扣掉，避免同一笔续费算两次。
-describe('archiveRenewalCount — post-baseline renew 不重复计入档案', () => {
+// 续费成本 = (renewal_count − 金额已知的交易条数) × renewal_cost + Σ(交易金额)。
+// renewal_count 是总次数（每写一笔 renew 交易都会 +1），交易是其中金额已知的
+// 子集；两部分互补，所以既不双算也不漏算。
+describe('续费成本：档案估算与交易金额互补', () => {
   const withBaseline = {
     id: 'd1',
     renewal_count: 3,
@@ -69,29 +70,43 @@ describe('archiveRenewalCount — post-baseline renew 不重复计入档案', ()
     { domain_id: 'd1', type: 'renew', date: '2026-06-01', amount: 30 }, // 基线后
   ];
 
-  it('扣掉基线及之后的 renew 交易条数', () => {
+  it('有 baseline：只有基线及之后的交易算「金额已知」', () => {
     expect(archiveRenewalCount(withBaseline, renews)).toBe(2);
+    expect(knownRenewalTxs(withBaseline, renews)).toHaveLength(1);
   });
 
-  it('没有 baseline 时全部算档案', () => {
-    expect(
-      archiveRenewalCount({ ...withBaseline, baseline_renewal_as_of: null }, renews)
-    ).toBe(3);
+  it('无 baseline：全部 renew 交易都算「金额已知」', () => {
+    const noBaseline = { ...withBaseline, baseline_renewal_as_of: null };
+    expect(archiveRenewalCount(noBaseline, renews)).toBe(1);
+    expect(knownRenewalTxs(noBaseline, renews)).toHaveLength(2);
   });
 
   it('交易条数多于 renewal_count 时不会变负', () => {
     expect(archiveRenewalCount({ ...withBaseline, renewal_count: 0 }, renews)).toBe(0);
   });
 
-  it('totalRenewalCostForHolding 不再把同一笔续费算两次', () => {
-    // 档案 2 次 × $12 + 基线后那笔真实金额 $30 = $54
-    // （修复前是 3 × 12 + 30 = $66）
+  it('有 baseline：档案 2 × $12 + 基线后那笔 $30', () => {
     expect(totalRenewalCostForHolding(withBaseline, renews)).toBe(54);
   });
 
-  it('holdingCostAsOf 同样只算一次', () => {
+  it('无 baseline：档案 1 × $12 + 两笔交易 $10 + $30', () => {
+    // 修复前这里是 3 × 12 = $36，两笔交易金额被整个丢掉
+    expect(
+      totalRenewalCostForHolding({ ...withBaseline, baseline_renewal_as_of: null }, renews)
+    ).toBe(52);
+  });
+
+  it('holdingCostAsOf 的总额与 totalRenewalCostForHolding 一致', () => {
     const d = { ...withBaseline, purchase_cost: 100, purchase_date: '2024-01-01', renewal_cycle: 1 };
     expect(holdingCostAsOf(d, renews, new Date('2026-12-31'))).toBe(154);
+
+    // 无 baseline：档案那一次按 purchase + 1 × cycle = 2025-01-01 记账，
+    // 两笔交易按各自日期。截到 2026-12-31 三部分都已发生 → 100 + 52
+    const noBaseline = { ...d, baseline_renewal_as_of: null };
+    expect(holdingCostAsOf(noBaseline, renews, new Date('2026-12-31'))).toBe(152);
+    // 截到 2025-12-31：档案 $12（2025-01）+ 第一笔交易 $10（2025-06），
+    // 2026-06 那笔还没发生
+    expect(holdingCostAsOf(noBaseline, renews, new Date('2025-12-31'))).toBe(122);
   });
 });
 

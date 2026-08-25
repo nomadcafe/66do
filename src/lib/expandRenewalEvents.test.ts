@@ -122,7 +122,7 @@ describe('expandRenewalEvents', () => {
     expect(txs[0].amount).toBe(12);
   });
 
-  it('no baseline: all renewals are archive, transactions are ignored (matches holdingCostAsOf)', () => {
+  it('no baseline: every renew transaction counts, the rest of renewal_count is archive', () => {
     const events = expandRenewalEvents({
       id: 'd4',
       purchase_date: '2020-01-01',
@@ -131,11 +131,26 @@ describe('expandRenewalEvents', () => {
       renewal_cost: 10,
       baseline_renewal_as_of: null,
     }, [tx('d4', '2021-06-01', 99)]);
-    // Without baseline, the cost-basis path in holdingCostAsOf only reads
-    // renewal_count, so we mirror that here. Tx is ignored.
+    // Without a baseline every renew tx has a known amount, so 2 renewals =
+    // 1 archive estimate ($10) + 1 real transaction ($99). Same complement rule
+    // as with a baseline; matches renewalCostBasis.
     expect(events).toHaveLength(2);
-    expect(events.every(e => e.source === 'archive')).toBe(true);
-    expect(events.every(e => e.years === 1)).toBe(true);
+    expect(events.filter(e => e.source === 'archive').map(e => e.amount)).toEqual([10]);
+    expect(events.filter(e => e.source === 'transaction').map(e => e.amount)).toEqual([99]);
+  });
+
+  it('no baseline: renew transactions alone (renewal_count matches) produce no archive estimate', () => {
+    const events = expandRenewalEvents({
+      id: 'd5',
+      purchase_date: '2020-01-01',
+      renewal_count: 1,
+      renewal_cycle: 1,
+      renewal_cost: 10,
+      baseline_renewal_as_of: null,
+    }, [tx('d5', '2021-06-01', 99)]);
+    expect(events).toHaveLength(1);
+    expect(events[0].source).toBe('transaction');
+    expect(events[0].amount).toBe(99);
   });
 
   it('zero renewal_count → no archive events even with cost set', () => {

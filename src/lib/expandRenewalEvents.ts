@@ -24,18 +24,16 @@
  *     years up front. There's no way to recover the truth without
  *     more data — fill expiry_date for accuracy.
  *
- * archiveCount = renewal_count − count of post-baseline renew transactions,
- * so we never double-count when a domain has both archive history and
- * explicit transactions.
- *
- * Without baseline, holdingCostAsOf reads only renewal_count and ignores
- * renew transactions; we mirror that here so cost basis and chart never
- * disagree on the *total* renewal spend.
+ * archiveCount = renewal_count − count of renew transactions with a known
+ * amount (all of them, or only post-baseline ones when the domain has a
+ * baseline). The archive estimate and the transactions are complements, never
+ * overlapping — see renewalCostBasis, which owns that split so the chart and
+ * the cost basis always agree on the *total* renewal spend.
  */
 
 import type { TransactionWithRequiredFields } from '../types/transaction';
-import { renewTxsForDomain, transferTxsForDomain } from './txIndex';
-import { archiveRenewalCount } from './renewalCostBasis';
+import { transferTxsForDomain } from './txIndex';
+import { archiveRenewalCount, knownRenewalTxs } from './renewalCostBasis';
 
 export type RenewalEventSource = 'archive' | 'transaction' | 'projected';
 
@@ -85,26 +83,25 @@ export function expandRenewalEvents(
   const cycle = Math.max(1, Math.floor(domain.renewal_cycle ?? 1) || 1);
   const perRenewal = Number(domain.renewal_cost) || 0;
 
-  const baseline = domain.baseline_renewal_as_of
-    ? domain.baseline_renewal_as_of.slice(0, 10)
-    : null;
+  const costFields = {
+    id: domain.id,
+    renewal_count: renewalCount,
+    renewal_cost: domain.renewal_cost,
+    baseline_renewal_as_of: domain.baseline_renewal_as_of,
+  };
 
-  // Total years the post-baseline renew transactions added to expiry — the
-  // backwards walk below needs it. Their *count* comes from archiveRenewalCount,
-  // which renewalCostBasis owns so the chart and the cost basis can't drift.
-  // Dates are compared as YYYY-MM-DD lexicographically, matching that module.
-  let postBaselineTotalYears = 0;
-  if (baseline) {
-    // 走索引：这个函数按域名循环调用，全扫交易就是 O(域名 × 交易)
-    for (const t of renewTxsForDomain(transactions, domain.id)) {
-      const d = String(t.date).slice(0, 10);
-      if (d.length < 10) continue;
-      if (d >= baseline) {
-        // tx.renewal_period_years is the years that tx added to expiry.
-        // Falls back to domain.renewal_cycle if missing/null.
-        postBaselineTotalYears += Math.max(1, Math.floor(t.renewal_period_years ?? cycle) || cycle);
-      }
-    }
+  // The renew transactions whose amount we know — all of them, or only the
+  // post-baseline ones for a domain that has a baseline. renewalCostBasis owns
+  // that split so the chart and the cost basis can't drift apart.
+  const knownTxs = knownRenewalTxs(costFields, transactions);
+
+  // Total years those transactions added to expiry — the backwards walk below
+  // needs it, since their years sit on top of expiry_date.
+  let knownTxTotalYears = 0;
+  for (const t of knownTxs) {
+    // tx.renewal_period_years is the years that tx added to expiry.
+    // Falls back to domain.renewal_cycle if missing/null.
+    knownTxTotalYears += Math.max(1, Math.floor(t.renewal_period_years ?? cycle) || cycle);
   }
 
   // Registrar transfers can also push expiry out (a transfer-in usually adds a
@@ -117,27 +114,18 @@ export function expandRenewalEvents(
     if (y > 0) transferTotalYears += y;
   }
 
-  // Archive renewals: total count − explicit post-baseline = pre-baseline implicit.
-  // (Without baseline, all renewals are "archive" by construction; tx are ignored.)
-  const archiveCount = archiveRenewalCount(
-    {
-      id: domain.id,
-      renewal_count: renewalCount,
-      renewal_cost: domain.renewal_cost,
-      baseline_renewal_as_of: domain.baseline_renewal_as_of,
-    },
-    transactions
-  );
+  // Archive renewals: total count − the ones we have a transaction for.
+  const archiveCount = archiveRenewalCount(costFields, transactions);
 
   if (archiveCount > 0 && perRenewal > 0) {
     if (expiry) {
       // Preferred: walk backwards from current expiry. Each archive renewal i
       // (i=1..archiveCount) happened at `original_expiry + (i-1) × cycle`,
-      // which equals `current_expiry − postBaselineTotalYears − (archiveCount − i + 1) × cycle`.
+      // which equals `current_expiry − knownTxTotalYears − (archiveCount − i + 1) × cycle`.
       for (let i = 1; i <= archiveCount; i++) {
         const d = new Date(expiry);
         const yearsBack =
-          postBaselineTotalYears + transferTotalYears + (archiveCount - i + 1) * cycle;
+          knownTxTotalYears + transferTotalYears + (archiveCount - i + 1) * cycle;
         d.setFullYear(d.getFullYear() - yearsBack);
         events.push({ date: d, amount: perRenewal, years: cycle, source: 'archive' });
       }
@@ -152,25 +140,18 @@ export function expandRenewalEvents(
     }
   }
 
-  // Explicit post-baseline renew transactions.
-  // Without baseline, the no-baseline branch of holdingCostAsOf ignores
-  // transactions entirely; we mirror that to stay consistent with the cost
-  // basis books — otherwise this chart could show more renewal spend than
-  // the cost basis ever recorded.
-  if (baseline) {
-    for (const t of renewTxsForDomain(transactions, domain.id)) {
-      const d = String(t.date).slice(0, 10);
-      if (d.length < 10 || d < baseline) continue;
-      const txDate = parseLocalDate(t.date);
-      if (!txDate) continue;
-      const txYears = Math.max(1, Math.floor(t.renewal_period_years ?? cycle) || cycle);
-      events.push({
-        date: txDate,
-        amount: Number(t.amount) || 0,
-        years: txYears,
-        source: 'transaction',
-      });
-    }
+  // Renew transactions with a known amount — the complement of archiveCount, so
+  // this never double-counts against the archive events emitted above.
+  for (const t of knownTxs) {
+    const txDate = parseLocalDate(t.date);
+    if (!txDate) continue;
+    const txYears = Math.max(1, Math.floor(t.renewal_period_years ?? cycle) || cycle);
+    events.push({
+      date: txDate,
+      amount: Number(t.amount) || 0,
+      years: txYears,
+      source: 'transaction',
+    });
   }
 
   // Forecasted future renewals.
