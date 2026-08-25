@@ -239,3 +239,30 @@ describe('translateValidationMessages', () => {
     ]);
   });
 });
+
+describe('validateTransaction — transfer 允许 0 金额', () => {
+  const base = {
+    domain_id: '11111111-1111-4111-8111-111111111111',
+    amount: 0,
+    currency: 'USD',
+    date: '2026-06-01',
+  };
+
+  it('transfer 可以是免费的（push / 同注册商内部转移）', () => {
+    expect(validateTransaction({ ...base, type: 'transfer' }).valid).toBe(true);
+  });
+
+  it('transfer 仍然不接受负数', () => {
+    const { valid, errors } = validateTransaction({ ...base, type: 'transfer', amount: -1 });
+    expect(valid).toBe(false);
+    expect(errors).toContain('validation.transaction.amountMustBePositive');
+  });
+
+  it('其它类型的 0 金额照旧报错', () => {
+    for (const type of ['buy', 'renew', 'sell', 'fee', 'marketing', 'advertising']) {
+      const { valid, errors } = validateTransaction({ ...base, type });
+      expect(valid, type).toBe(false);
+      expect(errors, type).toContain('validation.transaction.amountMustBePositive');
+    }
+  });
+});

@@ -329,6 +329,10 @@ export default function TransactionForm({
     formData.user_input_surcharge_rate,
   ]);
 
+  // 只有 transfer 的金额可以是 0（免费 push / 同注册商内部转移），与
+  // validateTransaction 的口径保持一致。
+  const allowsZeroAmount = formData.type === 'transfer';
+
   const performSave = async ({ keepOpen }: { keepOpen: boolean }) => {
     if (isSubmitting) return;
     if (!formData.domain_id) {
@@ -707,15 +711,17 @@ export default function TransactionForm({
             <div>
               <label htmlFor="transaction-form-amount" className="block text-sm font-medium text-stone-700 mb-2">
                 <DollarSign className="h-4 w-4 inline mr-1" />
-                {t('transaction.amount')} *
+                {t('transaction.amount')} {allowsZeroAmount ? '' : '*'}
               </label>
               <input
                 id="transaction-form-amount"
                 type="number"
-                required
+                // transfer 允许 0（免费的 push / 同注册商内部转移）；其它类型
+                // 空值靠 required 挡住，因为 0 会被渲染成空字符串。
+                required={!allowsZeroAmount}
                 min="0"
                 step="0.01"
-                value={formData.amount === 0 ? '' : formData.amount}
+                value={allowsZeroAmount || formData.amount !== 0 ? formData.amount : ''}
                 onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
                 className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="0.00"
