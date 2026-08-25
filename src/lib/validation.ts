@@ -325,14 +325,16 @@ export function validateTransaction(transaction: unknown): ValidationResult {
     errors.push('validation.transaction.typeInvalid');
   }
 
-  // 金额验证
+  // 金额验证。transfer 允许 0：同注册商内部转移 / push 是免费的，但那条记录
+  // 依然有意义（换了注册商，还可能顺带延长到期）。其它类型仍要求 > 0。
+  const allowsZeroAmount = transactionObj.type === 'transfer';
   if (transactionObj.amount === null || transactionObj.amount === undefined) {
     errors.push('validation.transaction.amountRequired');
   } else {
     const amount = Number(transactionObj.amount);
     if (isNaN(amount) || !isFinite(amount)) {
       errors.push('validation.transaction.amountInvalidNumber');
-    } else if (amount <= 0) {
+    } else if (allowsZeroAmount ? amount < 0 : amount <= 0) {
       errors.push('validation.transaction.amountMustBePositive');
     } else if (amount > MAX_TRANSACTION_AMOUNT) {
       errors.push('validation.transaction.amountExceedsMax');
