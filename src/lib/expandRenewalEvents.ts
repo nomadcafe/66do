@@ -34,7 +34,7 @@
  */
 
 import type { TransactionWithRequiredFields } from '../types/transaction';
-import { renewTxsForDomain } from './txIndex';
+import { renewTxsForDomain, transferTxsForDomain } from './txIndex';
 
 export type RenewalEventSource = 'archive' | 'transaction' | 'projected';
 
@@ -107,6 +107,16 @@ export function expandRenewalEvents(
     }
   }
 
+  // Registrar transfers can also push expiry out (a transfer-in usually adds a
+  // year). Those years sit on top of expiry_date just like renewals do, so the
+  // backwards walk below has to discount them too — otherwise every archive
+  // renewal gets dated `transferYears` too late.
+  let transferTotalYears = 0;
+  for (const t of transferTxsForDomain(transactions, domain.id)) {
+    const y = Math.floor(Number(t.renewal_period_years) || 0);
+    if (y > 0) transferTotalYears += y;
+  }
+
   // Archive renewals: total count − explicit post-baseline = pre-baseline implicit.
   // (Without baseline, all renewals are "archive" by construction; tx are ignored.)
   const archiveCount = baseline
@@ -120,7 +130,8 @@ export function expandRenewalEvents(
       // which equals `current_expiry − postBaselineTotalYears − (archiveCount − i + 1) × cycle`.
       for (let i = 1; i <= archiveCount; i++) {
         const d = new Date(expiry);
-        const yearsBack = postBaselineTotalYears + (archiveCount - i + 1) * cycle;
+        const yearsBack =
+          postBaselineTotalYears + transferTotalYears + (archiveCount - i + 1) * cycle;
         d.setFullYear(d.getFullYear() - yearsBack);
         events.push({ date: d, amount: perRenewal, years: cycle, source: 'archive' });
       }

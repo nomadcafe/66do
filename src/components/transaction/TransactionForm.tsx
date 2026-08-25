@@ -173,10 +173,17 @@ export default function TransactionForm({
       const cycle = Math.min(10, Math.max(1, dom?.renewal_cycle ?? 1));
       const stored = transaction.renewal_period_years;
       const hasStored = stored != null && !Number.isNaN(Number(stored));
-      const years = hasStored
-        ? Math.min(10, Math.max(1, Math.floor(Number(stored))))
-        : cycle;
-      const useCustom = hasStored && years !== cycle;
+      // transfer 复用 renewal_period_years 表示「本次转移额外延长的年数」，
+      // 0/缺省 = 不延长；renew 缺省回落到域名的续费周期。
+      const isTransfer = transaction.type === 'transfer';
+      const years = isTransfer
+        ? hasStored
+          ? Math.min(10, Math.max(0, Math.floor(Number(stored))))
+          : 0
+        : hasStored
+          ? Math.min(10, Math.max(1, Math.floor(Number(stored))))
+          : cycle;
+      const useCustom = !isTransfer && hasStored && years !== cycle;
       setFormData({
         domain_id: transaction.domain_id,
         type: transaction.type,
@@ -344,6 +351,11 @@ export default function TransactionForm({
       10,
       Math.max(1, Math.floor(Number(formData.renewal_period_years)) || 1)
     );
+    // transfer：0 → null（不延长到期）；1–10 → 延长对应年数
+    const transferExtendYears = Math.min(
+      10,
+      Math.max(0, Math.floor(Number(formData.renewal_period_years)) || 0)
+    );
     const finalFormData = {
       ...formData,
       currency: 'USD',
@@ -356,10 +368,15 @@ export default function TransactionForm({
             renewal_period_years: clampRenewalYears,
             renewal_years_use_custom: formData.renewal_years_use_custom
           }
-        : {
-            renewal_period_years: null,
-            renewal_years_use_custom: undefined
-          })
+        : formData.type === 'transfer'
+          ? {
+              renewal_period_years: transferExtendYears > 0 ? transferExtendYears : null,
+              renewal_years_use_custom: undefined
+            }
+          : {
+              renewal_period_years: null,
+              renewal_years_use_custom: undefined
+            })
     };
 
     const finalFormDataClean = finalFormData;
@@ -524,7 +541,16 @@ export default function TransactionForm({
                 id="transaction-form-type"
                 required
                 value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value as TransactionWithRequiredFields['type'] })}
+                onChange={(e) => {
+                  const nextType = e.target.value as TransactionWithRequiredFields['type'];
+                  setFormData({
+                    ...formData,
+                    type: nextType,
+                    // 切到 transfer 时把年数清零：转移默认不延长到期，得用户显式填。
+                    // 切回 renew 时下方的 effect 会按域名续费周期补回默认值。
+                    ...(nextType === 'transfer' ? { renewal_period_years: 0 } : {})
+                  });
+                }}
                 className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {transactionTypes.map((type) => (
@@ -635,6 +661,35 @@ export default function TransactionForm({
                     />
                   </div>
                 )}
+              </div>
+            )}
+
+            {formData.type === 'transfer' && formData.domain_id && (
+              <div className="md:col-span-2 space-y-2 rounded-lg border border-stone-200 bg-stone-50 p-4">
+                <label
+                  htmlFor="transaction-transfer-extend-years"
+                  className="block text-sm font-medium text-stone-800"
+                >
+                  {t('transaction.transferExtendYears')}
+                </label>
+                <input
+                  id="transaction-transfer-extend-years"
+                  type="number"
+                  min={0}
+                  max={10}
+                  value={formData.renewal_period_years}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      renewal_period_years: Math.min(
+                        10,
+                        Math.max(0, parseInt(e.target.value, 10) || 0)
+                      )
+                    }))
+                  }
+                  className="w-24 px-2 py-1 border border-stone-300 rounded-md text-sm"
+                />
+                <p className="text-xs text-stone-600">{t('transaction.transferExtendYearsHint')}</p>
               </div>
             )}
 
