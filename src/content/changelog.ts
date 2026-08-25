@@ -89,6 +89,7 @@ export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
         'Transfer 的金额可以填 0 了（免费的 push / 同注册商内部转移）。此前在续费弹窗里勾了「创建转移交易」又不填费用，会导致整笔续费保存失败。',
         '手工记的 buy 交易现在会进成本了：以前只认域名档案上的购买成本，在 Add Transaction 里单独记的买入完全不参与 ROI 计算。现在有 buy 交易就以交易金额为准，没有才用档案值——不会两边相加。',
         '统一了各处「支出」的口径：年度现金流、月度净现金流、投资趋势三张图此前各算各的，同一批数据给出三个不同的支出总额。现在月度净现金流补上了转移费和营销/广告，投资趋势补上了转移费。',
+        '老域名手工记的续费交易金额终于生效：此前只有设过「续费基线日」的域名才按交易金额算，没设过的一律按「续费次数 × 单次续费成本」估算，用户实际填的金额被丢掉。现在统一成「有交易的按真实金额，剩下的次数按单价估」，续费成本会更贴近实际支付。',
       ],
     },
     {
@@ -213,6 +214,7 @@ export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
         'Transfer amounts can now be 0 (free pushes and internal registrar moves). Previously, ticking “create transfer transaction” in the renewal dialog without a fee made the whole renewal fail to save.',
         'Manually recorded buy transactions now count toward cost. Previously only the domain record’s purchase cost was used, so a buy logged in Add Transaction never reached ROI. Buy transactions now take precedence, with the domain record as the fallback — the two are never added together.',
         'Unified how “spend” is counted. The yearly cashflow, monthly net cashflow, and investment trend charts each used their own filter and reported three different totals for the same data. Monthly net cashflow now includes transfer fees plus marketing and advertising; the investment trend now includes transfer fees.',
+        'Renewal transactions on older domains now count. Previously only domains with a renewal baseline date used real transaction amounts; everything else fell back to renewal count × renewal cost and threw away what you actually entered. Renewal cost is now “real amounts where you recorded one, estimated for the rest”, so it tracks what you actually paid.',
       ],
     },
     {
