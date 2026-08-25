@@ -2,9 +2,14 @@
  * 续费持有成本口径：
  * - 未设置 baseline_renewal_as_of：仅 renewal_count × renewal_cost（与历史行为一致，不叠加 renew 交易以免双算）。
  * - 已设置 baseline_renewal_as_of：档案估算 + 基线日及之后的 renew 交易金额（按自然日 date >= 基线日）。
+ *
+ * transfer 交易（转移注册商的转入费）也算持有成本：域名档案上没有对应的汇总字段，
+ * 所以不存在 renew 那种「档案 vs 交易」双算问题，全部 transfer 交易直接累加，
+ * 与 baseline 无关。fee / marketing / advertising 仍不计入 —— 它们是运营支出而
+ * 非域名本身的取得/保有成本，只在年度现金流表的 otherOutflow 里出现。
  */
 
-import { renewTxsForDomain } from './txIndex';
+import { renewTxsForDomain, transferTxsForDomain } from './txIndex';
 
 export type RenewalCostTx = {
   domain_id: string;
@@ -44,6 +49,19 @@ export function incrementalRenewalFromTransactions(
   return sum;
 }
 
+/** 某域名全部 transfer 交易金额之和（转入费）。与 baseline 无关。 */
+export function transferCostForDomain(
+  domainId: string,
+  transactions: RenewalCostTx[]
+): number {
+  let sum = 0;
+  // 走索引而不是全扫：这个函数被「按域名循环」调用，全扫就是 O(域名 × 交易)
+  for (const t of transferTxsForDomain(transactions, domainId)) {
+    sum += Number(t.amount) || 0;
+  }
+  return sum;
+}
+
 export function totalRenewalCostForHolding(
   domain: DomainRenewalCostFields,
   transactions: RenewalCostTx[]
@@ -59,7 +77,11 @@ export function totalHoldingCostForDomain(
   domain: DomainRenewalCostFields & { purchase_cost?: number | null },
   transactions: RenewalCostTx[]
 ): number {
-  return (Number(domain.purchase_cost) || 0) + totalRenewalCostForHolding(domain, transactions);
+  return (
+    (Number(domain.purchase_cost) || 0) +
+    totalRenewalCostForHolding(domain, transactions) +
+    transferCostForDomain(domain.id, transactions)
+  );
 }
 
 /**
@@ -75,6 +97,7 @@ export function totalHoldingCostForDomain(
  *    - 档案部分（renewal_count × renewal_cost）按 baseline 一次性记账，
  *      baseline <= asOf 时计入全额（baseline 时点即存量的切换点）
  *    - baseline 之后的 renew 交易（有真实日期）按 date <= asOf 累加
+ * - 转移费：transfer 交易按 date <= asOf 累加（无 baseline 概念）
  * - 无 baseline：档案部分按 renewal_cycle 均匀分布在 purchase 之后，
  *   第 i 次续费视为发生在 purchase + i × cycle 年。这只是近似；若用户填写
  *   的 renewal_count 跟 ownership/renewal_cycle 对不上，asOf=now 时的值
@@ -123,6 +146,14 @@ export function holdingCostAsOf(
         const renewalTime = purchaseTime + i * cycleMs;
         if (renewalTime <= asOf) total += perRenewal;
       }
+    }
+  }
+
+  // 转移费：与 baseline 无关，只按交易日截断
+  for (const t of transferTxsForDomain(transactions, domain.id)) {
+    const txTime = new Date(t.date).getTime();
+    if (Number.isFinite(txTime) && txTime <= asOf) {
+      total += Number(t.amount) || 0;
     }
   }
 

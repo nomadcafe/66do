@@ -1,13 +1,14 @@
 // 单域名 ROI / 货币格式化 / 过期损失。组合层面的财务指标
 // （ROI、年化、夏普、波动率、年化收益率等）一律走 coreCalculations.ts。
 
-import { totalRenewalCostForHolding } from './renewalCostBasis';
+import { totalRenewalCostForHolding, transferCostForDomain } from './renewalCostBasis';
 import { isDomainLost } from './domainLossStatus';
 
 /**
  * 计算单个域名的 ROI（Domain Portfolio 表格/卡片使用）
  * 公式：ROI = (净收入 - 总持有成本) / 总持有成本 × 100
- * - 总持有成本 = 购买成本(purchase_cost) + 续费次数(renewal_count) × 单次续费(renewal_cost)
+ * - 总持有成本 = 购买成本(purchase_cost) + 续费成本 + 转移费(transfer 交易)
+ *   续费成本口径见 renewalCostBasis；转移费需要传入 transactions 才能算。
  * - 已出售：净收入 = 售价(sale_price) - 平台手续费(platform_fee)
  * - 过期：视为 -100%
  * - 持有中且有预估价值：净收入用 estimated_value 代入
@@ -40,7 +41,9 @@ export function calculateDomainROI(
           transactions
         )
       : domain.renewal_count * (domain.renewal_cost || 0);
-  const totalHoldingCost = purchaseCost + renewalCost;
+  const transferCost =
+    domain.id && transactions ? transferCostForDomain(domain.id, transactions) : 0;
+  const totalHoldingCost = purchaseCost + renewalCost + transferCost;
 
   if (totalHoldingCost === 0) return 0;
 
@@ -138,7 +141,8 @@ export function calculateExpiredDomainLoss(
           transactions
         )
       : (domain.renewal_count ?? 0) * (domain.renewal_cost || 0);
-    const totalInvestment = purchaseCost + renewalCost;
+    const transferCost = transactions ? transferCostForDomain(domain.id, transactions) : 0;
+    const totalInvestment = purchaseCost + renewalCost + transferCost;
 
     if (totalInvestment <= 0) return;
 
