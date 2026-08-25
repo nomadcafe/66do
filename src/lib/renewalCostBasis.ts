@@ -3,13 +3,18 @@
  * - 未设置 baseline_renewal_as_of：仅 renewal_count × renewal_cost（与历史行为一致，不叠加 renew 交易以免双算）。
  * - 已设置 baseline_renewal_as_of：档案估算 + 基线日及之后的 renew 交易金额（按自然日 date >= 基线日）。
  *
+ * 取得成本：有 buy 交易就以交易金额为准，没有才回落到档案上的 purchase_cost。
+ * 两者都是用户手填的同一件事（这个域名花了多少钱买的），谁都可能只填了一边，
+ * 相加就会双算——所以是「交易优先、档案兜底」，与 calculateYearlyRenewalVsProfit
+ * 里既有的口径一致。
+ *
  * transfer 交易（转移注册商的转入费）也算持有成本：域名档案上没有对应的汇总字段，
- * 所以不存在 renew 那种「档案 vs 交易」双算问题，全部 transfer 交易直接累加，
- * 与 baseline 无关。fee / marketing / advertising 仍不计入 —— 它们是运营支出而
- * 非域名本身的取得/保有成本，只在年度现金流表的 otherOutflow 里出现。
+ * 所以不存在 buy / renew 那种「档案 vs 交易」双算问题，全部 transfer 交易直接
+ * 累加，与 baseline 无关。fee / marketing / advertising 仍不计入 —— 它们是运营
+ * 支出而非域名本身的取得/保有成本，只在年度现金流表的 otherOutflow 里出现。
  */
 
-import { renewTxsForDomain, transferTxsForDomain } from './txIndex';
+import { buyTxsForDomain, renewTxsForDomain, transferTxsForDomain } from './txIndex';
 
 export type RenewalCostTx = {
   domain_id: string;
@@ -24,6 +29,25 @@ export type DomainRenewalCostFields = {
   renewal_cost?: number | null;
   baseline_renewal_as_of?: string | null;
 };
+
+/**
+ * 取得成本：有 buy 交易就用交易金额之和，一笔都没有才回落到 purchase_cost。
+ *
+ * 不相加是因为两边记的是同一件事：DomainForm 上的 purchase_cost 和 Add
+ * Transaction 里的 buy 交易，用户可能只填一边、也可能两边都填。相加会把同一次
+ * 购入算两次，而只认档案又会让手工记的 buy 交易完全不进成本（此前就是如此）。
+ */
+export function acquisitionCostForDomain(
+  domain: { id: string; purchase_cost?: number | null },
+  transactions: RenewalCostTx[]
+): number {
+  // 走索引而不是全扫：这个函数被「按域名循环」调用，全扫就是 O(域名 × 交易)
+  const buys = buyTxsForDomain(transactions, domain.id);
+  if (buys.length === 0) return Number(domain.purchase_cost) || 0;
+  let sum = 0;
+  for (const t of buys) sum += Number(t.amount) || 0;
+  return sum;
+}
 
 /**
  * 归档续费次数：renewal_count 减去「基线日及之后的 renew 交易」条数。
@@ -110,7 +134,7 @@ export function totalHoldingCostForDomain(
   transactions: RenewalCostTx[]
 ): number {
   return (
-    (Number(domain.purchase_cost) || 0) +
+    acquisitionCostForDomain(domain, transactions) +
     totalRenewalCostForHolding(domain, transactions) +
     transferCostForDomain(domain.id, transactions)
   );
@@ -124,7 +148,8 @@ export function totalHoldingCostForDomain(
  * 的投资额里不该包含之后那些续费。
  *
  * 与 `totalHoldingCostForDomain` 语义对齐：
- * - 购买：purchase_date <= asOf 才计入 purchase_cost
+ * - 购买：有 buy 交易时按各自的 date <= asOf 累加，否则用 purchase_cost
+ *   （purchase_date > asOf 时整个域名还不存在，直接返回 0）
  * - 有 baseline_renewal_as_of：
  *    - 档案部分（renewal_count × renewal_cost）按 baseline 一次性记账，
  *      baseline <= asOf 时计入全额（baseline 时点即存量的切换点）
@@ -150,7 +175,18 @@ export function holdingCostAsOf(
   const purchaseTime = domain.purchase_date ? new Date(domain.purchase_date).getTime() : NaN;
   if (!Number.isFinite(purchaseTime) || purchaseTime > asOf) return 0;
 
-  let total = Number(domain.purchase_cost) || 0;
+  // 取得成本：交易优先、档案兜底，与 acquisitionCostForDomain 同口径，
+  // 只是 buy 交易还要按各自的日期截断。
+  let total = 0;
+  const buys = buyTxsForDomain(transactions, domain.id);
+  if (buys.length === 0) {
+    total += Number(domain.purchase_cost) || 0;
+  } else {
+    for (const t of buys) {
+      const txTime = new Date(t.date).getTime();
+      if (Number.isFinite(txTime) && txTime <= asOf) total += Number(t.amount) || 0;
+    }
+  }
 
   if (domain.baseline_renewal_as_of) {
     const baselineTime = new Date(domain.baseline_renewal_as_of).getTime();

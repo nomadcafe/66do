@@ -25,6 +25,7 @@ interface TxLike {
 const allByDomainCache = new WeakMap<object, Map<string, unknown[]>>();
 const renewByDomainCache = new WeakMap<object, Map<string, unknown[]>>();
 const transferByDomainCache = new WeakMap<object, Map<string, unknown[]>>();
+const buyByDomainCache = new WeakMap<object, Map<string, unknown[]>>();
 
 function buildIndex<T extends TxLike>(
   transactions: T[],
@@ -69,4 +70,9 @@ export function renewTxsForDomain<T extends TxLike>(transactions: T[], domainId:
 /** 某域名的 transfer 交易（保持原数组顺序）。查不到返回空数组。 */
 export function transferTxsForDomain<T extends TxLike>(transactions: T[], domainId: string): T[] {
   return cachedIndex(transferByDomainCache, transactions, (t) => t.type === 'transfer').get(domainId) ?? [];
+}
+
+/** 某域名的 buy 交易（保持原数组顺序）。查不到返回空数组。 */
+export function buyTxsForDomain<T extends TxLike>(transactions: T[], domainId: string): T[] {
+  return cachedIndex(buyByDomainCache, transactions, (t) => t.type === 'buy').get(domainId) ?? [];
 }
