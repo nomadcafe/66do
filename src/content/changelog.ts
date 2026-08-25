@@ -87,6 +87,8 @@ export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
         'Transfer 交易可以填「本次转移延长到期（年）」了：注册商转入通常自带 +1 年，填了就会顺延到期日；留 0 则不延长。删除该交易时到期日会同步回退。',
         '修复续费成本被算两次的问题：记一笔续费交易会同时让「续费次数」+1，成本里又按金额加一遍，持有成本、ROI、已实现盈亏都偏高。修复后这些数字会下调到正确值。',
         'Transfer 的金额可以填 0 了（免费的 push / 同注册商内部转移）。此前在续费弹窗里勾了「创建转移交易」又不填费用，会导致整笔续费保存失败。',
+        '手工记的 buy 交易现在会进成本了：以前只认域名档案上的购买成本，在 Add Transaction 里单独记的买入完全不参与 ROI 计算。现在有 buy 交易就以交易金额为准，没有才用档案值——不会两边相加。',
+        '统一了各处「支出」的口径：年度现金流、月度净现金流、投资趋势三张图此前各算各的，同一批数据给出三个不同的支出总额。现在月度净现金流补上了转移费和营销/广告，投资趋势补上了转移费。',
       ],
     },
     {
@@ -209,6 +211,8 @@ export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
         'Transfer transactions can now record the years added to expiry — a registrar transfer-in usually adds one. Leave it at 0 for no extension; deleting the transaction rolls the expiry date back.',
         'Fixed renewal cost being counted twice: recording a renewal both bumped the renewal counter and added its amount, inflating holding cost, ROI, and realized P&L. Those numbers now correct downward.',
         'Transfer amounts can now be 0 (free pushes and internal registrar moves). Previously, ticking “create transfer transaction” in the renewal dialog without a fee made the whole renewal fail to save.',
+        'Manually recorded buy transactions now count toward cost. Previously only the domain record’s purchase cost was used, so a buy logged in Add Transaction never reached ROI. Buy transactions now take precedence, with the domain record as the fallback — the two are never added together.',
+        'Unified how “spend” is counted. The yearly cashflow, monthly net cashflow, and investment trend charts each used their own filter and reported three different totals for the same data. Monthly net cashflow now includes transfer fees plus marketing and advertising; the investment trend now includes transfer fees.',
       ],
     },
     {
