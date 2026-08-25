@@ -85,6 +85,8 @@ export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
       items: [
         'Transfer 交易的转移费现在计入域名的持有成本，会影响 Total Investment、ROI 和各类利润指标（此前只出现在年度现金流表里）。',
         'Transfer 交易可以填「本次转移延长到期（年）」了：注册商转入通常自带 +1 年，填了就会顺延到期日；留 0 则不延长。删除该交易时到期日会同步回退。',
+        '修复续费成本被算两次的问题：记一笔续费交易会同时让「续费次数」+1，成本里又按金额加一遍，持有成本、ROI、已实现盈亏都偏高。修复后这些数字会下调到正确值。',
+        'Transfer 的金额可以填 0 了（免费的 push / 同注册商内部转移）。此前在续费弹窗里勾了「创建转移交易」又不填费用，会导致整笔续费保存失败。',
       ],
     },
     {
@@ -205,6 +207,8 @@ export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
       items: [
         'Transfer fees now count toward a domain’s holding cost, so they show up in Total Investment, ROI, and profit metrics (previously they only appeared in the yearly cashflow table).',
         'Transfer transactions can now record the years added to expiry — a registrar transfer-in usually adds one. Leave it at 0 for no extension; deleting the transaction rolls the expiry date back.',
+        'Fixed renewal cost being counted twice: recording a renewal both bumped the renewal counter and added its amount, inflating holding cost, ROI, and realized P&L. Those numbers now correct downward.',
+        'Transfer amounts can now be 0 (free pushes and internal registrar moves). Previously, ticking “create transfer transaction” in the renewal dialog without a fee made the whole renewal fail to save.',
       ],
     },
     {
