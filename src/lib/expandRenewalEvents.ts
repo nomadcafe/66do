@@ -35,6 +35,7 @@
 
 import type { TransactionWithRequiredFields } from '../types/transaction';
 import { renewTxsForDomain, transferTxsForDomain } from './txIndex';
+import { archiveRenewalCount } from './renewalCostBasis';
 
 export type RenewalEventSource = 'archive' | 'transaction' | 'projected';
 
@@ -88,10 +89,10 @@ export function expandRenewalEvents(
     ? domain.baseline_renewal_as_of.slice(0, 10)
     : null;
 
-  // Count how many post-baseline renew transactions belong to this domain.
-  // We treat dates as YYYY-MM-DD lexicographic for the boundary check, matching
-  // holdingCostAsOf's behaviour in renewalCostBasis.ts.
-  let postBaselineTxCount = 0;
+  // Total years the post-baseline renew transactions added to expiry — the
+  // backwards walk below needs it. Their *count* comes from archiveRenewalCount,
+  // which renewalCostBasis owns so the chart and the cost basis can't drift.
+  // Dates are compared as YYYY-MM-DD lexicographically, matching that module.
   let postBaselineTotalYears = 0;
   if (baseline) {
     // 走索引：这个函数按域名循环调用，全扫交易就是 O(域名 × 交易)
@@ -99,7 +100,6 @@ export function expandRenewalEvents(
       const d = String(t.date).slice(0, 10);
       if (d.length < 10) continue;
       if (d >= baseline) {
-        postBaselineTxCount++;
         // tx.renewal_period_years is the years that tx added to expiry.
         // Falls back to domain.renewal_cycle if missing/null.
         postBaselineTotalYears += Math.max(1, Math.floor(t.renewal_period_years ?? cycle) || cycle);
@@ -119,9 +119,15 @@ export function expandRenewalEvents(
 
   // Archive renewals: total count − explicit post-baseline = pre-baseline implicit.
   // (Without baseline, all renewals are "archive" by construction; tx are ignored.)
-  const archiveCount = baseline
-    ? Math.max(0, renewalCount - postBaselineTxCount)
-    : renewalCount;
+  const archiveCount = archiveRenewalCount(
+    {
+      id: domain.id,
+      renewal_count: renewalCount,
+      renewal_cost: domain.renewal_cost,
+      baseline_renewal_as_of: domain.baseline_renewal_as_of,
+    },
+    transactions
+  );
 
   if (archiveCount > 0 && perRenewal > 0) {
     if (expiry) {

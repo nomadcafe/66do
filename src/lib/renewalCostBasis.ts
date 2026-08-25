@@ -25,6 +25,37 @@ export type DomainRenewalCostFields = {
   baseline_renewal_as_of?: string | null;
 };
 
+/**
+ * 归档续费次数：renewal_count 减去「基线日及之后的 renew 交易」条数。
+ *
+ * renewal_count 是一个总计数器——mergeRenewTransactionDomainUpdates 每写一笔
+ * renew 交易就 +1，无论那笔交易在不在基线之后。所以有 baseline 的域名不能直接
+ * 拿 renewal_count 当归档次数：基线后的那几次既进了计数器（→ count × cost），
+ * 又会被 incrementalRenewalFromTransactions 按真实金额加一遍，同一笔续费算两次。
+ *
+ * expandRenewalEvents 里早就做了同样的扣减，这里补上让两套口径一致。
+ */
+export function archiveRenewalCount(
+  domain: DomainRenewalCostFields,
+  transactions: RenewalCostTx[]
+): number {
+  const total = Math.max(0, Math.floor(domain.renewal_count ?? 0));
+  const baseline = domain.baseline_renewal_as_of
+    ? String(domain.baseline_renewal_as_of).slice(0, 10)
+    : null;
+  if (!baseline || baseline.length < 10) return total;
+
+  let postBaselineTxCount = 0;
+  for (const t of renewTxsForDomain(transactions, domain.id)) {
+    const d = String(t.date).slice(0, 10);
+    if (d.length < 10) continue;
+    if (d >= baseline) postBaselineTxCount++;
+  }
+  return Math.max(0, total - postBaselineTxCount);
+}
+
+/** 纯档案口径：renewal_count × renewal_cost。有 baseline 的域名请走
+ *  archiveRenewalCount 先扣掉基线后的交易，否则会与交易金额双算。 */
 export function archiveRenewalCost(domain: {
   renewal_count?: number | null;
   renewal_cost?: number | null;
@@ -66,11 +97,12 @@ export function totalRenewalCostForHolding(
   domain: DomainRenewalCostFields,
   transactions: RenewalCostTx[]
 ): number {
-  const archive = archiveRenewalCost(domain);
   if (domain.baseline_renewal_as_of) {
+    const archive =
+      archiveRenewalCount(domain, transactions) * (Number(domain.renewal_cost) || 0);
     return archive + incrementalRenewalFromTransactions(domain.id, domain.baseline_renewal_as_of, transactions);
   }
-  return archive;
+  return archiveRenewalCost(domain);
 }
 
 export function totalHoldingCostForDomain(
@@ -123,7 +155,8 @@ export function holdingCostAsOf(
   if (domain.baseline_renewal_as_of) {
     const baselineTime = new Date(domain.baseline_renewal_as_of).getTime();
     if (Number.isFinite(baselineTime) && baselineTime <= asOf) {
-      total += archiveRenewalCost(domain);
+      // 基线后的 renew 交易在下面按真实金额累加，这里必须扣掉它们的计数
+      total += archiveRenewalCount(domain, transactions) * (Number(domain.renewal_cost) || 0);
     }
     // Post-baseline renew transactions
     const b = String(domain.baseline_renewal_as_of).slice(0, 10);
