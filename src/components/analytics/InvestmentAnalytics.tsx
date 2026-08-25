@@ -32,6 +32,7 @@ import {
   Coins,
 } from 'lucide-react';
 import { expandRenewalEvents } from '../../lib/expandRenewalEvents';
+import { isCashOutflowType } from '../../lib/transactionTypeGroups';
 
 interface InvestmentAnalyticsProps {
   domains: DomainWithTags[];
@@ -247,11 +248,12 @@ export default function InvestmentAnalytics({
       const revenue = monthlyNetInflowByMonth.get(monthKey) ?? 0;
       const grossSales = monthlyGrossInflowByMonth.get(monthKey) ?? 0;
 
-      // 月度净现金流 = 本月实收 - 本月花出（买入/续费/平台费）。
-      // 流出按 t.date 月份归类：buy/renew/fee 都是一次性付款，不存在分期到账问题。
+      // 月度净现金流 = 本月实收 - 本月花出（CASH_OUTFLOW_TYPES 全口径：买入、
+      // 续费、转移、平台费、营销、广告）。流出按 t.date 月份归类：这些都是
+      // 一次性付款，不存在分期到账问题。
       const costThisMonth = transactions
         .filter((t) => {
-          if (t.type !== 'buy' && t.type !== 'renew' && t.type !== 'fee') return false;
+          if (!isCashOutflowType(t.type)) return false;
           return new Date(t.date).toISOString().slice(0, 7) === monthKey;
         })
         .reduce((sum, t) => sum + t.amount, 0);
