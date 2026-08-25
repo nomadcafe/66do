@@ -1,7 +1,11 @@
 // 单域名 ROI / 货币格式化 / 过期损失。组合层面的财务指标
 // （ROI、年化、夏普、波动率、年化收益率等）一律走 coreCalculations.ts。
 
-import { totalRenewalCostForHolding, transferCostForDomain } from './renewalCostBasis';
+import {
+  totalRenewalCostForHolding,
+  transferCostForDomain,
+  acquisitionCostForDomain,
+} from './renewalCostBasis';
 import { isDomainLost } from './domainLossStatus';
 
 /**
@@ -28,7 +32,10 @@ export function calculateDomainROI(
   },
   transactions?: Array<{ domain_id: string; type: string; date: string; amount: number }>
 ): number {
-  const purchaseCost = domain.purchase_cost || 0;
+  const purchaseCost =
+    domain.id && transactions
+      ? acquisitionCostForDomain({ id: domain.id, purchase_cost: domain.purchase_cost }, transactions)
+      : domain.purchase_cost || 0;
   const renewalCost =
     domain.id && transactions
       ? totalRenewalCostForHolding(
@@ -129,7 +136,9 @@ export function calculateExpiredDomainLoss(
     const expiryDateStr: string | null = domain.expiry_date ?? null;
     const expiryDate: Date | null = domain.expiry_date ? new Date(domain.expiry_date) : null;
 
-    const purchaseCost = domain.purchase_cost || 0;
+    const purchaseCost = transactions
+      ? acquisitionCostForDomain({ id: domain.id, purchase_cost: domain.purchase_cost }, transactions)
+      : domain.purchase_cost || 0;
     const renewalCost = transactions
       ? totalRenewalCostForHolding(
           {

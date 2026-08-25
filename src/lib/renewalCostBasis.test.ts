@@ -5,6 +5,7 @@ import {
   holdingCostAsOf,
   archiveRenewalCount,
   totalRenewalCostForHolding,
+  acquisitionCostForDomain,
 } from './renewalCostBasis';
 
 const domain = {
@@ -91,5 +92,65 @@ describe('archiveRenewalCount — post-baseline renew 不重复计入档案', ()
   it('holdingCostAsOf 同样只算一次', () => {
     const d = { ...withBaseline, purchase_cost: 100, purchase_date: '2024-01-01', renewal_cycle: 1 };
     expect(holdingCostAsOf(d, renews, new Date('2026-12-31'))).toBe(154);
+  });
+});
+
+// purchase_cost（DomainForm）和 buy 交易（Add Transaction）记的是同一件事，
+// 相加会双算。规则：有交易就以交易为准，一笔都没有才回落到档案。
+describe('acquisitionCostForDomain', () => {
+  const d = { id: 'd1', purchase_cost: 100 };
+
+  it('没有 buy 交易时用 purchase_cost', () => {
+    expect(acquisitionCostForDomain(d, [])).toBe(100);
+    expect(
+      acquisitionCostForDomain(d, [{ domain_id: 'd1', type: 'renew', date: '2024-01-01', amount: 12 }])
+    ).toBe(100);
+  });
+
+  it('有 buy 交易时以交易之和为准，不再叠加 purchase_cost', () => {
+    const buys = [
+      { domain_id: 'd1', type: 'buy', date: '2024-01-01', amount: 60 },
+      { domain_id: 'd1', type: 'buy', date: '2024-02-01', amount: 15 },
+    ];
+    expect(acquisitionCostForDomain(d, buys)).toBe(75);
+  });
+
+  it('只认本域名的 buy 交易', () => {
+    const buys = [{ domain_id: 'd2', type: 'buy', date: '2024-01-01', amount: 60 }];
+    expect(acquisitionCostForDomain(d, buys)).toBe(100);
+  });
+
+  it('totalHoldingCostForDomain 用交易口径的取得成本', () => {
+    const domainWithRenewals = {
+      id: 'd1',
+      purchase_cost: 100,
+      renewal_cost: 12,
+      renewal_count: 1,
+      baseline_renewal_as_of: null,
+    };
+    const txs = [
+      { domain_id: 'd1', type: 'buy', date: '2024-01-01', amount: 60 },
+      { domain_id: 'd1', type: 'transfer', date: '2024-03-01', amount: 9 },
+    ];
+    // 60 buy（不是 100）+ 12 档案续费 + 9 转移
+    expect(totalHoldingCostForDomain(domainWithRenewals, txs)).toBe(81);
+  });
+
+  it('holdingCostAsOf 按 buy 交易各自的日期截断', () => {
+    const domainWithRenewals = {
+      id: 'd1',
+      purchase_cost: 100,
+      purchase_date: '2024-01-01',
+      renewal_cost: 0,
+      renewal_count: 0,
+      renewal_cycle: 1,
+      baseline_renewal_as_of: null,
+    };
+    const txs = [
+      { domain_id: 'd1', type: 'buy', date: '2024-01-01', amount: 60 },
+      { domain_id: 'd1', type: 'buy', date: '2024-09-01', amount: 15 },
+    ];
+    expect(holdingCostAsOf(domainWithRenewals, txs, new Date('2024-06-01'))).toBe(60);
+    expect(holdingCostAsOf(domainWithRenewals, txs, new Date('2024-12-01'))).toBe(75);
   });
 });
