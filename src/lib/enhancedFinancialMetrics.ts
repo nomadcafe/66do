@@ -2,7 +2,7 @@
 // 组合层面的财务指标走 coreCalculations.ts。
 
 import { sellGrossUSD, sellNetUSD } from './coreCalculations';
-import { totalRenewalCostForHolding } from './renewalCostBasis';
+import { totalRenewalCostForHolding, transferCostForDomain } from './renewalCostBasis';
 import { isDomainLost } from './domainLossStatus';
 
 interface DomainROI {
@@ -54,7 +54,8 @@ export function calculateDomainROI(
     },
     domainTransactions
   );
-  const totalInvestment = purchaseCost + renewalCost;
+  const transferCost = transferCostForDomain(domain.id, domainTransactions);
+  const totalInvestment = purchaseCost + renewalCost + transferCost;
   
   // 销售收入
   const salesTransactions = domainTransactions.filter(t => t.type === 'sell');
