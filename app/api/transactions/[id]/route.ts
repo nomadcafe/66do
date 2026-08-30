@@ -22,10 +22,9 @@ export async function GET(
       })
     }
 
-    const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined
     const corsHeaders = getCorsHeaders(request)
     const { id: transactionId } = await params
-    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
+    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken)
     const transaction = await TransactionService.getTransactionByIdWithClient(
       client,
       transactionId,
@@ -72,7 +71,6 @@ export async function PUT(
       })
     }
 
-    const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined
     const corsHeaders = getCorsHeaders(request)
     const { id: transactionId } = await params
     const userId = authInfo.userId
@@ -93,7 +91,7 @@ export async function PUT(
 
     const transaction = await request.json()
 
-    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
+    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken)
 
     if (!transaction) {
       return NextResponse.json({ error: 'Transaction data is required' }, {
@@ -192,7 +190,6 @@ export async function DELETE(
       })
     }
 
-    const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined
     const corsHeaders = getCorsHeaders(request)
     const { id: transactionId } = await params
     const userId = authInfo.userId
@@ -211,7 +208,7 @@ export async function DELETE(
       )
     }
 
-    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
+    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken)
 
     const rowToDelete = await TransactionService.getTransactionByIdWithClient(client, transactionId, userId)
     if (!rowToDelete) {

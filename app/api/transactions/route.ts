@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     }
 
     const corsHeaders = { ...getCorsHeaders(request), ...noCacheHeaders }
-    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken, request.headers.get('X-Refresh-Token') ?? undefined)
+    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken)
     // 用 list* 而不是 get*：分页中途失败时必须报 500，不能把半截数据当成
     // 「这个用户就这么多交易」返回给客户端。
     const { data: transactionList, error } = await TransactionService.listTransactionsWithClient(client, authInfo.userId)
@@ -79,9 +79,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { transaction, transactions, refreshToken } = body
+    const { transaction, transactions } = body
 
-    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken, refreshToken)
+    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken)
 
     // 支持批量创建
     if (transactions && Array.isArray(transactions)) {

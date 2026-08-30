@@ -21,9 +21,8 @@ export async function GET(request: NextRequest) {
     }
     
     const { userId, accessToken } = authInfo
-    const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined
     const corsHeaders = { ...getCorsHeaders(request), ...noCacheHeaders }
-    const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken, refreshToken)
+    const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken)
     // 用 list* 而不是 get*：分页中途失败时必须报 500，不能把半截数据当成
     // 「这个用户就这么多域名」返回给客户端。
     const { data: domainList, error } = await DomainService.listDomainsWithClient(authenticatedClient, userId)
@@ -81,9 +80,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { domain, domains, refreshToken } = body
+    const { domain, domains } = body
 
-    const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken, refreshToken)
+    const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken)
 
     // 支持批量创建
     if (domains && Array.isArray(domains)) {

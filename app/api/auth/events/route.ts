@@ -27,7 +27,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
   const { userId, accessToken } = authInfo;
-  const refreshToken = request.headers.get('x-refresh-token') ?? undefined;
 
   // Parse limit. Cap at MAX_LIMIT so a curious client can't ask for the
   // whole table.
@@ -41,7 +40,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const supabase = await createAuthenticatedSupabaseClient(accessToken, refreshToken);
+    const supabase = await createAuthenticatedSupabaseClient(accessToken);
     const { data, error } = await supabase
       .from('auth_events')
       .select('id, event_type, ua_summary, region, created_at')

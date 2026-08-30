@@ -40,8 +40,7 @@ async function resolveOwnedReceipt(request: NextRequest, receiptId: string) {
     }
   }
 
-  const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined
-  const client = await createAuthenticatedSupabaseClient(accessToken, refreshToken)
+  const client = await createAuthenticatedSupabaseClient(accessToken)
   const existing = await InstallmentReceiptService.getReceiptByIdWithClient(client, receiptId, userId)
 
   if (!existing) {
