@@ -80,6 +80,14 @@ export function changelogPageMetadata(locale: HomeLocale): Metadata {
 export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
   zh: [
     {
+      version: '2026-08-30',
+      date: '2026-08-30',
+      items: [
+        '修复保存失败时改动被静默丢弃的问题：没存上的内容会退回原样并在下次保存重试，不再出现「以为存了、刷新就没了」。',
+        '数据加载中途出错时会明确报错，不再拿不完整的交易记录去算成本和收益。',
+      ],
+    },
+    {
       version: '2026-08-25',
       date: '2026-08-25',
       items: [
@@ -202,6 +210,14 @@ export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
     },
   ],
   en: [
+    {
+      version: '2026-08-30',
+      date: '2026-08-30',
+      items: [
+        'Fixed edits being silently dropped when a save failed — unsaved changes now roll back and are retried on the next save, instead of looking saved until you refresh.',
+        'Data loads that fail partway now report an error instead of computing cost and returns from an incomplete transaction list.',
+      ],
+    },
     {
       version: '2026-08-25',
       date: '2026-08-25',
