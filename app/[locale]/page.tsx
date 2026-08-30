@@ -260,7 +260,10 @@ export default async function HomePage({ params }: PageProps) {
                 <span className="h-2.5 w-2.5 rounded-full bg-stone-300" />
                 <span className="h-2.5 w-2.5 rounded-full bg-stone-300" />
                 <span className="h-2.5 w-2.5 rounded-full bg-stone-300" />
-                <span className="ml-3 text-xs text-stone-400">domain.financial / dashboard</span>
+                {/* stone-400 on stone-50 只有 2.48:1，真人也看不清（这块是
+                    aria-hidden 的装饰，所以不算无障碍违规，但没理由留着看不清）。
+                    stone-500 是 4.58:1，过 AA。 */}
+                <span className="ml-3 text-xs text-stone-500">domain.financial / dashboard</span>
               </div>
 
               <div className="bg-stone-50/30 p-4 sm:p-6 space-y-4 sm:space-y-5">
@@ -419,8 +422,16 @@ export default async function HomePage({ params }: PageProps) {
         </section>
 
         {/* FEATURES — compressed icon strip */}
-        <section className="border-b border-stone-200 bg-white py-12 sm:py-14">
+        <section className="border-b border-stone-200 bg-white py-12 sm:py-14" aria-labelledby="features-heading">
           <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+            {/* 这一段原来完全没有标题，四个图标条直接裸挂一个 ul：文档大纲上
+                是一段无名内容，整页也只剩 preview 一个 h2。用 sr-only 补上，
+                视觉排版一点不动（这条 strip 的紧凑感是设计上有意为之）。
+                文案复用 d.features.title，字典里本来就有，只是没人用。
+                想让它显示出来的话，把 sr-only 换成正常的标题样式即可。 */}
+            <h2 id="features-heading" className="sr-only">
+              {d.features.title}
+            </h2>
             <ul className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {featureStrip.map((f, i) => (
                 <li key={i} className="flex items-center gap-3 rounded-xl border border-stone-200 bg-stone-50/60 px-4 py-3">
@@ -453,9 +464,9 @@ export default async function HomePage({ params }: PageProps) {
               <p className="mt-4 text-sm leading-relaxed max-w-md">{d.footer.description}</p>
             </div>
             <div className="lg:col-span-3">
-              <h4 className="text-sm font-semibold uppercase tracking-wider text-white">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-white">
                 {d.footer.product}
-              </h4>
+              </h3>
               <HomeFooterProductLinks
                 investmentManagement={d.footer.investmentManagement}
                 dataAnalytics={d.footer.dataAnalytics}
@@ -463,9 +474,9 @@ export default async function HomePage({ params }: PageProps) {
               />
             </div>
             <div className="lg:col-span-4">
-              <h4 className="text-sm font-semibold uppercase tracking-wider text-white">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-white">
                 {d.footer.support}
-              </h4>
+              </h3>
               <ul className="mt-4 space-y-2 text-sm">
                 <li>
                   <Link href={`/${locale}/changelog`} prefetch className="transition hover:text-white">
