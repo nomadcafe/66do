@@ -1,21 +1,31 @@
 import { createClient } from '@supabase/supabase-js'
-import { Database } from './supabase'
+// import type：supabase.ts 顶层会实例化浏览器端 singleton（还会在缺 env var 时
+// 直接 throw）。这里只要类型，别把那个模块拖进服务端运行时。
+import type { Database } from './supabase'
 import { validateEnvVars } from './env-validator'
-import { serverLogger } from './logger'
 
 /**
  * 创建带用户认证的 Supabase 客户端（用于 API 路由，与 RLS 配合）。
  *
- * 鉴权实际靠 `global.headers.Authorization: Bearer <JWT>` —— PostgREST 会从这里
- * 解出 `auth.uid()` 来匹配 RLS。`setSession` 是给 SDK 内部的 session 机制用的，
- * 在 server 端（persistSession/autoRefreshToken 都关掉）基本是冗余，但不同版本
- * 的 SDK 行为略有差异，所以保留；即使它失败，Authorization header 仍能让 RLS
- * 正常工作，故 soft-fail。
+ * 鉴权靠 `global.headers.Authorization: Bearer <JWT>`——PostgREST 从这里解出
+ * `auth.uid()` 来匹配 RLS。这条链在 supabase-js 2.105 里是这样接的：
+ *
+ *   global.headers → SupabaseClient.headers → new PostgrestClient({ headers })
+ *   → 每个请求 `new Headers(this.headers)`（postgrest-js index.cjs:258）
+ *   → fetchWithAuth 只在 `!headers.has("Authorization")` 时才塞自己的 token
+ *     （supabase-js index.cjs:111）
+ *
+ * 也就是说显式传的 header 永远优先，SDK 内部 session 是 fallback。
+ *
+ * 曾经这里还会 `await client.auth.setSession({...})`。那是纯粹的浪费：
+ * access_token 没过期时 setSession 会去调一次 `_getUser()`（auth-js
+ * GoTrueClient.js:2835），而 auth-helper 在更早的地方已经 getUser 验过一遍身份
+ * 了——每个写请求平白多打一次 GoTrue 往返，客户端几乎每次都带 refresh token，
+ * 所以是 100% 命中。删掉它对 RLS 没有任何影响。
+ *
+ * ⚠️ 不要为了「保险」把 setSession 加回来。要改这里先看上面那条链。
  */
-export async function createAuthenticatedSupabaseClient(
-  accessToken?: string,
-  refreshToken?: string
-) {
+export async function createAuthenticatedSupabaseClient(accessToken?: string) {
   const envValidation = validateEnvVars(true)
   if (!envValidation.valid) {
     throw new Error(`Missing required environment variables: ${envValidation.missing.join(', ')}`)
@@ -34,30 +44,6 @@ export async function createAuthenticatedSupabaseClient(
       detectSessionInUrl: false,
     },
   })
-
-  if (accessToken) {
-    try {
-      const { error } = await client.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken || '',
-      })
-      // AuthSessionMissingError is the expected outcome when the caller only
-      // sends an access token (no refresh token) — the SDK refuses to consider
-      // it a "full" session but the Authorization header above still works.
-      // Don't log it; everything else is a real signal.
-      if (error && error.message !== 'Auth session missing!') {
-        serverLogger.error(
-          'Supabase setSession returned error; falling back to Authorization header:',
-          error
-        )
-      }
-    } catch (err) {
-      serverLogger.error(
-        'Supabase setSession threw; falling back to Authorization header:',
-        err
-      )
-    }
-  }
 
   return client
 }

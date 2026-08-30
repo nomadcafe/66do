@@ -36,7 +36,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined
     const body = await request.json()
     const receipt = (body?.receipt ?? body) as Record<string, unknown>
 
@@ -51,7 +50,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const client = await createAuthenticatedSupabaseClient(accessToken, refreshToken)
+    const client = await createAuthenticatedSupabaseClient(accessToken)
 
     // 父交易必须属于当前用户。RLS 只保证 user_id 列是自己的，并不阻止把收款挂到
     // 别人的 transaction_id 上——那会污染对方交易的分期进度。

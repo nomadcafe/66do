@@ -23,10 +23,9 @@ export async function GET(
     }
     
     const { userId, accessToken } = authInfo
-    const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined
     const corsHeaders = getCorsHeaders(request)
     const { id: domainId } = await params
-    const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken, refreshToken)
+    const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken)
     const domain = await DomainService.getDomainByIdWithClient(authenticatedClient, domainId, userId)
 
     if (!domain) {
@@ -117,8 +116,7 @@ export async function PUT(
     
     const sanitizedUpdateDomain = sanitizeDomainData(domain)
     const updatePayload = buildDomainUpdatePayload(sanitizedUpdateDomain)
-    const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined
-    const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken, refreshToken)
+    const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken)
 
     // 验证域名所有权（单行查询，不受列表 1000 行上限影响）
     const canUpdate = await isDomainOwnedByUser(authenticatedClient, domainId, userId)
@@ -178,7 +176,6 @@ export async function DELETE(
     }
     
     const { userId, accessToken } = authInfo
-    const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined
     const corsHeaders = getCorsHeaders(request)
     const { id: domainId } = await params
 
@@ -196,7 +193,7 @@ export async function DELETE(
       )
     }
 
-    const authenticatedClientForDelete = await createAuthenticatedSupabaseClient(accessToken, refreshToken)
+    const authenticatedClientForDelete = await createAuthenticatedSupabaseClient(accessToken)
     const canDeleteDomain = await isDomainOwnedByUser(authenticatedClientForDelete, domainId, userId)
 
     if (!canDeleteDomain) {

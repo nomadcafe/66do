@@ -315,6 +315,10 @@ export function useDashboardData(
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${accessToken}`
       };
+      // 只走 header，不进 body。服务端唯一的用途是 auth-helper 在 access_token
+      // 过期时拿它换一个新的（getAuthInfoFromRequest 读的是 header）；曾经 POST
+      // body 里也带一份，那是给 createAuthenticatedSupabaseClient 的 setSession
+      // 用的，setSession 删掉后 body 里那份就是纯粹多暴露一次长效凭证了。
       if (refreshTok) (headers as Record<string, string>)['X-Refresh-Token'] = refreshTok;
 
       // 把 domain row 序列化成 API 期望的 payload 形态。提出来好让单条
@@ -385,7 +389,7 @@ export function useDashboardData(
         const response = await fetch('/api/domains', {
           method: 'POST',
           headers,
-          body: JSON.stringify({ domain: buildPayload(newChanges[0]), refreshToken: refreshTok }),
+          body: JSON.stringify({ domain: buildPayload(newChanges[0]) }),
         });
         if (!response.ok) {
           await handleSaveResponseError(response, 'add');
@@ -400,10 +404,7 @@ export function useDashboardData(
           const response = await fetch('/api/domains', {
             method: 'POST',
             headers,
-            body: JSON.stringify({
-              domains: chunk.map(buildPayload),
-              refreshToken: refreshTok,
-            }),
+            body: JSON.stringify({ domains: chunk.map(buildPayload) }),
           });
           if (!response.ok) {
             await handleSaveResponseError(response, 'add');
@@ -456,7 +457,7 @@ export function useDashboardData(
         const response = await fetch('/api/transactions', {
           method: 'POST',
           headers,
-          body: JSON.stringify({ ...body, refreshToken: refreshTok }),
+          body: JSON.stringify(body),
         });
         if (!response.ok) {
           await handleSaveResponseError(response, 'add', 'transaction');
