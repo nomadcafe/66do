@@ -17,6 +17,7 @@ import {
   validateTransaction
 } from '../lib/validation';
 import { mergeRenewTransactionDomainUpdates } from '../lib/renewDomainPatch';
+import { reconcileOptimisticSave } from '../lib/reconcileOptimisticSave';
 import { logger } from '../lib/logger';
 import { MAX_BULK_OPERATION_SIZE } from '../lib/constants';
 
@@ -189,7 +190,15 @@ export function useDashboardData(
       ? newDomains
       : mergeRenewTransactionDomainUpdates(newDomains, newTransactions, transactions);
 
-    // 先乐观更新，再校验与持久化：新增/编辑后立即反映到 UI
+    // 先乐观更新，再校验与持久化：新增/编辑后立即反映到 UI。
+    // 保存前留一份快照 + 逐行记录哪些真的落库了，失败时按行对账回滚（见 catch）。
+    const previousDomains = domains;
+    const previousTransactions = transactions;
+    const savedDomainIds = new Set<string>();
+    const savedTransactionIds = new Set<string>();
+    // 服务端回写的交易行。声明在 try 外面，catch 里的对账回滚也要读它。
+    const serverTransactionsById = new Map<string, TransactionWithRequiredFields>();
+
     setDomains(domainsForSave);
     if (!domainsOnly) setTransactions(newTransactions);
 
@@ -354,8 +363,8 @@ export function useDashboardData(
       // rate-limit 槽位）。背景：userWrite rate limit 是 60/min/user，CSV
       // 导入 100+ 行时单条 POST 会从第 61 行开始 429 失败。bulk POST 全批
       // 共享 1 个 rate-limit 检查，223 行 → 3 批 → 3 个槽位，绝对够用。
-      const existingChanges = changedDomains.filter((d) => domains.find((x) => x.id === d.id));
-      const newChanges = changedDomains.filter((d) => !domains.find((x) => x.id === d.id));
+      const existingChanges = changedDomains.filter((d) => existingDomainMap.has(d.id));
+      const newChanges = changedDomains.filter((d) => !existingDomainMap.has(d.id));
 
       // 先处理 update（PUT 没有批量端点，逐条来；但更新通常远少于新增）。
       for (const domain of existingChanges) {
@@ -367,6 +376,7 @@ export function useDashboardData(
         if (!response.ok) {
           await handleSaveResponseError(response, 'update');
         }
+        savedDomainIds.add(domain.id);
       }
 
       if (newChanges.length === 1) {
@@ -380,6 +390,7 @@ export function useDashboardData(
         if (!response.ok) {
           await handleSaveResponseError(response, 'add');
         }
+        savedDomainIds.add(newChanges[0].id);
       } else if (newChanges.length > 1) {
         // 多条新增走 bulk POST，按 MAX_BULK_OPERATION_SIZE 分批。CSV 导入
         // 已经在客户端 mergeWithExisting 阶段按 name 去过重了，bulk 端点没
@@ -397,6 +408,7 @@ export function useDashboardData(
           if (!response.ok) {
             await handleSaveResponseError(response, 'add');
           }
+          chunk.forEach((d) => savedDomainIds.add(d.id));
         }
       }
 
@@ -408,8 +420,6 @@ export function useDashboardData(
       // 增量保存 transactions（仅新增/变更）。全部走 /api/transactions —— 之前
       // 新增是在浏览器里直连 Supabase，绕过了服务端的 validateTransaction、
       // 域名归属校验和写入限流，而删除/更新却走 API，同一个 hook 两套路径。
-      const serverTransactionsById = new Map<string, TransactionWithRequiredFields>();
-
       // 剥掉所有「Transaction 类型上有、但 domain_transactions 表没有」的纯客户端
       // 字段。整个对象 spread 出去，服务端 buildTransactionInsertPayload 只按
       // whitelist 取字段，但 PUT 路径的 update 写到不存在的列会失败 → 回 404。
@@ -466,7 +476,10 @@ export function useDashboardData(
           headers,
           body: JSON.stringify(transactionPayload)
         });
-        if (response.ok) continue;
+        if (response.ok) {
+          savedTransactionIds.add(transaction.id);
+          continue;
+        }
 
         if (response.status === 404 || response.status === 403) {
           // 交易在本地存在但远端缺失（例如历史保存中断）时回退为创建，避免持续
@@ -479,6 +492,7 @@ export function useDashboardData(
           // migration（commit 3bd5888）清掉的两条孤儿疑似经此路径产生。真要根治
           // 得在服务端按 (domain_id, date, type, amount) 查一遍。
           recordServerTransaction(await postTransactions({ transaction: transactionPayload }));
+          savedTransactionIds.add(transaction.id);
           continue;
         }
 
@@ -492,6 +506,7 @@ export function useDashboardData(
         recordServerTransaction(
           await postTransactions({ transaction: toTransactionPayload(newTxChanges[0]) })
         );
+        savedTransactionIds.add(newTxChanges[0].id);
       } else if (newTxChanges.length > 1) {
         for (let i = 0; i < newTxChanges.length; i += MAX_BULK_OPERATION_SIZE) {
           const chunk = newTxChanges.slice(i, i + MAX_BULK_OPERATION_SIZE);
@@ -499,6 +514,7 @@ export function useDashboardData(
             transactions: chunk.map(toTransactionPayload),
           });
           if (Array.isArray(created)) created.forEach(recordServerTransaction);
+          chunk.forEach((t) => savedTransactionIds.add(t.id));
         }
       }
 
@@ -521,7 +537,20 @@ export function useDashboardData(
         logger.error('Error saving data to Supabase:', error);
       }
 
-      // 保存失败时不重新拉取，保留当前列表和乐观更新，用户可重试或刷新
+      // 保存失败时不重新拉取（避免用一次网络抖动把用户正在编辑的内容冲掉），
+      // 但要按行对账回滚乐观更新，否则失败的行会被下次 diff 当成「已保存」而
+      // 永远不再重发 —— 理由详见 reconcileOptimisticSave 的注释。
+      setDomains(reconcileOptimisticSave(domainsForSave, previousDomains, savedDomainIds));
+      if (!domainsOnly) {
+        setTransactions(
+          reconcileOptimisticSave(
+            newTransactions,
+            previousTransactions,
+            savedTransactionIds,
+            serverTransactionsById
+          )
+        );
+      }
 
       const isNetworkError = errorMessage.includes('fetch') || errorMessage.includes('network');
       const isAuthError =
