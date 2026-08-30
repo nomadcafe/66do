@@ -70,18 +70,10 @@ export class DomainService {
     return { data: all, error: null }
   }
 
-  static async getDomainsWithClient(
-    client: SupabaseClient<Database>,
-    userId: string
-  ): Promise<Domain[]> {
-    const { data } = await DomainService.listDomainsWithClient(client, userId)
-    return data
-  }
-
   /**
    * 按 id + user_id 取单行。所有权校验/单域名读取都走这里，别再用
-   * getDomainsWithClient 拉全表再 find —— 那条路受 PostgREST 1000 行默认上限影响，
-   * 第 1001 个域名会被判成"不存在"。
+   * listDomainsWithClient 拉全表再 find —— 那要多翻好几页，且早期版本里的
+   * 单页实现会让第 1001 个域名被判成"不存在"。
    */
   static async getDomainByIdWithClient(
     client: SupabaseClient<Database>,
@@ -236,10 +228,15 @@ export class TransactionService {
     return data
   }
 
-  static async getTransactionsWithClient(
+  /**
+   * 分页拉取用户全部交易。与 listDomainsWithClient 同样把 error 原样返回：
+   * 半途失败时既不能把已拿到的几页当成完整数据（财务口径会少算），也不能
+   * 当成空列表。调用方必须分流「失败」和「真的没有交易」。
+   */
+  static async listTransactionsWithClient(
     client: SupabaseClient<Database>,
     userId: string
-  ): Promise<Transaction[]> {
+  ): Promise<{ data: Transaction[]; error: { message: string } | null }> {
     const pageSize = TransactionService.TRANSACTION_PAGE_SIZE
     const all: Transaction[] = []
     for (let from = 0; ; from += pageSize) {
@@ -248,17 +245,21 @@ export class TransactionService {
         .select('*')
         .eq('user_id', userId)
         .order('date', { ascending: false })
+        // date 是「天」粒度列，同一天多笔交易是常态而非巧合；只按它排序时
+        // PostgREST 翻页会重复/漏行。补 id 作为稳定 tiebreaker（domains 那边
+        // 同理，见 listDomainsWithClient）。
+        .order('id', { ascending: false })
         .range(from, from + pageSize - 1)
 
       if (error) {
         logger.error('Error fetching transactions:', error)
-        return all.length > 0 ? all : []
+        return { data: all, error }
       }
       const batch = data || []
       all.push(...batch)
       if (batch.length < pageSize) break
     }
-    return all
+    return { data: all, error: null }
   }
 
   static async createTransactionWithClient(
@@ -365,10 +366,15 @@ export class TransactionService {
 export class InstallmentReceiptService {
   private static readonly PAGE_SIZE = 1000
 
-  static async getReceiptsWithClient(
+  /**
+   * 分页拉取用户全部分期收款。error 原样返回（同 listTransactionsWithClient）：
+   * dashboard 确实允许收款加载失败时降级成「分期收款=0」，但那必须是调用方
+   * 看到 error 之后的明确选择，而不是这里把半截数据伪装成完整结果。
+   */
+  static async listReceiptsWithClient(
     client: SupabaseClient<Database>,
     userId: string
-  ): Promise<InstallmentReceiptRow[]> {
+  ): Promise<{ data: InstallmentReceiptRow[]; error: { message: string } | null }> {
     const all: InstallmentReceiptRow[] = []
     for (let from = 0; ; from += InstallmentReceiptService.PAGE_SIZE) {
       const { data, error } = await client
@@ -376,17 +382,19 @@ export class InstallmentReceiptService {
         .select('*')
         .eq('user_id', userId)
         .order('received_date', { ascending: true })
+        // received_date 同样是「天」粒度，需要 id 作为翻页 tiebreaker
+        .order('id', { ascending: true })
         .range(from, from + InstallmentReceiptService.PAGE_SIZE - 1)
 
       if (error) {
         logger.error('Error fetching installment receipts:', error)
-        return all
+        return { data: all, error }
       }
       const batch = data || []
       all.push(...batch)
       if (batch.length < InstallmentReceiptService.PAGE_SIZE) break
     }
-    return all
+    return { data: all, error: null }
   }
 
   /** 按 id + user_id 取单行。PUT / DELETE 用它区分「不存在」和「不是你的」。 */
@@ -485,7 +493,11 @@ export async function loadInstallmentReceiptsFromSupabase(
   userId: string
 ): Promise<DataServiceResult<InstallmentReceiptRow[]>> {
   try {
-    const data = await InstallmentReceiptService.getReceiptsWithClient(supabase, userId)
+    const { data, error } = await InstallmentReceiptService.listReceiptsWithClient(supabase, userId)
+    if (error) {
+      logger.error('Error loading installment receipts from Supabase:', error)
+      return { success: false, error: error.message, source: 'supabase' }
+    }
     return { success: true, data, source: 'supabase' }
   } catch (error) {
     logger.error('Error loading installment receipts from Supabase:', error)
@@ -530,7 +542,18 @@ export async function loadDomainsFromSupabase(userId: string): Promise<DataServi
 
 export async function loadTransactionsFromSupabase(userId: string): Promise<DataServiceResult<Transaction[]>> {
   try {
-    const data = await TransactionService.getTransactionsWithClient(supabase, userId)
+    // error 必须显式分流：分页中途失败时把已拿到的几页当成完整数据返回，
+    // dashboard 就会拿半截交易去算成本/利润，且界面上毫无提示。
+    const { data, error } = await TransactionService.listTransactionsWithClient(supabase, userId)
+
+    if (error) {
+      logger.error('Error loading transactions from Supabase:', error)
+      return {
+        success: false,
+        error: error.message,
+        source: 'supabase'
+      }
+    }
 
     return {
       success: true,
