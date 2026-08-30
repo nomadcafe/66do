@@ -22,7 +22,16 @@ export async function GET(request: NextRequest) {
 
     const corsHeaders = { ...getCorsHeaders(request), ...noCacheHeaders }
     const client = await createAuthenticatedSupabaseClient(authInfo.accessToken, request.headers.get('X-Refresh-Token') ?? undefined)
-    const transactionList = await TransactionService.getTransactionsWithClient(client, authInfo.userId)
+    // 用 list* 而不是 get*：分页中途失败时必须报 500，不能把半截数据当成
+    // 「这个用户就这么多交易」返回给客户端。
+    const { data: transactionList, error } = await TransactionService.listTransactionsWithClient(client, authInfo.userId)
+    if (error) {
+      console.error('Failed to list transactions:', error)
+      return NextResponse.json({ error: 'Failed to load transactions' }, {
+        status: 500,
+        headers: corsHeaders
+      })
+    }
 
     return NextResponse.json({ success: true, data: transactionList }, { headers: corsHeaders })
   } catch (error) {

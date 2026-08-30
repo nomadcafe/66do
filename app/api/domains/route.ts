@@ -24,8 +24,17 @@ export async function GET(request: NextRequest) {
     const refreshToken = request.headers.get('X-Refresh-Token') ?? undefined
     const corsHeaders = { ...getCorsHeaders(request), ...noCacheHeaders }
     const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken, refreshToken)
-    const domainList = await DomainService.getDomainsWithClient(authenticatedClient, userId)
-    
+    // 用 list* 而不是 get*：分页中途失败时必须报 500，不能把半截数据当成
+    // 「这个用户就这么多域名」返回给客户端。
+    const { data: domainList, error } = await DomainService.listDomainsWithClient(authenticatedClient, userId)
+    if (error) {
+      console.error('Failed to list domains:', error)
+      return NextResponse.json({ error: 'Failed to load domains' }, {
+        status: 500,
+        headers: corsHeaders
+      })
+    }
+
     return NextResponse.json({ success: true, data: domainList }, { headers: corsHeaders })
   } catch (error) {
     const isProduction = process.env.NODE_ENV === 'production'
