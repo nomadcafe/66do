@@ -354,4 +354,43 @@ describe('mergeCsvImportWithExisting', () => {
     expect(result.updatedCount).toBe(1)
     expect(result.mergedDomains[0].id).toBe('existing-id-1')
   })
+
+  // ── 为什么"重新导入不刷新已填的 expiry_date"是刻意的 ───────────────
+  //
+  // 直觉上，用户在注册商那边续了费、重新导出 CSV 再导入，expiry_date 应该
+  // 跟着更新。但只覆盖 expiry_date 而不动 renewal_count 会**改写财务历史**：
+  // expandRenewalEvents 是从当前 expiry_date 倒着推算历史 archive 续费日期的
+  // （见该文件的"walk BACKWARDS from current expiry"），把 expiry 往后推一年
+  // 而 count 不变，等于把每一笔历史续费都往后挪一年。
+  //
+  // 实测一个 2020 买入、续过 3 次、当前到期 2024-06-15 的域名：
+  //   现状（不覆盖）         archive 续费落在 2021 / 2022 / 2023
+  //   只覆盖 expiry→2025     变成 2022 / 2023 / 2024  ← 2021 那笔凭空消失，
+  //                                                     2024 冒出一笔不存在的
+  //   expiry 和 count 一起加  2021 / 2022 / 2023 / 2024  ← 这才是对的
+  //
+  // 也就是说，"CSV 里的 expiry 比库里晚"这个信号的正确含义不是"改个日期"，
+  // 而是"这中间发生过 N 次续费"，得把 expiry 和 renewal_count 一起推进
+  // （而且该让用户确认，因为这会产生续费支出）。那是一个功能，不是把
+  // fill-empty 改成 overwrite 就能了事的。在那个功能落地之前，这里必须
+  // 保持"不覆盖"。
+  it('不刷新已填的 expiry_date —— 覆盖会挪动历史续费，见上方注释', () => {
+    const existing = [existingDomain({ expiry_date: '2024-06-15', renewal_count: 3 })]
+    const result = mergeCsvImportWithExisting(existing, [
+      { domain_name: 'example.com', expiry_date: '2025-06-15' },
+    ])
+    expect(result.mergedDomains[0].expiry_date).toBe('2024-06-15')
+    expect(result.mergedDomains[0].renewal_count).toBe(3)
+  })
+
+  it('注册商字段同样只填空、不覆盖（registrar / registration_date）', () => {
+    const existing = [
+      existingDomain({ registrar: 'Porkbun', registration_date: '2020-01-02' }),
+    ]
+    const result = mergeCsvImportWithExisting(existing, [
+      { domain_name: 'example.com', registrar: 'GoDaddy', registration_date: '2019-05-05' },
+    ])
+    expect(result.mergedDomains[0].registrar).toBe('Porkbun')
+    expect(result.mergedDomains[0].registration_date).toBe('2020-01-02')
+  })
 })

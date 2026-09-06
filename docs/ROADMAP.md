@@ -18,6 +18,7 @@ _(empty)_
 - [x] ~~**Delete account** UI + cascade.~~ Shipped 2026-05-23. Type-email-to-confirm panel in Settings → Security; `POST /api/auth/delete-account` records the audit event, deletes the `public.users` mirror, then `auth.admin.deleteUser` cascades to `domains` / `domain_transactions` / `auth_events` / `installment_receipts`.
 - [ ] **Unlink Google OAuth** in Settings. `fireSensitiveOpNotification(session, 'oauth_unbind')`.
 - [ ] **Auth events retention job**: cron / pg_cron to delete `auth_events` rows older than ~12 months. Table is append-only by design but unbounded growth isn't desirable.
+- [ ] **Detect renewals from a CSV re-import.** Today `mergeCsvImportWithExisting` is fill-empty only: a re-import never touches a non-empty `expiry_date`, so a user who renewed at the registrar and re-exported sees nothing change. The naive fix (let CSV overwrite `expiry_date`) is **wrong and silently destructive**: `expandRenewalEvents` reconstructs historical archive renewals by walking backwards from the current expiry, so moving expiry forward a year without bumping `renewal_count` slides every past renewal forward a year — a 2020-bought domain with 3 renewals goes from 2021/2022/2023 to 2022/2023/2024, losing the 2021 spend and inventing a 2024 one. The correct reading of "CSV expiry is later than ours" is "N renewals happened in between", which means advancing `expiry_date` **and** `renewal_count` together, and confirming with the user first since it books renewal spending. Pinned by tests in `csvFormats.test.ts` so nobody flips fill-empty to overwrite by accident.
 
 ## Next — SEO
 
@@ -53,7 +54,7 @@ These are feature-level bets, not infra follow-ups. Listed roughly in descending
 ### 1. Registrar sync — top adoption unlock
 
 - [x] **Smart CSV import** — partial answer shipped 2026-05-02. Adapter layer at `src/lib/csvFormats/` recognises GoDaddy / Namecheap / Dynadot / Spaceship exports automatically; merge-by-name preserves user-filled fields; covers ~95% of "I have hundreds of domains, please don't make me type them" without storing any registrar credentials. Adding more registrars = one file each.
-- [ ] **API-based auto-sync** (deferred). The CSV path requires the user to manually re-export when expiry dates change; a real registrar API integration would close that loop with a daily cron. Pursue when a Pro user asks for it specifically — until then the security cost (encrypted credential store, IP-whitelist headaches with Namecheap) outweighs the marginal value over CSV. GoDaddy / Dynadot / Spaceship would be easiest first targets (no IP whitelist).
+- [ ] **API-based auto-sync** (deferred). Re-importing a CSV does *not* refresh expiry dates today (see "Detect renewals from a CSV re-import" below); a real registrar API integration would close that loop with a daily cron. Pursue when a Pro user asks for it specifically — until then the security cost (encrypted credential store, IP-whitelist headaches with Namecheap) outweighs the marginal value over CSV. GoDaddy / Dynadot / Spaceship would be easiest first targets (no IP whitelist).
 
 ### 2. Bookkeeping → Advisor (positioning shift)
 
