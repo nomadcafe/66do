@@ -50,7 +50,7 @@ import { useDomainStats } from '../../src/hooks/useDomainStats';
 import { calculateBasicFinancialMetrics, sellNetUSD, expandSellToCashReceipts } from '../../src/lib/coreCalculations';
 import { calculatePaidAmountFromInstallment } from '../../src/lib/platformFeeCalculator';
 import { totalHoldingCostForDomain } from '../../src/lib/renewalCostBasis';
-import { getEffectiveExpiry } from '../../src/lib/effectiveExpiry';
+import { getEffectiveExpiry, daysUntilEffectiveExpiry } from '../../src/lib/effectiveExpiry';
 import { expandRenewalEvents } from '../../src/lib/expandRenewalEvents';
 import { totalRealizedPnL, realizedPnLByMonth, portfolioAtCost } from '../../src/lib/realizedPnL';
 import { getReceiptsDueSoon } from '../../src/lib/installmentDue';
@@ -385,12 +385,15 @@ export default function DashboardPage() {
   const EXPIRING_WINDOW_DAYS = 30;
   const RECENTLY_EXPIRED_DAYS = 7;
   const expiringDomains = useMemo(() => {
-    const now = Date.now();
+    // 天数走 daysUntilEffectiveExpiry（本地日历天、对夏令时安全），和
+    // DomainTable 的到期徽章共用一个实现——两套算法会差一天。
+    const nowDate = new Date();
     return domains.flatMap(domain => {
       if (domain.status === 'sold') return [];
       const eff = getEffectiveExpiry(domain);
       if (!eff.date) return [];
-      const daysUntilExpiry = Math.ceil((eff.date.getTime() - now) / (1000 * 60 * 60 * 24));
+      const daysUntilExpiry = daysUntilEffectiveExpiry(domain, nowDate);
+      if (daysUntilExpiry === null) return [];
       if (daysUntilExpiry > EXPIRING_WINDOW_DAYS) return [];
       if (daysUntilExpiry < -RECENTLY_EXPIRED_DAYS) return [];
       const urgency = daysUntilExpiry < 0

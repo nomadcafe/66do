@@ -17,6 +17,7 @@ import {
 import { investedTweetText, portfolioTweetText, shareToX } from '../../lib/shareText';
 import { useMascotImage } from '../../hooks/useMascotImage';
 import ModalShell from './ModalShell';
+import { parseLocalCalendarDate } from '../../lib/localCalendarDate';
 
 export interface ShareData {
   totalProfit: number;
@@ -62,11 +63,13 @@ function filterByRange(
   if (range === 'all') return { domains, transactions };
   const years = range === '1y' ? 1 : range === '2y' ? 2 : 3;
   const cutoff = Date.now() - years * 365 * MS_PER_DAY;
+  const timeOf = (v: string | null | undefined) =>
+    (parseLocalCalendarDate(v) ?? new Date(NaN)).getTime();
   const filteredDomains = domains.filter((d) => {
-    const purchase = d.purchase_date ? new Date(d.purchase_date).getTime() : 0;
+    const purchase = d.purchase_date ? timeOf(d.purchase_date) : 0;
     return purchase >= cutoff || !d.purchase_date;
   });
-  const filteredTransactions = transactions.filter((t) => new Date(t.date).getTime() >= cutoff);
+  const filteredTransactions = transactions.filter((t) => timeOf(t.date) >= cutoff);
   return { domains: filteredDomains, transactions: filteredTransactions };
 }
 
