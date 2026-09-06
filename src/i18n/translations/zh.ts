@@ -1061,6 +1061,7 @@ const zh = {
       heldDomainRanking: '持有域名后缀排名',
       soldDomainRanking: '出售域名后缀排名',
       investmentDistribution: '投资分布',
+      investmentDistributionDesc: '资金分布：每个域名的持有成本（购入 + 续费 + 转移）按当前状态归类。',
       activeDomains: '活跃域名',
       forSaleDomains: '待售域名',
       soldDomains: '已售域名',
@@ -1084,6 +1085,9 @@ const zh = {
       thisYearTotalLoss: '年度总损失（今年）',
       expiredDomainsCount: '过期域名数',
       averageLossPerDomain: '平均损失/域名',
+      avgLossDenominator: '分母：{count} 个已记录成本的域名',
+      expiredUnknownCost: '有 {count} 个过期域名未记录成本，上面的损失合计是偏低的。',
+      unknownSuffix: '无后缀',
       thisYear: '本年过期',
       cumulativeAverageHint: '本年无过期',
       expiredLossDefinition:

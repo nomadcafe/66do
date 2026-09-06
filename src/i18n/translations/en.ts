@@ -1066,6 +1066,7 @@ const en = {
       heldDomainRanking: 'Held Domain Suffix Ranking',
       soldDomainRanking: 'Sold Domain Suffix Ranking',
       investmentDistribution: 'Investment Distribution',
+      investmentDistributionDesc: 'Where your capital sits — holding cost (purchase + renewals + transfers) grouped by domain status.',
       activeDomains: 'Active Domains',
       forSaleDomains: 'For Sale Domains',
       soldDomains: 'Sold Domains',
@@ -1089,6 +1090,9 @@ const en = {
       thisYearTotalLoss: 'This Year\'s Total Loss',
       expiredDomainsCount: 'Expired Domains',
       averageLossPerDomain: 'Avg Loss/Domain',
+      avgLossDenominator: 'across {count} with a recorded cost',
+      expiredUnknownCost: '{count} expired domain(s) have no recorded cost, so the total loss above is understated.',
+      unknownSuffix: 'No suffix',
       thisYear: 'This year',
       cumulativeAverageHint: 'No expirations this year',
       expiredLossDefinition:

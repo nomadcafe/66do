@@ -32,6 +32,7 @@ import {
   Coins,
 } from 'lucide-react';
 import { computeMonthlyOutflow } from '../../lib/monthlyOutflow';
+import { totalHoldingCostForDomain } from '../../lib/renewalCostBasis';
 import { formatCurrency } from '../../lib/financialCalculations';
 import { localMonthKey, parseLocalCalendarDate, parseLocalMonthKey } from '../../lib/localCalendarDate';
 
@@ -605,9 +606,15 @@ export default function InvestmentAnalytics({
   // 计算域名后缀分布
   const domainSuffixAnalysis = useMemo(() => {
     // 提取域名后缀
+    // 没有点的域名没有后缀可言。以前返回硬编码的 'unknown'，再被下面拼成
+    // '.unknown' 渲染出去——英文字面量混进中文界面，还带个莫名其妙的前导点。
+    // 旁边的注册商分布用的是 t('analytics.unknownRegistrar')，两处对齐。
+    // 用一个不可能与真实 TLD 相撞的哨兵，渲染时才翻译
+    const NO_SUFFIX = '\u0000no-suffix';
     const extractSuffix = (domainName: string): string => {
-      const parts = domainName.split('.');
-      return parts.length > 1 ? parts[parts.length - 1] : 'unknown';
+      const parts = String(domainName || '').split('.');
+      const last = parts.length > 1 ? parts[parts.length - 1] : '';
+      return last || NO_SUFFIX;
     };
 
     // 持有域名后缀分布——portfolio 当前组成，跟时间窗口无关，用全量 domains。
@@ -620,7 +627,7 @@ export default function InvestmentAnalytics({
 
     const heldSuffixData = Object.entries(heldSuffixCount)
       .map(([suffix, count]) => ({
-        name: `.${suffix}`,
+        name: suffix === NO_SUFFIX ? t('analytics.unknownSuffix') : `.${suffix}`,
         value: count,
         percentage: heldDomains.length > 0 ? (count / heldDomains.length) * 100 : 0
       }))
@@ -630,7 +637,43 @@ export default function InvestmentAnalytics({
       heldSuffixData,
       totalHeld: heldDomains.length
     };
-  }, [domains]);
+  }, [domains, t]);
+
+  /**
+   * 按状态分的**资金**分布。
+   *
+   * 这块原本画的是 domains.filter(status).length —— 挂着「投资分布」的标题，
+   * 内容却是头数，而且和 Hero 上那个 composition 甜甜圈是同一张图（那边的
+   * 注释写着「previously this only showed up deep inside InvestmentAnalytics」,
+   * 提上去之后这一份忘了删）。Portfolio 这个 sub-tab 另外两张饼也都是数头，
+   * 三张个数饼里有一张挂着钱的名字。
+   *
+   * 现在真的按钱分：每个域名的持有成本（购入 + 续费 + 转移，走
+   * totalHoldingCostForDomain 的 canonical 口径）归到它当前的状态桶。
+   * active/for_sale = 还压着的资金，sold = 已收回的成本，expired = 沉没成本。
+   */
+  const capitalByStatus = useMemo(() => {
+    const buckets: Record<string, number> = {
+      active: 0,
+      for_sale: 0,
+      sold: 0,
+      expired: 0,
+    };
+    for (const d of domains) {
+      if (!(d.status in buckets)) continue;
+      buckets[d.status] += totalHoldingCostForDomain(d, transactions);
+    }
+    const meta: Array<{ status: string; labelKey: string; color: string }> = [
+      { status: 'active', labelKey: 'analytics.activeDomains', color: '#0d9488' },
+      { status: 'for_sale', labelKey: 'analytics.forSaleDomains', color: '#f59e0b' },
+      { status: 'sold', labelKey: 'analytics.soldDomains', color: '#10b981' },
+      { status: 'expired', labelKey: 'analytics.expiredDomains', color: '#fb7185' },
+    ];
+    const data = meta
+      .map((m) => ({ name: t(m.labelKey), value: buckets[m.status], color: m.color }))
+      .filter((entry) => entry.value > 0);
+    return { data, total: data.reduce((sum, e) => sum + e.value, 0) };
+  }, [domains, transactions, t]);
 
   // 按当前持有域名统计注册商分布（active + for_sale）。同样用全量 domains。
   const registrarAnalysis = useMemo(() => {
@@ -731,30 +774,21 @@ export default function InvestmentAnalytics({
       </div>
 
       <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-stone-900 mb-4">{t('analytics.investmentDistribution')}</h3>
-        {(() => {
-          // Status palette aligned with Hero composition donut + DomainCard/Table:
-          // active=teal-600 / for_sale=amber-500 / sold=emerald-500 / expired=rose-400.
-          // 全量 domains—portfolio 状态分布跟时间窗口无关。
-          const statusData = [
-            { name: t('analytics.activeDomains'), value: domains.filter(d => d.status === 'active').length, color: '#0d9488' },
-            { name: t('analytics.forSaleDomains'), value: domains.filter(d => d.status === 'for_sale').length, color: '#f59e0b' },
-            { name: t('analytics.soldDomains'), value: domains.filter(d => d.status === 'sold').length, color: '#10b981' },
-            { name: t('analytics.expiredDomains'), value: domains.filter(d => d.status === 'expired').length, color: '#fb7185' },
-          ].filter(entry => entry.value > 0);
-          if (statusData.length === 0) {
-            return (
-              <div className="flex flex-col items-center justify-center py-12 text-stone-500">
-                <Globe className="h-12 w-12 text-stone-300 mb-3" />
-                <p className="text-sm">{t('analytics.noDataAvailable')}</p>
-              </div>
-            );
-          }
-          return (
+        <h3 className="text-lg font-semibold text-stone-900">{t('analytics.investmentDistribution')}</h3>
+        <p className="mt-1 mb-4 text-sm text-stone-500">
+          {t('analytics.investmentDistributionDesc')}
+        </p>
+        {capitalByStatus.data.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-stone-500">
+            <Globe className="h-12 w-12 text-stone-300 mb-3" />
+            <p className="text-sm">{t('analytics.noDataAvailable')}</p>
+          </div>
+        ) : (
+          <>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={statusData}
+                  data={capitalByStatus.data}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -763,15 +797,32 @@ export default function InvestmentAnalytics({
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {statusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  {capitalByStatus.data.map((entry) => (
+                    <Cell key={entry.name} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip formatter={(value) => formatCurrency(Number(value), 'USD')} />
               </PieChart>
             </ResponsiveContainer>
-          );
-        })()}
+            <ul className="mt-2 space-y-1.5">
+              {capitalByStatus.data.map((entry) => (
+                <li key={entry.name} className="flex items-center justify-between gap-3 text-sm">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span
+                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: entry.color }}
+                      aria-hidden
+                    />
+                    <span className="truncate text-stone-700">{entry.name}</span>
+                  </span>
+                  <span className="shrink-0 tabular-nums font-medium text-stone-900">
+                    {formatCurrency(entry.value, 'USD')}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </div>
 
       <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
