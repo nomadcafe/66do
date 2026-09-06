@@ -124,9 +124,12 @@ export function calculatePlatformFee(config: PlatformFeeConfig): PlatformFeeResu
       // sellerAmount 到这里其实是分期总额（调用方按 installmentAmount × period 传入），
       // 与 calculateCustomerTotalFromInstallment 的 total-sale 路径同口径。
       // 旧实现在这里用 sellerAmount / (1 − 5%) 反推，与那条路径给出不同答案。
+      // customFeeRate 必须往下传：交易自带的费率优先于当前默认值，否则
+      // 这条分支会把按旧费率成交的交易按新默认值重算（同一个问题在
+      // feeRateForTotalSaleInstallmentPath 里也有过，见那里的注释）。
       return calculateInstallmentFeeFromTotalSale(
         sellerAmount,
-        feeRateForTotalSaleInstallmentPath('spaceship_installment')
+        feeRateForTotalSaleInstallmentPath('spaceship_installment', customFeeRate)
       );
 
     case 'escrow_installment':
@@ -408,8 +411,21 @@ function calculateAtomInstallmentFee(
 export const STANDARD_INSTALLMENT_TOTAL_SALE_FEE_RATE = 0.1;
 
 /**
+ * Spaceship 分期的**默认**费率，2026-09 起为 10%（此前为 5%）。
+ *
+ * 强调"默认"：费率是有生效日期的商业条款，不是恒定常量。每笔交易可以在
+ * platform_fee_percentage 上带自己的费率，那个值优先——按旧费率成交的交易
+ * 因此不会被后来的调价追溯重算。这里的常量只对"没有显式记录费率"的交易生效。
+ *
+ * 为什么必须这样：平台费 = 总售价 × 费率 × 已付比例，费率作用在整笔交易上。
+ * 如果只把这个常量从 0.05 改成 0.10，所有历史 Spaceship 分期（含已经收完的、
+ * 和正在收款中的那笔已收部分）都会被重新定价——2026-09 之前成交的交易凭空
+ * 多出一倍平台费。
+ */
+export const SPACESHIP_INSTALLMENT_DEFAULT_FEE_RATE = 0.1;
+
+/**
  * 分期总额口径的平台费：客户总付 = 分期总额；平台费 = 总额 × 费率；卖家净得 = 总额 − 平台费
- * Spaceship 用 5%；Standard 分期用本算法，默认 10%（可通过 customFeeRate 覆盖）
  */
 function calculateInstallmentFeeFromTotalSale(
   totalSaleAmount: number,
@@ -439,18 +455,23 @@ function calculateInstallmentFeeFromTotalSale(
   };
 }
 
+/**
+ * 分期总额口径下该用哪个费率。
+ *
+ * 优先级：交易自带的费率（platform_fee_percentage，经调用方换算成小数传进来）
+ * > 该平台的当前默认费率。Spaceship 原本在这里直接 `return 0.05` 短路，把
+ * 调用方传进来的 customFeeRate 丢掉了——结果是费率只能全局改，一改就追溯
+ * 重算所有历史交易。现在与 standard 分支同样先看 customFeeRate。
+ */
 function feeRateForTotalSaleInstallmentPath(
   platformFeeType: string,
   customFeeRate?: number
 ): number {
-  if (platformFeeType === 'spaceship_installment') return 0.05;
-  if (platformFeeType === 'standard') {
-    if (customFeeRate != null && customFeeRate > 0 && customFeeRate <= 1) {
-      return customFeeRate;
-    }
-    return STANDARD_INSTALLMENT_TOTAL_SALE_FEE_RATE;
-  }
-  return 0.05;
+  const explicit =
+    customFeeRate != null && customFeeRate > 0 && customFeeRate <= 1 ? customFeeRate : null;
+  if (explicit !== null) return explicit;
+  if (platformFeeType === 'spaceship_installment') return SPACESHIP_INSTALLMENT_DEFAULT_FEE_RATE;
+  return STANDARD_INSTALLMENT_TOTAL_SALE_FEE_RATE;
 }
 
 /**
