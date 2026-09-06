@@ -63,6 +63,7 @@ const buildEmptyFormData = ({ preserveDomainId = '' }: { preserveDomainId?: stri
   // Escrow Installment：默认 lease with purchase + 0 manual transaction fee
   escrow_lease_type: 'lease_with_purchase' as 'lease_with_purchase' | 'lease_only',
   escrow_transaction_fee: 0,
+  escrow_holding_fee: null as number | null,
   renewal_period_years: 1,
   renewal_years_use_custom: false
 });
@@ -222,6 +223,8 @@ export default function TransactionForm({
         // Escrow Installment（旧数据缺失视为 lease with purchase + 0 transaction fee）
         escrow_lease_type: (transaction.escrow_lease_type ?? 'lease_with_purchase') as 'lease_with_purchase' | 'lease_only',
         escrow_transaction_fee: transaction.escrow_transaction_fee ?? 0,
+        // ?? 而不是 ||：0 是「明确没有托管费」，不能被压成 null
+        escrow_holding_fee: transaction.escrow_holding_fee ?? null,
         renewal_period_years: years,
         renewal_years_use_custom: useCustom
       });

@@ -57,6 +57,11 @@ export function buildTransactionInsertPayload(
         : null,
     escrow_transaction_fee:
       transaction.escrow_transaction_fee != null ? Number(transaction.escrow_transaction_fee) : null,
+    // 未记录时整个键都不出现：这样即使数据库还没加上这一列，既有写入路径
+    // 也不会因为「写到不存在的列」而整条 update 失败。
+    ...(transaction.escrow_holding_fee != null
+      ? { escrow_holding_fee: Number(transaction.escrow_holding_fee) }
+      : {}),
     renewal_period_years: normalizeExtensionYears(transaction.type, transaction.renewal_period_years)
   }
 }
@@ -171,6 +176,9 @@ export function buildTransactionUpdatePayload(
       transaction.escrow_transaction_fee != null
         ? Number(transaction.escrow_transaction_fee)
         : null
+  // 同 insert：只有真的记了值才写这一列
+  if ('escrow_holding_fee' in transaction && transaction.escrow_holding_fee != null)
+    out.escrow_holding_fee = Number(transaction.escrow_holding_fee)
   const extendableType = transaction.type === 'renew' || transaction.type === 'transfer'
   if (extendableType && 'renewal_period_years' in transaction) {
     out.renewal_period_years = normalizeExtensionYears(

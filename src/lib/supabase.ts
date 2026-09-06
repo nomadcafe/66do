@@ -146,6 +146,7 @@ export interface Database {
           atom_custom_commission_rate: number | null
           escrow_lease_type: string | null
           escrow_transaction_fee: number | null
+          escrow_holding_fee: number | null
           renewal_period_years: number | null
         }
         Insert: {
@@ -184,6 +185,7 @@ export interface Database {
           atom_custom_commission_rate?: number | null
           escrow_lease_type?: string | null
           escrow_transaction_fee?: number | null
+          escrow_holding_fee?: number | null
           renewal_period_years?: number | null
         }
         Update: {
@@ -222,6 +224,7 @@ export interface Database {
           atom_custom_commission_rate?: number | null
           escrow_lease_type?: string | null
           escrow_transaction_fee?: number | null
+          escrow_holding_fee?: number | null
           renewal_period_years?: number | null
         }
       }

@@ -514,8 +514,10 @@ function calculateEscrowInstallmentFee(
   const transactionFee = escrowFee ?? 0;
   const leaseType: EscrowLeaseType = escrowLeaseType ?? 'lease_with_purchase';
   const monthlyHolding = getEscrowMonthlyHoldingFee(listPrice, leaseType);
+  // `!= null` 而不是 `> 0`：0 是「这笔没有托管费」这个明确意图，不是「没填」。
+  // 以前用 > 0 判断，填 0 会静默回退到自动估算，等于用户根本关不掉它。
   const holdingFee =
-    domainHoldingFee != null && domainHoldingFee > 0
+    domainHoldingFee != null
       ? domainHoldingFee
       : getEscrowHoldingFee(listPrice, installmentPeriod, leaseType);
 

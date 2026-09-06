@@ -77,6 +77,11 @@ export interface Transaction {
   /** Escrow Installment 专用：手填的标准交易费（含可选的 $250 schedule change /
    *  $85 DNS admin 等一次性费用）。 */
   escrow_transaction_fee?: number | null;
+  /** 分期期间的域名托管费总额。null = 未记录，按 escrow_lease_type + 标价 +
+   *  期数自动估算；数字（含 0）= 用户明确记录的值，0 表示这笔没有托管费。
+   *  null 和 0 必须区分：以前没有这个字段，自动估算永远生效且关不掉，
+   *  会给交易凭空加上一笔谁都没付过的钱。 */
+  escrow_holding_fee?: number | null;
 
   /** renew：延长到期的年数（写入 domain_transactions.renewal_period_years） */
   renewal_period_years?: number | null;

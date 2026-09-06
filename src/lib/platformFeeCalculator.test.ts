@@ -567,3 +567,38 @@ describe('平台调价不追溯到历史交易', () => {
     expect(r.platformFee).toBeCloseTo(totalSale * SPACESHIP_INSTALLMENT_DEFAULT_FEE_RATE, 6);
   });
 });
+
+describe('Escrow 托管费：留空 vs 填 0', () => {
+  // 以前判断写的是 `domainHoldingFee > 0 ? 用它 : 自动估算`，于是填 0 会静默
+  // 回退到自动值 —— 用户根本关不掉它。加上当时既没有持久化字段、两条调用路径
+  // 又都硬传 undefined，结果就是系统给每笔 Escrow 分期凭空加一笔谁都没付过的
+  // 托管费（15 万 / 24 期的交易被加了 2400）。
+  const listPrice = 150000;
+  const periods = 24;
+  const per = (listPrice - 75000) / periods;
+  const base = {
+    downpaymentAmount: 75000,
+    finalPaymentAmount: 0,
+    grossAmount: listPrice,
+    escrowLeaseType: 'lease_with_purchase' as const,
+  };
+  const run = (holding: number | undefined) =>
+    calculatePaidAmountFromInstallment(
+      per, periods, periods, 'escrow_installment', undefined, 0, holding, undefined, undefined, base
+    );
+
+  it('留空（undefined）→ 自动估算：max(100, 标价×0.0001) × 期数 = 2400', () => {
+    expect(run(undefined).platformFee).toBeCloseTo(2400, 6);
+  });
+
+  it('填 0 → 就是没有托管费，不再回退到自动值', () => {
+    const r = run(0);
+    expect(r.platformFee).toBeCloseTo(0, 6);
+    expect(r.customerTotalAmount).toBeCloseTo(listPrice, 6);
+    expect(r.sellerNetAmount).toBeCloseTo(listPrice, 6);
+  });
+
+  it('填了具体金额 → 用这个金额，覆盖自动估算', () => {
+    expect(run(5863).platformFee).toBeCloseTo(5863, 6);
+  });
+});
