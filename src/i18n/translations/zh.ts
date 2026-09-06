@@ -752,6 +752,8 @@ const zh = {
       escrowLeaseLwp: 'Lease with Purchase（含购买）',
       escrowLeaseLo: 'Lease Only（仅租赁）',
       escrowTransactionFee: 'Escrow 标准交易费',
+      escrowHoldingFeeAutoPlaceholder: '自动估算',
+      escrowHoldingFeeHint: '分期期间的托管费总额。留空则按租赁类型 × 标价 × 期数自动估算；确实没有托管费就填 0 —— 留空和 0 含义不同。',
       escrowTransactionFeeHint: '手填 Escrow.com 标准交易费；如发生 schedule change ($250) 或 DNS 管理 ($85) 等一次性费用，合并到此处。',
       escrowHoldingFee: '域名持有费',
       escrowMonthlyHoldingFee: '每月持有费',

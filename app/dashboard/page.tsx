@@ -249,7 +249,7 @@ export default function DashboardPage() {
             transaction.platform_fee_type as string,
             customRate,
             transaction.escrow_transaction_fee ?? undefined,
-            undefined,
+            transaction.escrow_holding_fee ?? undefined,
             transaction.user_input_fee_rate ?? undefined,
             transaction.user_input_surcharge_rate ?? undefined,
             {

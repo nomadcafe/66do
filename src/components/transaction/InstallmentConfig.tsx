@@ -31,6 +31,8 @@ export type InstallmentConfigValues = {
   atom_custom_commission_rate: number;
   escrow_lease_type: 'lease_with_purchase' | 'lease_only';
   escrow_transaction_fee: number;
+  /** null = 未记录（自动估算）；数字含 0 = 明确值 */
+  escrow_holding_fee: number | null;
 };
 
 interface InstallmentConfigProps {
@@ -375,6 +377,32 @@ export default function InstallmentConfig({
                     {t('transaction.escrowTransactionFeeHint')}
                   </p>
                 </div>
+
+                <div>
+                  <label htmlFor="transaction-form-escrow-holding-fee" className="block text-sm font-medium text-blue-800 mb-2">
+                    {t('transaction.escrowHoldingFee')}
+                  </label>
+                  <input
+                    id="transaction-form-escrow-holding-fee"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    // 空 → null（自动估算）；填 0 → 0（明确没有托管费）。
+                    // 这两者必须分开，所以不能用 `parseFloat(x) || 0` 那套。
+                    value={values.escrow_holding_fee == null ? '' : values.escrow_holding_fee}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      onChange({
+                        escrow_holding_fee: raw.trim() === '' ? null : parseFloat(raw) || 0,
+                      });
+                    }}
+                    className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder={t('transaction.escrowHoldingFeeAutoPlaceholder')}
+                  />
+                  <p className="text-xs text-blue-600 mt-1">
+                    {t('transaction.escrowHoldingFeeHint')}
+                  </p>
+                </div>
               </>
             )}
           </>
@@ -414,7 +442,7 @@ export default function InstallmentConfig({
                       values.platform_fee_type || 'standard',
                       installmentFeeRateOverride,
                       values.escrow_transaction_fee,
-                      undefined,
+                      values.escrow_holding_fee ?? undefined,
                       values.user_input_fee_rate,
                       values.user_input_surcharge_rate,
                       {
@@ -499,7 +527,7 @@ export default function InstallmentConfig({
                         values.platform_fee_type || 'standard',
                         installmentFeeRateOverride,
                         values.escrow_transaction_fee,
-                        undefined,
+                        values.escrow_holding_fee ?? undefined,
                         values.user_input_fee_rate,
                         values.user_input_surcharge_rate,
                         {

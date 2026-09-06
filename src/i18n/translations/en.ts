@@ -757,6 +757,8 @@ const en = {
       escrowLeaseLwp: 'Lease with Purchase',
       escrowLeaseLo: 'Lease Only',
       escrowTransactionFee: 'Escrow transaction fee',
+      escrowHoldingFeeAutoPlaceholder: 'Auto-estimated',
+      escrowHoldingFeeHint: 'Total holding fee across the installment term. Leave blank to auto-estimate from lease type × list price × periods. Enter 0 if there is no holding fee — blank and 0 mean different things.',
       escrowTransactionFeeHint: 'Manual Escrow.com standard fee. Roll any one-off charges (schedule change $250, DNS admin $85) into this number.',
       escrowHoldingFee: 'Domain holding fee',
       escrowMonthlyHoldingFee: 'Monthly holding fee',
