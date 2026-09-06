@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useSupabaseAuth } from '../../src/contexts/SupabaseAuthContext';
 import { useI18nContext } from '../../src/contexts/I18nProvider';
+import { supabase } from '../../src/lib/supabase';
 import { logger } from '../../src/lib/logger';
 import { fireSensitiveOpNotification } from '../../src/lib/securityNotify';
 import DomainList from '../../src/components/domain/DomainList';
@@ -295,10 +296,23 @@ export default function DashboardPage() {
   const handleDeleteDomain = useCallback(async (id: string) => {
     if (!user?.id) return;
     try {
-      const headers: HeadersInit = { 'Content-Type': 'application/json' };
-      if (session?.access_token) {
-        (headers as Record<string, string>)['Authorization'] = `Bearer ${session.access_token}`;
+      // 和 saveData / handleDeleteTransaction / ReceiptsModal 走同一套取 token 的
+      // 方式：先问浏览器里的 getSession()（过期的 access_token 它会自动换新），
+      // props 上那份只作兜底；再把 refresh token 交给服务端的 auth-helper，让它
+      // 在 access_token 刚好过期的那一瞬间还能换一个新的，而不是回 401。
+      // 这里曾经只读 props 里的 session.access_token 且不带 refresh header，
+      // 结果就是「其他操作都正常，唯独删域名 401」。
+      const { data: { session: liveSession } } = await supabase.auth.getSession();
+      const accessToken = liveSession?.access_token ?? session?.access_token ?? null;
+      const refreshTok = liveSession?.refresh_token ?? session?.refresh_token ?? null;
+      if (!accessToken) {
+        throw new Error('Not authenticated');
       }
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      };
+      if (refreshTok) headers['X-Refresh-Token'] = refreshTok;
       const response = await fetch(`/api/domains/${id}`, {
         method: 'DELETE',
         headers
@@ -314,7 +328,7 @@ export default function DashboardPage() {
       setMutationError(`${t('errors.deleteDomainFailed')}: ${msg}`);
       setTimeout(() => setMutationError(null), 5000);
     }
-  }, [user?.id, session?.access_token, refreshData, t]);
+  }, [user?.id, session?.access_token, session?.refresh_token, refreshData, t]);
 
   const domainOps = useDomainOperations(
     domains,
