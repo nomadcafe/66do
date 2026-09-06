@@ -662,6 +662,8 @@ const en = {
       baseAmount: 'Base Amount',
       platformFee: 'Platform Fee',
       platformFeePercentage: 'Platform Fee %',
+      platformFeeAmount: 'Platform Fee Amount',
+      platformFeeAmountHint: 'Enter either one — the other is derived. Use this for flat fees (e.g. a $250 disbursement fee) that a percentage cannot express exactly.',
       netAmount: 'Net Amount',
       buy: 'Buy',
       renew: 'Renew',

@@ -733,6 +733,12 @@ export default function TransactionForm({
               )}
             </div>
 
+            {/* 平台费：百分比与金额双向联动。
+                以前只有百分比入口，金额由 amount × pct / 100 反推，于是「固定
+                手续费」这种常见形态填不进来 —— 比如 $150,000 的交易收 $250
+                Escrow Disbursement Fee，需要 0.1667%，而输入框 step 是 0.01，
+                在这个量级上最小粒度就是 $15。现在两个框都能填，改哪个另一个
+                跟着算。 */}
             <div>
               <label htmlFor="transaction-form-platform-fee-pct" className="block text-sm font-medium text-stone-700 mb-2">
                 {t('transaction.platformFeePercentage')}
@@ -756,6 +762,40 @@ export default function TransactionForm({
                 className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="0.00"
               />
+            </div>
+
+            <div>
+              <label htmlFor="transaction-form-platform-fee-amount" className="block text-sm font-medium text-stone-700 mb-2">
+                {t('transaction.platformFeeAmount')}
+              </label>
+              <input
+                id="transaction-form-platform-fee-amount"
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.platform_fee === 0 ? '' : formData.platform_fee}
+                onChange={(e) => {
+                  const fee = parseFloat(e.target.value) || 0;
+                  // 反推百分比只是为了让另一个框显示得上；amount 为 0 时无从反推，
+                  // 保留百分比不动，避免出现 NaN / Infinity。
+                  // 金额是权威值（net_amount = amount − platform_fee 直接用它），
+                  // 百分比只为显示，截到 4 位小数免得框里出现 0.16666666666666666。
+                  const percentage =
+                    formData.amount > 0
+                      ? Math.round((fee / formData.amount) * 100 * 10000) / 10000
+                      : formData.platform_fee_percentage;
+                  setFormData({
+                    ...formData,
+                    platform_fee: fee,
+                    platform_fee_percentage: percentage,
+                  });
+                }}
+                className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="0.00"
+              />
+              <p className="mt-1 text-xs text-stone-500">
+                {t('transaction.platformFeeAmountHint')}
+              </p>
             </div>
           </div>
 
