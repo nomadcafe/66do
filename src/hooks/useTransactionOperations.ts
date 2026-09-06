@@ -39,7 +39,6 @@ export function useTransactionOperations(
   domains: DomainWithTags[],
   userId: string | undefined,
   onSave: (domains: DomainWithTags[], transactions: TransactionWithRequiredFields[]) => Promise<void>,
-  onDelete: (id: string) => Promise<void>,
   onError: (error: string) => void,
   sessionToken?: string | null
 ): UseTransactionOperationsReturn {
