@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { formatCurrency } from '../../lib/financialCalculations';
 import { Wallet, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { calculateYearlyRenewalVsProfit } from '../../lib/coreCalculations';
 import { useI18nContext } from '../../contexts/I18nProvider';
@@ -114,7 +115,7 @@ export default function YearlyCashflowTable({
                   <div className="mt-4 grid grid-cols-2 gap-3">
                     <Stat
                       label={t('analytics.yearlyRenewalProfit.netCashflow')}
-                      value={`${cfPrefix}$${Math.abs(row.netCashflow).toLocaleString()}`}
+                      value={`${cfPrefix}${formatCurrency(Math.abs(row.netCashflow), 'USD')}`}
                       valueClass={
                         row.netCashflow > 0
                           ? 'text-emerald-700'
@@ -125,16 +126,16 @@ export default function YearlyCashflowTable({
                     />
                     <Stat
                       label={t('analytics.yearlyRenewalProfit.saleNet')}
-                      value={row.saleNet > 0 ? `+$${row.saleNet.toLocaleString()}` : '—'}
+                      value={row.saleNet > 0 ? `+${formatCurrency(row.saleNet, 'USD')}` : '—'}
                       valueClass="text-emerald-700"
                     />
                     <Stat
                       label={t('analytics.yearlyRenewalProfit.renewal')}
-                      value={row.renewalSpend > 0 ? `−$${row.renewalSpend.toLocaleString()}` : '—'}
+                      value={row.renewalSpend > 0 ? `−${formatCurrency(row.renewalSpend, 'USD')}` : '—'}
                     />
                     <Stat
                       label={t('analytics.yearlyRenewalProfit.otherOutflow')}
-                      value={row.otherOutflow > 0 ? `−$${row.otherOutflow.toLocaleString()}` : '—'}
+                      value={row.otherOutflow > 0 ? `−${formatCurrency(row.otherOutflow, 'USD')}` : '—'}
                     />
                   </div>
 
@@ -189,13 +190,13 @@ export default function YearlyCashflowTable({
                       <tr key={row.year} className="border-b border-stone-100 last:border-b-0 hover:bg-stone-50/50 transition-colors">
                         <td className="px-5 py-3 font-semibold text-stone-900 tabular-nums">{row.year}</td>
                         <td className="px-5 py-3 text-right tabular-nums text-stone-700">
-                          {row.renewalSpend > 0 ? `−$${row.renewalSpend.toLocaleString()}` : '—'}
+                          {row.renewalSpend > 0 ? `−${formatCurrency(row.renewalSpend, 'USD')}` : '—'}
                         </td>
                         <td className="px-5 py-3 text-right tabular-nums text-stone-700">
-                          {row.otherOutflow > 0 ? `−$${row.otherOutflow.toLocaleString()}` : '—'}
+                          {row.otherOutflow > 0 ? `−${formatCurrency(row.otherOutflow, 'USD')}` : '—'}
                         </td>
                         <td className="px-5 py-3 text-right tabular-nums text-emerald-700">
-                          {row.saleNet > 0 ? `+$${row.saleNet.toLocaleString()}` : '—'}
+                          {row.saleNet > 0 ? `+${formatCurrency(row.saleNet, 'USD')}` : '—'}
                         </td>
                         <td
                           className={`px-5 py-3 text-right font-semibold tabular-nums ${
@@ -206,7 +207,7 @@ export default function YearlyCashflowTable({
                                 : 'text-stone-700'
                           }`}
                         >
-                          {cfPrefix}${Math.abs(row.netCashflow).toLocaleString()}
+                          {cfPrefix}{formatCurrency(Math.abs(row.netCashflow), 'USD')}
                         </td>
                         <td className="px-5 py-3 text-right tabular-nums text-stone-700">
                           {row.renewalToSalePercent != null

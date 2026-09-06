@@ -4,6 +4,7 @@ import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashb
 import { DollarSign, TrendingUp, Target, CheckCircle, XCircle, Award, Receipt, PiggyBank, TrendingDown } from 'lucide-react';
 import { calculateBasicFinancialMetrics } from '../../lib/coreCalculations';
 import { useI18nContext } from '../../contexts/I18nProvider';
+import { formatCurrency } from '../../lib/financialCalculations';
 import { realizedROI, tradeOutcomes } from '../../lib/realizedPnL';
 import { useMemo } from 'react';
 
@@ -53,8 +54,12 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
     return <XCircle className="h-5 w-5 text-rose-500" />;
   };
 
+  // 走 formatCurrency 而不是裸 toLocaleString：后者默认最多 3 位小数、且不补
+  // 零，$1,234.5 和 $12,345.679 都会原样渲染——分期到账金额是
+  // down × (1 − feeRate)，必然带长小数。Renewals 板块用的就是 formatCurrency，
+  // 两边格式必须一致，否则切个 sub-tab 同一类数字的小数位就变了。
   const formatUSD = (n: number) =>
-    n < 0 ? `−$${Math.abs(n).toLocaleString()}` : `$${n.toLocaleString()}`;
+    n < 0 ? `−${formatCurrency(Math.abs(n), 'USD')}` : formatCurrency(n, 'USD');
 
   return (
     <div className="space-y-5">
