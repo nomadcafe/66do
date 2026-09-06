@@ -455,3 +455,77 @@ describe('exported constants', () => {
 
 // keep APPROX referenced so a future contributor sees it without lint nag
 void APPROX;
+
+describe('首付 / 尾款必须计入卖家总额', () => {
+  // 表单推每期金额时是先把首付和尾款从卖家净收入里扣掉的
+  // （TransactionForm: remainingAmount = sellerProceeds − downpayment − finalPayment），
+  // 所以费用计算这边必须再把它们加回来。Afternic 路径曾经写成
+  // `installmentAmount × installmentPeriod`，首付整笔从所有数字里消失。
+  const listPrice = 10000;
+  const period = 24;
+  const down = 2000;
+
+  const perPeriod = (dp: number, fp: number) => {
+    const eff = getAfternicEffectiveCommissionRate(period, true, false);
+    const regular = period - (fp > 0 ? 1 : 0);
+    return (listPrice * (1 - eff) - dp - fp) / regular;
+  };
+
+  it('Afternic + 首付：客户总付 / 平台费 / 卖家净都不受首付"蒸发"影响', () => {
+    const instAmt = perPeriod(down, 0);
+    const opts = { downpaymentAmount: down, finalPaymentAmount: 0, grossAmount: listPrice };
+    const r = calculateCustomerTotalFromInstallment(
+      instAmt, period, 'afternic_installment', undefined, undefined, undefined, undefined, undefined, opts
+    );
+    // 有效佣金率 15% − 5%(13–24 月折扣) = 10% → 标价 10000、卖家净 9000
+    // 服务费 13–24 月 10% → 客户总付 11000、平台费 = 服务费 1000 + 佣金 1000
+    expect(r.sellerNetAmount).toBeCloseTo(9000, 6);
+    expect(r.customerTotalAmount).toBeCloseTo(11000, 6);
+    expect(r.platformFee).toBeCloseTo(2000, 6);
+  });
+
+  it('全部付清时，配置面板与 dashboard 重算给出同一组数', () => {
+    const instAmt = perPeriod(down, 0);
+    const opts = { downpaymentAmount: down, finalPaymentAmount: 0, grossAmount: listPrice };
+    const config = calculateCustomerTotalFromInstallment(
+      instAmt, period, 'afternic_installment', undefined, undefined, undefined, undefined, undefined, opts
+    );
+    const paid = calculatePaidAmountFromInstallment(
+      instAmt, period, period, 'afternic_installment', undefined, undefined, undefined, undefined, undefined, opts
+    );
+    expect(paid.customerTotalAmount).toBeCloseTo(config.customerTotalAmount, 6);
+    expect(paid.platformFee).toBeCloseTo(config.platformFee, 6);
+    expect(paid.sellerNetAmount).toBeCloseTo(config.sellerNetAmount, 6);
+  });
+
+  it('付到一半时，卖家实收 = 首付 + 已付期数 × 每期', () => {
+    const instAmt = perPeriod(down, 0);
+    const r = calculatePaidAmountFromInstallment(
+      instAmt, 12, period, 'afternic_installment', undefined, undefined, undefined, undefined, undefined,
+      { downpaymentAmount: down, finalPaymentAmount: 0, grossAmount: listPrice }
+    );
+    expect(r.sellerNetAmount).toBeCloseTo(down + instAmt * 12, 6);
+  });
+
+  it('没有首付也没有尾款时行为不变（这次改动是推广，不是变更）', () => {
+    const instAmt = perPeriod(0, 0);
+    const r = calculatePaidAmountFromInstallment(
+      instAmt, period, period, 'afternic_installment', undefined, undefined, undefined, undefined, undefined,
+      { grossAmount: listPrice }
+    );
+    expect(r.sellerNetAmount).toBeCloseTo(9000, 6);
+    expect(r.customerTotalAmount).toBeCloseTo(11000, 6);
+  });
+
+  it('有尾款时，最后一期按尾款算而不是按每期金额算', () => {
+    // 首付 1000 + 11 × 300 + 尾款 2000 = 6300
+    const total = calculateTotalInstallmentAmount(1000, 300, 12, 2000);
+    expect(total).toBe(6300);
+    const r = calculatePaidAmountFromInstallment(
+      300, 12, 12, 'spaceship_installment', undefined, undefined, undefined, undefined, undefined,
+      { downpaymentAmount: 1000, finalPaymentAmount: 2000 }
+    );
+    // 全部付清 → 客户已付必须等于总售价；旧实现按 1000 + 12×300 = 4600 算
+    expect(r.customerTotalAmount).toBeCloseTo(6300, 6);
+  });
+});
