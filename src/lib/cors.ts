@@ -28,6 +28,9 @@ export function getCorsHeaders(request: NextRequest) {
     'Access-Control-Allow-Origin': isAllowedOrigin ? origin! : 'https://www.domain.financial',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Refresh-Token',
+    // 响应内容随 Origin 变化，必须让任何中间缓存按 Origin 分片存储。
+    // 少了它，一个共享缓存可能把给 A 站点的 Allow-Origin 回给 B 站点。
+    'Vary': 'Origin',
   };
 }
 
@@ -43,6 +46,7 @@ export function getCorsHeadersForError(request?: NextRequest) {
     'Access-Control-Allow-Origin': 'https://www.domain.financial',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Refresh-Token',
+    'Vary': 'Origin',
   };
 }
 
