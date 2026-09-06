@@ -56,29 +56,3 @@ export function validateEnvVars(isServerSide = false): EnvValidationResult {
   };
 }
 
-/**
- * 在服务器端验证环境变量，如果验证失败则抛出错误
- */
-export function assertEnvVars(isServerSide = false): void {
-  const result = validateEnvVars(isServerSide);
-  if (!result.valid) {
-    throw new Error(
-      `Environment variable validation failed:\n${result.errors.join('\n')}`
-    );
-  }
-}
-
-/**
- * 获取环境变量值，如果不存在则返回默认值
- */
-export function getEnvVar(name: string, defaultValue?: string): string {
-  const value = process.env[name];
-  if (!value || value.trim() === '') {
-    if (defaultValue !== undefined) {
-      return defaultValue;
-    }
-    throw new Error(`Environment variable ${name} is required but not set`);
-  }
-  return value;
-}
-

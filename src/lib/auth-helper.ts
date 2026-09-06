@@ -23,10 +23,6 @@ function buildServerAuthClient() {
   });
 }
 
-export async function getUserIdFromRequest(request: NextRequest): Promise<string | null> {
-  return getAuthInfoFromRequest(request).then(info => info?.userId || null);
-}
-
 export async function getAuthInfoFromRequest(request: NextRequest): Promise<{ userId: string; accessToken?: string } | null> {
   try {
     // Bearer-only: the client stores the session in localStorage and attaches
