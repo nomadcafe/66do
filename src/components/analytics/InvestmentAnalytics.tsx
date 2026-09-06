@@ -31,10 +31,9 @@ import {
   ShoppingCart,
   Coins,
 } from 'lucide-react';
-import { expandRenewalEvents } from '../../lib/expandRenewalEvents';
-import { isCashOutflowType } from '../../lib/transactionTypeGroups';
-import { localMonthKey, parseLocalCalendarDate, parseLocalMonthKey } from '../../lib/localCalendarDate';
+import { computeMonthlyOutflow } from '../../lib/monthlyOutflow';
 import { formatCurrency } from '../../lib/financialCalculations';
+import { localMonthKey, parseLocalCalendarDate, parseLocalMonthKey } from '../../lib/localCalendarDate';
 
 interface InvestmentAnalyticsProps {
   domains: DomainWithTags[];
@@ -206,33 +205,21 @@ export default function InvestmentAnalytics({
       }
     }
 
-    // 事件口径：把每笔购买 / 每次续费当成一个 (date, amount) 事件，按月聚合。
-    // 续费走 expandRenewalEvents 取 archive + transaction 两类（不含 projected）：
-    // chart 只展示历史（≤ now）的实际续费支出。Projected 事件原本是给"未来
-    // 续费预测"的，但 chart 只画 ≤ now 的月份，未来 projected 永远画不出来；
-    // 而对 stale 域名（status=active 但 expiry 已过）会产生过去时点的 projected
-    // 事件——语义上是"漏录的续费记录"，作为一条独立紫色虚线展示反而误导。
-    // DomainCard 的 stale 警告 + Renewal Outlook 的"实际"列已经覆盖这个信号。
-    // 用全量 domains/transactions 算事件流，避免漏掉窗口外创建但事件落在
-    // 窗口内的域名（老域名上月续费等）。事件流出来后按月聚合到 Map，下面
-    // 主循环只取窗口内月份显示。
-    const renewalActualByMonth = new Map<string, number>();
-    for (const d of domains) {
-      for (const ev of expandRenewalEvents(d, transactions)) {
-        if (ev.date > now) continue;
-        const key = localMonthKey(ev.date);
-        renewalActualByMonth.set(key, (renewalActualByMonth.get(key) ?? 0) + ev.amount);
-      }
-    }
-    const purchaseEventsByMonth = new Map<string, number>();
-    for (const d of domains) {
-      if (!d.purchase_date) continue;
-      const pd = parseLocalCalendarDate(d.purchase_date);
-      if (!pd || pd > now) continue;
-      const key = localMonthKey(pd);
-      const cost = Number(d.purchase_cost) || 0;
-      purchaseEventsByMonth.set(key, (purchaseEventsByMonth.get(key) ?? 0) + cost);
-    }
+    // 三类流出（购入 / 续费 / 其余运营支出）全部走 computeMonthlyOutflow，口径
+    // 在那里统一定义，并与年度现金流表（calculateYearlyRenewalVsProfit）对拍，
+    // 保证同一屏上的年表、投资线、现金流图不会再各说各话。
+    //
+    // 传全量 domains/transactions（而不是按窗口过滤过的）：老域名上月续费、
+    // 窗口外创建但事件落在窗口内的域名都得算进来。传 now 作上限——chart 只画
+    // ≤ now 的月份，未来时点的事件永远画不出来；对 stale 域名（status=active
+    // 但 expiry 已过）产生的过去时点 projected 事件，语义上是"漏录的续费"，
+    // 画成一条紫线反而误导，所以 computeMonthlyOutflow 本来就不收 projected。
+    // DomainCard 的 stale 警告 + Renewal Outlook 的"实际"列已经覆盖那个信号。
+    const { purchaseByMonth, renewalByMonth, otherByMonth } = computeMonthlyOutflow(
+      domains,
+      transactions,
+      now
+    );
 
     let cumulativeRealizedPnL = 0;
     for (let i = 0; i < monthsToShow; i++) {
@@ -245,24 +232,22 @@ export default function InvestmentAnalytics({
 
       if (date > now) break;
 
-      const purchaseThisMonth = purchaseEventsByMonth.get(monthKey) ?? 0;
-      const renewalCost = renewalActualByMonth.get(monthKey) ?? 0;
+      const purchaseThisMonth = purchaseByMonth.get(monthKey) ?? 0;
+      const renewalCost = renewalByMonth.get(monthKey) ?? 0;
       const investment = purchaseThisMonth + renewalCost;
 
       // 入账：从 monthlyNetInflowByMonth 直接取（已按到账月聚合）。
       const revenue = monthlyNetInflowByMonth.get(monthKey) ?? 0;
       const grossSales = monthlyGrossInflowByMonth.get(monthKey) ?? 0;
 
-      // 月度净现金流 = 本月实收 - 本月花出（CASH_OUTFLOW_TYPES 全口径：买入、
-      // 续费、转移、平台费、营销、广告）。流出按 t.date 月份归类：这些都是
-      // 一次性付款，不存在分期到账问题。
-      const costThisMonth = transactions
-        .filter((t) => {
-          if (!isCashOutflowType(t.type)) return false;
-          const d = parseLocalCalendarDate(t.date);
-          return d !== null && localMonthKey(d) === monthKey;
-        })
-        .reduce((sum, t) => sum + t.amount, 0);
+      // 月度净现金流 = 本月实收 − 本月花出。流出与上面那条投资线同源：
+      // 购入（canonical 口径）+ 续费（事件流，含档案续费）+ 其余运营支出。
+      // 之前这里按 CASH_OUTFLOW_TYPES 直接扫交易，于是只认 renew 交易、
+      // 漏掉档案续费，也不认 purchase_cost 兜底——上下两张图对同一批数据
+      // 给出不同的支出。流出按 t.date 月份归类：都是一次性付款，不存在
+      // 分期到账问题。
+      const otherOutflow = otherByMonth.get(monthKey) ?? 0;
+      const costThisMonth = investment + otherOutflow;
       const monthlyCashFlow = revenue - costThisMonth;
 
       // 累计已实现盈亏：每笔出售的 (sellNet − cost basis at sale) 按到账月分摊后
