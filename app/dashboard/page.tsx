@@ -367,9 +367,6 @@ export default function DashboardPage() {
     domains,
     user?.id,
     saveData,
-    async () => {
-      // Delete handler is implemented in the hook
-    },
     setError,
     session?.access_token
   );

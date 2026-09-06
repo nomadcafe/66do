@@ -9,12 +9,15 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signInWithMagicLink: (email: string) => Promise<{ error: AuthError | null }>;
   signInWithGoogle: (redirectAfter?: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   refreshSession: () => Promise<void>;
 }
 
+// 注意：这里刻意**没有** signInWithMagicLink。魔法链接必须走
+// POST /api/send-magic-link —— 那条路由上挂着按 IP（5 次 /15 分钟）和按邮箱
+// （3 次 /1 小时）的限流，是防邮箱枚举和 Supabase 配额被烧的唯一一道闸。
+// 在浏览器里直接调 supabase.auth.signInWithOtp() 会整个绕过它。
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function SupabaseAuthProvider({ children }: { children: React.ReactNode }) {
@@ -64,32 +67,6 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
       subscription.unsubscribe();
     };
   }, []);
-
-  const signInWithMagicLink = async (email: string) => {
-    setLoading(true);
-    try {
-      // Always derive the redirect from NEXT_PUBLIC_SITE_URL (via getSiteUrl)
-      // rather than window.location.origin. If the Supabase Auth allow-list
-      // is configured with a wildcard (e.g. *.domain.financial for previews),
-      // a request originating from a malicious subdomain could otherwise
-      // route the magic-link token to that subdomain. Canonicalising on the
-      // env-configured host closes that defence-in-depth gap.
-      const redirectUrl = new URL('/auth/magic-link', getSiteUrl()).toString();
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: redirectUrl,
-          shouldCreateUser: true,
-        }
-      });
-      if (error) return { error };
-      return { error: null };
-    } catch (error) {
-      return { error: error as AuthError };
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const signInWithGoogle = async (redirectAfter?: string): Promise<{ error: AuthError | null }> => {
     try {
@@ -146,7 +123,6 @@ export function SupabaseAuthProvider({ children }: { children: React.ReactNode }
     user,
     session,
     loading,
-    signInWithMagicLink,
     signInWithGoogle,
     signOut,
     refreshSession,

@@ -25,50 +25,6 @@ export const LazyWrapper = ({ children, fallback }: { children: React.ReactNode;
   </Suspense>
 );
 
-// 带错误边界的懒加载包装器
-export const LazyWrapperWithErrorBoundary = ({ children, fallback }: { children: React.ReactNode; fallback?: React.ReactNode }) => {
-  return (
-    <Suspense fallback={fallback || <LoadingSpinner />}>
-      <ErrorBoundary>
-        {children}
-      </ErrorBoundary>
-    </Suspense>
-  );
-};
-
-// 简单的错误边界组件
-class ErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean; error?: Error }
-> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Lazy component error:', error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-red-800 text-sm">
-            组件加载失败，请刷新页面重试
-          </p>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
-}
-
 // 预加载函数
 export const preloadComponents = () => {
   // 预加载关键组件
