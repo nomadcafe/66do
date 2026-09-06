@@ -34,6 +34,7 @@ import {
 import { expandRenewalEvents } from '../../lib/expandRenewalEvents';
 import { isCashOutflowType } from '../../lib/transactionTypeGroups';
 import { localMonthKey, parseLocalCalendarDate, parseLocalMonthKey } from '../../lib/localCalendarDate';
+import { formatCurrency } from '../../lib/financialCalculations';
 
 interface InvestmentAnalyticsProps {
   domains: DomainWithTags[];
@@ -328,6 +329,15 @@ export default function InvestmentAnalytics({
     };
   }, [monthlyRealizedPnL, monthlyGrossInflowByMonth, monthsWindow, timeSeriesData]);
 
+  // 轴刻度用紧凑格式；两张图共用，避免一张写 $12k、另一张写 $12,345.679。
+  // 具体数值（KPI / tooltip / 表格）一律走 formatCurrency。
+  const compactUSD = (value: number): string => {
+    const n = Number(value) || 0;
+    const abs = Math.abs(n);
+    if (abs >= 1000) return `${n < 0 ? '−' : ''}$${Math.round(abs / 1000)}k`;
+    return `${n < 0 ? '−' : ''}$${Math.round(abs)}`;
+  };
+
   // 'YYYY-MM' → 显示用的月份标签。必须走 parseLocalMonthKey：key 是按本地
   // 取值器生成的，直接 new Date('2026-09') 会被当成 UTC 午夜，在负偏移时区
   // （整个美洲）落回 8 月 31 日，图表每个点的月份标签整体早一格。
@@ -360,7 +370,7 @@ export default function InvestmentAnalytics({
 
     // 统一数字渲染：带正负号 / 带颜色（盈利绿、亏损玫红、零灰）。
     const formatSigned = (n: number) =>
-      `${n > 0 ? '+' : n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString()}`;
+      `${n > 0 ? '+' : n < 0 ? '−' : ''}${formatCurrency(Math.abs(n), 'USD')}`;
     const signValueColor = (n: number) =>
       n > 0 ? 'text-emerald-700' : n < 0 ? 'text-rose-700' : 'text-stone-900';
     const signIconBg = (n: number) =>
@@ -402,7 +412,7 @@ export default function InvestmentAnalytics({
         iconBg: 'bg-indigo-50 text-indigo-700',
         value: (
           <span className="tabular-nums text-stone-900">
-            ${portfolioMetrics.investment.toLocaleString()}
+            {formatCurrency(portfolioMetrics.investment, 'USD')}
           </span>
         ),
       },
@@ -413,7 +423,7 @@ export default function InvestmentAnalytics({
         iconBg: 'bg-purple-50 text-purple-700',
         value: (
           <span className="tabular-nums text-stone-900">
-            ${portfolioMetrics.renewalCost.toLocaleString()}
+            {formatCurrency(portfolioMetrics.renewalCost, 'USD')}
           </span>
         ),
       },
@@ -425,7 +435,7 @@ export default function InvestmentAnalytics({
         iconBg: 'bg-emerald-50 text-emerald-700',
         value: (
           <span className="tabular-nums text-emerald-700">
-            ${portfolioMetrics.grossSales.toLocaleString()}
+            {formatCurrency(portfolioMetrics.grossSales, 'USD')}
           </span>
         ),
       },
@@ -543,7 +553,7 @@ export default function InvestmentAnalytics({
             />
             <YAxis
               tick={{ fontSize: 12, fill: '#78716c' }}
-              tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+              tickFormatter={compactUSD}
               stroke="#a8a29e"
             />
             <Tooltip
@@ -554,10 +564,7 @@ export default function InvestmentAnalytics({
                 boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
               }}
               cursor={{ stroke: '#6366f1', strokeWidth: 2 }}
-              formatter={(value, name) => [
-                `$${Number(value).toLocaleString()}`,
-                name,
-              ]}
+              formatter={(value, name) => [formatCurrency(Number(value), 'USD'), name]}
               labelFormatter={(value) => monthFullLabel(String(value))}
             />
             <Area
@@ -667,10 +674,10 @@ export default function InvestmentAnalytics({
         <BarChart data={timeSeriesData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="date" tickFormatter={monthTickLabel} />
-          <YAxis tickFormatter={(value) => `$${Number(value).toLocaleString()}`} />
+          <YAxis tickFormatter={compactUSD} />
           <Tooltip
             formatter={(value) => [
-              `$${Number(value).toLocaleString()}`,
+              formatCurrency(Number(value), 'USD'),
               t('analytics.monthlyCashFlow'),
             ]}
             labelFormatter={(value) => monthFullLabel(String(value))}
