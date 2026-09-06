@@ -279,14 +279,13 @@ export default function InvestmentAnalytics({
       monthsWindow !== null
         ? new Date(now.getFullYear(), now.getMonth() - (monthsWindow - 1), 1)
         : null;
+    // ALL 档也必须卡 <= now：图表主循环遇到 date > now 就 break，KPI 若把未来
+    // 月份的到账算进去，两个数字就对不上（"图上看不到的钱进了上面的合计"）。
     const inWindow = (key: string): boolean => {
-      if (startMonth === null) return true;
-      const [yearStr, monthStr] = key.split('-');
-      const year = Number(yearStr);
-      const month = Number(monthStr);
-      if (!Number.isFinite(year) || !Number.isFinite(month)) return false;
-      const d = new Date(year, month - 1, 1);
-      return d >= startMonth && d <= now;
+      const d = parseLocalMonthKey(key);
+      if (!d) return false;
+      if (d > now) return false;
+      return startMonth === null || d >= startMonth;
     };
 
     let realizedPnL = 0;
@@ -393,6 +392,9 @@ export default function InvestmentAnalytics({
       {
         key: 'investment',
         label: t('analytics.investment'),
+        // 这个值 = 购入 + 续费，把右边那块 Renewal Cost 整个包在里面。两块并排
+        // 很容易被读成并列项然后相加，所以必须说明白。
+        tooltip: t('analytics.investmentIncludesRenewals'),
         icon: <ShoppingCart className="h-5 w-5" />,
         iconBg: 'bg-indigo-50 text-indigo-700',
         value: (
