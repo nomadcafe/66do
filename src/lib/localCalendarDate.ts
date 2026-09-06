@@ -43,6 +43,25 @@ export function localMonthKey(date: Date): string {
   return `${y}-${m}`;
 }
 
+/** 'YYYY-MM' */
+const MONTH_ONLY_RE = /^(\d{4})-(\d{2})$/;
+
+/**
+ * localMonthKey 的逆运算：把 'YYYY-MM' 解析成**本地**的当月 1 日零点。
+ *
+ * 必须成对使用。key 是按本地取值器生成的，读回来时若图省事写
+ * `new Date('2026-09')`，JS 按 ISO 规则当成 **UTC** 午夜——在负偏移时区
+ * （整个美洲）它落回 8 月 31 日，`.getMonth()` 于是少一个月，图表上每个
+ * 数据点的月份标签整体早一格。UTC 的 CI 和东八区都复现不出来。
+ */
+export function parseLocalMonthKey(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const m = MONTH_ONLY_RE.exec(String(value).trim());
+  if (!m) return null;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, 1);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 /**
  * 取日历年。'YYYY-MM-DD' 直接从字符串切——结果与运行时区无关，这是最强的
  * 保证；其他形态才退回 Date 解析。

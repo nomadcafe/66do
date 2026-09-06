@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import { expandRenewalEvents } from '../../lib/expandRenewalEvents';
 import { isCashOutflowType } from '../../lib/transactionTypeGroups';
-import { localMonthKey, parseLocalCalendarDate } from '../../lib/localCalendarDate';
+import { localMonthKey, parseLocalCalendarDate, parseLocalMonthKey } from '../../lib/localCalendarDate';
 
 interface InvestmentAnalyticsProps {
   domains: DomainWithTags[];
@@ -328,6 +328,23 @@ export default function InvestmentAnalytics({
     };
   }, [monthlyRealizedPnL, monthlyGrossInflowByMonth, monthsWindow, timeSeriesData]);
 
+  // 'YYYY-MM' → 显示用的月份标签。必须走 parseLocalMonthKey：key 是按本地
+  // 取值器生成的，直接 new Date('2026-09') 会被当成 UTC 午夜，在负偏移时区
+  // （整个美洲）落回 8 月 31 日，图表每个点的月份标签整体早一格。
+  const monthTickLabel = (key: string): string => {
+    const d = parseLocalMonthKey(key);
+    if (!d) return key;
+    return `${d.getMonth() + 1}/${d.getFullYear()}`;
+  };
+  const monthFullLabel = (key: string): string => {
+    const d = parseLocalMonthKey(key);
+    if (!d) return key;
+    return d.toLocaleDateString(locale === 'zh' ? 'zh-CN' : 'en-US', {
+      year: 'numeric',
+      month: 'long',
+    });
+  };
+
   const renderPortfolioMetrics = () => {
     if (domains.length === 0 && transactions.length === 0) {
       return (
@@ -521,10 +538,7 @@ export default function InvestmentAnalytics({
             <XAxis
               dataKey="date"
               tick={{ fontSize: 12, fill: '#78716c' }}
-              tickFormatter={(value) => {
-                const date = new Date(value);
-                return `${date.getMonth() + 1}/${date.getFullYear()}`;
-              }}
+              tickFormatter={monthTickLabel}
               stroke="#a8a29e"
             />
             <YAxis
@@ -544,10 +558,7 @@ export default function InvestmentAnalytics({
                 `$${Number(value).toLocaleString()}`,
                 name,
               ]}
-              labelFormatter={(value) => {
-                const date = new Date(value);
-                return date.toLocaleDateString(locale === 'zh' ? 'zh-CN' : 'en-US', { year: 'numeric', month: 'long' });
-              }}
+              labelFormatter={(value) => monthFullLabel(String(value))}
             />
             <Area
               type="monotone"
@@ -655,13 +666,14 @@ export default function InvestmentAnalytics({
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={timeSeriesData}>
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="date" />
+          <XAxis dataKey="date" tickFormatter={monthTickLabel} />
           <YAxis tickFormatter={(value) => `$${Number(value).toLocaleString()}`} />
           <Tooltip
             formatter={(value) => [
               `$${Number(value).toLocaleString()}`,
               t('analytics.monthlyCashFlow'),
             ]}
+            labelFormatter={(value) => monthFullLabel(String(value))}
           />
           <Bar
             dataKey="monthlyCashFlow"
