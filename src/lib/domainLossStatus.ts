@@ -7,6 +7,8 @@
 // 这里只读 status / expiry_date，不修改任何状态字段——状态仍由用户手动维护。
 // ROI(-100%) 与过期损失统计共用本判定，保证两处口径一致。
 
+import { parseLocalCalendarDate } from './localCalendarDate';
+
 const DAY_MS = 86_400_000;
 
 /** 过期后到计入损失之间的宽限天数。续费会延长 expiry_date，从而自动退出该窗口。 */
@@ -28,8 +30,8 @@ export function isDomainLost(
   if (domain.status === 'expired') return true;
   if (!domain.expiry_date) return false;
 
-  const expiry = new Date(domain.expiry_date);
-  if (Number.isNaN(expiry.getTime())) return false;
+  const expiry = parseLocalCalendarDate(domain.expiry_date);
+  if (!expiry) return false;
 
   return now.getTime() - expiry.getTime() > graceDays * DAY_MS;
 }

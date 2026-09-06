@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { getEffectiveExpiry, daysUntilEffectiveExpiry } from './effectiveExpiry';
+import { localCalendarDateISO } from './localCalendarDate';
 
 describe('getEffectiveExpiry', () => {
   it('returns explicit expiry_date when present', () => {
@@ -11,7 +12,7 @@ describe('getEffectiveExpiry', () => {
       renewal_cycle: 1,
     });
     expect(r.source).toBe('explicit');
-    expect(r.date?.toISOString().slice(0, 10)).toBe('2027-06-15');
+    expect(r.date ? localCalendarDateISO(r.date) : null).toBe('2027-06-15');
   });
 
   it('falls back to next_renewal_date when expiry_date is empty', () => {
@@ -23,7 +24,7 @@ describe('getEffectiveExpiry', () => {
       renewal_cycle: 1,
     });
     expect(r.source).toBe('next_renewal_date');
-    expect(r.date?.toISOString().slice(0, 10)).toBe('2026-09-01');
+    expect(r.date ? localCalendarDateISO(r.date) : null).toBe('2026-09-01');
   });
 
   it('estimates from purchase + (renewal_count+1)*cycle when both fields are missing', () => {
@@ -47,7 +48,7 @@ describe('getEffectiveExpiry', () => {
       renewal_cycle: 2,
     });
     expect(r.source).toBe('estimated');
-    expect(r.date?.toISOString().slice(0, 10)).toBe('2024-03-15');
+    expect(r.date ? localCalendarDateISO(r.date) : null).toBe('2024-03-15');
   });
 
   it('treats missing/zero renewal_count as 0 in the estimate', () => {
@@ -102,14 +103,14 @@ describe('daysUntilEffectiveExpiry', () => {
   });
 
   it('returns days from `now` to the effective expiry (positive in future)', () => {
-    const now = new Date('2026-01-01T00:00:00Z');
+    const now = new Date(2026, 0, 1);
     const days = daysUntilEffectiveExpiry({ expiry_date: '2026-04-01' }, now);
     // 31 (Jan) + 28 (Feb 2026 not leap) + 31 (Mar) = 90 days.
     expect(days).toBe(90);
   });
 
   it('returns negative days when expiry is past', () => {
-    const now = new Date('2026-04-28T00:00:00Z');
+    const now = new Date(2026, 3, 28);
     const days = daysUntilEffectiveExpiry({ expiry_date: '2026-04-01' }, now);
     expect(days).toBe(-27);
   });

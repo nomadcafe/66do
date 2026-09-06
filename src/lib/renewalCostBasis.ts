@@ -29,6 +29,15 @@
  */
 
 import { buyTxsForDomain, renewTxsForDomain, transferTxsForDomain } from './txIndex';
+import { parseLocalCalendarDate } from './localCalendarDate';
+
+/** 日期列 → 本地日历日零点的毫秒数。这些时间戳会和 holdingCostAsOf 的 asOfDate
+ *  比大小，而 asOfDate 来自本地口径的月份 key，两边必须同一时区基准。 */
+function dateColumnTime(value: string | null | undefined): number {
+  const d = parseLocalCalendarDate(value);
+  return d ? d.getTime() : NaN;
+}
+
 
 export type RenewalCostTx = {
   domain_id: string;
@@ -185,7 +194,7 @@ export function holdingCostAsOf(
   const asOf = asOfDate.getTime();
   if (!Number.isFinite(asOf)) return 0;
 
-  const purchaseTime = domain.purchase_date ? new Date(domain.purchase_date).getTime() : NaN;
+  const purchaseTime = dateColumnTime(domain.purchase_date);
   if (!Number.isFinite(purchaseTime) || purchaseTime > asOf) return 0;
 
   // 取得成本：交易优先、档案兜底，与 acquisitionCostForDomain 同口径，
@@ -196,14 +205,14 @@ export function holdingCostAsOf(
     total += Number(domain.purchase_cost) || 0;
   } else {
     for (const t of buys) {
-      const txTime = new Date(t.date).getTime();
+      const txTime = dateColumnTime(t.date);
       if (Number.isFinite(txTime) && txTime <= asOf) total += Number(t.amount) || 0;
     }
   }
 
   // 金额已知的 renew 交易：各自按交易日截断
   for (const t of knownRenewalTxs(domain, transactions)) {
-    const txTime = new Date(t.date).getTime();
+    const txTime = dateColumnTime(t.date);
     if (Number.isFinite(txTime) && txTime <= asOf) {
       total += Number(t.amount) || 0;
     }
@@ -215,7 +224,7 @@ export function holdingCostAsOf(
   const perRenewal = Number(domain.renewal_cost) || 0;
   if (archiveCount > 0 && perRenewal !== 0) {
     if (domain.baseline_renewal_as_of) {
-      const baselineTime = new Date(domain.baseline_renewal_as_of).getTime();
+      const baselineTime = dateColumnTime(domain.baseline_renewal_as_of);
       if (Number.isFinite(baselineTime) && baselineTime <= asOf) {
         total += archiveCount * perRenewal;
       }
@@ -231,7 +240,7 @@ export function holdingCostAsOf(
 
   // 转移费：与 baseline 无关，只按交易日截断
   for (const t of transferTxsForDomain(transactions, domain.id)) {
-    const txTime = new Date(t.date).getTime();
+    const txTime = dateColumnTime(t.date);
     if (Number.isFinite(txTime) && txTime <= asOf) {
       total += Number(t.amount) || 0;
     }

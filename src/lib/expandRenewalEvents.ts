@@ -34,6 +34,7 @@
 import type { TransactionWithRequiredFields } from '../types/transaction';
 import { transferTxsForDomain } from './txIndex';
 import { archiveRenewalCount, knownRenewalTxs } from './renewalCostBasis';
+import { parseLocalCalendarDate } from './localCalendarDate';
 
 export type RenewalEventSource = 'archive' | 'transaction' | 'projected';
 
@@ -65,11 +66,11 @@ export interface ExpandRenewalEventsOptions {
   forecastUntil?: Date;
 }
 
-function parseLocalDate(s: string | null | undefined): Date | null {
-  if (!s) return null;
-  const d = new Date(s);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
+/** 日期列 → 本地日历日零点。这个模块产出的 event.date 会被调用方用
+ *  `.getFullYear()` 读年份、并和 `new Date(year, 0, 1)` 这类本地边界比大小，
+ *  所以解析也必须落在本地时区，否则负偏移时区里 1 月 1 日的续费会掉到上一年。
+ *  详见 localCalendarDate.parseLocalCalendarDate 的注释。 */
+const parseLocalDate = parseLocalCalendarDate;
 
 export function expandRenewalEvents(
   domain: DomainLike,

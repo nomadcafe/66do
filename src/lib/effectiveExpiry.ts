@@ -18,6 +18,8 @@
  * UI — and 'unknown' as a hint to nudge the user to fill expiry_date.
  */
 
+import { parseLocalCalendarDate } from './localCalendarDate';
+
 export type ExpirySource = 'explicit' | 'next_renewal_date' | 'estimated' | 'unknown';
 
 export interface EffectiveExpiry {
@@ -34,11 +36,9 @@ interface DomainLike {
   renewal_count?: number | null;
 }
 
-function parse(date: string | null | undefined): Date | null {
-  if (!date) return null;
-  const d = new Date(date);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
+/** 日期列按本地日历日解析：返回值会被拿去和 now 比、也会被 localCalendarDateISO
+ *  之类的本地取值器读，UTC 解析会在负偏移时区整体偏一天。 */
+const parse = parseLocalCalendarDate;
 
 export function getEffectiveExpiry(domain: DomainLike): EffectiveExpiry {
   const explicit = parse(domain.expiry_date);
@@ -62,10 +62,14 @@ export function getEffectiveExpiry(domain: DomainLike): EffectiveExpiry {
   return { date: null, source: 'unknown' };
 }
 
-/** Convenience: number of whole calendar days from now until effective expiry; null when unknown. */
+/** Convenience: number of whole calendar days from now until effective expiry; null when unknown.
+ *
+ *  两边都先归一到**本地日历日的零点**再相减。直接拿毫秒差去 ceil 有两个坑：
+ *  now 带的时分秒会让结果随一天中的时刻抖动，夏令时切换的那一天只有 23 小时
+ *  （或 25），跨过它的区间会莫名多/少一天。 */
 export function daysUntilEffectiveExpiry(domain: DomainLike, now: Date = new Date()): number | null {
   const { date } = getEffectiveExpiry(domain);
   if (!date) return null;
-  const ms = date.getTime() - now.getTime();
-  return Math.ceil(ms / 86_400_000);
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  return Math.round((startOfDay(date) - startOfDay(now)) / 86_400_000);
 }

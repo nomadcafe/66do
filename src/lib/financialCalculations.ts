@@ -7,6 +7,7 @@ import {
   acquisitionCostForDomain,
 } from './renewalCostBasis';
 import { isDomainLost } from './domainLossStatus';
+import { calendarYearOf, parseLocalCalendarDate } from './localCalendarDate';
 
 /**
  * 计算单个域名的 ROI（Domain Portfolio 表格/卡片使用）
@@ -134,7 +135,7 @@ export function calculateExpiredDomainLoss(
     if (!isDomainLost(domain)) return;
 
     const expiryDateStr: string | null = domain.expiry_date ?? null;
-    const expiryDate: Date | null = domain.expiry_date ? new Date(domain.expiry_date) : null;
+    const expiryDate: Date | null = parseLocalCalendarDate(domain.expiry_date);
 
     const purchaseCost = transactions
       ? acquisitionCostForDomain({ id: domain.id, purchase_cost: domain.purchase_cost }, transactions)
@@ -157,9 +158,9 @@ export function calculateExpiredDomainLoss(
 
     let lossYear: string;
     if (expiryDate) {
-      lossYear = expiryDate.getFullYear().toString();
+      lossYear = String(calendarYearOf(expiryDateStr));
     } else if (domain.purchase_date) {
-      lossYear = new Date(domain.purchase_date).getFullYear().toString();
+      lossYear = String(calendarYearOf(domain.purchase_date));
     } else {
       lossYear = 'unknown';
     }
