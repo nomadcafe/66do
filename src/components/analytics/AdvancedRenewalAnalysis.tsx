@@ -1,10 +1,21 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { TrendingUp, TrendingDown, Calendar, DollarSign, BarChart3, AlertTriangle } from 'lucide-react';
+import { useId, useState, useMemo } from 'react';
+import {
+  TrendingUp,
+  TrendingDown,
+  Calendar,
+  DollarSign,
+  BarChart3,
+  AlertTriangle,
+  CheckCircle2,
+  Hourglass,
+  Trophy,
+} from 'lucide-react';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import { computeAdvancedRenewalPanelData } from '../../lib/renewalCostService';
 import { formatCurrency } from '../../lib/financialCalculations';
+import { UNKNOWN_REGISTRAR } from '../../lib/upcomingRenewals';
 import { useI18nContext } from '../../contexts/I18nProvider';
 
 interface AdvancedRenewalAnalysisProps {
@@ -17,17 +28,21 @@ const FUTURE_YEARS = 3;
 
 export default function AdvancedRenewalAnalysis({ domains, transactions }: AdvancedRenewalAnalysisProps) {
   const { t } = useI18nContext();
+  // label/select 之前没有任何关联，读屏软件读不出这个下拉是干什么的
+  const yearSelectId = useId();
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
 
   // 数据派生：纯内存计算，切年份瞬秒，不再有 loading 态。
-  const { analysis, yearSummaries } = useMemo(
+  // anchorYear 锚死在今年：年份下拉是一个固定窗口，不随选择整体平移。
+  const { analysis, yearSummaries, coverage } = useMemo(
     () =>
       computeAdvancedRenewalPanelData(domains, transactions, selectedYear, {
         pastYears: PAST_YEARS,
         futureYears: FUTURE_YEARS,
+        anchorYear: currentYear,
       }),
-    [domains, transactions, selectedYear]
+    [domains, transactions, selectedYear, currentYear]
   );
 
   const yearOptions = useMemo(() => {
@@ -40,10 +55,21 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
     [yearSummaries]
   );
 
-  const hasData =
-    analysis.domains_needing_renewal > 0 ||
-    analysis.total_estimated_cost > 0 ||
-    Object.keys(analysis.cost_by_registrar).length > 0;
+  // 面板是否值得渲染，看的是**整个窗口**有没有续费信号，而不是选中年份——
+  // 后者会让「选到一个空年份」把年份选择器本身也一起干掉，而子 tab 是 hidden
+  // 保持挂载的，selectedYear 不会重置，用户除了刷新页面没有任何出路。
+  // coverage.excluded > 0 也算有内容：有活跃域名只是资料没填全，这时候要给的是
+  // 「N 个域名缺续费价」的提示，而不是一句无从下手的「暂无续费数据」。
+  const hasAnyYearData = yearSummaries.some(
+    (s) => s.total_estimated_cost > 0 || s.total_actual_cost > 0 || s.domains_needing_renewal > 0
+  );
+  const hasData = hasAnyYearData || coverage.excluded > 0;
+
+  // 选中年份本身没有任何事件——面板照常渲染，只是用一句说明替掉 KPI 条。
+  const selectedYearEmpty =
+    analysis.total_estimated_cost === 0 &&
+    analysis.total_actual_cost === 0 &&
+    analysis.domains_needing_renewal === 0;
 
   if (!hasData) {
     return (
@@ -77,6 +103,12 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
   const yearClass = (year: number): 'past' | 'current' | 'future' =>
     year < currentYear ? 'past' : year > currentYear ? 'future' : 'current';
 
+  // 历史年的「预估」其实就是实际（服务层里 projected = 0，estimated ≡ actual）。
+  const isPastYear = selectedYear < currentYear;
+
+  const avgCostChange = analysis.cost_trends.average_cost_change;
+  const hasTrendSample = analysis.cost_trends.trend_sample_size > 0;
+
   return (
     <div className="space-y-5">
       {/* Header card — title + year selector */}
@@ -92,10 +124,14 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
             </div>
           </div>
           <div className="flex flex-col gap-1 sm:items-end">
-            <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+            <label
+              htmlFor={yearSelectId}
+              className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500"
+            >
               {t('renewal.outlookSelectedYear')}
             </label>
             <select
+              id={yearSelectId}
               value={selectedYear}
               onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
               className="rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm font-medium text-stone-900 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30 min-w-[7rem]"
@@ -110,39 +146,125 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
         </div>
       </div>
 
-      {/* KPI strip — same gradient hero language as the rest of Insights */}
-      <div className="relative overflow-hidden rounded-3xl border border-stone-200/60 bg-gradient-to-br from-stone-50 via-white to-teal-50/40 shadow-sm">
-        <div className="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-gradient-to-br from-teal-100/30 to-transparent blur-3xl" />
-        <div className="relative grid grid-cols-1 gap-5 p-5 sm:p-6 md:grid-cols-2 md:gap-6">
+      {/* Forecast coverage — year-independent, so it sits right under the header.
+          Domains without a renewal cost or an expiry date produce no projected
+          events at all, so they're silently absent from every number below.
+          Saying so beats letting the user trust an estimate that's short. */}
+      {coverage.excluded > 0 && (
+        <div className="rounded-2xl border border-amber-200/70 bg-amber-50/50 p-4 sm:p-5">
           <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-stone-700">
-              <DollarSign className="h-5 w-5" />
-            </span>
+            <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" aria-hidden />
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-                {t('renewal.estimatedCost')} ({selectedYear})
+              <p className="text-sm font-medium text-amber-900">
+                {t('renewal.coverageWarning')
+                  .replace('{count}', String(coverage.excluded))
+                  .replace('{total}', String(coverage.total_active))}
               </p>
-              <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-stone-900">
-                {formatCurrency(analysis.total_estimated_cost, 'USD')}
+              <p className="mt-1 text-sm text-amber-800/90">
+                {[
+                  coverage.missing_cost > 0 &&
+                    t('renewal.coverageMissingCost').replace('{count}', String(coverage.missing_cost)),
+                  coverage.missing_expiry > 0 &&
+                    t('renewal.coverageMissingExpiry').replace(
+                      '{count}',
+                      String(coverage.missing_expiry)
+                    ),
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
               </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
-              <Calendar className="h-5 w-5" />
-            </span>
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
-                {t('renewal.domainsToRenew')}
-              </p>
-              <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-stone-900">
-                {analysis.domains_needing_renewal}
-              </p>
+              <p className="mt-1 text-xs text-amber-700/80">{t('renewal.coverageHint')}</p>
             </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Selected year has no events at all — keep the whole panel (and the year
+          selector) mounted and just say so, instead of collapsing to the global
+          empty state the user can't navigate out of. */}
+      {selectedYearEmpty ? (
+        <div className="rounded-2xl border border-stone-200/80 bg-stone-50/60 p-6 text-center">
+          <p className="text-sm text-stone-600">
+            {t('renewal.noRenewalInYear').replace('{year}', String(selectedYear))}
+          </p>
+        </div>
+      ) : (
+        /* KPI strip — same gradient hero language as the rest of Insights.
+           过去年的续费已经是既成事实（estimated ≡ actual），所以标签整组切换成
+           过去时，也不再摆「待发生」——那一栏对历史年恒为 0，只会让人以为是数据缺失。 */
+        <div className="relative overflow-hidden rounded-3xl border border-stone-200/60 bg-gradient-to-br from-stone-50 via-white to-teal-50/40 shadow-sm">
+          <div className="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-gradient-to-br from-teal-100/30 to-transparent blur-3xl" />
+          <div className="relative grid grid-cols-1 gap-5 p-5 sm:p-6 sm:grid-cols-2 md:gap-6 xl:grid-cols-4">
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-stone-700">
+                <DollarSign className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                  {isPastYear ? t('renewal.renewalSpend') : t('renewal.estimatedCost')} ({selectedYear})
+                </p>
+                <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-stone-900">
+                  {formatCurrency(analysis.total_estimated_cost, 'USD')}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
+                <Calendar className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                  {isPastYear ? t('renewal.domainsRenewed') : t('renewal.domainsToRenew')}
+                </p>
+                <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-stone-900">
+                  {analysis.domains_needing_renewal}
+                </p>
+              </div>
+            </div>
+
+            {/* 已发生 / 待发生。服务层原本算了个 cost_accuracy 却没有任何消费方，
+                「今年的续费预算已经走掉多少」这个最实用的数用户根本看不到。 */}
+            {!isPastYear && (
+              <>
+                <div className="flex items-start gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
+                    <CheckCircle2 className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                      {t('renewal.alreadySpent')}
+                    </p>
+                    <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-stone-900">
+                      {formatCurrency(analysis.total_actual_cost, 'USD')}
+                    </p>
+                    <p className="mt-0.5 text-xs text-stone-500 tabular-nums">
+                      {t('renewal.spentRatio').replace(
+                        '{percent}',
+                        (analysis.spent_ratio * 100).toFixed(0)
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-stone-700">
+                    <Hourglass className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                      {t('renewal.remainingCost')}
+                    </p>
+                    <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-stone-900">
+                      {formatCurrency(analysis.remaining_estimated_cost, 'USD')}
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Annual outlook — temporal-coded list rows (past=stone / current=amber / future=teal) */}
       {yearSummaries.length > 0 && (
@@ -246,7 +368,9 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
                   analysis.total_estimated_cost > 0 ? (cost / analysis.total_estimated_cost) * 100 : 0;
                 return (
                   <li key={registrar} className="flex items-center justify-between gap-3">
-                    <span className="text-sm text-stone-700 truncate flex-1">{registrar}</span>
+                    <span className="text-sm text-stone-700 truncate flex-1">
+                      {registrar === UNKNOWN_REGISTRAR ? t('renewal.unknownRegistrar') : registrar}
+                    </span>
                     <div className="flex items-center gap-3 shrink-0">
                       <div className="w-28 sm:w-36 bg-stone-100 rounded-full h-2 overflow-hidden">
                         <div
@@ -274,21 +398,67 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
       <div className="rounded-2xl border border-stone-200/80 bg-white p-6 shadow-sm">
         <h4 className="text-base font-semibold text-stone-900 mb-4">{t('renewal.costTrends')}</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="rounded-xl border border-amber-100/80 bg-amber-50/60 p-4">
+          {/* 平均成本变动。样本 = 有 ≥2 笔逐笔续费记录的域名；只靠
+              renewal_count + renewal_cost 记账的用户没有价格序列，这里必然无样本，
+              所以显示「—」而不是一个看着像真读数的 0.0%。 */}
+          <div
+            className={`rounded-xl border p-4 ${
+              hasTrendSample && avgCostChange > 0
+                ? 'border-amber-100/80 bg-amber-50/60'
+                : 'border-stone-100 bg-stone-50/60'
+            }`}
+          >
             <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="h-4 w-4 text-amber-700" />
-              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700/80">
-                {t('renewal.averageCostIncrease')}
+              {hasTrendSample && avgCostChange < 0 ? (
+                <TrendingDown className="h-4 w-4 text-emerald-700" />
+              ) : (
+                <TrendingUp
+                  className={`h-4 w-4 ${
+                    hasTrendSample && avgCostChange > 0 ? 'text-amber-700' : 'text-stone-500'
+                  }`}
+                />
+              )}
+              <span
+                className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${
+                  hasTrendSample && avgCostChange > 0 ? 'text-amber-700/80' : 'text-stone-500'
+                }`}
+              >
+                {t('renewal.averageCostChange')}
               </span>
             </div>
-            <p className="text-xl font-bold tabular-nums text-amber-800">
-              {analysis.cost_trends.average_cost_increase.toFixed(1)}%
-            </p>
+            {!hasTrendSample ? (
+              <>
+                <p className="text-xl font-bold text-stone-400">—</p>
+                <p className="mt-0.5 text-xs text-stone-500">{t('renewal.trendNoSample')}</p>
+              </>
+            ) : (
+              <>
+                <p
+                  className={`text-xl font-bold tabular-nums ${
+                    avgCostChange > 0
+                      ? 'text-amber-800'
+                      : avgCostChange < 0
+                        ? 'text-emerald-800'
+                        : 'text-stone-800'
+                  }`}
+                >
+                  {avgCostChange > 0 ? '+' : ''}
+                  {avgCostChange.toFixed(1)}%
+                </p>
+                <p className="mt-0.5 text-xs text-stone-500">
+                  {t('renewal.trendSampleSize').replace(
+                    '{count}',
+                    String(analysis.cost_trends.trend_sample_size)
+                  )}
+                </p>
+              </>
+            )}
           </div>
 
+          {/* 最贵域名：金额一律按「每年」口径，多年期续费不会被读成天价 */}
           <div className="rounded-xl border border-stone-100 bg-stone-50/60 p-4">
             <div className="flex items-center gap-2 mb-1">
-              <TrendingDown className="h-4 w-4 text-stone-600" />
+              <Trophy className="h-4 w-4 text-stone-600" />
               <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
                 {t('renewal.mostExpensiveDomains')}
               </span>
@@ -297,9 +467,17 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
               <p className="mt-1 text-sm text-stone-400">—</p>
             ) : (
               <ul className="mt-1 space-y-0.5">
-                {analysis.cost_trends.most_expensive_domains.slice(0, 3).map((name) => (
-                  <li key={name} className="text-sm font-medium text-stone-800 truncate" title={name}>
-                    {name}
+                {analysis.cost_trends.most_expensive_domains.slice(0, 3).map((d) => (
+                  <li key={d.name} className="flex items-baseline justify-between gap-3">
+                    <span className="text-sm font-medium text-stone-800 truncate" title={d.name}>
+                      {d.name}
+                    </span>
+                    <span className="text-sm text-stone-600 shrink-0 tabular-nums">
+                      {t('renewal.perYear').replace(
+                        '{amount}',
+                        formatCurrency(d.cost_per_year, 'USD')
+                      )}
+                    </span>
                   </li>
                 ))}
               </ul>
