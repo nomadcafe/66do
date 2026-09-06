@@ -38,13 +38,18 @@ ORDER BY table_name, column_name;
 -- ============================================================
 -- Audit 2: foreign keys on domains + domain_transactions
 -- ============================================================
--- We expect:
---   - domains.user_id           → auth.users(id) ON DELETE CASCADE
---   - domain_transactions.user_id   → auth.users(id) ON DELETE CASCADE
---   - domain_transactions.domain_id → public.domains(id) ON DELETE CASCADE  ← key risk: may be missing
+-- RESOLVED 2026-05-03 — all three FKs exist with ON DELETE CASCADE, and
+-- Audit 3 below returned 0 orphan rows. See docs/ROADMAP.md, "Recently
+-- shipped". Keep the queries around for re-verification after any schema
+-- change; they are no longer an open question.
 --
--- If domain_transactions.domain_id has no FK, deleting a domain leaves
--- orphan transaction rows that break analytics.
+--   - domains.user_id               → auth.users(id) ON DELETE CASCADE  ✓
+--   - domain_transactions.user_id   → auth.users(id) ON DELETE CASCADE  ✓
+--   - domain_transactions.domain_id → public.domains(id) ON DELETE CASCADE  ✓
+--
+-- Why it mattered: without the domain_id FK, deleting a domain would leave
+-- orphan transaction rows that skew every analytic. The app relies on this
+-- cascade — DELETE /api/domains/[id] does not clean up transactions itself.
 SELECT
   c.conrelid::regclass        AS table_name,
   c.conname                    AS constraint_name,
@@ -55,13 +60,10 @@ WHERE c.contype = 'f'
 ORDER BY c.conrelid::regclass::text, c.conname;
 
 -- ============================================================
--- Audit 3: orphan transaction rows (defensive — might block FK creation)
+-- Audit 3: orphan transaction rows
 -- ============================================================
--- If FK is missing AND there are transaction rows whose domain_id
--- doesn't exist in domains, ADD CONSTRAINT will fail. This counts how
--- many such orphans exist. Expected: 0. Non-zero means we either
--- backfill / delete those rows first, or add the FK with NOT VALID and
--- accept the historical mess.
+-- Expected: 0. Last run 2026-05-03: 0. Non-zero after a future schema
+-- change means something bypassed the cascade and needs backfilling.
 SELECT
   COUNT(*) AS orphan_transaction_rows
 FROM public.domain_transactions t

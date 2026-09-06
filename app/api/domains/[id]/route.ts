@@ -4,7 +4,7 @@ import { validateDomain, sanitizeDomainData } from '../../../../src/lib/validati
 import { buildDomainUpdatePayload } from '../../../../src/lib/domainPayloads'
 import { getAuthInfoFromRequest } from '../../../../src/lib/auth-helper'
 import { createAuthenticatedSupabaseClient } from '../../../../src/lib/supabaseAuthClient'
-import { getCorsHeaders, getCorsHeadersForError } from '../../../../src/lib/cors'
+import { getCorsHeaders, getCorsHeadersForError, noCacheHeaders } from '../../../../src/lib/cors'
 import { checkUserWriteRateLimit } from '../../../../src/lib/rateLimit'
 
 // GET /api/domains/[id] - 获取单个域名
@@ -22,7 +22,9 @@ export async function GET(
     }
     
     const { userId, accessToken } = authInfo
-    const corsHeaders = getCorsHeaders(request)
+    // 与列表 GET 一致带上 no-store：这是用户私有数据，不能让任何一层缓存留存
+    // 或用 304 回一份旧的。
+    const corsHeaders = { ...getCorsHeaders(request), ...noCacheHeaders }
     const { id: domainId } = await params
     const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken)
     const domain = await DomainService.getDomainByIdWithClient(authenticatedClient, domainId, userId)
