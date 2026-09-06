@@ -14,6 +14,7 @@ import {
   calculatePaidAmountFromInstallment,
   calculateTotalInstallmentAmount,
   STANDARD_INSTALLMENT_TOTAL_SALE_FEE_RATE,
+  SPACESHIP_INSTALLMENT_DEFAULT_FEE_RATE,
   getAfternicCommissionDiscount,
   getAfternicStandardCommissionRate,
   getAfternicEffectiveCommissionRate,
@@ -357,19 +358,21 @@ describe('Spaceship 两个入口口径一致', () => {
       type: 'spaceship_installment',
       installmentPeriod: 12,
       sellerAmount: 1200, // = installmentAmount × period，即分期总额
+      customFeeRate: 0.05,
     });
-    const viaInstallment = calculateCustomerTotalFromInstallment(100, 12, 'spaceship_installment');
+    const viaInstallment = calculateCustomerTotalFromInstallment(100, 12, 'spaceship_installment', 0.05);
 
     expect(viaConfig.customerTotalAmount).toBeCloseTo(viaInstallment.customerTotalAmount, 4);
     expect(viaConfig.platformFee).toBeCloseTo(viaInstallment.platformFee, 4);
     expect(viaConfig.sellerNetAmount).toBeCloseTo(viaInstallment.sellerNetAmount, 4);
   });
 
-  it('平台费是总额的 5%，不是反推出来的 5.26%', () => {
+  it('平台费是总额 × 费率，不是从卖家净额反推出来的', () => {
     const r = calculatePlatformFee({
       type: 'spaceship_installment',
       installmentPeriod: 12,
       sellerAmount: 1200,
+      customFeeRate: 0.05,
     });
     expect(r.platformFee).toBeCloseTo(60, 4); // 反推口径会得到 63.16
     expect(r.sellerNetAmount).toBeCloseTo(1140, 4); // 反推口径会得到 1200
@@ -378,12 +381,18 @@ describe('Spaceship 两个入口口径一致', () => {
 });
 
 describe('calculateCustomerTotalFromInstallment', () => {
-  it('Spaceship → totalSale × 5%', () => {
-    const r = calculateCustomerTotalFromInstallment(100, 12, 'spaceship_installment');
+  it('Spaceship 带交易自身费率 5% → totalSale × 5%', () => {
+    const r = calculateCustomerTotalFromInstallment(100, 12, 'spaceship_installment', 0.05);
     // totalSale = 100 × 12 = 1200
     expect(r.customerTotalAmount).toBeCloseTo(1200, 4);
     expect(r.platformFee).toBeCloseTo(60, 4);
     expect(r.sellerNetAmount).toBeCloseTo(1140, 4);
+  });
+
+  it('Spaceship 未记录费率 → 走当前默认值（2026-09 起 10%）', () => {
+    const r = calculateCustomerTotalFromInstallment(100, 12, 'spaceship_installment');
+    expect(r.platformFeeRate).toBeCloseTo(SPACESHIP_INSTALLMENT_DEFAULT_FEE_RATE, 6);
+    expect(r.platformFee).toBeCloseTo(1200 * SPACESHIP_INSTALLMENT_DEFAULT_FEE_RATE, 4);
   });
 
   it('Standard installment → totalSale × default 10%', () => {
@@ -416,7 +425,7 @@ describe('calculateCustomerTotalFromInstallment', () => {
 
 describe('calculatePaidAmountFromInstallment', () => {
   it('Spaceship: paidPeriods proportionally scales fee + customer total', () => {
-    const r = calculatePaidAmountFromInstallment(100, 6, 12, 'spaceship_installment');
+    const r = calculatePaidAmountFromInstallment(100, 6, 12, 'spaceship_installment', 0.05);
     // Half-paid → half of totalResult.
     expect(r.customerTotalAmount).toBeCloseTo(600, 4);
     expect(r.platformFee).toBeCloseTo(30, 4);
@@ -527,5 +536,34 @@ describe('首付 / 尾款必须计入卖家总额', () => {
     );
     // 全部付清 → 客户已付必须等于总售价；旧实现按 1000 + 12×300 = 4600 算
     expect(r.customerTotalAmount).toBeCloseTo(6300, 6);
+  });
+});
+
+describe('平台调价不追溯到历史交易', () => {
+  // 2026-09 Spaceship 从 5% 调到 10%。费率是有生效日期的商业条款，
+  // 而平台费 = 总售价 × 费率 × 已付比例 —— 费率作用在整笔交易上。
+  // 所以按旧费率成交的交易必须把自己的费率记在 platform_fee_percentage 上，
+  // 否则调价当天所有历史 Spaceship 分期（含正在收款那笔的已收部分）会被
+  // 集体重新定价。这一组锁住"交易自带费率优先于默认值"。
+  const totalSale = 100 * 12;
+
+  it('记了 5% 的旧交易，在默认值已是 10% 的情况下仍按 5% 算', () => {
+    const r = calculateCustomerTotalFromInstallment(100, 12, 'spaceship_installment', 0.05);
+    expect(r.platformFee).toBeCloseTo(totalSale * 0.05, 6);
+    expect(SPACESHIP_INSTALLMENT_DEFAULT_FEE_RATE).toBeCloseTo(0.1, 6); // 默认值确实是 10%
+  });
+
+  it('进行中的分期：收款进度推进，费率仍取交易自带的那个', () => {
+    for (const paid of [6, 12, 18, 24]) {
+      const r = calculatePaidAmountFromInstallment(100, paid, 24, 'spaceship_installment', 0.05);
+      // 平台费恒为「已付金额 × 5%」，不随默认值变化
+      expect(r.platformFee).toBeCloseTo(100 * paid * 0.05, 6);
+      expect(r.sellerNetAmount).toBeCloseTo(100 * paid * 0.95, 6);
+    }
+  });
+
+  it('新交易没记费率时才落到默认值', () => {
+    const r = calculatePaidAmountFromInstallment(100, 12, 12, 'spaceship_installment');
+    expect(r.platformFee).toBeCloseTo(totalSale * SPACESHIP_INSTALLMENT_DEFAULT_FEE_RATE, 6);
   });
 });
