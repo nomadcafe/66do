@@ -8,6 +8,7 @@ import {
   acquisitionCostForDomain,
 } from './renewalCostBasis';
 import { isDomainLost } from './domainLossStatus';
+import { txsForDomain } from './txIndex';
 
 interface DomainROI {
   domainId: string;
@@ -45,12 +46,12 @@ export function calculateDomainROI(
   }>
 ): DomainROI {
   
-  const domainTransactions = transactions.filter(t => t.domain_id === domain.id);
-  
-  // 投资成本
+  // 成本函数直接吃完整数组：它们内部走 txIndex 的 WeakMap 索引（以数组本身
+  // 为键）按 domain_id 取桶。在这里先 filter 一遍会产生新数组，每调一次就让
+  // 索引重建一次——列表里每行调一次，等于 O(行数 × 交易数 × 4 个索引)。
   const purchaseCost = acquisitionCostForDomain(
     { id: domain.id, purchase_cost: domain.purchase_cost },
-    domainTransactions
+    transactions
   );
   const renewalCost = totalRenewalCostForHolding(
     {
@@ -59,13 +60,13 @@ export function calculateDomainROI(
       renewal_cost: domain.renewal_cost,
       baseline_renewal_as_of: domain.baseline_renewal_as_of ?? null
     },
-    domainTransactions
+    transactions
   );
-  const transferCost = transferCostForDomain(domain.id, domainTransactions);
+  const transferCost = transferCostForDomain(domain.id, transactions);
   const totalInvestment = purchaseCost + renewalCost + transferCost;
-  
+
   // 销售收入
-  const salesTransactions = domainTransactions.filter(t => t.type === 'sell');
+  const salesTransactions = txsForDomain(transactions, domain.id).filter(t => t.type === 'sell');
   const totalSales = salesTransactions.reduce((sum, t) => sum + sellGrossUSD(t), 0);
   const netRevenue = salesTransactions.reduce((sum, t) => sum + sellNetUSD(t), 0);
   

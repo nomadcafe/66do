@@ -45,6 +45,7 @@ const TRANSACTIONS_PAGE_SIZE = 30;
 // 上方 KPI +$10,000 这种跨视图打架。
 function TxMetaBlock({
   transaction,
+  allTransactions,
   metricsTransaction,
   domain,
   formatCurrency,
@@ -52,6 +53,11 @@ function TxMetaBlock({
   variant,
 }: {
   transaction: TransactionWithRequiredFields;
+  /** 完整交易列表，不是这一行的那笔。ROI 的成本基准要看得见这个域名的
+   *  buy / renew / transfer 交易——只传当前这笔的话，成本会静默退回域名行上的
+   *  存档字段（purchase_cost + renewal_count × renewal_cost），和 Portfolio
+   *  表格里同一个域名的 ROI 对不上。 */
+  allTransactions: TransactionWithRequiredFields[];
   metricsTransaction?: TransactionWithRequiredFields;
   domain: DomainWithTags | undefined;
   formatCurrency: (amount: number, currency: string) => string;
@@ -70,7 +76,7 @@ function TxMetaBlock({
   const amountColor = isSell ? 'text-emerald-700' : 'text-stone-900';
   const hasPlatformFee = isSell && netSource.platform_fee != null && netSource.platform_fee > 0;
   const isInstallment = isSell && transaction.payment_plan === 'installment';
-  const sellRoi = isSell && domain ? calculateDomainROI(domain, [transaction]) : null;
+  const sellRoi = isSell && domain ? calculateDomainROI(domain, allTransactions) : null;
   const isCard = variant === 'card';
 
   const amountEl = (
@@ -850,6 +856,7 @@ const TransactionList = memo(function TransactionList({
                 <div className="mt-3">
                   <TxMetaBlock
                     transaction={transaction}
+                    allTransactions={transactions}
                     metricsTransaction={metricsById.get(transaction.id)}
                     domain={domainById.get(transaction.domain_id)}
                     formatCurrency={formatCurrency}
@@ -943,6 +950,7 @@ const TransactionList = memo(function TransactionList({
                     <td className="px-6 py-4 whitespace-nowrap">
                       <TxMetaBlock
                         transaction={transaction}
+                        allTransactions={transactions}
                         metricsTransaction={metricsById.get(transaction.id)}
                         domain={domainById.get(transaction.domain_id)}
                         formatCurrency={formatCurrency}
