@@ -5,7 +5,7 @@ import { DollarSign, TrendingUp, Target, CheckCircle, XCircle, Award, Receipt, P
 import { calculateBasicFinancialMetrics } from '../../lib/coreCalculations';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { formatCurrency } from '../../lib/financialCalculations';
-import { realizedROI, tradeOutcomes } from '../../lib/realizedPnL';
+import { realizedROIFromTrades, tradeOutcomes } from '../../lib/realizedPnL';
 import { useMemo } from 'react';
 
 interface FinancialAnalysisProps {
@@ -23,24 +23,25 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
     () => calculateBasicFinancialMetrics(domains, transactions),
     [domains, transactions]
   );
-  const realizedRoi = useMemo(() => realizedROI(domains, transactions), [domains, transactions]);
-
-  // Top Performers + Worst sale 走同一个 tradeOutcomes（每笔 sell 一行，
-  // profit 用 sellNetUSD 已扣平台费 + 已处理分期 partial 折算）。
+  // Top Performers + Worst sale + Realized ROI 走同一份 tradeOutcomes（每笔
+  // sell 一行，profit 用 sellNetUSD 已扣平台费 + 已处理分期 partial 折算）。
   // costBasisAtSale === 0 的免费域名 ROI 标记为 null，按 profit 排序时它们
   // 不会被错排到底（之前 ROI 兜底 0% 让免费暴利域名永远排末尾）。
   const trades = useMemo(() => tradeOutcomes(domains, transactions), [domains, transactions]);
+  // 由 trades 归约而不是 realizedROI(domains, transactions)：后者会把同一个
+  // 循环（含每笔的 holdingCostAsOf）再跑一遍，且两个数字有各自漂移的余地。
+  const realizedRoi = useMemo(() => realizedROIFromTrades(trades), [trades]);
   const topPerformers = useMemo(
     () => [...trades].sort((a, b) => b.profit - a.profit).slice(0, 10),
     [trades]
   );
-  // worst sale：所有 sell 里 profit 最小的那笔（亏得最多）。如果全部都盈利
-  // 就显示亏损最少的；都为正时不显示（避免给"赚最少的"打上 worst 标签的负面
-  // 含义）。免费域名（roi=null, profit>0）从 worst 里排除——它们必然盈利。
+  // worst sale：亏损交易里 profit 最小的那笔。全部都盈利时不显示——给"赚最少
+  // 的"那笔打上 worst 标签是误导。免费域名（roi=null）必然 profit>0，天然不会
+  // 进这个列表。
   const worstSale = useMemo(() => {
-    const tradesWithProfit = trades.filter((tr) => tr.profit < 0);
-    if (tradesWithProfit.length === 0) return null;
-    return tradesWithProfit.reduce((w, c) => (c.profit < w.profit ? c : w));
+    const losingTrades = trades.filter((tr) => tr.profit < 0);
+    if (losingTrades.length === 0) return null;
+    return losingTrades.reduce((w, c) => (c.profit < w.profit ? c : w));
   }, [trades]);
 
   const pnlColor = (value: number) => (value >= 0 ? 'text-emerald-700' : 'text-rose-700');
@@ -104,7 +105,7 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
             iconClass={
               realizedRoi >= 0 ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700'
             }
-            label={t('reports.roi')}
+            label={t('reports.realizedRoi')}
             value={`${realizedRoi >= 0 ? '+' : '−'}${Math.abs(realizedRoi).toFixed(1)}%`}
             valueClass={pnlColor(realizedRoi)}
           />

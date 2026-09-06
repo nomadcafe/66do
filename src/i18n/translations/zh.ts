@@ -208,6 +208,7 @@ const zh = {
       totalRevenue: '总收入',
       totalProfit: '净利润',
       roi: '投资回报率',
+      realizedRoi: '已实现 ROI',
       profitMargin: '利润率',
       profitMarginCalculation: '利润率 = (净利润 / 总收入) × 100%（累计总计，非年度数据）',
       annualProfitMargin: '年度利润率',
@@ -1019,6 +1020,7 @@ const zh = {
         '3Y': '近3年',
         'ALL': '全部时间'
       },
+      investmentIncludesRenewals: '购入 + 续费。右边那块「续费成本」已经含在这个数里，不是另加。',
       investment: '投资',
       renewalCost: '续费成本',
       revenue: '收益',
