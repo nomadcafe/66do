@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { expandRenewalEvents } from '../../lib/expandRenewalEvents';
 import { isCashOutflowType } from '../../lib/transactionTypeGroups';
+import { localMonthKey, parseLocalCalendarDate } from '../../lib/localCalendarDate';
 
 interface InvestmentAnalyticsProps {
   domains: DomainWithTags[];
@@ -191,9 +192,9 @@ export default function InvestmentAnalytics({
       // ALL: 找到最早的数据日期并展开（全量数据）
       monthsToShow = 12;
       const allDates = [
-        ...domains.map(d => new Date(d.purchase_date || '')),
-        ...transactions.map(t => new Date(t.date))
-      ].filter(d => !isNaN(d.getTime()));
+        ...domains.map(d => parseLocalCalendarDate(d.purchase_date)),
+        ...transactions.map(t => parseLocalCalendarDate(t.date))
+      ].filter((d): d is Date => d !== null);
       const earliestDate = allDates.length > 0
         ? new Date(Math.min(...allDates.map(d => d.getTime())))
         : new Date(now.getFullYear() - 1, now.getMonth(), 1);
@@ -218,16 +219,16 @@ export default function InvestmentAnalytics({
     for (const d of domains) {
       for (const ev of expandRenewalEvents(d, transactions)) {
         if (ev.date > now) continue;
-        const key = ev.date.toISOString().slice(0, 7);
+        const key = localMonthKey(ev.date);
         renewalActualByMonth.set(key, (renewalActualByMonth.get(key) ?? 0) + ev.amount);
       }
     }
     const purchaseEventsByMonth = new Map<string, number>();
     for (const d of domains) {
       if (!d.purchase_date) continue;
-      const pd = new Date(d.purchase_date);
-      if (Number.isNaN(pd.getTime()) || pd > now) continue;
-      const key = pd.toISOString().slice(0, 7);
+      const pd = parseLocalCalendarDate(d.purchase_date);
+      if (!pd || pd > now) continue;
+      const key = localMonthKey(pd);
       const cost = Number(d.purchase_cost) || 0;
       purchaseEventsByMonth.set(key, (purchaseEventsByMonth.get(key) ?? 0) + cost);
     }
@@ -236,7 +237,10 @@ export default function InvestmentAnalytics({
     for (let i = 0; i < monthsToShow; i++) {
       const date = new Date(startDate);
       date.setMonth(date.getMonth() + i);
-      const monthKey = date.toISOString().slice(0, 7);
+      // 桶的 key 必须和 startDate（new Date(y, m, 1)，本地）同为本地口径。
+      // 用 toISOString() 读会在正偏移时区把每个桶推回上个月，整个窗口跟着
+      // 平移一格（当月画不出来，多画一个更早的月）。
+      const monthKey = localMonthKey(date);
 
       if (date > now) break;
 
@@ -254,7 +258,8 @@ export default function InvestmentAnalytics({
       const costThisMonth = transactions
         .filter((t) => {
           if (!isCashOutflowType(t.type)) return false;
-          return new Date(t.date).toISOString().slice(0, 7) === monthKey;
+          const d = parseLocalCalendarDate(t.date);
+          return d !== null && localMonthKey(d) === monthKey;
         })
         .reduce((sum, t) => sum + t.amount, 0);
       const monthlyCashFlow = revenue - costThisMonth;

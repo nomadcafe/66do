@@ -1,4 +1,5 @@
 import type { DomainWithTags, TransactionWithRequiredFields } from '../types/dashboard';
+import { parseLocalCalendarDate } from './localCalendarDate';
 
 /** 一个域名当下"还在分期收款"的状态摘要：付了几期 / 共几期 / 下一期预期到账日。
  *  paid 用 receipts.length（含负数 receipt — 退款也算一行，避免预期日永远撞墙）。
@@ -20,14 +21,14 @@ function nextDueDate(t: TransactionWithRequiredFields): Date | null {
   if (receipts.length > 0) {
     const sorted = [...receipts].sort((a, b) => a.received_date.localeCompare(b.received_date));
     const last = sorted[sorted.length - 1];
-    const d = new Date(last.received_date);
-    if (Number.isNaN(d.getTime())) return null;
+    const d = parseLocalCalendarDate(last.received_date);
+    if (!d) return null;
     d.setMonth(d.getMonth() + 1);
     return d;
   }
   if (t.installment_first_payment_date) {
-    const d = new Date(t.installment_first_payment_date);
-    if (!Number.isNaN(d.getTime())) return d;
+    const d = parseLocalCalendarDate(t.installment_first_payment_date);
+    if (d) return d;
   }
   return null;
 }

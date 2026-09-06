@@ -17,6 +17,7 @@ import { expandSellToCashReceipts } from './coreCalculations';
 import { holdingCostAsOf } from './renewalCostBasis';
 import { sellNetUSD } from './sellProceeds';
 import type { DomainWithTags, TransactionWithRequiredFields } from '../types/dashboard';
+import { parseLocalCalendarDate } from './localCalendarDate';
 
 /** 累计已实现盈亏（截至 asOf；缺省 = 当下） */
 export function totalRealizedPnL(
@@ -33,10 +34,10 @@ export function totalRealizedPnL(
     if (!domain) continue;
     const sellNet = sellNetUSD(t);
     if (sellNet <= 0) continue;
-    const costBasis = holdingCostAsOf(domain, transactions, new Date(t.date));
+    const costBasis = holdingCostAsOf(domain, transactions, parseLocalCalendarDate(t.date) ?? new Date(NaN));
     const tradePnL = sellNet - costBasis;
     for (const r of expandSellToCashReceipts(t)) {
-      const receiptDate = new Date(`${r.monthKey}-01T00:00:00`);
+      const receiptDate = parseLocalCalendarDate(`${r.monthKey}-01`) ?? new Date(NaN);
       // 月级精度：到账月 > asOf 月份的 receipt 不计
       if (receiptDate.getTime() > asOfMs) continue;
       const share = r.netAmount / sellNet;
@@ -59,7 +60,7 @@ export function realizedPnLByMonth(
     if (!domain) continue;
     const sellNet = sellNetUSD(t);
     if (sellNet <= 0) continue;
-    const costBasis = holdingCostAsOf(domain, transactions, new Date(t.date));
+    const costBasis = holdingCostAsOf(domain, transactions, parseLocalCalendarDate(t.date) ?? new Date(NaN));
     const tradePnL = sellNet - costBasis;
     for (const r of expandSellToCashReceipts(t)) {
       const share = r.netAmount / sellNet;
@@ -127,12 +128,12 @@ export function tradeOutcomes(
     if (!domain) continue;
     const sellNet = sellNetUSD(t);
     if (sellNet <= 0) continue;
-    const saleDateObj = new Date(t.date);
+    const saleDateObj = parseLocalCalendarDate(t.date) ?? new Date(NaN);
     const costBasis = holdingCostAsOf(domain, transactions, saleDateObj);
     const profit = sellNet - costBasis;
     let holdingDays: number | null = null;
     if (domain.purchase_date) {
-      const p = new Date(domain.purchase_date).getTime();
+      const p = (parseLocalCalendarDate(domain.purchase_date) ?? new Date(NaN)).getTime();
       const s = saleDateObj.getTime();
       if (Number.isFinite(p) && Number.isFinite(s) && s > p) {
         holdingDays = Math.round((s - p) / (1000 * 60 * 60 * 24));
@@ -179,7 +180,7 @@ export function realizedROI(
     if (!domain) continue;
     const sellNet = sellNetUSD(t);
     if (sellNet <= 0) continue;
-    const cb = holdingCostAsOf(domain, transactions, new Date(t.date));
+    const cb = holdingCostAsOf(domain, transactions, parseLocalCalendarDate(t.date) ?? new Date(NaN));
     pnl += sellNet - cb;
     costSold += cb;
   }

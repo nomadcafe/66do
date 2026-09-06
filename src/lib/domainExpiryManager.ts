@@ -1,7 +1,7 @@
 'use client';
 
 import { Domain } from '../types/domain';
-import { localCalendarDateISO } from './localCalendarDate';
+import { localCalendarDateISO, parseLocalCalendarDate } from './localCalendarDate';
 
 const DEFAULT_RENEWAL_CYCLE = 1;
 
@@ -19,12 +19,14 @@ export function handleDomainRenewal(domain: Domain, renewalYears?: number): Doma
 
   let baseDate: Date | null = null;
   if (domain.expiry_date) {
-    const d = new Date(domain.expiry_date);
-    if (!Number.isNaN(d.getTime())) baseDate = d;
+    // 必须按本地日历日解析：下面 setFullYear + localCalendarDateISO 全是本地
+    // 取值器，UTC 解析会让负偏移时区每续费一次到期日就往前退一天。
+    const d = parseLocalCalendarDate(domain.expiry_date);
+    if (d) baseDate = d;
   }
   if (!baseDate && domain.purchase_date) {
-    const purchase = new Date(domain.purchase_date);
-    if (!Number.isNaN(purchase.getTime())) {
+    const purchase = parseLocalCalendarDate(domain.purchase_date);
+    if (purchase) {
       baseDate = new Date(purchase);
       const priorCycles = (domain.renewal_count || 0) + 1;
       baseDate.setFullYear(baseDate.getFullYear() + priorCycles * ownCycle);
@@ -57,8 +59,8 @@ export function validateExpiryDate(
   const suggestions: string[] = [];
   let isValid = true;
 
-  const expiry = new Date(expiryDate);
-  const purchase = new Date(domain.purchase_date);
+  const expiry = parseLocalCalendarDate(expiryDate) ?? new Date(NaN);
+  const purchase = parseLocalCalendarDate(domain.purchase_date) ?? new Date(NaN);
   const now = new Date();
 
   if (expiry <= purchase) {

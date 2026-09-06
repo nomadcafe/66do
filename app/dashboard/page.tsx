@@ -53,6 +53,7 @@ import { getEffectiveExpiry } from '../../src/lib/effectiveExpiry';
 import { expandRenewalEvents } from '../../src/lib/expandRenewalEvents';
 import { totalRealizedPnL, realizedPnLByMonth, portfolioAtCost } from '../../src/lib/realizedPnL';
 import { getReceiptsDueSoon } from '../../src/lib/installmentDue';
+import { parseLocalCalendarDate } from '../../src/lib/localCalendarDate';
 import { mergeCsvImportWithExisting } from '../../src/lib/csvFormats/mergeWithExisting';
 import {
   AlertTriangle,
@@ -426,8 +427,9 @@ export default function DashboardPage() {
       let earliestMs: number | null = null;
       for (const tx of transactionsForMetrics) {
         if (tx.type !== 'sell' || !tx.date) continue;
-        const ms = new Date(tx.date).getTime();
-        if (!Number.isFinite(ms)) continue;
+        const parsedTxDate = parseLocalCalendarDate(tx.date);
+        if (!parsedTxDate) continue;
+        const ms = parsedTxDate.getTime();
         if (earliestMs === null || ms < earliestMs) earliestMs = ms;
       }
       if (earliestMs === null) {
@@ -585,7 +587,9 @@ export default function DashboardPage() {
       if (d.status !== 'active' && d.status !== 'for_sale') return false;
       if (!d.purchase_date) return false;
       if (soldDomainIds.has(d.id)) return false;
-      const heldMs = Date.now() - new Date(d.purchase_date).getTime();
+      const purchasedAt = parseLocalCalendarDate(d.purchase_date);
+      if (!purchasedAt) return false;
+      const heldMs = Date.now() - purchasedAt.getTime();
       return heldMs > oneYearMs;
     });
   }, [domains, transactionsForMetrics]);
@@ -785,9 +789,11 @@ export default function DashboardPage() {
 
     // Investment period: earliest purchase → latest activity (last sale/transaction or now)
     const domainsWithPurchaseDate = domains.filter((d) => d.purchase_date);
-    const purchaseDates = domainsWithPurchaseDate.map((d) => new Date(d.purchase_date!).getTime());
-    const transactionDates = transactions.map((t) => new Date(t.date).getTime());
-    const saleDates = domains.filter((d) => d.sale_date).map((d) => new Date(d.sale_date!).getTime());
+    const timeOf = (v: string | null | undefined) =>
+      (parseLocalCalendarDate(v) ?? new Date(NaN)).getTime();
+    const purchaseDates = domainsWithPurchaseDate.map((d) => timeOf(d.purchase_date));
+    const transactionDates = transactions.map((t) => timeOf(t.date));
+    const saleDates = domains.filter((d) => d.sale_date).map((d) => timeOf(d.sale_date));
     const now = Date.now();
     const startMs = purchaseDates.length > 0 ? Math.min(...purchaseDates) : now;
     const endMs = Math.max(now, ...transactionDates, ...saleDates, startMs);

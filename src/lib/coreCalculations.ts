@@ -5,6 +5,7 @@ import { totalHoldingCostForDomain } from './renewalCostBasis';
 import { expandRenewalEvents } from './expandRenewalEvents';
 import { buyTxsForDomain } from './txIndex';
 import { NON_RENEW_OUTFLOW_TYPES } from './transactionTypeGroups';
+import { calendarYearOf, localMonthKey, parseLocalCalendarDate } from './localCalendarDate';
 
 export type { SellProceedsFields } from './sellProceeds';
 export { sellGrossUSD, sellNetUSD } from './sellProceeds';
@@ -135,11 +136,12 @@ export interface CashReceiptEvent {
  */
 export function expandSellToCashReceipts(t: TransactionWithRequiredFields): CashReceiptEvent[] {
   if (t.type !== 'sell') return [];
-  // monthKey 与 InvestmentAnalytics.timeSeriesData 现有写法对齐：
-  // ISO 字符串前 7 位 'YYYY-MM'。两边 key 格式必须一致，否则 map 取不出。
-  const monthKeyOf = (d: Date) => d.toISOString().slice(0, 7);
-  const txDate = new Date(t.date);
-  if (Number.isNaN(txDate.getTime())) return [];
+  // monthKey 与 InvestmentAnalytics.timeSeriesData 现有写法对齐：'YYYY-MM'。
+  // 两边 key 格式必须一致，否则 map 取不出。日期列按本地日历日解析 + 本地
+  // 取月，两步必须成对——只改一边会在正/负偏移时区各错一个月。
+  const monthKeyOf = localMonthKey;
+  const txDate = parseLocalCalendarDate(t.date);
+  if (!txDate) return [];
 
   const isInstallment = t.payment_plan === 'installment';
   if (!isInstallment) {
@@ -172,8 +174,8 @@ export function expandSellToCashReceipts(t: TransactionWithRequiredFields): Cash
   }
 
   for (const r of receipts) {
-    const d = new Date(r.received_date);
-    if (Number.isNaN(d.getTime())) continue;
+    const d = parseLocalCalendarDate(r.received_date);
+    if (!d) continue;
     events.push({
       monthKey: monthKeyOf(d),
       netAmount: Number(r.amount) * (1 - feeRate),
@@ -197,13 +199,12 @@ export interface YearlyRenewalProfitRow {
 }
 
 function txCalendarYear(t: TransactionWithRequiredFields): number {
-  const y = new Date(t.date).getFullYear();
-  return Number.isFinite(y) ? y : NaN;
+  return calendarYearOf(t.date);
 }
 
 function calendarYearFromIso(dateStr: string | null | undefined, fallback: number): number {
   if (dateStr == null || dateStr === '') return fallback;
-  const y = new Date(dateStr).getFullYear();
+  const y = calendarYearOf(dateStr);
   return Number.isFinite(y) ? y : fallback;
 }
 

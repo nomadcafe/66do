@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { expandRenewalEvents } from './expandRenewalEvents';
 import type { TransactionWithRequiredFields } from '../types/transaction';
+import { localCalendarDateISO } from './localCalendarDate';
 
 // Convenience for building a minimally-typed renew transaction in tests.
 function tx(domainId: string, date: string, amount: number): TransactionWithRequiredFields {
@@ -30,7 +31,7 @@ describe('expandRenewalEvents', () => {
       baseline_renewal_as_of: '2026-04-28',
     }, []);
     expect(events).toHaveLength(3);
-    expect(events.map(e => e.date.toISOString().slice(0, 10))).toEqual([
+    expect(events.map(e => localCalendarDateISO(e.date))).toEqual([
       '2023-01-15', '2024-01-15', '2025-01-15',
     ]);
     expect(events.every(e => e.amount === 10)).toBe(true);
@@ -54,7 +55,7 @@ describe('expandRenewalEvents', () => {
       baseline_renewal_as_of: '2026-04-28',
     }, []);
     expect(events).toHaveLength(3);
-    expect(events.map(e => e.date.toISOString().slice(0, 10))).toEqual([
+    expect(events.map(e => localCalendarDateISO(e.date))).toEqual([
       '2022-02-15', '2023-02-15', '2024-02-15',
     ]);
     expect(events.every(e => e.source === 'archive')).toBe(true);
@@ -74,7 +75,7 @@ describe('expandRenewalEvents', () => {
       renewal_cost: 80,
       baseline_renewal_as_of: '2026-01-01',
     }, []);
-    expect(events.map(e => e.date.toISOString().slice(0, 10))).toEqual([
+    expect(events.map(e => localCalendarDateISO(e.date))).toEqual([
       '2022-03-01', '2024-03-01',
     ]);
     expect(events.map(e => e.amount)).toEqual([80, 80]);
@@ -89,7 +90,7 @@ describe('expandRenewalEvents', () => {
       renewal_cost: 80,
       baseline_renewal_as_of: '2026-01-01',
     }, []);
-    expect(events.map(e => e.date.toISOString().slice(0, 10))).toEqual([
+    expect(events.map(e => localCalendarDateISO(e.date))).toEqual([
       '2022-03-01', '2024-03-01',
     ]);
   });
@@ -114,11 +115,11 @@ describe('expandRenewalEvents', () => {
     const archive = events.filter(e => e.source === 'archive');
     const txs = events.filter(e => e.source === 'transaction');
     expect(archive).toHaveLength(3);
-    expect(archive.map(e => e.date.toISOString().slice(0, 10))).toEqual([
+    expect(archive.map(e => localCalendarDateISO(e.date))).toEqual([
       '2021-12-01', '2022-12-01', '2023-12-01',
     ]);
     expect(txs).toHaveLength(1);
-    expect(txs[0].date.toISOString().slice(0, 10)).toBe('2024-12-01');
+    expect(localCalendarDateISO(txs[0].date)).toBe('2024-12-01');
     expect(txs[0].amount).toBe(12);
   });
 
@@ -198,7 +199,7 @@ describe('expandRenewalEvents', () => {
       baseline_renewal_as_of: '2026-01-01',
     }, []);
     expect(events).toHaveLength(1);
-    expect(events[0].date.toISOString().slice(0, 10)).toBe('2025-01-01');
+    expect(localCalendarDateISO(events[0].date)).toBe('2025-01-01');
   });
 
   // ────────────── Forecast / projection cases ──────────────
@@ -220,7 +221,7 @@ describe('expandRenewalEvents', () => {
     }, [], { forecastUntil: new Date('2026-04-28T12:00:00Z') });
     const projected = events.filter(e => e.source === 'projected');
     expect(projected).toHaveLength(1);
-    expect(projected[0].date.toISOString().slice(0, 10)).toBe('2025-10-15');
+    expect(localCalendarDateISO(projected[0].date)).toBe('2025-10-15');
     expect(projected[0].amount).toBe(10);
     expect(projected[0].years).toBe(1);
     // archive part still present
@@ -240,7 +241,7 @@ describe('expandRenewalEvents', () => {
       baseline_renewal_as_of: '2026-04-28',
     }, [], { forecastUntil: new Date('2026-12-31T23:59:59Z') });
     const projected = events.filter(e => e.source === 'projected');
-    expect(projected.map(e => e.date.toISOString().slice(0, 10))).toEqual([
+    expect(projected.map(e => localCalendarDateISO(e.date))).toEqual([
       '2025-10-15', '2026-10-15',
     ]);
   });
@@ -302,7 +303,7 @@ describe('expandRenewalEvents', () => {
     }, [], { forecastUntil: new Date('2030-06-30T00:00:00Z') });
     const projected = events.filter(e => e.source === 'projected');
     // Steps: 2024-01-01, 2026-01-01, 2028-01-01, 2030-01-01 (≤ 2030-06-30 ✓)
-    expect(projected.map(e => e.date.toISOString().slice(0, 10))).toEqual([
+    expect(projected.map(e => localCalendarDateISO(e.date))).toEqual([
       '2024-01-01', '2026-01-01', '2028-01-01', '2030-01-01',
     ]);
     expect(projected.every(e => e.years === 2)).toBe(true);

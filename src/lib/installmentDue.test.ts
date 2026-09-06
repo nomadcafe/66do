@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { getActiveInstallmentSummary, getReceiptsDueSoon } from './installmentDue';
 import type { DomainWithTags, TransactionWithRequiredFields } from '../types/dashboard';
 import type { InstallmentReceipt } from '../types/transaction';
+import { localCalendarDateISO } from './localCalendarDate';
 
 function makeDomain(id: string, name: string): DomainWithTags {
   return {
@@ -86,13 +87,13 @@ describe('getActiveInstallmentSummary', () => {
     expect(summary).not.toBeNull();
     expect(summary!.paid).toBe(2);
     expect(summary!.total).toBe(12);
-    expect(summary!.nextDue?.toISOString().slice(0, 10)).toBe('2025-04-15');
+    expect(summary!.nextDue ? localCalendarDateISO(summary!.nextDue) : null).toBe('2025-04-15');
   });
 
   it('next due = installment_first_payment_date when no receipts yet', () => {
     const tx = makeInstallmentSell({ receipts: [], installment_first_payment_date: '2025-02-15' });
     const summary = getActiveInstallmentSummary(makeDomain('d1', 'foo.com'), [tx]);
-    expect(summary!.nextDue?.toISOString().slice(0, 10)).toBe('2025-02-15');
+    expect(summary!.nextDue ? localCalendarDateISO(summary!.nextDue) : null).toBe('2025-02-15');
   });
 
   it('next due = null when receipts empty and first_payment_date not set', () => {
@@ -103,7 +104,9 @@ describe('getActiveInstallmentSummary', () => {
 });
 
 describe('getReceiptsDueSoon', () => {
-  const now = new Date('2025-04-15T12:00:00Z');
+  // 本地瞬间而不是 'Z'：日期列按本地日历日解析，用 UTC 瞬间当 now 会让
+  // 断言在 UTC+14 / UTC-11 这类极端偏移下落到相邻的一天上。
+  const now = new Date(2025, 3, 15, 12, 0, 0);
 
   it('includes receipts due within +7 days', () => {
     const tx = makeInstallmentSell({ receipts: [receipt('2025-03-20')] }); // next = 2025-04-20
