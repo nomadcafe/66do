@@ -115,3 +115,44 @@ describe('daysUntilEffectiveExpiry', () => {
     expect(days).toBe(-27);
   });
 });
+
+describe('daysUntilEffectiveExpiry 的稳定性', () => {
+  // 这是 Portfolio 表格的到期徽章和 dashboard 到期提醒共用的实现。
+  // 它们曾经各算各的：DomainTable 用 `ceil((new Date(expiry) - now) / 一天)`,
+  // expiry 按 UTC 午夜解析而 now 是真实时刻，于是同一批数据表格说 26 天、
+  // 卡片说 25 天，且随一天中的时刻跳变（JST 早上 9 点前 / 纽约晚上 7 点后）。
+  // 现在只有一个实现，下面两条锁住它的两个性质。
+
+  it('同一天里任何时刻问，答案都一样', () => {
+    const domain = { expiry_date: '2026-10-01' };
+    const answers = new Set(
+      [0, 1, 6, 8, 9, 12, 15, 20, 23].map((hour) =>
+        daysUntilEffectiveExpiry(domain, new Date(2026, 8, 6, hour, 30, 0))
+      )
+    );
+    expect([...answers]).toEqual([25]);
+  });
+
+  it('"今天到期"恒为 0，"明天到期"恒为 1，不论几点问', () => {
+    for (const hour of [0, 7, 13, 23]) {
+      const now = new Date(2026, 8, 6, hour, 45, 0);
+      expect(daysUntilEffectiveExpiry({ expiry_date: '2026-09-06' }, now)).toBe(0);
+      expect(daysUntilEffectiveExpiry({ expiry_date: '2026-09-07' }, now)).toBe(1);
+      expect(daysUntilEffectiveExpiry({ expiry_date: '2026-09-05' }, now)).toBe(-1);
+    }
+  });
+
+  it('跨夏令时切换不会多一天或少一天', () => {
+    // 2026 年美国夏令时：3/8 开始、11/1 结束。跨过这两个点各测一次。
+    const spring = daysUntilEffectiveExpiry(
+      { expiry_date: '2026-03-15' },
+      new Date(2026, 2, 1, 12, 0, 0)
+    );
+    const fall = daysUntilEffectiveExpiry(
+      { expiry_date: '2026-11-08' },
+      new Date(2026, 9, 25, 12, 0, 0)
+    );
+    expect(spring).toBe(14);
+    expect(fall).toBe(14);
+  });
+});

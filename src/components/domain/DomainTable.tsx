@@ -9,6 +9,7 @@ import { useI18nContext } from '../../contexts/I18nProvider';
 import { calculateDomainROI } from '../../lib/financialCalculations';
 import { domainStatusLabel as statusLabel } from '../../lib/domainStatusLabel';
 import { isExpiredButNotMarked } from '../../lib/domainLossStatus';
+import { daysUntilEffectiveExpiry } from '../../lib/effectiveExpiry';
 import { ListPagination } from '../ui/ListPagination';
 
 // 共享 sortable header：原本每列各写一份 div + onClick + ↑/↓ 字符，
@@ -327,14 +328,14 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
   };
 
 
-  const getDaysUntilExpiry = (expiryDate?: string) => {
-    if (!expiryDate) return null;
-    const today = new Date();
-    const expiry = new Date(expiryDate);
-    const diffTime = expiry.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
+  // 走和 dashboard 到期提醒同一个实现，否则两处会差一天：这里原本是
+  // `ceil((new Date(expiry) - now) / 一天)`，expiry 按 UTC 午夜解析、now 是
+  // 真实时刻，得数会随一天中的时刻跳变（JST 早上 9 点前多一天，纽约晚上 7 点
+  // 后少一天），于是表格徽章显示 26 天而到期卡片说 25 天。
+  // 只传 expiry_date：保持"表格读字面字段、没填就不显示"的原有语义，不引入
+  // getEffectiveExpiry 的兜底链。
+  const getDaysUntilExpiry = (expiryDate?: string) =>
+    daysUntilEffectiveExpiry({ expiry_date: expiryDate ?? null });
 
   const getExpiryStatus = (domain: DomainWithTags) => {
     // 已出售的域名不显示过期信息
