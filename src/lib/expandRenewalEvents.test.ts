@@ -341,3 +341,123 @@ describe('expandRenewalEvents', () => {
     expect(events).toHaveLength(0);
   });
 });
+
+describe('expandRenewalEvents — next_renewal_date as anchor', () => {
+  it('uses next_renewal_date for the backwards walk when expiry_date is empty', () => {
+    // 与 expiry_date 同等对待：走的是「首选」的反向回溯，不是 purchase 兜底
+    const viaNext = expandRenewalEvents(
+      {
+        id: 'd1',
+        purchase_date: '2022-01-15',
+        expiry_date: null,
+        next_renewal_date: '2025-02-10',
+        renewal_count: 3,
+        renewal_cycle: 1,
+        renewal_cost: 10,
+      },
+      []
+    );
+    const viaExpiry = expandRenewalEvents(
+      {
+        id: 'd1',
+        purchase_date: '2022-01-15',
+        expiry_date: '2025-02-10',
+        renewal_count: 3,
+        renewal_cycle: 1,
+        renewal_cost: 10,
+      },
+      []
+    );
+
+    expect(viaNext.map((e) => localCalendarDateISO(e.date))).toEqual(
+      viaExpiry.map((e) => localCalendarDateISO(e.date))
+    );
+    expect(viaNext.map((e) => localCalendarDateISO(e.date))).toEqual([
+      '2022-02-10',
+      '2023-02-10',
+      '2024-02-10',
+    ]);
+  });
+
+  it('expiry_date wins over a stale next_renewal_date', () => {
+    // handleDomainRenewal 只写 expiry_date、从不同步 next_renewal_date，
+    // 所以续过费的域名身上那个字段是陈旧的——优先级必须保证它读不到。
+    const events = expandRenewalEvents(
+      {
+        id: 'd1',
+        purchase_date: '2022-01-15',
+        expiry_date: '2027-06-01',
+        next_renewal_date: '2023-01-01', // 陈旧
+        renewal_count: 1,
+        renewal_cycle: 1,
+        renewal_cost: 10,
+      },
+      []
+    );
+
+    expect(events.map((e) => localCalendarDateISO(e.date))).toEqual(['2026-06-01']);
+  });
+
+  it('closes the chart-vs-cost-basis gap for a domain with no purchase_date', () => {
+    // 之前：既没 expiry_date 也没 purchase_date → 两个 archive 分支都进不去，
+    // 一条事件都不产，但 archiveRenewalCost 照样算 count × cost，
+    // 「chart 和 cost basis 总额一致」的不变式对这批域名是破的。
+    const events = expandRenewalEvents(
+      {
+        id: 'd1',
+        purchase_date: null,
+        expiry_date: null,
+        next_renewal_date: '2026-04-01',
+        renewal_count: 2,
+        renewal_cycle: 1,
+        renewal_cost: 15,
+      },
+      []
+    );
+
+    expect(events).toHaveLength(2);
+    expect(events.reduce((sum, e) => sum + e.amount, 0)).toBe(2 * 15);
+  });
+
+  it('forecasts from next_renewal_date', () => {
+    const events = expandRenewalEvents(
+      {
+        id: 'd1',
+        status: 'active',
+        purchase_date: '2024-01-10',
+        expiry_date: null,
+        next_renewal_date: '2026-03-01',
+        renewal_count: 0,
+        renewal_cycle: 1,
+        renewal_cost: 12,
+      },
+      [],
+      { forecastUntil: new Date(2028, 11, 31, 23, 59, 59, 999) }
+    );
+
+    expect(events.filter((e) => e.source === 'projected').map((e) => localCalendarDateISO(e.date)))
+      .toEqual(['2026-03-01', '2027-03-01', '2028-03-01']);
+  });
+
+  it('never forecasts from the purchase-derived estimate', () => {
+    // 刻意的口径差异：推算档只够进「即将到期」清单，不够变成仪表盘上的金额。
+    const events = expandRenewalEvents(
+      {
+        id: 'd1',
+        status: 'active',
+        purchase_date: '2024-01-10',
+        expiry_date: null,
+        next_renewal_date: null,
+        renewal_count: 1,
+        renewal_cycle: 1,
+        renewal_cost: 12,
+      },
+      [],
+      { forecastUntil: new Date(2028, 11, 31, 23, 59, 59, 999) }
+    );
+
+    expect(events.some((e) => e.source === 'projected')).toBe(false);
+    // 档案事件仍走 purchase 兜底，没被这个决定牵连
+    expect(events.map((e) => e.source)).toEqual(['archive']);
+  });
+});

@@ -78,6 +78,9 @@ export function mergeRenewTransactionDomainUpdates(
     byId.set(cur.id, {
       ...cur,
       expiry_date: renewed.expiry_date ?? cur.expiry_date,
+      // handleDomainRenewal 会把 next_renewal_date 清掉（续费后 expiry_date 才是
+      // 权威值）。这里必须跟着传，否则那个陈旧日期原封不动留在库里。
+      next_renewal_date: renewed.next_renewal_date ?? null,
       // transfer 不是续费，不计入 renewal_count（见上方注释）
       renewal_count: tx.type === 'renew' ? renewed.renewal_count ?? cur.renewal_count : cur.renewal_count,
       updated_at: new Date().toISOString(),
