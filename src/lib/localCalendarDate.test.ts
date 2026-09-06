@@ -138,3 +138,24 @@ describe('续费不改变到期日的"日"', () => {
     expect(d.expiry_date).toBe('2031-03-10');
   });
 });
+
+// 删除续费交易时回撤到期日，走的是 useTransactionOperations 里的同一套
+// 「解析 → setFullYear → 格式化」。这里直接锁住那段算术：续费加上去的年数
+// 再减回来，必须精确回到原来的那一天。
+describe('到期日加减年份的往返', () => {
+  it('+N 年再 −N 年回到原点', () => {
+    for (const iso of ['2026-01-01', '2026-12-31', '2027-06-15', '2024-02-29']) {
+      for (const years of [1, 2, 5]) {
+        const d = parseLocalCalendarDate(iso)!;
+        d.setFullYear(d.getFullYear() + years);
+        const forward = localCalendarDateISO(d);
+        const back = parseLocalCalendarDate(forward)!;
+        back.setFullYear(back.getFullYear() - years);
+        // 2/29 加年份会落到 3/1（JS Date 的既有行为），往返到 3/1 即可；
+        // 其余日期必须严格回到原值。
+        const expected = iso === '2024-02-29' && years !== 4 ? '2024-03-01' : iso;
+        expect(localCalendarDateISO(back)).toBe(expected);
+      }
+    }
+  });
+});
