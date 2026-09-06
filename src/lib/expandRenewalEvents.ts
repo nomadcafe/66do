@@ -17,7 +17,11 @@
  *     which is what a naive `purchase + i × cycle` would say (and what
  *     this function used to do).
  *
- *   - Without expiry_date we fall back to `purchase + i × cycle`, which
+ *   - `next_renewal_date` is the same concept in a different column (the
+ *     legacy import shape and DomainForm both write it), so it serves as the
+ *     anchor whenever expiry_date is empty, taking the same backwards walk.
+ *
+ *   - With neither we fall back to `purchase + i × cycle`, which
  *     implicitly assumes the initial registration term equalled one
  *     cycle. That's the typical default-1yr .com case but wrong when
  *     the user bought a domain mid-term or registered for fewer/more
@@ -52,6 +56,7 @@ interface DomainLike {
   status?: string | null;
   purchase_date?: string | null;
   expiry_date?: string | null;
+  next_renewal_date?: string | null;
   renewal_count?: number | null;
   renewal_cycle?: number | null;
   renewal_cost?: number | null;
@@ -60,9 +65,11 @@ interface DomainLike {
 
 export interface ExpandRenewalEventsOptions {
   /** When set, also emit forecasted renewals for still-active / for-sale
-   *  domains, starting at current expiry_date and stepping by `cycle` years
-   *  until > forecastUntil. Sold or expired domains never get projections.
-   *  Without expiry_date, no projection is possible (we have no anchor). */
+   *  domains, starting at the current expiry (expiry_date, else
+   *  next_renewal_date) and stepping by `cycle` years until > forecastUntil.
+   *  Sold or expired domains never get projections. Without an exact expiry
+   *  date no projection is possible — we have no anchor, and the
+   *  purchase-derived estimate is deliberately not used here (see below). */
   forecastUntil?: Date;
 }
 
@@ -79,7 +86,19 @@ export function expandRenewalEvents(
 ): RenewalEvent[] {
   const events: RenewalEvent[] = [];
   const purchase = parseLocalDate(domain.purchase_date);
-  const expiry = parseLocalDate(domain.expiry_date);
+  // 锚点 = expiry_date，退而求其次 next_renewal_date。后者是同一个概念的另一列
+  // （DomainForm 有输入框、domainPayloads/validation 都当一等字段落库），是用户
+  // 给的**精确**日期，所以和 expiry_date 同等对待。
+  //
+  // 刻意不接 getEffectiveExpiry 的第三档 `purchase + (count+1) × cycle`：那是
+  // 推算值，而这里的 projected 事件会直接变成仪表盘上的金额。清单里多列一行的
+  // 代价是用户瞟一眼去核对，预估里多加一笔的代价是一个被悄悄抬高的数字——两者
+  // 容错标准不同。推算档的域名仍然只走下面 `else if (purchase)` 的档案兜底。
+  // 与 upcomingRenewals 的口径差异就只剩这一档，且是有意为之。
+  //
+  // 陈旧风险已在写入端消除：handleDomainRenewal 续费后会清掉 next_renewal_date，
+  // 因为那时 expiry_date 才是权威值。这里的优先级顺序与它保持一致。
+  const expiry = parseLocalDate(domain.expiry_date) ?? parseLocalDate(domain.next_renewal_date);
   const renewalCount = Math.max(0, Math.floor(domain.renewal_count ?? 0));
   const cycle = Math.max(1, Math.floor(domain.renewal_cycle ?? 1) || 1);
   const perRenewal = Number(domain.renewal_cost) || 0;
@@ -131,8 +150,9 @@ export function expandRenewalEvents(
         events.push({ date: d, amount: perRenewal, years: cycle, source: 'archive' });
       }
     } else if (purchase) {
-      // Fallback when expiry_date is missing: assume initial registration
-      // covered one cycle, so first renewal happens at purchase + cycle.
+      // Fallback when we have no exact expiry at all (neither expiry_date nor
+      // next_renewal_date): assume initial registration covered one cycle, so
+      // the first renewal happens at purchase + cycle.
       for (let i = 1; i <= archiveCount; i++) {
         const d = new Date(purchase);
         d.setFullYear(d.getFullYear() + i * cycle);
@@ -159,7 +179,7 @@ export function expandRenewalEvents(
   // Only for active / for_sale domains (sold and expired ones aren't being kept
   // alive). Anchor is current expiry: the next renewal happens AT expiry, the
   // one after at expiry + cycle, etc. Step forward until past forecastUntil.
-  // Without expiry_date there's no anchor, so we don't try to forecast.
+  // Without an exact expiry there's no anchor, so we don't try to forecast.
   if (options?.forecastUntil && expiry && perRenewal > 0) {
     const status = domain.status ?? 'active';
     if (status === 'active' || status === 'for_sale') {
