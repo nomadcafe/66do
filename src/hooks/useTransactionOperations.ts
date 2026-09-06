@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { logger } from '../lib/logger';
 import { ERROR_MESSAGE_TIMEOUT } from '../lib/constants';
 import { expiryExtensionYears } from '../lib/renewDomainPatch';
+import { localCalendarDateISO, parseLocalCalendarDate } from '../lib/localCalendarDate';
 
 interface UseTransactionOperationsReturn {
   editingTransaction: TransactionWithRequiredFields | undefined;
@@ -141,13 +142,13 @@ export function useTransactionOperations(
           if (domain.id !== targetDomainId) return domain;
           let nextExpiry = domain.expiry_date ?? null;
           if (typeof nextExpiry === 'string' && nextExpiry) {
-            const d = new Date(nextExpiry);
-            if (!Number.isNaN(d.getTime())) {
+            // 和 handleDomainRenewal 同一个坑：解析必须落在本地日历日，
+            // 否则 setFullYear + localCalendarDateISO 这套本地取值器会在
+            // 负偏移时区把日子往前挪一天（续费加一天、删续费再退一天）。
+            const d = parseLocalCalendarDate(nextExpiry);
+            if (d) {
               d.setFullYear(d.getFullYear() - yearsToRollback);
-              const y = d.getFullYear();
-              const m = String(d.getMonth() + 1).padStart(2, '0');
-              const day = String(d.getDate()).padStart(2, '0');
-              nextExpiry = `${y}-${m}-${day}`;
+              nextExpiry = localCalendarDateISO(d);
             }
           }
           return {
