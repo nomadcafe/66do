@@ -56,6 +56,27 @@ export interface PlatformFeeResult {
 }
 
 /**
+ * 卖家到目前为止实际收到的金额。
+ *
+ * 关键是别把「尾款那一期」当成普通期：表单里 installmentAmount 只覆盖
+ * regularPeriods = 期数 − (有尾款 ? 1 : 0) 期，最后一期走 finalPayment。
+ * 直接 `installmentAmount × paidPeriods` 在有尾款时会多算一期、少算尾款，
+ * 和 calculateTotalInstallmentAmount 给出的总额对不上。
+ */
+function sellerReceivedByPeriod(
+  downpayment: number,
+  installmentAmount: number,
+  paidPeriods: number,
+  totalPeriods: number,
+  finalPayment: number
+): number {
+  const regularPeriods = totalPeriods - (finalPayment > 0 ? 1 : 0);
+  const regularPaid = Math.max(0, Math.min(paidPeriods, regularPeriods));
+  const finalPaid = finalPayment > 0 && paidPeriods >= totalPeriods ? finalPayment : 0;
+  return downpayment + installmentAmount * regularPaid + finalPaid;
+}
+
+/**
  * 计算平台费用
  */
 export function calculatePlatformFee(config: PlatformFeeConfig): PlatformFeeResult {
@@ -558,10 +579,22 @@ export function calculateCustomerTotalFromInstallment(
   // Atom / Escrow：算法以 listPrice 为基，优先用 form 的 grossAmount；否则回退到 installment*period（旧调用兼容）。
   const usesGrossAmount =
     platformFeeType === 'atom_installment' || platformFeeType === 'escrow_installment';
+  // 非 gross 路径（Afternic 及回退分支）的 sellerAmount 是「卖家净收入总额」。
+  // 曾经写成 installmentAmount * installmentPeriod —— 首付和尾款不在里面，而
+  // 表单恰恰是先把它们从总额里扣掉再摊到每期的（TransactionForm 的
+  // remainingAmount = sellerProceeds − downpayment − finalPayment）。结果是
+  // 首付整笔从费用计算里消失：标价 $10,000 / 首付 $2,000 的 Afternic 分期，
+  // 客户总付显示 $8,555 而不是 $11,000，卖家净显示 $7,000 而不是 $9,000。
+  // 走 calculateTotalInstallmentAmount，与 Spaceship / Standard 路径同一套拆分。
   const sellerAmount =
     usesGrossAmount && options?.grossAmount && options.grossAmount > 0
       ? options.grossAmount
-      : installmentAmount * installmentPeriod;
+      : calculateTotalInstallmentAmount(
+          downpayment,
+          installmentAmount,
+          installmentPeriod,
+          finalPayment
+        );
 
   return calculatePlatformFee({
     type: platformFeeType as 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment',
@@ -628,12 +661,20 @@ export function calculatePaidAmountFromInstallment(
       };
     }
     const totalResult = calculateInstallmentFeeFromTotalSale(totalSaleAmount, nominalRate);
-    // 已付给卖家的分期部分（不含首付时仅期数×每期；若首付算已付，则 seller 已收 = 首付 + 期数×每期）
-    const sellerReceivedSoFar = downpayment + installmentAmount * paidPeriods;
+    // 已付给卖家的金额。走 sellerReceivedByPeriod 而不是 installmentAmount ×
+    // paidPeriods：有尾款时最后一期的金额是 finalPayment，不是 installmentAmount，
+    // 否则全部付清时算出来的总额和 calculateTotalInstallmentAmount 对不上。
+    const sellerReceivedSoFar = sellerReceivedByPeriod(
+      downpayment,
+      installmentAmount,
+      paidPeriods,
+      totalPeriods,
+      finalPayment
+    );
     const paidRatio = Math.min(1, sellerReceivedSoFar / totalSaleAmount);
     const platformFeePaid = totalResult.platformFee * paidRatio;
     // 客户已付现金 = 首付 + 已付期数对应的分期额（用户要求 Customer Paid 含首付）
-    const customerPaidTotal = downpayment + installmentAmount * paidPeriods;
+    const customerPaidTotal = sellerReceivedSoFar;
     const sellerNetSoFar = sellerReceivedSoFar - platformFeePaid;
 
     return {
@@ -650,10 +691,16 @@ export function calculatePaidAmountFromInstallment(
 
   const usesGrossAmount =
     platformFeeType === 'atom_installment' || platformFeeType === 'escrow_installment';
+  // 同 calculateCustomerTotalFromInstallment：首付/尾款必须计入卖家总额
   const totalSellerAmount =
     usesGrossAmount && options?.grossAmount && options.grossAmount > 0
       ? options.grossAmount
-      : installmentAmount * totalPeriods;
+      : calculateTotalInstallmentAmount(
+          downpayment,
+          installmentAmount,
+          totalPeriods,
+          finalPayment
+        );
   const totalResult = calculatePlatformFee({
     type: platformFeeType as 'standard' | 'afternic_installment' | 'atom_installment' | 'spaceship_installment' | 'escrow_installment',
     installmentPeriod: totalPeriods,
@@ -671,15 +718,29 @@ export function calculatePaidAmountFromInstallment(
     escrowLeaseType: options?.escrowLeaseType,
   });
 
-  const paidRatio = paidPeriods / totalPeriods;
+  // 进度比例：gross 路径（Atom / Escrow）按期数；非 gross 路径按「卖家实收 /
+  // 卖家总额」——有首付时这两者不是一回事，按期数会把首付那部分算漏。
+  // 没有首付也没有尾款时两者恒等（instAmt×paid / instAmt×total = paid/total），
+  // 所以这不是行为变更，是把已有公式推广到带首付/尾款的情形。
+  const sellerReceivedSoFar = sellerReceivedByPeriod(
+    downpayment,
+    installmentAmount,
+    paidPeriods,
+    totalPeriods,
+    finalPayment
+  );
+  const paidRatio = usesGrossAmount
+    ? paidPeriods / totalPeriods
+    : totalSellerAmount > 0
+      ? Math.min(1, sellerReceivedSoFar / totalSellerAmount)
+      : 0;
   const customerTotalAmount = totalResult.customerTotalAmount * paidRatio;
   const platformFee = totalResult.platformFee * paidRatio;
   const platformFeeRate = totalResult.platformFeeRate;
   // Atom / Escrow 已用 listPrice 计算总 sellerNet；按已付期数比例缩放，与 customer/platform 同口径。
-  // 其它走旧路径（sellerAmount = sellerNet）仍按 installment*paidPeriods 表达卖家已收。
   const sellerNetAmount = usesGrossAmount
     ? totalResult.sellerNetAmount * paidRatio
-    : installmentAmount * paidPeriods;
+    : sellerReceivedSoFar;
 
   return {
     customerTotalAmount,
