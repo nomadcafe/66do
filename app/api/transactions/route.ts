@@ -4,51 +4,11 @@ import { validateTransaction, sanitizeTransactionData } from '../../../src/lib/v
 import { buildTransactionInsertPayload } from '../../../src/lib/transactionInsertPayload'
 import { getAuthInfoFromRequest } from '../../../src/lib/auth-helper'
 import { createAuthenticatedSupabaseClient } from '../../../src/lib/supabaseAuthClient'
-import { getCorsHeaders, getCorsHeadersForError, noCacheHeaders } from '../../../src/lib/cors'
+import { getCorsHeaders, getCorsHeadersForError } from '../../../src/lib/cors'
 import { MAX_BULK_OPERATION_SIZE } from '../../../src/lib/constants'
 import { isDomainOwnedByUser, getOwnedDomainIds } from '../../../src/lib/domainOwnership'
 import { checkUserWriteRateLimit } from '../../../src/lib/rateLimit'
 
-// GET /api/transactions - 获取所有交易
-export async function GET(request: NextRequest) {
-  try {
-    const authInfo = await getAuthInfoFromRequest(request)
-    if (!authInfo?.userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, {
-        status: 401,
-        headers: getCorsHeaders(request)
-      })
-    }
-
-    const corsHeaders = { ...getCorsHeaders(request), ...noCacheHeaders }
-    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken)
-    // 用 list* 而不是 get*：分页中途失败时必须报 500，不能把半截数据当成
-    // 「这个用户就这么多交易」返回给客户端。
-    const { data: transactionList, error } = await TransactionService.listTransactionsWithClient(client, authInfo.userId)
-    if (error) {
-      console.error('Failed to list transactions:', error)
-      return NextResponse.json({ error: 'Failed to load transactions' }, {
-        status: 500,
-        headers: corsHeaders
-      })
-    }
-
-    return NextResponse.json({ success: true, data: transactionList }, { headers: corsHeaders })
-  } catch (error) {
-    const isProduction = process.env.NODE_ENV === 'production'
-    console.error('API Error:', error)
-    
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      ...(isProduction ? {} : { details: error instanceof Error ? error.message : 'Unknown error' })
-    }, {
-      status: 500,
-      headers: getCorsHeadersForError(request)
-    })
-  }
-}
-
-// POST /api/transactions - 创建新交易
 export async function POST(request: NextRequest) {
   try {
     // 鉴权和限流都在读 body 之前：未认证或已超限的请求不该让我们花代价把
