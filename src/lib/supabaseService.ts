@@ -31,6 +31,16 @@ export interface DataServiceResult<T> {
 // 会实例化 supabase 客户端（需要 env vars），纯判定逻辑单独放才能被单测直接引入。
 export type { WriteError } from './domainWriteErrors'
 
+/**
+ * id 不是合法 uuid 时 Postgres 报 22P02（invalid_text_representation）。
+ * 这不是故障，是"这个 id 不可能匹配到任何行"，按 0 行处理，让调用方回 403
+ * 而不是 500。读路径（getDomainByIdWithClient 等）一直是这么处理的，写路径
+ * 去掉前置所有权 SELECT 之后也要自己扛起这一层。
+ */
+function isMalformedIdError(error: { code?: string } | null): boolean {
+  return error?.code === '22P02'
+}
+
 // 域名相关操作
 export class DomainService {
   /** PostgREST 默认每页有上限（常见 1000），必须分页否则第 1001 个域名之后全部读不到 */
@@ -150,56 +160,79 @@ export class DomainService {
     return { data: (data || []) as Domain[], error: null }
   }
 
+  /**
+   * 按 id + user_id 更新。返回值把"没有匹配到行"和"真的出错"分开：前者
+   * `{ data: null, error: null }`，调用方回 403；后者带 error，回 500。
+   *
+   * 语句自带 `.eq('user_id')`，加上 domains 表的 RLS（FOR ALL USING
+   * auth.uid() = user_id），归属校验已经在这一条语句里完成了——不需要先
+   * SELECT 一次确认"这行是不是你的"再写，那是白白多一次往返。
+   */
   static async updateDomainWithClient(
     client: SupabaseClient<Database>,
     id: string,
     updates: DomainUpdate,
     userId?: string
-  ): Promise<Domain | null> {
-    // 如果提供了userId，确保只能更新属于该用户的域名
+  ): Promise<{ data: Domain | null; error: WriteError | null }> {
+    const domainId = typeof id === 'string' ? id.trim() : ''
+    if (!domainId) return { data: null, error: null }
+
     // 注意：由于 Supabase 类型系统的限制，这里需要使用类型断言
     // 实际运行时类型是正确的，只是 TypeScript 无法正确推断
     let queryBuilder = client
       .from('domains')
       .update(updates as never)
-      .eq('id', id)
-    
+      .eq('id', domainId)
+
     if (userId) {
       queryBuilder = queryBuilder.eq('user_id', userId) as typeof queryBuilder
     }
-    
+
+    // maybeSingle 而不是 single：0 行是"不是你的 / 不存在"这个正常分支，
+    // single 会把它变成 PGRST116 错误，和真正的故障混在一起。
     const { data, error } = await (queryBuilder
       .select()
-      .single() as unknown as Promise<{ data: Domain | null; error: { message: string; code?: string } | null }>)
-    
+      .maybeSingle() as unknown as Promise<{ data: Domain | null; error: { message: string; code?: string } | null }>)
+
     if (error) {
+      if (isMalformedIdError(error)) return { data: null, error: null }
       logger.error('Error updating domain:', error)
-      // 如果是权限错误，记录更详细的信息
-      if (error.code === 'PGRST116' || error.message?.includes('Unauthorized')) {
-        logger.error('Permission denied: Domain may not belong to user or RLS policy violation')
-      }
-      return null
+      return { data: null, error: { message: error.message || 'Unknown error', code: error.code } }
     }
-    
-    return data as Domain
+
+    return { data: data ?? null, error: null }
   }
 
-  /** 使用带用户 JWT 的 client 执行删除，RLS 才能通过 */
+  /**
+   * 按 id + user_id 删除，用带用户 JWT 的 client（RLS 才能通过）。
+   * 返回真正删掉的行数：0 = 不存在或不是你的，调用方回 403。同 update，
+   * 归属校验就在这一条语句里，不需要前置 SELECT。
+   */
   static async deleteDomainWithClient(
     client: SupabaseClient<Database>,
     id: string,
     userId?: string
-  ): Promise<boolean> {
-    let query = client.from('domains').delete().eq('id', id)
+  ): Promise<{ deleted: number; error: WriteError | null }> {
+    const domainId = typeof id === 'string' ? id.trim() : ''
+    if (!domainId) return { deleted: 0, error: null }
+
+    let query = client.from('domains').delete().eq('id', domainId)
     if (userId) {
       query = query.eq('user_id', userId) as typeof query
     }
-    const { error } = await query
+    // .select() 让 PostgREST 回传被删掉的行，否则无法区分"删了 1 行"和
+    // "条件没匹配到任何行"——后者不是错误，但对调用方是 403。
+    const { data, error } = await (query.select('id') as unknown as Promise<{
+      data: Array<{ id: string }> | null
+      error: { message: string; code?: string } | null
+    }>)
+
     if (error) {
+      if (isMalformedIdError(error)) return { deleted: 0, error: null }
       logger.error('Error deleting domain:', error)
-      return false
+      return { deleted: 0, error: { message: error.message || 'Unknown error', code: error.code } }
     }
-    return true
+    return { deleted: data?.length ?? 0, error: null }
   }
 
 }
@@ -336,28 +369,37 @@ export class TransactionService {
     return data
   }
 
+  /** 同 DomainService.deleteDomainWithClient：返回真正删掉的行数，0 = 不存在
+   *  或不是你的。归属校验由 `.eq('user_id')` + RLS 在这条语句里完成。 */
   static async deleteTransactionWithClient(
     client: SupabaseClient<Database>,
     id: string,
     userId?: string
-  ): Promise<boolean> {
+  ): Promise<{ deleted: number; error: WriteError | null }> {
+    const transactionId = typeof id === 'string' ? id.trim() : ''
+    if (!transactionId) return { deleted: 0, error: null }
+
     let query = client
       .from('domain_transactions')
       .delete()
-      .eq('id', id)
+      .eq('id', transactionId)
 
     if (userId) {
       query = query.eq('user_id', userId) as typeof query
     }
 
-    const { error } = await query
+    const { data, error } = await (query.select('id') as unknown as Promise<{
+      data: Array<{ id: string }> | null
+      error: { message: string; code?: string } | null
+    }>)
 
     if (error) {
+      if (isMalformedIdError(error)) return { deleted: 0, error: null }
       logger.error('Error deleting transaction:', error)
-      return false
+      return { deleted: 0, error: { message: error.message || 'Unknown error', code: error.code } }
     }
 
-    return true
+    return { deleted: data?.length ?? 0, error: null }
   }
 
 }

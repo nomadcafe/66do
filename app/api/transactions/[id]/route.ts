@@ -210,8 +210,28 @@ export async function DELETE(
 
     const client = await createAuthenticatedSupabaseClient(authInfo.accessToken)
 
-    const rowToDelete = await TransactionService.getTransactionByIdWithClient(client, transactionId, userId)
-    if (!rowToDelete) {
+    // 不再先查一行确认归属再删：DELETE 自带 .eq('user_id') + RLS，"不是你的"
+    // 压根匹配不到。前置 SELECT 只是多一次往返（PUT 那边的前置查询是必要的
+    // ——它要拿 existingRow.domain_id 兜底，这里没有这个需求）。
+    const { deleted, error: deleteError } = await TransactionService.deleteTransactionWithClient(
+      client,
+      transactionId,
+      userId
+    )
+
+    if (deleteError) {
+      const isProduction = process.env.NODE_ENV === 'production'
+      console.error('Failed to delete transaction:', deleteError)
+      return NextResponse.json({
+        error: 'Failed to delete transaction',
+        ...(isProduction ? {} : { details: deleteError.message })
+      }, {
+        status: 500,
+        headers: corsHeaders
+      })
+    }
+
+    if (deleted === 0) {
       return NextResponse.json({
         error: 'Transaction not found or access denied'
       }, {
@@ -220,17 +240,6 @@ export async function DELETE(
       })
     }
 
-    const deleteResult = await TransactionService.deleteTransactionWithClient(client, transactionId, userId)
-    
-    if (!deleteResult) {
-      return NextResponse.json({ 
-        error: 'Failed to delete transaction' 
-      }, { 
-        status: 500,
-        headers: corsHeaders
-      })
-    }
-    
     return NextResponse.json({ success: true }, { headers: corsHeaders })
   } catch (error) {
     const isProduction = process.env.NODE_ENV === 'production'

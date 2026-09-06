@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { DomainService } from '../../../../src/lib/supabaseService'
 import { validateDomain, sanitizeDomainData } from '../../../../src/lib/validation'
 import { buildDomainUpdatePayload } from '../../../../src/lib/domainPayloads'
-import { isDomainOwnedByUser } from '../../../../src/lib/domainOwnership'
 import { getAuthInfoFromRequest } from '../../../../src/lib/auth-helper'
 import { createAuthenticatedSupabaseClient } from '../../../../src/lib/supabaseAuthClient'
 import { getCorsHeaders, getCorsHeadersForError } from '../../../../src/lib/cors'
@@ -118,10 +117,30 @@ export async function PUT(
     const updatePayload = buildDomainUpdatePayload(sanitizedUpdateDomain)
     const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken)
 
-    // 验证域名所有权（单行查询，不受列表 1000 行上限影响）
-    const canUpdate = await isDomainOwnedByUser(authenticatedClient, domainId, userId)
+    // 不再先 SELECT 一次验证归属再 UPDATE：UPDATE 语句自带 .eq('user_id')，
+    // 加上 domains 的 RLS，"不是你的行"根本不会被这条语句匹配到。前置查询
+    // 除了多一次 DB 往返之外不提供任何额外保证（而且它和写入之间还有个
+    // TOCTOU 窗口）。现在用回传的行数来分流：0 行 = 不存在或不是你的。
+    const { data: updatedDomain, error: updateError } = await DomainService.updateDomainWithClient(
+      authenticatedClient,
+      domainId,
+      updatePayload,
+      userId
+    )
 
-    if (!canUpdate) {
+    if (updateError) {
+      const isProduction = process.env.NODE_ENV === 'production'
+      console.error('Failed to update domain:', updateError)
+      return NextResponse.json({
+        error: 'Failed to update domain',
+        ...(isProduction ? {} : { details: updateError.message })
+      }, {
+        status: 500,
+        headers: corsHeaders
+      })
+    }
+
+    if (!updatedDomain) {
       return NextResponse.json({
         error: 'Domain not found or access denied'
       }, {
@@ -130,22 +149,6 @@ export async function PUT(
       })
     }
 
-    const updatedDomain = await DomainService.updateDomainWithClient(
-      authenticatedClient,
-      domainId,
-      updatePayload,
-      userId
-    )
-    
-    if (!updatedDomain) {
-      return NextResponse.json({ 
-        error: 'Failed to update domain. It may not exist or you may not have permission.' 
-      }, { 
-        status: 404,
-        headers: corsHeaders
-      })
-    }
-    
     return NextResponse.json({ success: true, data: updatedDomain }, { headers: corsHeaders })
   } catch (error) {
     const isProduction = process.env.NODE_ENV === 'production'
@@ -194,28 +197,36 @@ export async function DELETE(
     }
 
     const authenticatedClientForDelete = await createAuthenticatedSupabaseClient(accessToken)
-    const canDeleteDomain = await isDomainOwnedByUser(authenticatedClientForDelete, domainId, userId)
 
-    if (!canDeleteDomain) {
-      return NextResponse.json({ 
-        error: 'Domain not found or access denied' 
-      }, { 
-        status: 403,
-        headers: corsHeaders
-      })
-    }
-    
-    const deleteResult = await DomainService.deleteDomainWithClient(authenticatedClientForDelete, domainId, userId)
-    
-    if (!deleteResult) {
-      return NextResponse.json({ 
-        error: 'Failed to delete domain' 
-      }, { 
+    // 同 PUT：DELETE 语句自带 .eq('user_id') + RLS，归属就在这一条语句里，
+    // 前置的所有权 SELECT 是多余的一次往返。用真正删掉的行数分流。
+    const { deleted, error: deleteError } = await DomainService.deleteDomainWithClient(
+      authenticatedClientForDelete,
+      domainId,
+      userId
+    )
+
+    if (deleteError) {
+      const isProduction = process.env.NODE_ENV === 'production'
+      console.error('Failed to delete domain:', deleteError)
+      return NextResponse.json({
+        error: 'Failed to delete domain',
+        ...(isProduction ? {} : { details: deleteError.message })
+      }, {
         status: 500,
         headers: corsHeaders
       })
     }
-    
+
+    if (deleted === 0) {
+      return NextResponse.json({
+        error: 'Domain not found or access denied'
+      }, {
+        status: 403,
+        headers: corsHeaders
+      })
+    }
+
     return NextResponse.json({ success: true }, { headers: corsHeaders })
   } catch (error) {
     const isProduction = process.env.NODE_ENV === 'production'

@@ -36,6 +36,17 @@ class SaveRequestError extends Error {
   }
 }
 
+/** onAuthStateChange / getSession 回调里能拿到的最小形状 */
+type SessionLike = { user?: { id?: string }; expires_at?: number } | null;
+
+/** 令牌剩余寿命是否足以跳过一次 getUser() 核实。60 秒的余量同时覆盖本地
+ *  时钟偏差和 supabase-js 自己的自动刷新窗口。expires_at 是 unix 秒。 */
+function hasComfortableLifetime(session: SessionLike): boolean {
+  const expiresAt = session?.expires_at;
+  if (typeof expiresAt !== 'number') return false;
+  return expiresAt - Date.now() / 1000 > 60;
+}
+
 /**
  * 硬刷新后 Supabase 客户端可能尚未恢复 JWT，此时 RLS 会返回空列表，表现为
  * 「交易消失」。所以加载前先确认 session 就绪。
@@ -47,9 +58,19 @@ class SaveRequestError extends Error {
  * 40 × 100ms 保持一致。
  */
 async function waitForSupabaseSession(userId: string, timeoutMs = 4000): Promise<boolean> {
-  // getSession() 可能读到本地缓存；getUser() 会向 Auth 校验 JWT，再查库更不容易空列表
-  const isReady = async (session: { user?: { id?: string } } | null): Promise<boolean> => {
+  const isReady = async (session: SessionLike): Promise<boolean> => {
     if (session?.user?.id !== userId) return false;
+    // 令牌离过期还有富余 → 直接放行，省掉 getUser() 那一次网络往返。它是
+    // 首屏路径上唯一一个串行的网络跳：跑完才开始拉 domains/transactions/
+    // receipts，而 refreshData() 在每次删域名、收款增删改之后还会再跑一遍。
+    //
+    // 跳过它并不会把「令牌其实已失效」的情况伪装成成功：真失效时紧接着的
+    // 三个查询会拿到 401，loadDomainsFromSupabase 返回 success:false，走的
+    // 是下面那条抛错分支。当初引入 getUser() 是为了防「RLS 静默返回空列表」，
+    // 而空列表只在**没有** JWT 时出现——那种情况这里的 user.id 比对就已经
+    // 拦下了。所以只有令牌临近过期（本地时钟偏差、刚好卡在刷新窗口）时才
+    // 值得向 Auth 核实一次。
+    if (hasComfortableLifetime(session)) return true;
     const { data: { user }, error } = await supabase.auth.getUser();
     return !error && user?.id === userId;
   };
