@@ -657,6 +657,8 @@ const zh = {
       baseAmount: '基础金额',
       platformFee: '平台手续费',
       platformFeePercentage: '手续费百分比',
+      platformFeeAmount: '手续费金额',
+      platformFeeAmountHint: '填任一个，另一个自动换算。固定金额的手续费（例如 $250 的 Disbursement Fee）用百分比表达不精确，直接填金额。',
       netAmount: '净收入',
       buy: '购买',
       renew: '续费',
