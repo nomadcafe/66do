@@ -15,6 +15,10 @@ const allowedOrigins = process.env.NODE_ENV === 'production'
   ? productionOrigins
   : [...productionOrigins, ...developmentOrigins];
 
+// 没有 GET：用这套头的路由（domains / transactions / installment-receipts /
+// send-magic-link）全是写接口。读路径由浏览器直连 Supabase 走 RLS，唯一剩下
+// 的 GET 是同源的 /api/auth/events，它不经过 CORS。
+//
 // Auth is Bearer-only via the Authorization header (see auth-helper.ts);
 // cookies are never used for auth. We intentionally do NOT send
 // Access-Control-Allow-Credentials -- leaving it off means a future addition
@@ -26,7 +30,7 @@ export function getCorsHeaders(request: NextRequest) {
 
   return {
     'Access-Control-Allow-Origin': isAllowedOrigin ? origin! : 'https://www.domain.financial',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Methods': 'POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Refresh-Token',
     // 响应内容随 Origin 变化，必须让任何中间缓存按 Origin 分片存储。
     // 少了它，一个共享缓存可能把给 A 站点的 Allow-Origin 回给 B 站点。
@@ -44,14 +48,9 @@ export function getCorsHeadersForError(request?: NextRequest) {
 
   return {
     'Access-Control-Allow-Origin': 'https://www.domain.financial',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Methods': 'POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Refresh-Token',
     'Vary': 'Origin',
   };
 }
 
-/** 用于数据 API 的 no-cache 头，避免 304 导致返回旧数据 */
-export const noCacheHeaders = {
-  'Cache-Control': 'no-store, no-cache, must-revalidate',
-  'Pragma': 'no-cache'
-} as const;

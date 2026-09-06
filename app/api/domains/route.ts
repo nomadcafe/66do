@@ -5,51 +5,10 @@ import { validateDomain, sanitizeDomainData, DUPLICATE_DOMAIN_MESSAGE_KEY } from
 import { buildDomainInsertPayload } from '../../../src/lib/domainPayloads'
 import { getAuthInfoFromRequest } from '../../../src/lib/auth-helper'
 import { createAuthenticatedSupabaseClient } from '../../../src/lib/supabaseAuthClient'
-import { getCorsHeaders, getCorsHeadersForError, noCacheHeaders } from '../../../src/lib/cors'
+import { getCorsHeaders, getCorsHeadersForError } from '../../../src/lib/cors'
 import { MAX_BULK_OPERATION_SIZE } from '../../../src/lib/constants'
 import { checkUserWriteRateLimit } from '../../../src/lib/rateLimit'
 
-// GET /api/domains - 获取所有域名
-export async function GET(request: NextRequest) {
-  try {
-    const authInfo = await getAuthInfoFromRequest(request);
-    if (!authInfo || !authInfo.userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, {
-        status: 401,
-        headers: getCorsHeaders(request)
-      })
-    }
-    
-    const { userId, accessToken } = authInfo
-    const corsHeaders = { ...getCorsHeaders(request), ...noCacheHeaders }
-    const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken)
-    // 用 list* 而不是 get*：分页中途失败时必须报 500，不能把半截数据当成
-    // 「这个用户就这么多域名」返回给客户端。
-    const { data: domainList, error } = await DomainService.listDomainsWithClient(authenticatedClient, userId)
-    if (error) {
-      console.error('Failed to list domains:', error)
-      return NextResponse.json({ error: 'Failed to load domains' }, {
-        status: 500,
-        headers: corsHeaders
-      })
-    }
-
-    return NextResponse.json({ success: true, data: domainList }, { headers: corsHeaders })
-  } catch (error) {
-    const isProduction = process.env.NODE_ENV === 'production'
-    console.error('API Error:', error)
-    
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      ...(isProduction ? {} : { details: error instanceof Error ? error.message : 'Unknown error' })
-    }, {
-      status: 500,
-      headers: getCorsHeadersForError(request)
-    })
-  }
-}
-
-// POST /api/domains - 创建新域名
 export async function POST(request: NextRequest) {
   try {
     // 鉴权和限流都在读 body 之前：未认证或已超限的请求不该让我们花代价把

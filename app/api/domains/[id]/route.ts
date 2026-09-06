@@ -4,56 +4,9 @@ import { validateDomain, sanitizeDomainData } from '../../../../src/lib/validati
 import { buildDomainUpdatePayload } from '../../../../src/lib/domainPayloads'
 import { getAuthInfoFromRequest } from '../../../../src/lib/auth-helper'
 import { createAuthenticatedSupabaseClient } from '../../../../src/lib/supabaseAuthClient'
-import { getCorsHeaders, getCorsHeadersForError, noCacheHeaders } from '../../../../src/lib/cors'
+import { getCorsHeaders, getCorsHeadersForError } from '../../../../src/lib/cors'
 import { checkUserWriteRateLimit } from '../../../../src/lib/rateLimit'
 
-// GET /api/domains/[id] - 获取单个域名
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const authInfo = await getAuthInfoFromRequest(request);
-    if (!authInfo || !authInfo.userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { 
-        status: 401,
-        headers: getCorsHeaders(request)
-      })
-    }
-    
-    const { userId, accessToken } = authInfo
-    // 与列表 GET 一致带上 no-store：这是用户私有数据，不能让任何一层缓存留存
-    // 或用 304 回一份旧的。
-    const corsHeaders = { ...getCorsHeaders(request), ...noCacheHeaders }
-    const { id: domainId } = await params
-    const authenticatedClient = await createAuthenticatedSupabaseClient(accessToken)
-    const domain = await DomainService.getDomainByIdWithClient(authenticatedClient, domainId, userId)
-
-    if (!domain) {
-      return NextResponse.json({ 
-        error: 'Domain not found or access denied' 
-      }, { 
-        status: 404,
-        headers: corsHeaders
-      })
-    }
-    
-    return NextResponse.json({ success: true, data: domain }, { headers: corsHeaders })
-  } catch (error) {
-    const isProduction = process.env.NODE_ENV === 'production'
-    console.error('API Error:', error)
-    
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      ...(isProduction ? {} : { details: error instanceof Error ? error.message : 'Unknown error' })
-    }, {
-      status: 500,
-      headers: getCorsHeadersForError(request)
-    })
-  }
-}
-
-// PUT /api/domains/[id] - 更新域名
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

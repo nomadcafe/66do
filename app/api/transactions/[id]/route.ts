@@ -8,54 +8,6 @@ import { getCorsHeaders, getCorsHeadersForError } from '../../../../src/lib/cors
 import { isDomainOwnedByUser } from '../../../../src/lib/domainOwnership'
 import { checkUserWriteRateLimit } from '../../../../src/lib/rateLimit'
 
-// GET /api/transactions/[id] - 获取单个交易
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const authInfo = await getAuthInfoFromRequest(request)
-    if (!authInfo?.userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, {
-        status: 401,
-        headers: getCorsHeaders(request)
-      })
-    }
-
-    const corsHeaders = getCorsHeaders(request)
-    const { id: transactionId } = await params
-    const client = await createAuthenticatedSupabaseClient(authInfo.accessToken)
-    const transaction = await TransactionService.getTransactionByIdWithClient(
-      client,
-      transactionId,
-      authInfo.userId
-    )
-
-    if (!transaction) {
-      return NextResponse.json({ 
-        error: 'Transaction not found or access denied' 
-      }, { 
-        status: 404,
-        headers: corsHeaders
-      })
-    }
-    
-    return NextResponse.json({ success: true, data: transaction }, { headers: corsHeaders })
-  } catch (error) {
-    const isProduction = process.env.NODE_ENV === 'production'
-    console.error('API Error:', error)
-    
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      ...(isProduction ? {} : { details: error instanceof Error ? error.message : 'Unknown error' })
-    }, {
-      status: 500,
-      headers: getCorsHeadersForError(request)
-    })
-  }
-}
-
-// PUT /api/transactions/[id] - 更新交易
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

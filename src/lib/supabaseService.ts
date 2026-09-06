@@ -80,37 +80,6 @@ export class DomainService {
     return { data: all, error: null }
   }
 
-  /**
-   * 按 id + user_id 取单行。所有权校验/单域名读取都走这里，别再用
-   * listDomainsWithClient 拉全表再 find —— 那要多翻好几页，且早期版本里的
-   * 单页实现会让第 1001 个域名被判成"不存在"。
-   */
-  static async getDomainByIdWithClient(
-    client: SupabaseClient<Database>,
-    id: string,
-    userId: string
-  ): Promise<Domain | null> {
-    const domainId = typeof id === 'string' ? id.trim() : ''
-    if (!domainId) return null
-
-    // 注意：由于 Supabase 类型系统的限制，这里需要使用类型断言
-    // 实际运行时类型是正确的，只是 TypeScript 无法正确推断
-    const { data, error } = await (client
-      .from('domains')
-      .select('*')
-      .eq('id', domainId)
-      .eq('user_id', userId)
-      .maybeSingle() as unknown as Promise<{ data: Domain | null; error: { message: string } | null }>)
-
-    if (error) {
-      // id 不是合法 uuid 时 Postgres 会报 22P02，这里同样按"查不到"处理
-      logger.error('Error fetching domain by id:', error)
-      return null
-    }
-
-    return (data ?? null) as Domain | null
-  }
-
   static async createDomainWithClient(
     client: SupabaseClient<Database>,
     domain: DomainInsert
