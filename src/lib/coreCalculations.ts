@@ -27,26 +27,6 @@ export interface BasicFinancialMetrics {
   profitMargin: number;
 }
 
-// 高级财务指标接口。annualizedReturn / sharpeRatio 都砍了——域名销售样本
-// 稀疏 + cost basis 偶见极小（免费/$1 抢注），让指数年化和波动率两个数学
-// 体系都失效。同文件原本就因为这个理由刻意没引入 max-drawdown / volatility。
-// 长期收益由 Performance hero 上的 lifetime Net Profit / Realized ROI 表达。
-export interface AdvancedFinancialMetrics {
-  avgHoldingPeriod: number;
-}
-
-/**
- * 域名持有成本（仅已发生）：购买成本 + 已续费次数 × 单次续费成本。
- * 不含未来计划续费；若后续需「预估总持有成本」，可基于 next_renewal_date 扩展。
- */
-export function calculateDomainHoldingCost(
-  purchaseCost: number,
-  renewalCost: number,
-  renewalCount: number
-): number {
-  return purchaseCost + (renewalCount * renewalCost);
-}
-
 // 计算基础财务指标
 export function calculateBasicFinancialMetrics(
   domains: DomainWithTags[],
@@ -72,48 +52,6 @@ export function calculateBasicFinancialMetrics(
     totalProfit,
     roi,
     profitMargin
-  };
-}
-
-// 计算投资年限
-export function calculateInvestmentYears(domains: DomainWithTags[]): number {
-  if (domains.length === 0) return 1;
-  
-  const oldestDomain = domains.reduce((oldest, domain) => {
-    const domainDate = new Date(domain.purchase_date || '');
-    const oldestDate = new Date(oldest.purchase_date || '');
-    return domainDate < oldestDate ? domain : oldest;
-  }, domains[0]);
-  
-  if (!oldestDomain) return 1;
-  
-  return (new Date().getTime() - new Date(oldestDomain.purchase_date || '').getTime()) / (1000 * 60 * 60 * 24 * 365);
-}
-
-// 计算平均持有期
-export function calculateAvgHoldingPeriod(domains: DomainWithTags[]): number {
-  const soldDomains = domains.filter(d => d.status === 'sold');
-  if (soldDomains.length === 0) return 0;
-  
-  const totalDays = soldDomains.reduce((sum, domain) => {
-    const purchaseDate = new Date(domain.purchase_date || '');
-    const saleDate = new Date(domain.sale_date || domain.purchase_date || '');
-    return sum + (saleDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24);
-  }, 0);
-  
-  return totalDays / soldDomains.length;
-}
-
-// 高级财务指标。Sharpe / 年化都已经搬走或砍掉，目前只剩 avgHoldingPeriod。
-// 暂时保留 basic 参数和 transactions 参数让函数签名稳定（其他 hook 调用点），
-// 未来可考虑 inline 到 useComprehensiveFinancialAnalysis 简化。
-export function calculateAdvancedFinancialMetrics(
-  domains: DomainWithTags[],
-  _transactions: TransactionWithRequiredFields[],
-  _basic: BasicFinancialMetrics
-): AdvancedFinancialMetrics {
-  return {
-    avgHoldingPeriod: calculateAvgHoldingPeriod(domains),
   };
 }
 
