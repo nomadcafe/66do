@@ -107,6 +107,15 @@ export interface ExpiredDomainLoss {
     loss: number;
     domainCount: number;
   }>;
+  /**
+   * expiredDomains 里没有任何成本数据的域名数（totalInvestment <= 0）。
+   *
+   * 它们照样是已损失的域名，只是没填 purchase_cost —— 所以计入个数、但对
+   * totalLoss 贡献 0，合计因此偏低。以前这类域名被整个丢弃，全部过期域名都
+   * 没填成本时 expiredDomains 会是空的，界面于是弹出「恭喜！您没有因域名过期
+   * 造成的损失」，而同一张卡下方的状态统计里明写着「已过期: N」。
+   */
+  unknownCostCount: number;
 }
 
 // 计算过期域名损失
@@ -127,6 +136,7 @@ export function calculateExpiredDomainLoss(
   const expiredDomains: ExpiredDomainLoss['expiredDomains'] = [];
   const annualLoss: { [year: string]: number } = {};
   let totalLoss = 0;
+  let unknownCostCount = 0;
 
   domains.forEach(domain => {
     // 损失 = 用户手动标 expired（主动放弃）+ 过期超过宽限期仍未续费（自动冲销）。
@@ -154,7 +164,10 @@ export function calculateExpiredDomainLoss(
     const transferCost = transactions ? transferCostForDomain(domain.id, transactions) : 0;
     const totalInvestment = purchaseCost + renewalCost + transferCost;
 
-    if (totalInvestment <= 0) return;
+    // 没有成本数据的照样计入：它是一个已经损失掉的域名，这是事实；
+    // 只是金额未知，由 unknownCostCount 单独报出来，别让它把整个板块变成
+    // 「恭喜，没有过期域名」。
+    if (totalInvestment <= 0) unknownCostCount++;
 
     let lossYear: string;
     if (expiryDate) {
@@ -194,6 +207,7 @@ export function calculateExpiredDomainLoss(
     totalLoss,
     annualLoss,
     expiredDomains,
-    lossByYear
+    lossByYear,
+    unknownCostCount
   };
 }

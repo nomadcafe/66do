@@ -58,16 +58,17 @@ export default function ExpiredDomainLossAnalysis({ domains, transactions = [] }
 
   // thisYearLoss feeds the headline tile; averageLossPerDomain is now
   // always cumulative (no swap to "this year average" when current year
-  // has data — fixed semantic so the label doesn't lie). thisYearCount
-  // was used by the old swapping logic and is no longer needed.
-  const { thisYearLoss, averageLossPerDomain } = useMemo(() => {
+  // has data — fixed semantic so the label doesn't lie).
+  //
+  // 平均值的分母是「有成本数据的」过期域名，不是全部：没填 purchase_cost 的
+  // 域名对 totalLoss 贡献 0，把它们算进分母会把均值稀释成一个谁也不认识的数。
+  // 个数 tile 用的仍是真实总数，两者的差由下方的提示说明。
+  const { thisYearLoss, averageLossPerDomain, pricedCount } = useMemo(() => {
     const currentYear = new Date().getFullYear().toString();
     const tyLoss = lossAnalysis.annualLoss[currentYear] || 0;
-    const avg =
-      lossAnalysis.expiredDomains.length > 0
-        ? lossAnalysis.totalLoss / lossAnalysis.expiredDomains.length
-        : 0;
-    return { thisYearLoss: tyLoss, averageLossPerDomain: avg };
+    const priced = lossAnalysis.expiredDomains.length - lossAnalysis.unknownCostCount;
+    const avg = priced > 0 ? lossAnalysis.totalLoss / priced : 0;
+    return { thisYearLoss: tyLoss, averageLossPerDomain: avg, pricedCount: priced };
   }, [lossAnalysis]);
 
   const statusCounts = useMemo(
@@ -120,6 +121,7 @@ export default function ExpiredDomainLossAnalysis({ domains, transactions = [] }
   }
 
   const hasThisYearLoss = thisYearLoss > 0;
+  const hasPricedLoss = pricedCount > 0;
 
   return (
     <div className="space-y-5">
@@ -202,12 +204,36 @@ export default function ExpiredDomainLossAnalysis({ domains, transactions = [] }
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
                 {t('analytics.averageLossPerDomain')}
               </p>
-              <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-stone-900">
-                {formatCurrency(averageLossPerDomain)}
-              </p>
+              {hasPricedLoss ? (
+                <>
+                  <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-stone-900">
+                    {formatCurrency(averageLossPerDomain)}
+                  </p>
+                  {lossAnalysis.unknownCostCount > 0 && (
+                    <p className="mt-0.5 text-xs text-stone-500 tabular-nums">
+                      {t('analytics.avgLossDenominator').replace('{count}', String(pricedCount))}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="mt-1 text-xl font-bold tracking-tight text-stone-300">—</p>
+              )}
             </div>
           </div>
         </div>
+
+        {/* 有过期域名但没填成本：合计和均值都是偏低/算不出的，说明白，
+            别让用户以为「损失 $0」是好消息。 */}
+        {lossAnalysis.unknownCostCount > 0 && (
+          <div className="relative border-t border-stone-200/70 px-5 py-3 sm:px-6">
+            <p className="text-xs text-stone-500">
+              {t('analytics.expiredUnknownCost').replace(
+                '{count}',
+                String(lossAnalysis.unknownCostCount)
+              )}
+            </p>
+          </div>
+        )}
       </div>
 
       {lossAnalysis.lossByYear.length > 0 && (
