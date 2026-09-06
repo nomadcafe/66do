@@ -5,6 +5,7 @@ import React, { lazy, Suspense } from 'react';
 // 懒加载组件
 export const LazyFinancialAnalysis = lazy(() => import('./reports/FinancialAnalysisOptimized'));
 export const LazyInvestmentAnalytics = lazy(() => import('./analytics/InvestmentAnalytics'));
+export const LazyUpcomingRenewals = lazy(() => import('./analytics/UpcomingRenewals'));
 export const LazyAdvancedRenewalAnalysis = lazy(() => import('./analytics/AdvancedRenewalAnalysis'));
 export const LazyExpiredDomainLossAnalysis = lazy(() => import('./analytics/ExpiredDomainLossAnalysis'));
 export const LazyYearlyCashflowTable = lazy(() => import('./analytics/YearlyCashflowTable'));

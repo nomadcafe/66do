@@ -6,6 +6,7 @@ import { TrendingUp, Award, Target, Clock } from 'lucide-react';
 import {
   LazyFinancialAnalysis,
   LazyInvestmentAnalytics,
+  LazyUpcomingRenewals,
   LazyAdvancedRenewalAnalysis,
   LazyExpiredDomainLossAnalysis,
   LazyYearlyCashflowTable,
@@ -293,6 +294,9 @@ export default function InsightsTab({
 
       {visited.has('renewals') && (
         <div className="space-y-6" hidden={activeSubTab !== 'renewals'}>
+          <LazyWrapper>
+            <LazyUpcomingRenewals domains={domains} />
+          </LazyWrapper>
           <LazyWrapper>
             <LazyAdvancedRenewalAnalysis domains={domains} transactions={transactionsForMetrics} />
           </LazyWrapper>
