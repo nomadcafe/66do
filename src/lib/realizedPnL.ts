@@ -17,7 +17,14 @@ import { expandSellToCashReceipts } from './coreCalculations';
 import { holdingCostAsOf } from './renewalCostBasis';
 import { sellNetUSD } from './sellProceeds';
 import type { DomainWithTags, TransactionWithRequiredFields } from '../types/dashboard';
-import { parseLocalCalendarDate } from './localCalendarDate';
+import { localMonthKey, parseLocalCalendarDate } from './localCalendarDate';
+
+/** 成交月的 1 号零点。净额 <= 0 的成交没有到账序列，整笔盈亏归到这个月。 */
+function saleMonthStartOf(date: string): Date | null {
+  const d = parseLocalCalendarDate(date);
+  if (!d) return null;
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
 
 /** 累计已实现盈亏（截至 asOf；缺省 = 当下） */
 export function totalRealizedPnL(
@@ -33,9 +40,19 @@ export function totalRealizedPnL(
     const domain = domainsById.get(t.domain_id);
     if (!domain) continue;
     const sellNet = sellNetUSD(t);
-    if (sellNet <= 0) continue;
     const costBasis = holdingCostAsOf(domain, transactions, parseLocalCalendarDate(t.date) ?? new Date(NaN));
     const tradePnL = sellNet - costBasis;
+
+    // sellNet <= 0（白送、平台费吃光、净额填成负数）：share 的分母就是 sellNet，
+    // 分摊机制在这里没有意义。这类成交没有到账序列可言，整笔亏损直接落在成交月。
+    // 以前这里是 `continue` —— 亏得最狠的那类交易反而从 Realized P&L 里消失了，
+    // 而它的成本仍然在 Total Investment 里，账对不上。
+    if (sellNet <= 0) {
+      const saleMonthStart = saleMonthStartOf(t.date);
+      if (saleMonthStart && saleMonthStart.getTime() <= asOfMs) total += tradePnL;
+      continue;
+    }
+
     for (const r of expandSellToCashReceipts(t)) {
       const receiptDate = parseLocalCalendarDate(`${r.monthKey}-01`) ?? new Date(NaN);
       // 月级精度：到账月 > asOf 月份的 receipt 不计
@@ -59,9 +76,20 @@ export function realizedPnLByMonth(
     const domain = domainsById.get(t.domain_id);
     if (!domain) continue;
     const sellNet = sellNetUSD(t);
-    if (sellNet <= 0) continue;
     const costBasis = holdingCostAsOf(domain, transactions, parseLocalCalendarDate(t.date) ?? new Date(NaN));
     const tradePnL = sellNet - costBasis;
+
+    // 与 totalRealizedPnL 同一条规则：净额 <= 0 没有可分摊的到账序列，
+    // 整笔落在成交月，而不是被丢掉。
+    if (sellNet <= 0) {
+      const saleMonthStart = saleMonthStartOf(t.date);
+      if (saleMonthStart) {
+        const key = localMonthKey(saleMonthStart);
+        map.set(key, (map.get(key) ?? 0) + tradePnL);
+      }
+      continue;
+    }
+
     for (const r of expandSellToCashReceipts(t)) {
       const share = r.netAmount / sellNet;
       map.set(r.monthKey, (map.get(r.monthKey) ?? 0) + tradePnL * share);
@@ -126,8 +154,12 @@ export function tradeOutcomes(
     if (t.type !== 'sell') continue;
     const domain = domainsById.get(t.domain_id);
     if (!domain) continue;
+    // 净额 <= 0 的成交不再跳过。它们是真实完成的交易（白送、平台费吃光、
+    // 记了退款），profit = sellNet − costBasis 是一笔实打实的亏损；而
+    // calculateBasicFinancialMetrics 的 totalRevenue 从来不过滤它们。以前
+    // 这里一 continue，同一屏上 Total Revenue 认这笔、Top Performers 和
+    // Realized ROI 不认，亏得最狠的那笔还永远当不上 worst sale。
     const sellNet = sellNetUSD(t);
-    if (sellNet <= 0) continue;
     const saleDateObj = parseLocalCalendarDate(t.date) ?? new Date(NaN);
     const costBasis = holdingCostAsOf(domain, transactions, saleDateObj);
     const profit = sellNet - costBasis;
@@ -171,18 +203,23 @@ export function realizedROI(
   domains: DomainWithTags[],
   transactions: TransactionWithRequiredFields[]
 ): number {
+  return realizedROIFromTrades(tradeOutcomes(domains, transactions));
+}
+
+/**
+ * 同上，但直接吃已经算好的 tradeOutcomes。
+ *
+ * 调用方往往两个都要（FinancialAnalysis 的 Top Performers + ROI tile 就是），
+ * 而这两个函数原本是同一个循环写了两遍——filter sell → 查 domain → 算
+ * holdingCostAsOf。走这个入口，每笔出售的 cost basis 只算一次，两个数字也
+ * 不可能再各自漂移。
+ */
+export function realizedROIFromTrades(trades: TradeOutcome[]): number {
   let pnl = 0;
   let costSold = 0;
-  const domainsById = new Map(domains.map((d) => [d.id, d]));
-  for (const t of transactions) {
-    if (t.type !== 'sell') continue;
-    const domain = domainsById.get(t.domain_id);
-    if (!domain) continue;
-    const sellNet = sellNetUSD(t);
-    if (sellNet <= 0) continue;
-    const cb = holdingCostAsOf(domain, transactions, parseLocalCalendarDate(t.date) ?? new Date(NaN));
-    pnl += sellNet - cb;
-    costSold += cb;
+  for (const tr of trades) {
+    pnl += tr.profit;
+    costSold += tr.costBasisAtSale;
   }
   return costSold > 0 ? (pnl / costSold) * 100 : 0;
 }

@@ -209,6 +209,7 @@ const en = {
       totalRevenue: 'Total Revenue',
       totalProfit: 'Net Profit',
       roi: 'ROI',
+      realizedRoi: 'Realized ROI',
       profitMargin: 'Profit Margin',
       profitMarginCalculation: 'Profit Margin = (Net Profit / Total Revenue) × 100% (Cumulative Total, Not Annual)',
       annualProfitMargin: 'Annual Profit Margin',
@@ -1024,6 +1025,7 @@ const en = {
         '3Y': 'Last 3 Years',
         'ALL': 'All Time'
       },
+      investmentIncludesRenewals: 'Purchases plus renewals — the Renewal Cost tile is part of this number, not on top of it.',
       investment: 'Investment',
       renewalCost: 'Renewal cost',
       revenue: 'Revenue',
