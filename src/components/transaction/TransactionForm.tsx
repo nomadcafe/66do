@@ -384,16 +384,50 @@ export default function TransactionForm({
     [formData.amount, installmentFee]
   );
 
+  const applyAutoPlatformFee = () => {
+    if (autoPlatformFee === null) return;
+    setFeeManuallyEdited(true);
+    setFormData((prev) => ({
+      ...prev,
+      platform_fee: autoPlatformFee,
+      platform_fee_percentage:
+        prev.amount > 0
+          ? Math.round((autoPlatformFee / prev.amount) * 100 * 10000) / 10000
+          : prev.platform_fee_percentage,
+    }));
+  };
+
   useEffect(() => {
     // 用户一旦手动改过费用，就不再覆盖他的输入
     if (feeManuallyEdited) return;
     if (autoPlatformFee === null) return;
     setFormData((prev) => {
       if (Math.abs(prev.platform_fee - autoPlatformFee) < 0.005) return prev;
-      const pct = prev.amount > 0 ? (autoPlatformFee / prev.amount) * 100 : 0;
+      const pct =
+        prev.amount > 0
+          ? Math.round((autoPlatformFee / prev.amount) * 100 * 10000) / 10000
+          : prev.platform_fee_percentage;
       return { ...prev, platform_fee: autoPlatformFee, platform_fee_percentage: pct };
     });
   }, [autoPlatformFee, feeManuallyEdited]);
+
+  /**
+   * 「算出来的费用和当前填的对不上」——只提示，不自动改。
+   *
+   * 编辑既有交易时 feeManuallyEdited 一开始就是 true（库里的值优先，历史交易
+   * 可能按当时的费率成交），所以自动写入不会碰它。但在这个 bug 修好之前
+   * platform_fee 从来没被写过，库里所有分期销售的这个字段都是 0——那不是
+   * "当时的费率是 0"，而是"从没记过"。守卫因此在保护一个不存在的值，修复永远
+   * 到不了历史数据。
+   *
+   * 又不能反过来打开即改：用户可能只是来改个备注，钱的字段不该静默变动。
+   * 所以走显式的一键填入，把差异摆出来让用户自己决定。
+   */
+  const platformFeeMismatch =
+    autoPlatformFee !== null &&
+    Math.abs(formData.platform_fee - autoPlatformFee) > 0.005
+      ? autoPlatformFee
+      : null;
 
   // 只有 transfer 的金额可以是 0（免费 push / 同注册商内部转移），与
   // validateTransaction 的口径保持一致。
@@ -892,6 +926,23 @@ export default function TransactionForm({
                 className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="0.00"
               />
+              {platformFeeMismatch !== null && (
+                <div className="mt-1.5 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-2">
+                  <p className="text-xs text-amber-900">
+                    {t('transaction.platformFeeMismatch').replace(
+                      '{amount}',
+                      formatCurrencyAmount(platformFeeMismatch, formData.currency)
+                    )}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={applyAutoPlatformFee}
+                    className="mt-1 text-xs font-medium text-amber-800 underline hover:text-amber-900"
+                  >
+                    {t('transaction.platformFeeMismatchApply')}
+                  </button>
+                </div>
+              )}
               <p className="mt-1 text-xs text-stone-500">
                 {t('transaction.platformFeeAmountHint')}
               </p>
