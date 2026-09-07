@@ -9,6 +9,7 @@ import {
 } from '../../lib/platformFeeCalculator';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
+import { parseLocalCalendarDate } from '../../lib/localCalendarDate';
 import DateInput from '../ui/DateInput';
 import InstallmentConfig from './InstallmentConfig';
 
@@ -83,7 +84,12 @@ export default function TransactionForm({
   // 续费成本历史状态
   const [renewalCostHistory, setRenewalCostHistory] = useState<Array<{
     date: string;
+    /** 该笔续费的总额（用户当时实付） */
     cost: number;
+    /** 这笔续费覆盖的年数 */
+    years: number;
+    /** cost / years —— 唯一可比的口径 */
+    costPerYear: number;
     currency: string;
   }>>([]);
   const [showCostHistory, setShowCostHistory] = useState(false);
@@ -260,6 +266,9 @@ export default function TransactionForm({
     }
 
     const editingId = transaction?.id;
+    const dom = domains.find((d) => d.id === formData.domain_id);
+    const domCycle = Math.max(1, Math.floor(dom?.renewal_cycle ?? 1) || 1);
+
     const history = (existingTransactions || [])
       .filter(
         (t) =>
@@ -267,22 +276,42 @@ export default function TransactionForm({
           t.domain_id === formData.domain_id &&
           (!editingId || t.id !== editingId)
       )
-      .map((t) => ({
-        date: String(t.date).slice(0, 10),
-        cost: Number(t.amount) || 0,
-        currency: t.currency || 'USD',
-      }))
+      .map((t) => {
+        // 年数缺失时退回域名的续费周期，与 expandRenewalEvents 的兜底一致
+        const years = Math.max(1, Math.floor(t.renewal_period_years ?? domCycle) || domCycle);
+        const cost = Number(t.amount) || 0;
+        return {
+          date: String(t.date).slice(0, 10),
+          cost,
+          years,
+          costPerYear: cost / years,
+          currency: t.currency || 'USD',
+        };
+      })
       .sort((a, b) => b.date.localeCompare(a.date));
 
     setRenewalCostHistory(history);
 
     if (history.length > 0) {
-      const avg = history.reduce((sum, r) => sum + r.cost, 0) / history.length;
-      setSuggestedRenewalCost(avg);
+      // 先按年归一再平均，最后乘回当前这笔要续的年数。
+      // 直接对 amount 取平均是错的：一笔 3 年 $36 和一笔 1 年 $12 是同一个价，
+      // 裸平均给出 $24——而这个建议是个点一下就写进 amount 的按钮，旁边就是
+      // 「续费年数」选择器。同一个归一化问题在 renewalCostService 里也修过。
+      const avgPerYear =
+        history.reduce((sum, r) => sum + r.costPerYear, 0) / history.length;
+      const years = Math.max(1, Math.floor(Number(formData.renewal_period_years)) || 1);
+      setSuggestedRenewalCost(avgPerYear * years);
     } else {
       setSuggestedRenewalCost(null);
     }
-  }, [formData.domain_id, formData.type, existingTransactions, transaction?.id]);
+  }, [
+    formData.domain_id,
+    formData.type,
+    formData.renewal_period_years,
+    existingTransactions,
+    transaction?.id,
+    domains,
+  ]);
 
   /**
    * 自动计算每期金额 —— **毛额口径**：amount 的纯拆分，不预扣任何佣金。
@@ -618,7 +647,7 @@ export default function TransactionForm({
                     </button>
                   </div>
 
-                  {suggestedRenewalCost && (
+                  {suggestedRenewalCost !== null && suggestedRenewalCost > 0 && (
                     <div className="mb-2">
                       <span className="text-sm text-blue-700">
                         {t('transaction.suggestedCost')}: {formatCurrencyAmount(suggestedRenewalCost, formData.currency)}
@@ -630,6 +659,24 @@ export default function TransactionForm({
                       >
                         {t('transaction.useSuggested')}
                       </button>
+                      {/* 说明这个数是怎么来的：按年均价 × 当前选的年数。
+                          不写出来的话，改一下「续费年数」建议值就变了，看着像 bug。 */}
+                      <p className="mt-0.5 text-xs text-blue-600">
+                        {t('transaction.suggestedCostHint')
+                          .replace(
+                            '{perYear}',
+                            formatCurrencyAmount(
+                              suggestedRenewalCost /
+                                Math.max(1, Math.floor(Number(formData.renewal_period_years)) || 1),
+                              formData.currency
+                            )
+                          )
+                          .replace(
+                            '{years}',
+                            String(Math.max(1, Math.floor(Number(formData.renewal_period_years)) || 1))
+                          )
+                          .replace('{count}', String(renewalCostHistory.length))}
+                      </p>
                     </div>
                   )}
 
@@ -638,9 +685,21 @@ export default function TransactionForm({
                       {renewalCostHistory.length > 0 ? (
                         <div className="space-y-1">
                           {renewalCostHistory.map((record, index) => (
-                            <div key={index} className="flex justify-between text-xs text-blue-700">
-                              <span>{new Date(record.date).toLocaleDateString()}</span>
-                              <span>{formatCurrencyAmount(record.cost, record.currency)}</span>
+                            <div key={index} className="flex justify-between gap-2 text-xs text-blue-700">
+                              {/* 日期列按本地日历日解析：new Date('2025-03-10') 走 ISO
+                                  规则当 UTC 午夜，在负偏移时区会显示成前一天。 */}
+                              <span>
+                                {(parseLocalCalendarDate(record.date) ?? new Date(record.date)).toLocaleDateString()}
+                              </span>
+                              <span className="text-right">
+                                {formatCurrencyAmount(record.cost, record.currency)}
+                                {record.years > 1 && (
+                                  <span className="ml-1 text-blue-500">
+                                    ({record.years}y ·{' '}
+                                    {formatCurrencyAmount(record.costPerYear, record.currency)}/y)
+                                  </span>
+                                )}
+                              </span>
                             </div>
                           ))}
                         </div>

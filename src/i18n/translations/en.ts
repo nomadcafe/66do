@@ -860,6 +860,7 @@ const en = {
       showHistory: 'Show History',
       hideHistory: 'Hide History',
       suggestedCost: 'Suggested cost',
+      suggestedCostHint: 'Average {perYear}/yr across {count} past renewal(s), scaled to {years} year(s).',
       useSuggested: 'Use suggested',
       noRenewalHistory: 'No renewal history found',
       categoryPlaceholder: 'Investment, Marketing, etc.',
