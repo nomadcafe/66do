@@ -2,9 +2,9 @@
 
 import { formatCurrencyAmount } from '../../lib/exchangeRates';
 import {
-  calculateCustomerTotalFromInstallment,
   calculatePaidAmountFromInstallment,
-  calculateTotalInstallmentAmount
+  calculateTotalInstallmentAmount,
+  installmentFeeFromFormValues
 } from '../../lib/platformFeeCalculator';
 import { useI18nContext } from '../../contexts/I18nProvider';
 
@@ -434,29 +434,14 @@ export default function InstallmentConfig({
                 <h5 className="text-sm font-medium text-yellow-900 mb-2">{t('transaction.platformFeeCalculation')}</h5>
                 {(() => {
                   try {
-                    const installmentFeeRateOverride =
-                      platformFeePercentage > 0 ? platformFeePercentage / 100 : undefined;
-                    const result = calculateCustomerTotalFromInstallment(
-                      values.installment_amount,
-                      values.installment_period,
-                      values.platform_fee_type || 'standard',
-                      installmentFeeRateOverride,
-                      values.escrow_transaction_fee,
-                      values.escrow_holding_fee ?? undefined,
-                      values.user_input_fee_rate,
-                      values.user_input_surcharge_rate,
-                      {
-                        downpaymentAmount: values.downpayment_amount,
-                        finalPaymentAmount: values.final_payment_amount,
-                        afternicNsPointed: values.afternic_ns_pointed,
-                        afternicPremiumAddon: values.afternic_premium_addon,
-                        grossAmount: amount,
-                        atomCommissionTier: values.atom_commission_tier,
-                        atomNoCoin: values.atom_no_coin,
-                        atomCustomCommissionRate: values.atom_custom_commission_rate,
-                        escrowLeaseType: values.escrow_lease_type,
-                      }
-                    );
+                    // 参数拼装收在 installmentFeeFromFormValues 里：TransactionForm
+                    // 要用同一个结果去写 platform_fee，两边各拼一次迟早会漂。
+                    const result = installmentFeeFromFormValues({
+                      amount,
+                      platformFeePercentage,
+                      ...values,
+                    });
+                    if (!result) return null;
 
                     return (
                       <div className="text-sm text-yellow-800 space-y-1">

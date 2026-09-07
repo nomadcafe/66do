@@ -7,6 +7,8 @@ import {
   getAfternicEffectiveCommissionRate,
   getAtomBaseCommissionAmount,
   getAtomSurchargeRate,
+  installmentFeeFromFormValues,
+  sellerSidePlatformFee,
   ATOM_SURCHARGE_SELLER_SHARE,
 } from '../../lib/platformFeeCalculator';
 import { useI18nContext } from '../../contexts/I18nProvider';
@@ -90,6 +92,8 @@ export default function TransactionForm({
   }>>([]);
   const [showCostHistory, setShowCostHistory] = useState(false);
   const [suggestedRenewalCost, setSuggestedRenewalCost] = useState<number | null>(null);
+  // 用户是否手动动过平台费。动过就不再被分期自动计算覆盖。
+  const [feeManuallyEdited, setFeeManuallyEdited] = useState(false);
   const [domainSearch, setDomainSearch] = useState('');
   const [domainDropdownOpen, setDomainDropdownOpen] = useState(false);
   const domainPickerRef = useRef<HTMLDivElement>(null);
@@ -185,6 +189,9 @@ export default function TransactionForm({
           ? Math.min(10, Math.max(1, Math.floor(Number(stored))))
           : cycle;
       const useCustom = !isTransfer && hasStored && years !== cycle;
+      // 编辑既有交易：库里存的 platform_fee 就是权威值，视作"已手动确定"，
+      // 不让自动计算把它改掉——历史交易可能是按当时的费率成交的。
+      setFeeManuallyEdited(true);
       setFormData({
         domain_id: transaction.domain_id,
         type: transaction.type,
@@ -229,6 +236,7 @@ export default function TransactionForm({
         renewal_years_use_custom: useCustom
       });
     } else {
+      setFeeManuallyEdited(false);
       setFormData(buildEmptyFormData());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅随 transaction 重置；domains 见下方续费周期同步 effect
@@ -332,6 +340,47 @@ export default function TransactionForm({
     formData.user_input_surcharge_rate,
   ]);
 
+  /**
+   * 分期销售的平台费自动写入。
+   *
+   * 这是这个表单最严重的一个洞：InstallmentConfig 的费用预览框一直在算并显示
+   * 「平台费 $1,500 (15%)」，但 formData.platform_fee 只有三个写入点——初始 0、
+   * 编辑时读旧值、用户手填的那两个输入框。预览算出来的数字从来没有回到表单。
+   * 于是 performSave 存下 platform_fee = 0、net_amount = amount = 毛额：
+   *   - Total Revenue / Net Profit 以为卖家收了标价全款
+   *   - expandSellToCashReceipts 的 feeRate = fee/gross = 0，所有净额线按毛额走
+   *   - Performance 的「Platform Fees」tile 恒为 $0
+   * 用户唯一的补救是自己把预览框里的数字手抄进上面的费用输入框，界面没有任何
+   * 地方提示要这么做，校验也不要求。
+   *
+   * 存的是 sellerSidePlatformFee（amount − 卖家净收入），不是 result.platformFee
+   * ——后者含买家服务费 / surcharge，那是买家额外付的，从来不是卖家的钱。
+   */
+  const installmentFee = useMemo(() => {
+    if (formData.type !== 'sell' || formData.payment_plan !== 'installment') return null;
+    return installmentFeeFromFormValues({
+      ...formData,
+      amount: formData.amount,
+      platformFeePercentage: formData.platform_fee_percentage,
+    });
+  }, [formData]);
+
+  const autoPlatformFee = useMemo(
+    () => sellerSidePlatformFee(formData.amount, installmentFee),
+    [formData.amount, installmentFee]
+  );
+
+  useEffect(() => {
+    // 用户一旦手动改过费用，就不再覆盖他的输入
+    if (feeManuallyEdited) return;
+    if (autoPlatformFee === null) return;
+    setFormData((prev) => {
+      if (Math.abs(prev.platform_fee - autoPlatformFee) < 0.005) return prev;
+      const pct = prev.amount > 0 ? (autoPlatformFee / prev.amount) * 100 : 0;
+      return { ...prev, platform_fee: autoPlatformFee, platform_fee_percentage: pct };
+    });
+  }, [autoPlatformFee, feeManuallyEdited]);
+
   // 只有 transfer 的金额可以是 0（免费 push / 同注册商内部转移），与
   // validateTransaction 的口径保持一致。
   const allowsZeroAmount = formData.type === 'transfer';
@@ -403,6 +452,7 @@ export default function TransactionForm({
 
       if (keepOpen) {
         // 重置表单但保留当前域名，方便连续录入同一域名的多笔交易
+        setFeeManuallyEdited(false);
         setFormData(buildEmptyFormData({ preserveDomainId: formData.domain_id }));
       } else {
         onClose();
@@ -754,6 +804,7 @@ export default function TransactionForm({
                 step="0.01"
                 value={formData.platform_fee_percentage === 0 ? '' : formData.platform_fee_percentage}
                 onChange={(e) => {
+                  setFeeManuallyEdited(true);
                   const percentage = parseFloat(e.target.value) || 0;
                   const calculatedFee = (formData.amount * percentage) / 100;
                   setFormData({
@@ -778,6 +829,7 @@ export default function TransactionForm({
                 step="0.01"
                 value={formData.platform_fee === 0 ? '' : formData.platform_fee}
                 onChange={(e) => {
+                  setFeeManuallyEdited(true);
                   const fee = parseFloat(e.target.value) || 0;
                   // 反推百分比只是为了让另一个框显示得上；amount 为 0 时无从反推，
                   // 保留百分比不动，避免出现 NaN / Infinity。
