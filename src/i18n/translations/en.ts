@@ -699,6 +699,8 @@ const en = {
       platformFee: 'Platform Fee',
       platformFeePercentage: 'Platform Fee %',
       platformFeeAmount: 'Platform Fee Amount',
+      platformFeeMismatch: 'This installment configuration works out to {amount} in seller-side platform fees.',
+      platformFeeMismatchApply: 'Use the calculated fee',
       platformFeeAmountHint: 'Enter either one — the other is derived. Use this for flat fees (e.g. a $250 disbursement fee) that a percentage cannot express exactly.',
       netAmount: 'Net Amount',
       buy: 'Buy',
