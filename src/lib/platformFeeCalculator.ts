@@ -637,6 +637,93 @@ export function calculateCustomerTotalFromInstallment(
   });
 }
 
+/** installmentFeeFromFormValues 的入参：表单上与费用相关的全部字段 */
+export interface InstallmentFeeFormValues {
+  /** 出售毛额（表单 amount，= listPrice） */
+  amount: number;
+  /** 表单的平台费百分比（0–100）。> 0 时覆盖该平台的默认费率。 */
+  platformFeePercentage: number;
+  installment_amount: number;
+  installment_period: number;
+  platform_fee_type: string;
+  downpayment_amount: number;
+  final_payment_amount: number;
+  user_input_fee_rate: number;
+  user_input_surcharge_rate: number;
+  afternic_ns_pointed: boolean;
+  afternic_premium_addon: boolean;
+  atom_commission_tier: AtomCommissionTier;
+  atom_no_coin: boolean;
+  atom_custom_commission_rate: number;
+  escrow_lease_type: EscrowLeaseType;
+  /** null = 未记录（自动估算）；数字含 0 = 明确值 */
+  escrow_holding_fee: number | null;
+  escrow_transaction_fee: number;
+}
+
+/**
+ * 从表单字段算出这笔分期的平台费。
+ *
+ * 存在的意义是「只有一处地方知道怎么拼这些参数」：这套参数原本在
+ * InstallmentConfig 的 JSX 里内联拼装，而 TransactionForm 需要同一个结果去写
+ * platform_fee —— 两边各拼一次迟早会漂。算不出来时返回 null（没有分期金额）。
+ */
+export function installmentFeeFromFormValues(
+  v: InstallmentFeeFormValues
+): PlatformFeeResult | null {
+  if (!(v.installment_amount > 0)) return null;
+  const feeRateOverride =
+    v.platformFeePercentage > 0 ? v.platformFeePercentage / 100 : undefined;
+  try {
+    return calculateCustomerTotalFromInstallment(
+      v.installment_amount,
+      v.installment_period,
+      v.platform_fee_type || 'standard',
+      feeRateOverride,
+      v.escrow_transaction_fee,
+      v.escrow_holding_fee ?? undefined,
+      v.user_input_fee_rate,
+      v.user_input_surcharge_rate,
+      {
+        downpaymentAmount: v.downpayment_amount,
+        finalPaymentAmount: v.final_payment_amount,
+        afternicNsPointed: v.afternic_ns_pointed,
+        afternicPremiumAddon: v.afternic_premium_addon,
+        grossAmount: v.amount,
+        atomCommissionTier: v.atom_commission_tier,
+        atomNoCoin: v.atom_no_coin,
+        atomCustomCommissionRate: v.atom_custom_commission_rate,
+        escrowLeaseType: v.escrow_lease_type,
+      }
+    );
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 该笔交易应记的 platform_fee —— **卖家侧**的扣减，不含买家服务费 / surcharge。
+ *
+ * 口径由 schema 决定：performSave 存的是 net_amount = amount − platform_fee，
+ * 而 amount 是标价。所以 platform_fee 必须正好等于 amount − 卖家净收入，
+ * 这样 net_amount 才等于卖家真正到手的钱。直接把 result.platformFee 存进去是
+ * 错的——它含 Afternic 的买家服务费 / Atom 的 surcharge，那部分是买家额外付的，
+ * 从来不是卖家的钱，扣进 net_amount 会把卖家收入算低一大截。
+ *
+ * Atom 的 surcharge 分成可能让卖家净收入超过标价，这时返回 0（schema 里
+ * net_amount 不能大于 amount）。
+ */
+export function sellerSidePlatformFee(
+  amount: number,
+  result: PlatformFeeResult | null
+): number | null {
+  if (!result) return null;
+  if (!(amount > 0)) return null;
+  const fee = amount - result.sellerNetAmount;
+  if (!Number.isFinite(fee)) return null;
+  return Math.max(0, fee);
+}
+
 /**
  * 根据已付期数计算实际收到的金额和平台费用
  * Spaceship / Standard 分期：与分期总额算法一致；已付部分按「已收/分期总额」比例分摊平台费
