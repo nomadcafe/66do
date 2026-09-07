@@ -24,6 +24,12 @@ export interface PlatformFeeConfig {
   atomCommissionTier?: AtomCommissionTier;
   atomNoCoin?: boolean; // 仅在 Premium 且 listPrice ≤ $4,998 时把 30% 顶到 35%
   atomCustomCommissionRate?: number; // tier='custom' 时使用；其它 tier 也可作为覆盖
+  /**
+   * sellerAmount 传的是标价而不是卖家净收入。
+   * 表单路径必须为 true：表单上的 amount 一直是标价，分期金额是它的拆分，
+   * 再按 net/(1−佣金率) 反推一次就会把标价放大一圈。
+   */
+  amountIsListPrice?: boolean;
 }
 
 export interface PlatformFeeResult {
@@ -95,6 +101,7 @@ export function calculatePlatformFee(config: PlatformFeeConfig): PlatformFeeResu
     atomNoCoin,
     atomCustomCommissionRate,
     escrowLeaseType,
+    amountIsListPrice,
   } = config;
 
   switch (type) {
@@ -107,7 +114,8 @@ export function calculatePlatformFee(config: PlatformFeeConfig): PlatformFeeResu
         installmentPeriod,
         userInputFeeRate,
         afternicNsPointed,
-        afternicPremiumAddon
+        afternicPremiumAddon,
+        amountIsListPrice
       );
 
     case 'atom_installment':
@@ -210,7 +218,9 @@ function calculateAfternicInstallmentFee(
   installmentPeriod: number,
   userInputFeeRate?: number,
   afternicNsPointed?: boolean,
-  afternicPremiumAddon?: boolean
+  afternicPremiumAddon?: boolean,
+  /** true = sellerAmount 传的其实是标价（listPrice），不要再往上反推 */
+  amountIsListPrice?: boolean
 ): PlatformFeeResult {
   // Buyer service fee (added to list price): 2–12 months 0%, 13–24 10%, 25–36 20%, 37–60 30%
   // Only use userInputFeeRate when explicitly set; default 0 from form means "use tier" (so 37–60 gets 30%)
@@ -242,22 +252,21 @@ function calculateAfternicInstallmentFee(
     afternicPremiumAddon
   );
 
-  // 重新设计计算逻辑
-  // 当佣金为0时，卖家净收入 = 标价
-  // 当佣金不为0时，卖家净收入 = 标价 * (1 - 佣金率)
-  let listPrice: number;
-  if (effectiveCommissionRate === 0) {
-    // 佣金为0时，卖家净收入 = 标价
-    listPrice = sellerAmount;
-  } else {
-    // 佣金不为0时，从卖家净收入反推标价
-    listPrice = sellerAmount / (1 - effectiveCommissionRate);
-  }
-  
-  // 客户总付款 = 标价 + 服务费
+  // 两种入参口径：
+  //   amountIsListPrice = true  → sellerAmount 就是标价，直接用（表单路径：
+  //     表单上的 amount 一直是标价，分期金额是它的拆分，不该再被反推一次）
+  //   否则 → sellerAmount 是卖家净收入，按 net/(1−佣金率) 反推标价（旧调用口径）
+  // 两条路在数学上互逆：净额入参反推出的 listPrice，其 listPrice − commission
+  // 正好等于入参本身，所以旧调用方的结果逐位不变。
+  const listPrice =
+    amountIsListPrice || effectiveCommissionRate === 0
+      ? sellerAmount
+      : sellerAmount / (1 - effectiveCommissionRate);
+
+  // 客户总付款 = 标价 + 服务费（服务费是买家在标价之外额外付的）
   const serviceFee = listPrice * serviceFeeRate;
   const customerTotalAmount = listPrice + serviceFee;
-  
+
   // 平台总收益 = 服务费 + 佣金
   const commission = listPrice * effectiveCommissionRate;
   const platformFee = serviceFee + commission;
@@ -267,7 +276,7 @@ function calculateAfternicInstallmentFee(
     customerTotalAmount,
     platformFee,
     platformFeeRate,
-    sellerNetAmount: sellerAmount,
+    sellerNetAmount: listPrice - commission,
     breakdown: {
       baseAmount: listPrice,
       feeAmount: platformFee,
@@ -599,9 +608,17 @@ export function calculateCustomerTotalFromInstallment(
     }
   }
 
-  // Atom / Escrow：算法以 listPrice 为基，优先用 form 的 grossAmount；否则回退到 installment*period（旧调用兼容）。
+  // Afternic / Atom / Escrow：算法以 listPrice 为基，优先用 form 的 grossAmount；
+  // 否则回退到 down + installment×period + final（旧调用兼容）。
+  //
+  // Afternic 是后加进来的：表单的 installment_amount 现在是 amount（标价）的
+  // 纯拆分，`down + inst×n + final` 因此等于标价而不是卖家净收入。仍按净额口径
+  // 喂给 calculateAfternicInstallmentFee 会让它再反推一次，标价被放大 1/(1−佣金率)。
   const usesGrossAmount =
-    platformFeeType === 'atom_installment' || platformFeeType === 'escrow_installment';
+    platformFeeType === 'afternic_installment' ||
+    platformFeeType === 'atom_installment' ||
+    platformFeeType === 'escrow_installment';
+  const grossProvided = !!(options?.grossAmount && options.grossAmount > 0);
   // 非 gross 路径（Afternic 及回退分支）的 sellerAmount 是「卖家净收入总额」。
   // 曾经写成 installmentAmount * installmentPeriod —— 首付和尾款不在里面，而
   // 表单恰恰是先把它们从总额里扣掉再摊到每期的（TransactionForm 的
@@ -610,8 +627,8 @@ export function calculateCustomerTotalFromInstallment(
   // 客户总付显示 $8,555 而不是 $11,000，卖家净显示 $7,000 而不是 $9,000。
   // 走 calculateTotalInstallmentAmount，与 Spaceship / Standard 路径同一套拆分。
   const sellerAmount =
-    usesGrossAmount && options?.grossAmount && options.grossAmount > 0
-      ? options.grossAmount
+    usesGrossAmount && grossProvided
+      ? (options!.grossAmount as number)
       : calculateTotalInstallmentAmount(
           downpayment,
           installmentAmount,
@@ -634,6 +651,9 @@ export function calculateCustomerTotalFromInstallment(
     atomNoCoin: options?.atomNoCoin,
     atomCustomCommissionRate: options?.atomCustomCommissionRate,
     escrowLeaseType: options?.escrowLeaseType,
+    // 只有真的拿到了表单的标价才声明「入参是标价」；回退分支传的是
+    // down + inst×n + final，那条路仍是旧的净额口径。
+    amountIsListPrice: usesGrossAmount && grossProvided,
   });
 }
 

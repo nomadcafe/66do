@@ -4,12 +4,8 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Save, DollarSign, Calendar, FileText, Search, ChevronDown } from 'lucide-react';
 import { formatCurrencyAmount } from '../../lib/exchangeRates';
 import {
-  getAfternicEffectiveCommissionRate,
-  getAtomBaseCommissionAmount,
-  getAtomSurchargeRate,
   installmentFeeFromFormValues,
   sellerSidePlatformFee,
-  ATOM_SURCHARGE_SELLER_SHARE,
 } from '../../lib/platformFeeCalculator';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
@@ -288,41 +284,37 @@ export default function TransactionForm({
     }
   }, [formData.domain_id, formData.type, existingTransactions, transaction?.id]);
 
-  // 自动计算分期付款金额
-  // installment_amount 的口径在所有平台下都是「卖家每月到手」。amount 是出售毛额（标价/listPrice），
-  // 对 Afternic 还要先扣掉有效佣金率才得到卖家净收入，再分摊到每期。
+  /**
+   * 自动计算每期金额 —— **毛额口径**：amount 的纯拆分，不预扣任何佣金。
+   *
+   * 以前对 Afternic / Atom 会先扣掉佣金再摊（注释还写着「所有平台下都是卖家
+   * 每月到手」，而 Spaceship / Escrow / standard 其实一直是毛额，口径本就不统一）。
+   * 问题在于下游把这个值当毛额用：ReceiptsModal 用它预填收据金额，而
+   * expandSellToCashReceipts 把收据当客户实付的毛额、再乘 (1 − feeRate) 才得净额
+   * （它内部的变量就叫 totalGrossPaid）。于是佣金被扣两遍——标价 $10,000 / 15% 的
+   * Afternic 分期，收据录入合计 $8,500，管线算出 $7,225，而卖家实收 $8,500。
+   *
+   * 为什么毛额基准就是 amount：schema 里 net_amount = amount − platform_fee，
+   * 收据要能凑出 amount，Σ(收据 × (1−feeRate)) 才等于卖家净收入。买家服务费 /
+   * Atom surcharge 是买家在标价之外额外付的钱，从来不进这个模型（也正因如此
+   * platform_fee 存的是卖家侧扣减，见上方 installmentFee 的注释）。
+   */
   useEffect(() => {
-    if (formData.payment_plan === 'installment' && formData.amount > 0 && formData.installment_period > 0) {
-      const regularPeriods = formData.installment_period - (formData.final_payment_amount > 0 ? 1 : 0);
-      if (regularPeriods <= 0) return;
+    if (formData.payment_plan !== 'installment') return;
+    if (!(formData.amount > 0) || !(formData.installment_period > 0)) return;
 
-      let sellerProceeds = formData.amount;
-      if (formData.platform_fee_type === 'afternic_installment') {
-        const effRate = getAfternicEffectiveCommissionRate(
-          formData.installment_period,
-          formData.afternic_ns_pointed,
-          formData.afternic_premium_addon
-        );
-        sellerProceeds = formData.amount * (1 - effRate);
-      } else if (formData.platform_fee_type === 'atom_installment') {
-        // Atom: sellerNet = listPrice − baseCommission + surcharge × 65%
-        const surchargeRate =
-          formData.user_input_surcharge_rate > 0
-            ? formData.user_input_surcharge_rate
-            : getAtomSurchargeRate(formData.installment_period);
-        const baseCommission = getAtomBaseCommissionAmount(formData.amount, formData.atom_commission_tier, {
-          noCoin: formData.atom_no_coin,
-          customRate: formData.atom_custom_commission_rate,
-        });
-        const surchargeAmount = formData.amount * surchargeRate;
-        sellerProceeds = formData.amount - baseCommission + surchargeAmount * ATOM_SURCHARGE_SELLER_SHARE;
-      }
+    const regularPeriods = formData.installment_period - (formData.final_payment_amount > 0 ? 1 : 0);
+    // 期数被尾款吃光（1 期且填了尾款）：没有"常规期"可言，把每期金额归零。
+    // 以前这里直接 return，installment_amount 会保留上一次配置的陈旧值，
+    // 而 ReceiptsModal 照样拿它去预填收据。
+    const next =
+      regularPeriods <= 0
+        ? 0
+        : (formData.amount - formData.downpayment_amount - formData.final_payment_amount) /
+          regularPeriods;
 
-      const remainingAmount = sellerProceeds - formData.downpayment_amount - formData.final_payment_amount;
-      const calculatedInstallmentAmount = remainingAmount / regularPeriods;
-      if (Math.abs(formData.installment_amount - calculatedInstallmentAmount) > 0.01) {
-        setFormData(prev => ({ ...prev, installment_amount: calculatedInstallmentAmount }));
-      }
+    if (Math.abs(formData.installment_amount - next) > 0.01) {
+      setFormData((prev) => ({ ...prev, installment_amount: next }));
     }
   }, [
     formData.amount,
@@ -331,13 +323,6 @@ export default function TransactionForm({
     formData.installment_period,
     formData.payment_plan,
     formData.installment_amount,
-    formData.platform_fee_type,
-    formData.afternic_ns_pointed,
-    formData.afternic_premium_addon,
-    formData.atom_commission_tier,
-    formData.atom_no_coin,
-    formData.atom_custom_commission_rate,
-    formData.user_input_surcharge_rate,
   ]);
 
   /**
