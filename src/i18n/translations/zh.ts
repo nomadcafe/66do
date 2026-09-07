@@ -855,6 +855,7 @@ const zh = {
       showHistory: '显示历史',
       hideHistory: '隐藏历史',
       suggestedCost: '建议金额',
+      suggestedCostHint: '按过去 {count} 笔续费的年均价 {perYear}/年 × {years} 年折算。',
       useSuggested: '使用建议',
       noRenewalHistory: '暂无续费记录',
       categoryPlaceholder: '投资、营销等',
