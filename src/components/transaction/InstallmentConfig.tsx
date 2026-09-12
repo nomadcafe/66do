@@ -7,6 +7,8 @@ import {
   installmentFeeFromFormValues
 } from '../../lib/platformFeeCalculator';
 import { useI18nContext } from '../../contexts/I18nProvider';
+import DateInput from '../ui/DateInput';
+import NumberInput from '../ui/NumberInput';
 
 export type InstallmentConfigValues = {
   payment_plan: 'lump_sum' | 'installment';
@@ -85,13 +87,14 @@ export default function InstallmentConfig({
               <label htmlFor="transaction-form-installment-period" className="block text-sm font-medium text-blue-800 mb-2">
                 {t('transaction.installmentPeriod')}
               </label>
-              <input
+              <NumberInput
                 id="transaction-form-installment-period"
-                type="number"
-                min="1"
-                max="60"
-                value={values.installment_period === 0 ? '' : values.installment_period}
-                onChange={(e) => onChange({ installment_period: parseInt(e.target.value) || 1 })}
+                integer
+                min={1}
+                max={60}
+                blankWhenZero
+                value={values.installment_period}
+                onChange={(v) => onChange({ installment_period: v ?? 0 })}
                 className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="12"
               />
@@ -101,13 +104,12 @@ export default function InstallmentConfig({
               <label htmlFor="transaction-form-downpayment" className="block text-sm font-medium text-blue-800 mb-2">
                 {t('transaction.downpaymentAmount')}
               </label>
-              <input
+              <NumberInput
                 id="transaction-form-downpayment"
-                type="number"
-                step="0.01"
-                min="0"
-                value={values.downpayment_amount === 0 ? '' : values.downpayment_amount}
-                onChange={(e) => onChange({ downpayment_amount: parseFloat(e.target.value) || 0 })}
+                min={0}
+                blankWhenZero
+                value={values.downpayment_amount}
+                onChange={(v) => onChange({ downpayment_amount: v ?? 0 })}
                 className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="0.00"
               />
@@ -117,13 +119,12 @@ export default function InstallmentConfig({
               <label htmlFor="transaction-form-installment-amount" className="block text-sm font-medium text-blue-800 mb-2">
                 {t('transaction.installmentAmount')}
               </label>
-              <input
+              <NumberInput
                 id="transaction-form-installment-amount"
-                type="number"
-                step="0.01"
-                min="0"
-                value={values.installment_amount === 0 ? '' : values.installment_amount}
-                onChange={(e) => onChange({ installment_amount: parseFloat(e.target.value) || 0 })}
+                min={0}
+                blankWhenZero
+                value={values.installment_amount}
+                onChange={(v) => onChange({ installment_amount: v ?? 0 })}
                 className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="0.00"
               />
@@ -133,13 +134,12 @@ export default function InstallmentConfig({
               <label htmlFor="transaction-form-final-payment" className="block text-sm font-medium text-blue-800 mb-2">
                 {t('transaction.finalPaymentAmount')}
               </label>
-              <input
+              <NumberInput
                 id="transaction-form-final-payment"
-                type="number"
-                step="0.01"
-                min="0"
-                value={values.final_payment_amount === 0 ? '' : values.final_payment_amount}
-                onChange={(e) => onChange({ final_payment_amount: parseFloat(e.target.value) || 0 })}
+                min={0}
+                blankWhenZero
+                value={values.final_payment_amount}
+                onChange={(v) => onChange({ final_payment_amount: v ?? 0 })}
                 className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="0.00"
               />
@@ -193,16 +193,18 @@ export default function InstallmentConfig({
             </div>
 
             {/* 首期付款日：可选。填了用作 expandSellToCashReceipts 的基准（"按月分摊已付款"），没填则回退到 t.date + 1 月。 */}
+            {/* 用和上面「交易日期」同一个 DateInput，而不是原生 <input type="date">：
+                原生控件的段顺序跟浏览器 UI 语言走（en-US 下是 MM/DD/YYYY），
+                在一个到处都写 YYYY-MM-DD 的表单里，用户按年份先打「2026」会被
+                当成月份 2 再跳到日，看起来就像"打完年份不会自动跳到月"。 */}
             <div className="md:col-span-2">
-              <label htmlFor="transaction-form-installment-first-date" className="block text-sm font-medium text-blue-800 mb-2">
-                {t('transaction.installmentFirstPaymentDate')}
-              </label>
-              <input
-                id="transaction-form-installment-first-date"
-                type="date"
+              <DateInput
+                label={t('transaction.installmentFirstPaymentDate')}
                 value={values.installment_first_payment_date}
-                onChange={(e) => onChange({ installment_first_payment_date: e.target.value })}
-                className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onChange={(value) => onChange({ installment_first_payment_date: value })}
+                className="w-full"
+                labelClassName="block text-sm font-medium text-blue-800 mb-2"
+                inputClassName="border-blue-300 focus:ring-blue-500"
               />
               <p className="text-xs text-blue-600 mt-1">
                 {t('transaction.installmentFirstPaymentDateHint')}
@@ -216,17 +218,13 @@ export default function InstallmentConfig({
                   {t('transaction.userInputFeeRate')}
                 </label>
                 <div className="flex items-center space-x-2">
-                  <input
+                  <NumberInput
                     id="transaction-form-user-fee-rate"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="1"
-                    value={values.user_input_fee_rate === 0 ? '' : values.user_input_fee_rate}
-                    onChange={(e) => {
-                      const raw = e.target.value;
-                      onChange({ user_input_fee_rate: raw === '' ? 0 : parseFloat(raw) || 0 });
-                    }}
+                    min={0}
+                    max={1}
+                    blankWhenZero
+                    value={values.user_input_fee_rate}
+                    onChange={(v) => onChange({ user_input_fee_rate: v ?? 0 })}
                     className="flex-1 px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder={t('transaction.userInputFeeRatePlaceholder')}
                   />
@@ -306,14 +304,13 @@ export default function InstallmentConfig({
                     <label htmlFor="transaction-form-atom-custom-rate" className="block text-sm font-medium text-blue-800 mb-2">
                       {t('transaction.atomCustomCommissionRate')}
                     </label>
-                    <input
+                    <NumberInput
                       id="transaction-form-atom-custom-rate"
-                      type="number"
-                      step="0.0001"
-                      min="0"
-                      max="1"
-                      value={values.atom_custom_commission_rate === 0 ? '' : values.atom_custom_commission_rate}
-                      onChange={(e) => onChange({ atom_custom_commission_rate: parseFloat(e.target.value) || 0 })}
+                      min={0}
+                      max={1}
+                      blankWhenZero
+                      value={values.atom_custom_commission_rate}
+                      onChange={(v) => onChange({ atom_custom_commission_rate: v ?? 0 })}
                       className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="0.075"
                     />
@@ -324,14 +321,13 @@ export default function InstallmentConfig({
                   <label htmlFor="transaction-form-surcharge-rate" className="block text-sm font-medium text-blue-800 mb-2">
                     {t('transaction.userInputSurchargeRate')}
                   </label>
-                  <input
+                  <NumberInput
                     id="transaction-form-surcharge-rate"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="1"
-                    value={values.user_input_surcharge_rate === 0 ? '' : values.user_input_surcharge_rate}
-                    onChange={(e) => onChange({ user_input_surcharge_rate: parseFloat(e.target.value) || 0 })}
+                    min={0}
+                    max={1}
+                    blankWhenZero
+                    value={values.user_input_surcharge_rate}
+                    onChange={(v) => onChange({ user_input_surcharge_rate: v ?? 0 })}
                     className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="0.20"
                   />
@@ -363,13 +359,12 @@ export default function InstallmentConfig({
                   <label htmlFor="transaction-form-escrow-transaction-fee" className="block text-sm font-medium text-blue-800 mb-2">
                     {t('transaction.escrowTransactionFee')}
                   </label>
-                  <input
+                  <NumberInput
                     id="transaction-form-escrow-transaction-fee"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={values.escrow_transaction_fee === 0 ? '' : values.escrow_transaction_fee}
-                    onChange={(e) => onChange({ escrow_transaction_fee: parseFloat(e.target.value) || 0 })}
+                    min={0}
+                    blankWhenZero
+                    value={values.escrow_transaction_fee}
+                    onChange={(v) => onChange({ escrow_transaction_fee: v ?? 0 })}
                     className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="0.00"
                   />
@@ -382,20 +377,14 @@ export default function InstallmentConfig({
                   <label htmlFor="transaction-form-escrow-holding-fee" className="block text-sm font-medium text-blue-800 mb-2">
                     {t('transaction.escrowHoldingFee')}
                   </label>
-                  <input
+                  <NumberInput
                     id="transaction-form-escrow-holding-fee"
-                    type="number"
-                    step="0.01"
-                    min="0"
+                    min={0}
                     // 空 → null（自动估算）；填 0 → 0（明确没有托管费）。
-                    // 这两者必须分开，所以不能用 `parseFloat(x) || 0` 那套。
-                    value={values.escrow_holding_fee == null ? '' : values.escrow_holding_fee}
-                    onChange={(e) => {
-                      const raw = e.target.value;
-                      onChange({
-                        escrow_holding_fee: raw.trim() === '' ? null : parseFloat(raw) || 0,
-                      });
-                    }}
+                    // 这两者必须分开，所以 emptyValue 是 null 而不是 0。
+                    emptyValue={null}
+                    value={values.escrow_holding_fee}
+                    onChange={(v) => onChange({ escrow_holding_fee: v })}
                     className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder={t('transaction.escrowHoldingFeeAutoPlaceholder')}
                   />

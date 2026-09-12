@@ -19,7 +19,10 @@ interface UseTransactionOperationsReturn {
   handleAddTransaction: () => void;
   handleEditTransaction: (transaction: TransactionWithRequiredFields) => void;
   handleDeleteTransaction: (id: string) => Promise<void>;
-  handleSaveTransaction: (transactionData: Omit<TransactionWithRequiredFields, 'id'>) => Promise<void>;
+  handleSaveTransaction: (
+    transactionData: Omit<TransactionWithRequiredFields, 'id'>,
+    options?: { keepFormOpen?: boolean }
+  ) => Promise<void>;
   handleSaleComplete: (transaction: Omit<TransactionWithRequiredFields, 'id'>, domain: DomainWithTags) => void;
 }
 
@@ -172,7 +175,10 @@ export function useTransactionOperations(
   }, [userId, sessionToken, transactions, domains, onSave, onError]);
 
   const handleSaveTransaction = useCallback(async (
-    transactionData: Omit<TransactionWithRequiredFields, 'id'>
+    transactionData: Omit<TransactionWithRequiredFields, 'id'>,
+    // 「保存并继续添加」：表单自己会清空并留在原地，这里就别把弹窗关掉。
+    // 以前无条件 setShowTransactionForm(false)，那个按钮跟「保存」没区别。
+    options?: { keepFormOpen?: boolean }
   ) => {
 
     let updatedTransactions: TransactionWithRequiredFields[];
@@ -269,7 +275,9 @@ export function useTransactionOperations(
         await onSave(domainUpdates, updatedTransactions);
       }
 
-      setShowTransactionForm(false);
+      if (!options?.keepFormOpen) {
+        setShowTransactionForm(false);
+      }
       setEditingTransaction(undefined);
       logger.log('Transaction saved successfully');
     } catch (error) {

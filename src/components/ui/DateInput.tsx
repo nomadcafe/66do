@@ -9,6 +9,10 @@ interface DateInputProps {
   className?: string;
   label?: string;
   icon?: React.ReactNode;
+  /** 覆盖 label 的样式（分期面板是蓝底，用的不是默认的 stone 配色） */
+  labelClassName?: string;
+  /** 追加到三个段输入框上的样式（同上，覆盖边框/焦点色） */
+  inputClassName?: string;
 }
 
 /** 从 YYYY-MM-DD 拆成输入框展示用字符串（月日不带无意义的前导 0，避免与输入中的「1」冲突） */
@@ -31,6 +35,8 @@ export default function DateInput({
   className = '',
   label,
   icon,
+  labelClassName = 'block text-sm font-medium text-stone-700 mb-2',
+  inputClassName = '',
 }: DateInputProps) {
   const yearRef = useRef<HTMLInputElement>(null);
   const monthRef = useRef<HTMLInputElement>(null);
@@ -101,23 +107,30 @@ export default function DateInput({
     tryCommit(year, month, day);
   };
 
+  /**
+   * 段间导航。Tab 不在这里处理 —— 以前它和 ArrowRight 共用一个分支，
+   * 在 keydown 里先把焦点挪到下一段，浏览器随后再执行 Tab 的默认行为，
+   * 于是从「年」按 Tab 会直接跳到「日」，把「月」整段跳过去。
+   */
   const handleKeyDown = (
     e: React.KeyboardEvent<HTMLInputElement>,
-    nextRef: React.RefObject<HTMLInputElement | null>
+    prevRef: React.RefObject<HTMLInputElement | null> | null,
+    nextRef: React.RefObject<HTMLInputElement | null> | null
   ) => {
     if (e.key === 'Backspace' && e.currentTarget.value === '') {
-      if (nextRef === monthRef) {
-        yearRef.current?.focus();
-      } else if (nextRef === dayRef) {
-        monthRef.current?.focus();
+      prevRef?.current?.focus();
+    } else if (e.key === 'ArrowRight') {
+      // 只有光标已经在末尾才跳段，否则挡住了段内的左右移动
+      const el = e.currentTarget;
+      if (nextRef && el.selectionStart === el.value.length) {
+        e.preventDefault();
+        nextRef.current?.focus();
       }
-    } else if (e.key === 'ArrowRight' || e.key === 'Tab') {
-      nextRef.current?.focus();
     } else if (e.key === 'ArrowLeft') {
-      if (nextRef === monthRef) {
-        yearRef.current?.focus();
-      } else if (nextRef === dayRef) {
-        monthRef.current?.focus();
+      const el = e.currentTarget;
+      if (prevRef && el.selectionStart === 0) {
+        e.preventDefault();
+        prevRef.current?.focus();
       }
     }
   };
@@ -125,7 +138,7 @@ export default function DateInput({
   return (
     <div className={className}>
       {label && (
-        <label className="block text-sm font-medium text-stone-700 mb-2">
+        <label className={labelClassName}>
           {icon && <span className="inline-flex items-center mr-1">{icon}</span>}
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
@@ -139,10 +152,12 @@ export default function DateInput({
           value={year}
           onChange={handleYearChange}
           onBlur={handleBlurCommit}
-          onKeyDown={(e) => handleKeyDown(e, monthRef)}
+          onKeyDown={(e) => handleKeyDown(e, null, monthRef)}
           placeholder="YYYY"
+          aria-label={label ? `${label} (YYYY)` : 'YYYY'}
+          required={required}
           maxLength={4}
-          className="w-16 px-2 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
+          className={`w-16 px-2 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center ${inputClassName}`}
         />
         <span className="text-stone-500">-</span>
         <input
@@ -152,10 +167,12 @@ export default function DateInput({
           value={month}
           onChange={handleMonthChange}
           onBlur={handleBlurCommit}
-          onKeyDown={(e) => handleKeyDown(e, dayRef)}
+          onKeyDown={(e) => handleKeyDown(e, yearRef, dayRef)}
           placeholder="MM"
+          aria-label={label ? `${label} (MM)` : 'MM'}
+          required={required}
           maxLength={2}
-          className="w-12 px-2 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
+          className={`w-12 px-2 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center ${inputClassName}`}
         />
         <span className="text-stone-500">-</span>
         <input
@@ -165,10 +182,12 @@ export default function DateInput({
           value={day}
           onChange={handleDayChange}
           onBlur={handleBlurCommit}
-          onKeyDown={(e) => handleKeyDown(e, dayRef)}
+          onKeyDown={(e) => handleKeyDown(e, monthRef, null)}
           placeholder="DD"
+          aria-label={label ? `${label} (DD)` : 'DD'}
+          required={required}
           maxLength={2}
-          className="w-12 px-2 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
+          className={`w-12 px-2 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center ${inputClassName}`}
         />
       </div>
     </div>

@@ -11,6 +11,7 @@ import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import { parseLocalCalendarDate } from '../../lib/localCalendarDate';
 import DateInput from '../ui/DateInput';
+import NumberInput from '../ui/NumberInput';
 import InstallmentConfig from './InstallmentConfig';
 
 // 使用统一的类型定义，从 supabaseService 导入
@@ -20,7 +21,10 @@ interface TransactionFormProps {
   domains: DomainWithTags[];
   isOpen: boolean;
   onClose: () => void;
-  onSave: (transaction: Omit<TransactionWithRequiredFields, 'id'>) => void | Promise<void>;
+  onSave: (
+    transaction: Omit<TransactionWithRequiredFields, 'id'>,
+    options?: { keepFormOpen?: boolean }
+  ) => void | Promise<void>;
   onSaleComplete?: (transaction: Omit<TransactionWithRequiredFields, 'id'>, domain: DomainWithTags) => void;
   /** 现有交易，用于 category 的 datalist 自动补全 */
   existingTransactions?: TransactionWithRequiredFields[];
@@ -175,6 +179,7 @@ export default function TransactionForm({
   // 仅随「打开/切换编辑的交易」同步表单；勿将 domains 列入依赖，否则新建交易时列表刷新会清空已填内容。
   // 域名续费周期在下方专用 effect 中与 domains 同步。
   useEffect(() => {
+    if (!isOpen) return;
     if (transaction) {
       const dom = domains.find((d) => d.id === transaction.domain_id);
       const cycle = Math.min(10, Math.max(1, dom?.renewal_cycle ?? 1));
@@ -241,8 +246,8 @@ export default function TransactionForm({
       setFeeManuallyEdited(false);
       setFormData(buildEmptyFormData());
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅随 transaction 重置；domains 见下方续费周期同步 effect
-  }, [transaction]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅随 transaction / 打开时重置；domains 见下方续费周期同步 effect
+  }, [transaction, isOpen]);
 
   useEffect(() => {
     if (formData.type !== 'renew' || !formData.domain_id || formData.renewal_years_use_custom) return;
@@ -435,8 +440,16 @@ export default function TransactionForm({
 
   const performSave = async ({ keepOpen }: { keepOpen: boolean }) => {
     if (isSubmitting) return;
+    // 「保存并继续添加」是 type="button"，绕开了浏览器的必填校验，所以
+    // 域名/日期在这里显式挡一道——否则空日期要等到 saveData 的 validateTransaction
+    // 才报，错误文案还是拼接出来的一长串。
     if (!formData.domain_id) {
       setDomainDropdownOpen(true);
+      setSubmitError(t('validation.transaction.domainIdRequired'));
+      return;
+    }
+    if (!formData.date) {
+      setSubmitError(t('validation.transaction.dateRequired'));
       return;
     }
 
@@ -489,7 +502,7 @@ export default function TransactionForm({
     setIsSubmitting(true);
     try {
       // 须等待持久化完成再关窗；否则用户刷新时 saveData 可能仍在遍历域名，交易尚未 insert
-      await Promise.resolve(onSave(finalFormDataClean));
+      await Promise.resolve(onSave(finalFormDataClean, { keepFormOpen: keepOpen }));
 
       if (finalFormDataClean.type === 'sell' && onSaleComplete) {
         const sold = domains.find((d) => d.id === finalFormDataClean.domain_id);
@@ -777,19 +790,16 @@ export default function TransactionForm({
                     >
                       {t('transaction.renewPeriodYears')}
                     </label>
-                    <input
+                    <NumberInput
                       id="transaction-renewal-period-years"
-                      type="number"
+                      integer
                       min={1}
                       max={10}
                       value={formData.renewal_period_years}
-                      onChange={(e) =>
+                      onChange={(v) =>
                         setFormData((prev) => ({
                           ...prev,
-                          renewal_period_years: Math.min(
-                            10,
-                            Math.max(1, parseInt(e.target.value, 10) || 1)
-                          )
+                          renewal_period_years: v ?? 0
                         }))
                       }
                       className="w-24 px-2 py-1 border border-stone-300 rounded-md text-sm"
@@ -807,19 +817,16 @@ export default function TransactionForm({
                 >
                   {t('transaction.transferExtendYears')}
                 </label>
-                <input
+                <NumberInput
                   id="transaction-transfer-extend-years"
-                  type="number"
+                  integer
                   min={0}
                   max={10}
                   value={formData.renewal_period_years}
-                  onChange={(e) =>
+                  onChange={(v) =>
                     setFormData((prev) => ({
                       ...prev,
-                      renewal_period_years: Math.min(
-                        10,
-                        Math.max(0, parseInt(e.target.value, 10) || 0)
-                      )
+                      renewal_period_years: v ?? 0
                     }))
                   }
                   className="w-24 px-2 py-1 border border-stone-300 rounded-md text-sm"
@@ -844,16 +851,15 @@ export default function TransactionForm({
                 <DollarSign className="h-4 w-4 inline mr-1" />
                 {t('transaction.amount')} {allowsZeroAmount ? '' : '*'}
               </label>
-              <input
+              <NumberInput
                 id="transaction-form-amount"
-                type="number"
                 // transfer 允许 0（免费的 push / 同注册商内部转移）；其它类型
                 // 空值靠 required 挡住，因为 0 会被渲染成空字符串。
                 required={!allowsZeroAmount}
-                min="0"
-                step="0.01"
-                value={allowsZeroAmount || formData.amount !== 0 ? formData.amount : ''}
-                onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
+                min={0}
+                blankWhenZero={!allowsZeroAmount}
+                value={formData.amount}
+                onChange={(v) => setFormData({ ...formData, amount: v ?? 0 })}
                 className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="0.00"
               />
@@ -874,16 +880,15 @@ export default function TransactionForm({
               <label htmlFor="transaction-form-platform-fee-pct" className="block text-sm font-medium text-stone-700 mb-2">
                 {t('transaction.platformFeePercentage')}
               </label>
-              <input
+              <NumberInput
                 id="transaction-form-platform-fee-pct"
-                type="number"
-                min="0"
-                max="100"
-                step="0.01"
-                value={formData.platform_fee_percentage === 0 ? '' : formData.platform_fee_percentage}
-                onChange={(e) => {
+                min={0}
+                max={100}
+                blankWhenZero
+                value={formData.platform_fee_percentage}
+                onChange={(v) => {
                   setFeeManuallyEdited(true);
-                  const percentage = parseFloat(e.target.value) || 0;
+                  const percentage = v ?? 0;
                   const calculatedFee = (formData.amount * percentage) / 100;
                   setFormData({
                     ...formData,
@@ -900,15 +905,14 @@ export default function TransactionForm({
               <label htmlFor="transaction-form-platform-fee-amount" className="block text-sm font-medium text-stone-700 mb-2">
                 {t('transaction.platformFeeAmount')}
               </label>
-              <input
+              <NumberInput
                 id="transaction-form-platform-fee-amount"
-                type="number"
-                min="0"
-                step="0.01"
-                value={formData.platform_fee === 0 ? '' : formData.platform_fee}
-                onChange={(e) => {
+                min={0}
+                blankWhenZero
+                value={formData.platform_fee}
+                onChange={(v) => {
                   setFeeManuallyEdited(true);
-                  const fee = parseFloat(e.target.value) || 0;
+                  const fee = v ?? 0;
                   // 反推百分比只是为了让另一个框显示得上；amount 为 0 时无从反推，
                   // 保留百分比不动，避免出现 NaN / Infinity。
                   // 金额是权威值（net_amount = amount − platform_fee 直接用它），
