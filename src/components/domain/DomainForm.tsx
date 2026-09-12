@@ -305,7 +305,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
             </div>
 
             <DateInput
-              label={`${t('dashboard.purchaseDateLabel')} *`}
+              label={t('dashboard.purchaseDateLabel')}
               icon={<Calendar className="h-4 w-4" />}
               value={formData.purchase_date}
               onChange={(value) => setFormData((prev) => ({ ...prev, purchase_date: value }))}
