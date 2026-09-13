@@ -80,6 +80,22 @@ export function changelogPageMetadata(locale: HomeLocale): Metadata {
 export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
   zh: [
     {
+      version: '2026-09-13',
+      date: '2026-09-13',
+      items: [
+        '修复金额输入框吃掉小数的问题：以前 $10.05 会存成 $5，0.15 这类费率根本填不进去。域名、交易、续费、收款的所有金额框都受影响。',
+        '修复多年期域名（2 年一续等）的续费单价：每续费一次存档单价就被砍半，持有成本一路缩水、利润虚高。建议对着注册商账单核一下这类域名的续费价。',
+        '分期销售统一按实际已收显示：年度现金流不再把整笔算在成交年，交易列表排序、域名表格展开行、分享图也都跟上了。',
+        '修复域名列表的 ROI：没回写成交价的域名会显示 −100%，没填估值的显示绿色 +0.0%（其实是「未知」）。现在分别显示真实收益和「—」。',
+        '「表现最好的域名」不再把亏损的成交列进去。',
+        '手机上的域名列表现在能看到到期日和剩余天数。',
+        '图表改进：净现金流补了零线和支出明细，组合业绩四条线统一成累计口径，配色改成红绿色盲也能分辨。',
+        '恢复备份现在会校验文件，选错文件不再提示「恢复成功」；说明文案也改成照实说——是合并，不是清空重来。',
+        '续费弹窗的「新到期日」预览与实际存入的日期现在一致；域名时间线补上了只填了次数、没记交易的那些续费。',
+        '所有弹窗支持键盘操作，Tab 不会再跑到弹窗背后；登录跳转的安全校验收紧；界面收敛了视觉层级，同一屏不再有多张装饰卡互相抢注意力。',
+      ],
+    },
+    {
       version: '2026-08-30',
       date: '2026-08-30',
       items: [
@@ -210,6 +226,22 @@ export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
     },
   ],
   en: [
+    {
+      version: '2026-09-13',
+      date: '2026-09-13',
+      items: [
+        'Fixed amount fields swallowing decimals — $10.05 used to save as $5, and rates like 0.15 could not be typed at all. Affects every amount field across domains, transactions, renewals and receipts.',
+        'Fixed the renewal price on multi-year domains (2-year cycles and similar): each renewal halved the stored price, shrinking holding cost and inflating profit. Worth checking those domains against your registrar invoice.',
+        'Installment sales now show what you actually collected everywhere: annual cash flow no longer books the whole sale in the closing year, and the transaction list sort, domain table history and share images follow suit.',
+        'Fixed ROI in the domain list: domains with no recorded sale price showed −100%, and domains with no estimated value showed a green +0.0% (which really meant "unknown"). They now show the real return and "—" respectively.',
+        '"Top performing domains" no longer lists losing sales.',
+        'The domain list on phones now shows expiry dates and days remaining.',
+        'Chart improvements: net cash flow gained a zero line and an outflow breakdown, portfolio performance lines are all cumulative now, and colors are distinguishable with red-green color blindness.',
+        'Restoring a backup now validates the file, so picking the wrong one no longer reports success. The warning text now says what actually happens — it merges, it does not wipe.',
+        'The renewal dialog\'s "new expiry date" preview now matches what gets saved, and the domain timeline includes renewals recorded only as a count.',
+        'All dialogs are keyboard-navigable — Tab no longer escapes behind them. Tightened the sign-in redirect check. The interface now keeps one accent card per screen instead of several competing for attention.',
+      ],
+    },
     {
       version: '2026-08-30',
       date: '2026-08-30',
