@@ -67,8 +67,7 @@ export default function YearlyCashflowTable({
     <div className="space-y-5">
       {/* Header card — gradient hero language matching the rest of the
           Insights tab. The icon tile + caption pattern from KPI strips. */}
-      <div className="relative overflow-hidden rounded-3xl border border-stone-200/60 bg-gradient-to-br from-stone-50 via-white to-teal-50/30 shadow-sm">
-        <div className="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-gradient-to-br from-teal-100/30 to-transparent blur-3xl" />
+      <div className="surface-card">
         <div className="relative flex items-start gap-3 p-5 sm:p-6">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-stone-700">
             <Wallet className="h-5 w-5" />
@@ -86,7 +85,7 @@ export default function YearlyCashflowTable({
 
       {/* Empty state */}
       {rows.length === 0 ? (
-        <div className="rounded-2xl border border-stone-200/80 bg-white p-12 text-center shadow-sm">
+        <div className="surface-card p-12 text-center">
           <p className="text-sm text-stone-500">
             {t('analytics.yearlyRenewalProfit.noData')}
           </p>
@@ -102,7 +101,7 @@ export default function YearlyCashflowTable({
               return (
                 <div
                   key={row.year}
-                  className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm"
+                  className="surface-card p-5"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-lg font-semibold text-stone-900 tabular-nums">{row.year}</span>
@@ -165,7 +164,7 @@ export default function YearlyCashflowTable({
           </div>
 
           {/* Desktop — full 8-column table. */}
-          <div className="hidden md:block rounded-2xl border border-stone-200/80 bg-white shadow-sm overflow-hidden">
+          <div className="hidden md:block surface-card overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left">
                 <thead>

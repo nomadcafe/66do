@@ -85,8 +85,7 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
           − totalInvestment) 是 lifetime 全口径 P&L：包含持有未卖库存的成本
           + 过期域名的沉没成本，这跟 Realized P&L (only sold domains) 是不
           同视角，所以保留。 */}
-      <div className="relative overflow-hidden rounded-3xl border border-stone-200/60 bg-gradient-to-br from-stone-50 via-white to-teal-50/30 shadow-sm">
-        <div className="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-gradient-to-br from-teal-100/30 to-transparent blur-3xl" />
+      <div className="surface-card">
         <div className="relative grid grid-cols-2 gap-5 p-5 sm:p-6 md:grid-cols-3 md:gap-6">
           <KpiTile
             icon={<DollarSign className="h-5 w-5" />}
@@ -137,7 +136,7 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
           暴利交易排到末尾。
           Worst sale (profit < 0 里最低的那笔) 作为 footer 行展示——两份列表
           互斥（top 只收 profit > 0），同一笔不会既在上面又在下面。 */}
-      <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
+      <div className="surface-card p-6">
         <div className="flex items-center gap-2 mb-4">
           <Award className="h-4 w-4 text-amber-600" />
           <h3 className="text-base font-semibold text-stone-900">

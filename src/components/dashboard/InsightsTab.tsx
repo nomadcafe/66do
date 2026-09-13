@@ -121,8 +121,8 @@ export default function InsightsTab({
   return (
     <div className="space-y-6">
       {/* ────── KPI strip — gradient hero, 4 trade-performance metrics ────── */}
-      <div className="relative overflow-hidden rounded-3xl border border-stone-200/60 bg-gradient-to-br from-stone-50 via-white to-teal-50/40 shadow-sm">
-        <div className="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-gradient-to-br from-teal-100/40 to-transparent blur-3xl" />
+      <div className="surface-hero">
+      <div className="surface-hero-glow" />
         <div className="relative grid grid-cols-2 gap-4 p-5 sm:p-6 lg:grid-cols-4 lg:gap-6">
           {/* Realized P&L */}
           <div className="flex items-start gap-3">

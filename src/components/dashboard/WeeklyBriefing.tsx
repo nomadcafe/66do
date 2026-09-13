@@ -37,7 +37,7 @@ export default function WeeklyBriefing({ title, subtitle, cards }: WeeklyBriefin
           <p className="mt-0.5 text-sm text-stone-500">{subtitle}</p>
         </div>
       </div>
-      <div className="overflow-hidden rounded-2xl border border-stone-200/70 bg-white shadow-sm">
+      <div className="overflow-hidden surface-card">
         {cards.map((card, i) => (
           <div
             key={i}

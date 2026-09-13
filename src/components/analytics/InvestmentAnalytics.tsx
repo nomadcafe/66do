@@ -442,7 +442,7 @@ export default function InvestmentAnalytics({
   const renderPortfolioMetrics = () => {
     if (domains.length === 0 && transactions.length === 0) {
       return (
-        <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
+        <div className="surface-card p-6">
           <div className="flex flex-col items-center justify-center py-12 text-stone-500">
             <BarChart3 className="h-16 w-16 text-stone-300 mb-4" />
             <p className="text-lg font-medium text-stone-600 mb-2">{t('analytics.noDataAvailable')}</p>
@@ -529,8 +529,7 @@ export default function InvestmentAnalytics({
     ];
 
     return (
-      <div className="relative overflow-hidden rounded-3xl border border-stone-200/60 bg-gradient-to-br from-stone-50 via-white to-teal-50/30 shadow-sm">
-        <div className="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-gradient-to-br from-teal-100/30 to-transparent blur-3xl" />
+      <div className="surface-card">
         <div className="relative grid grid-cols-2 gap-5 p-5 sm:p-6 md:grid-cols-4 md:gap-6">
           {tiles.map((tile) => (
             <div key={tile.key} className="flex items-start gap-3">
@@ -556,7 +555,7 @@ export default function InvestmentAnalytics({
   const renderPerformanceChart = () => {
     if (timeSeriesData.length === 0) {
       return (
-        <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
+        <div className="surface-card p-6">
           <h3 className="text-lg font-semibold text-stone-900 mb-4">{t('analytics.portfolioPerformance')}</h3>
           <div className="flex flex-col items-center justify-center py-12 text-stone-500">
             <BarChart3 className="h-12 w-12 text-stone-300 mb-4" />
@@ -583,7 +582,7 @@ export default function InvestmentAnalytics({
     ];
 
     return (
-      <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
+      <div className="surface-card p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
           <h3 className="text-lg font-semibold text-stone-900">{t('analytics.portfolioPerformance')}</h3>
           <div className="flex flex-wrap items-center gap-2 text-xs text-stone-600">
@@ -805,7 +804,7 @@ export default function InvestmentAnalytics({
   }, [domains, t]);
 
   const renderMonthlyCashFlow = () => (
-    <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
+    <div className="surface-card p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-1">
         <h3 className="text-lg font-semibold text-stone-900">
           {t('analytics.monthlyCashFlowTrend')}
@@ -864,7 +863,7 @@ export default function InvestmentAnalytics({
 
   const renderDistribution = () => (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
+      <div className="surface-card p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-stone-900">{t('analytics.heldDomainSuffix')}</h3>
           <span className="text-xs text-stone-500">
@@ -910,7 +909,7 @@ export default function InvestmentAnalytics({
         )}
       </div>
 
-      <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
+      <div className="surface-card p-6">
         <h3 className="text-lg font-semibold text-stone-900">{t('analytics.investmentDistribution')}</h3>
         <p className="mt-1 mb-4 text-sm text-stone-500">
           {t('analytics.investmentDistributionDesc')}
@@ -962,7 +961,7 @@ export default function InvestmentAnalytics({
         )}
       </div>
 
-      <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
+      <div className="surface-card p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-stone-900">{t('analytics.registrarDistribution')}</h3>
           <span className="text-xs text-stone-500">

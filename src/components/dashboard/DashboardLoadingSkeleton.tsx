@@ -28,7 +28,7 @@ export default function DashboardLoadingSkeleton() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Tab nav strip */}
-        <div className="bg-white rounded-2xl border border-stone-200/80 shadow-sm p-1.5">
+        <div className="surface-card p-1.5">
           <div className="flex gap-1">
             <div className="h-9 w-28 bg-stone-200 rounded-lg animate-pulse" />
             <div className="h-9 w-24 bg-stone-100 rounded-lg animate-pulse" />
@@ -85,7 +85,7 @@ export default function DashboardLoadingSkeleton() {
             <div className="h-5 w-32 bg-stone-200 rounded animate-pulse" />
             <div className="h-3 w-56 bg-stone-100 rounded animate-pulse" />
           </div>
-          <div className="rounded-2xl border border-stone-200/70 bg-white shadow-sm overflow-hidden">
+          <div className="surface-card overflow-hidden">
             {[0, 1, 2].map((i) => (
               <div
                 key={i}
