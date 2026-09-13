@@ -99,6 +99,42 @@ export function calculateDomainROI(
   return 0;
 }
 
+/** ROI 这个数是怎么来的。列表要据此决定显示成什么样。 */
+export type DomainRoiKind =
+  /** 已成交，钱到账了 */
+  | 'realized'
+  /** 持有中，按用户填的 estimated_value 折算出来的账面浮盈/浮亏 */
+  | 'unrealized'
+  /** 放弃续费 / 过期未续，全额冲销 */
+  | 'lost'
+  /** 持有中但没填估值——没有依据，不是 0% */
+  | 'unknown';
+
+/**
+ * 带出处的域名 ROI。
+ *
+ * calculateDomainROI 只返回一个 number，四种完全不同的情况被压成同一个数字：
+ * 已实现收益、按用户手填估值算的浮盈、−100% 的冲销，以及"没填估值"。
+ * 最后那种返回 0，在列表里被渲染成**绿色的 +0.0%**——读起来是"打平"，实际
+ * 意思是"不知道"。CSV 刚导进来、还没填任何估值的组合，整张表会铺满绿色的
+ * +0.0%，而那些域名此刻全是净支出。
+ *
+ * 金额口径与 calculateDomainROI 完全一致，这里只多告诉调用方「这个数算不算数」。
+ */
+export function domainRoiWithKind(
+  domain: Parameters<typeof calculateDomainROI>[0],
+  transactions?: Parameters<typeof calculateDomainROI>[1]
+): { roi: number | null; kind: DomainRoiKind } {
+  if (domain.status === 'sold') {
+    return { roi: calculateDomainROI(domain, transactions), kind: 'realized' };
+  }
+  if (isDomainLost(domain)) return { roi: -100, kind: 'lost' };
+  if (domain.estimated_value != null && domain.estimated_value > 0) {
+    return { roi: calculateDomainROI(domain, transactions), kind: 'unrealized' };
+  }
+  return { roi: null, kind: 'unknown' };
+}
+
 // 格式化货币
 export function formatCurrency(
   amount: number,

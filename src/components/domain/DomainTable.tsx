@@ -6,7 +6,7 @@ import DomainShareModal from '../share/DomainShareModal';
 import { DomainWithTags } from '../../types/dashboard';
 import type { TransactionWithRequiredFields } from '../../types/transaction';
 import { useI18nContext } from '../../contexts/I18nProvider';
-import { calculateDomainROI } from '../../lib/financialCalculations';
+import { domainRoiWithKind } from '../../lib/financialCalculations';
 import { domainStatusLabel as statusLabel } from '../../lib/domainStatusLabel';
 import { isExpiredButNotMarked } from '../../lib/domainLossStatus';
 import { getExpiryBadge, EXPIRY_TONE_CLASS } from '../../lib/expiryBadge';
@@ -427,7 +427,7 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], metr
             </thead>
             <tbody className="bg-white divide-y divide-stone-200">
               {displayedDomains.map((domain) => {
-                const roi = calculateDomainROI(domain, transactions);
+                const roiInfo = domainRoiWithKind(domain, transactions);
                 const expiryStatus = getExpiryStatus(domain);
                 const isExpanded = expandedId === domain.id;
                 const isEditingStatus = editing?.id === domain.id && editing.field === 'status';
@@ -643,9 +643,35 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], metr
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <div className={`text-sm font-medium ${roi >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        {roi >= 0 ? '+' : ''}{roi.toFixed(1)}%
-                      </div>
+                      {/* 这一列以前只渲染一个数字，四种情况分不出来。最糟的是
+                          「持有中但没填估值」：calculateDomainROI 返回 0，渲染
+                          成绿色的 +0.0%，读起来是"打平"，实际意思是"不知道"。
+                          CSV 刚导进来的组合整张表会铺满绿色 +0.0%，而那些域名
+                          此刻全是净支出。 */}
+                      {roiInfo.roi === null ? (
+                        <div
+                          className="text-sm text-stone-400"
+                          title={t('domainList.table.roiUnknownHint')}
+                        >
+                          —
+                        </div>
+                      ) : (
+                        <div
+                          className={`text-sm font-medium ${
+                            roiInfo.roi >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                          }`}
+                          title={
+                            roiInfo.kind === 'unrealized'
+                              ? t('domainList.table.roiUnrealizedHint')
+                              : undefined
+                          }
+                        >
+                          {roiInfo.kind === 'unrealized' && (
+                            <span className="text-stone-400 mr-0.5" aria-hidden>~</span>
+                          )}
+                          {roiInfo.roi >= 0 ? '+' : ''}{roiInfo.roi.toFixed(1)}%
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3 max-w-xs">
                       <div className="flex flex-wrap gap-1">

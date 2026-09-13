@@ -162,3 +162,50 @@ describe('DomainTable 展开行的金额', () => {
     expect(screen.queryByText(String.fromCharCode(8722) + '$0.00')).toBeNull();
   });
 });
+
+describe('DomainTable ROI 列', () => {
+  const withRoi = (over: Record<string, unknown>) =>
+    [{ ...makeDomains(1)[0], ...over }] as unknown as DomainWithTags[];
+
+  // 列顺序：展开 / 域名 / 状态 / 成本 / 估值 / 到期 / ROI / 标签 / 操作
+  const roiCell = (container: HTMLElement) =>
+    container.querySelectorAll('tbody tr')[0].querySelectorAll('td')[6];
+
+  const renderWith = (domains: DomainWithTags[], txs: TransactionWithRequiredFields[] = []) =>
+    render(
+      <I18nProvider>
+        <DomainTable domains={domains} transactions={txs} onEdit={vi.fn()} onDelete={vi.fn()} onView={vi.fn()} />
+      </I18nProvider>
+    );
+
+  it('持有中没填估值时显示「—」，而不是绿色的 +0.0%', () => {
+    const { container } = renderWith(withRoi({ estimated_value: 0, status: 'active' }));
+    const cell = roiCell(container);
+    expect(cell.textContent).toContain(String.fromCharCode(8212));
+    expect(cell.textContent).not.toContain('0.0%');
+    expect(cell.querySelector('.text-emerald-600')).toBeNull();
+  });
+
+  it('填了估值时标成浮动收益（带 ~ 前缀）', () => {
+    const { container } = renderWith(
+      withRoi({ estimated_value: 4000, purchase_cost: 1000, status: 'active' })
+    );
+    const cell = roiCell(container);
+    expect(cell.textContent).toContain('~');
+    expect(cell.textContent).toContain('300.0%');
+  });
+
+  it('已成交的 ROI 不带 ~，是实打实的', () => {
+    const txs = [{
+      id: 't1', domain_id: 'd0', type: 'sell', amount: 5000, net_amount: 5000,
+      platform_fee: 0, currency: 'USD', date: '2026-04-01',
+    }] as unknown as TransactionWithRequiredFields[];
+    const { container } = renderWith(
+      withRoi({ status: 'sold', purchase_cost: 1000, estimated_value: 0 }),
+      txs
+    );
+    const cell = roiCell(container);
+    expect(cell.textContent).not.toContain('~');
+    expect(cell.textContent).toContain('400.0%');
+  });
+});
