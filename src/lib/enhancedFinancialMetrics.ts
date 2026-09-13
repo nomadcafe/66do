@@ -23,6 +23,16 @@ interface DomainROI {
   saleDate?: string;
 }
 
+/**
+ * 单个域名的 ROI —— **已实现**口径：收入只认该域名的 sell 交易净额。
+ *
+ * 注意仓库里有两个同名函数，导入时别拿错：
+ *   - 这个（enhancedFinancialMetrics）：TransactionList 的成交行用，回答
+ *     「这笔成交赚了多少」，不看 estimated_value。
+ *   - financialCalculations.calculateDomainROI：DomainTable / DomainCard 用，
+ *     持有中的域名会用 estimated_value 代入，回答「这个米现在值多少」。
+ * 成本口径两边一致（都走 renewalCostBasis）；已出售那一支的收入现在也同源。
+ */
 // 计算单个域名的ROI
 export function calculateDomainROI(
   domain: {
