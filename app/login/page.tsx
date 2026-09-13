@@ -5,14 +5,8 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useI18nContext } from '../../src/contexts/I18nProvider';
 import { useSupabaseAuth } from '../../src/contexts/SupabaseAuthContext';
+import { getSafeRedirect } from '../../src/lib/safeRedirect';
 import { AtSign, Mail, Send, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
-
-function getSafeRedirect(redirect: string | null): string {
-  if (!redirect || typeof redirect !== 'string') return '/dashboard';
-  const path = redirect.trim();
-  if (path.startsWith('/') && !path.includes('//') && !path.includes(':')) return path;
-  return '/dashboard';
-}
 
 function LoginContent() {
   const [email, setEmail] = useState('');
