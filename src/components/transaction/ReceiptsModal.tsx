@@ -7,6 +7,9 @@ import { TransactionWithRequiredFields } from '../../types/dashboard';
 import { supabase } from '../../lib/supabase';
 import { validateInstallmentReceipt, translateValidationMessages } from '../../lib/validation';
 import { logger } from '../../lib/logger';
+import { localCalendarDateISO, parseLocalCalendarDate } from '../../lib/localCalendarDate';
+import DateInput from '../ui/DateInput';
+import NumberInput from '../ui/NumberInput';
 
 interface ReceiptsModalProps {
   isOpen: boolean;
@@ -19,7 +22,9 @@ interface ReceiptsModalProps {
   onChanged: () => void | Promise<void>;
 }
 
-const todayISODate = () => new Date().toISOString().slice(0, 10);
+// 本地日历日。toISOString() 取的是 UTC 日 —— 在 UTC+8，早上 8 点之前
+// 「今天」会变成昨天，收款记录默认就录错一天。
+const todayISODate = () => localCalendarDateISO();
 
 /** 从已有 receipts 推下一期默认日期：最后一笔 received_date + 1 个月。
  *  没 receipts 用 installment_first_payment_date 或今天。 */
@@ -30,17 +35,20 @@ function suggestNextDate(t: TransactionWithRequiredFields | null): string {
     const last = [...receipts].sort((a, b) =>
       a.received_date.localeCompare(b.received_date)
     )[receipts.length - 1];
-    const d = new Date(last.received_date);
-    if (!Number.isNaN(d.getTime())) {
+    // 'YYYY-MM-DD' 必须按本地日历日解析：new Date() 走 ISO 规则当 UTC 午夜，
+    // 而 setMonth / getMonth 读的是本地值，两套口径混用会在负偏移时区错月
+    // （'2026-03-01' 在 EST 下解析成 2 月 28 日，+1 月给出 3 月 28 日）。
+    const d = parseLocalCalendarDate(last.received_date);
+    if (d) {
       d.setMonth(d.getMonth() + 1);
-      return d.toISOString().slice(0, 10);
+      return localCalendarDateISO(d);
     }
   }
   if (t.installment_first_payment_date) {
-    const d = new Date(t.installment_first_payment_date);
-    if (!Number.isNaN(d.getTime())) {
+    const d = parseLocalCalendarDate(t.installment_first_payment_date);
+    if (d) {
       // 没记过任何 receipt 时，第一期就用 installment_first_payment_date 本身。
-      return d.toISOString().slice(0, 10);
+      return localCalendarDateISO(d);
     }
   }
   return todayISODate();
@@ -339,26 +347,25 @@ export default function ReceiptsModal({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-2">
-                {t('transaction.receiptDate')}
-              </label>
-              <input
-                type="date"
+              <DateInput
+                label={t('transaction.receiptDate')}
                 value={receivedDate}
-                onChange={(e) => setReceivedDate(e.target.value)}
+                onChange={setReceivedDate}
+                className="w-full"
+                inputClassName="rounded-lg focus:ring-emerald-500"
                 disabled={isProcessing}
-                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-2">
                 {t('transaction.receiptAmount')} ({transaction.currency || 'USD'})
               </label>
-              <input
-                type="number"
-                step="0.01"
+              <NumberInput
+                // 退款是负数，所以这里不设 min
                 value={Number.isFinite(amount) ? amount : 0}
-                onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
+                onChange={(v) => setAmount(v ?? 0)}
+                blankWhenZero
+                placeholder="0.00"
                 disabled={isProcessing}
                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                   isRefund ? 'border-rose-300 focus:ring-rose-500' : 'border-stone-300 focus:ring-emerald-500'
@@ -370,11 +377,12 @@ export default function ReceiptsModal({
               <label className="block text-sm font-medium text-stone-700 mb-2">
                 {t('transaction.receiptPeriodNo')}
               </label>
-              <input
-                type="number"
+              <NumberInput
+                integer
                 min={0}
-                value={periodNo === 0 ? '' : periodNo}
-                onChange={(e) => setPeriodNo(parseInt(e.target.value) || 0)}
+                blankWhenZero
+                value={periodNo}
+                onChange={(v) => setPeriodNo(v ?? 0)}
                 disabled={isProcessing}
                 className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 placeholder="1"
