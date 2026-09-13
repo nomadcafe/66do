@@ -7,6 +7,8 @@ import {
   acquisitionCostForDomain,
 } from './renewalCostBasis';
 import { isDomainLost } from './domainLossStatus';
+import { sellNetUSD } from './sellProceeds';
+import { txsForDomain } from './txIndex';
 import { calendarYearOf, parseLocalCalendarDate } from './localCalendarDate';
 
 /**
@@ -14,7 +16,13 @@ import { calendarYearOf, parseLocalCalendarDate } from './localCalendarDate';
  * 公式：ROI = (净收入 - 总持有成本) / 总持有成本 × 100
  * - 总持有成本 = 购买成本(purchase_cost) + 续费成本 + 转移费(transfer 交易)
  *   续费成本口径见 renewalCostBasis；转移费需要传入 transactions 才能算。
- * - 已出售：净收入 = 售价(sale_price) - 平台手续费(platform_fee)
+ * - 已出售：净收入 = 该域名全部 sell 交易的净额之和；拿不到交易数据时才退回
+ *   域名行上的 sale_price − platform_fee 存档字段
+ *
+ * 与 enhancedFinancialMetrics.calculateDomainROI（同名，TransactionList 用）的
+ * 区别：成本口径两边一致，收入口径这边多一条「持有中用 estimated_value 代入」
+ * 的未实现分支——表格要的是"现在值多少"，交易列表要的是"这笔成交赚了多少"。
+ * 已出售那一支现在两边同源，不会再各说各话。
  * - 过期：视为 -100%
  * - 持有中且有预估价值：净收入用 estimated_value 代入
  */
@@ -31,7 +39,14 @@ export function calculateDomainROI(
     estimated_value?: number | null;
     expiry_date?: string | null;
   },
-  transactions?: Array<{ domain_id: string; type: string; date: string; amount: number }>
+  transactions?: Array<{
+    domain_id: string;
+    type: string;
+    date: string;
+    amount: number;
+    net_amount?: number | null;
+    platform_fee?: number | null;
+  }>
 ): number {
   const purchaseCost =
     domain.id && transactions
@@ -55,9 +70,22 @@ export function calculateDomainROI(
 
   if (totalHoldingCost === 0) return 0;
 
-  // 已出售：净收入 = 售价 - 平台费（售价为空或 0 时按 0 收入，即 -100%）
+  // 已出售：净收入优先按 sell 交易算，与 TransactionList / Insights 同口径。
+  //
+  // 以前只读域名行上的 sale_price − platform_fee，两个后果：
+  //   - sale_price 没回写时（导入的数据、补录的 sell 交易）netRevenue = 0，
+  //     一笔赚了 4 倍的成交在表格里显示成 −100%；
+  //   - 同一个域名卖过两轮时 sale_price 只留得住最后一次，而持有成本是累计的。
+  // 存档字段留作兜底：调用方没传 transactions 时仍然按老路走。
   if (domain.status === 'sold') {
-    const netRevenue = (domain.sale_price ?? 0) - (domain.platform_fee || 0);
+    const sellTxs =
+      domain.id && transactions
+        ? txsForDomain(transactions, domain.id).filter((t) => t.type === 'sell')
+        : [];
+    const netRevenue =
+      sellTxs.length > 0
+        ? sellTxs.reduce((sum, t) => sum + sellNetUSD(t), 0)
+        : (domain.sale_price ?? 0) - (domain.platform_fee || 0);
     return ((netRevenue - totalHoldingCost) / totalHoldingCost) * 100;
   }
 
