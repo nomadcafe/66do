@@ -5,6 +5,7 @@ import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Search, Filter, Plus, Edit, Trash2, Calendar, FileText, LayoutList, GitBranch, ArrowUp, ArrowDown, TrendingUp, TrendingDown, Scale, Hash, Coins, Receipt, Award, DollarSign, PlusCircle } from 'lucide-react';
 import { sellGrossUSD, sellNetUSD } from '../../lib/coreCalculations';
 import { calculateDomainROI, formatPercentage } from '../../lib/enhancedFinancialMetrics';
+import { transactionAmountDisplay } from '../../lib/transactionAmountDisplay';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import DomainTimelineView from './DomainTimelineView';
@@ -105,11 +106,14 @@ function TxMetaBlock({
   variant: 'card' | 'table';
 }) {
   const isSell = transaction.type === 'sell';
-  const listedGross = sellGrossUSD(transaction);
-  const adjustedGross = metricsTransaction ? sellGrossUSD(metricsTransaction) : listedGross;
-  // 仅 sell 有 metrics-adjustment 余地；非 sell 时 metrics === transaction，showSplit 为 false。
-  const showSplit = isSell && Math.abs(adjustedGross - listedGross) > 0.005;
-  const displayGross = showSplit ? adjustedGross : listedGross;
+  // 金额 / 符号 / 「标价」小字的判定收在 lib —— 域名表格展开行和周报卡片是
+  // 同一段逻辑，各写一份的时候三份都不一样。
+  const { amount: displayGross, sign, listed } = transactionAmountDisplay(
+    transaction,
+    metricsTransaction
+  );
+  const showSplit = listed !== null;
+  const listedGross = listed ?? displayGross;
   // 净额走 metrics（如有），保证"主行 + 副行 + 净额"三个数都同口径。
   const netSource = metricsTransaction ?? transaction;
   const amountColor = isSell ? 'text-emerald-700' : 'text-stone-900';
@@ -117,10 +121,6 @@ function TxMetaBlock({
   const isInstallment = isSell && transaction.payment_plan === 'installment';
   const sellRoi = isSell && domain ? calculateDomainROI(domain, allTransactions) : null;
   const isCard = variant === 'card';
-
-  // 免费的 transfer（同注册商 push / 内部转移）金额就是 0，带个负号写成
-  // "−$0.00" 看着像笔亏损。0 不标方向。
-  const sign = displayGross === 0 ? '' : isSell ? '+' : '-';
 
   const amountEl = (
     <span className={`tabular-nums ${isCard ? 'text-base font-bold' : 'text-sm font-semibold'} ${amountColor}`}>

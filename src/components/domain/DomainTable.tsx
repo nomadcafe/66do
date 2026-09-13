@@ -10,6 +10,7 @@ import { calculateDomainROI } from '../../lib/financialCalculations';
 import { domainStatusLabel as statusLabel } from '../../lib/domainStatusLabel';
 import { isExpiredButNotMarked } from '../../lib/domainLossStatus';
 import { getExpiryBadge, EXPIRY_TONE_CLASS } from '../../lib/expiryBadge';
+import { transactionAmountDisplay } from '../../lib/transactionAmountDisplay';
 import { ListPagination } from '../ui/ListPagination';
 
 // 共享 sortable header：原本每列各写一份 div + onClick + ↑/↓ 字符，
@@ -161,6 +162,13 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], metr
     await onUpdateDomain(domain, { [field]: parsed } as Partial<DomainWithTags>);
     cancelEdit();
   }, [onUpdateDomain, draftValue, cancelEdit]);
+
+  // 展开行的金额要和交易列表说同一个数：分期按实际已收折算。
+  const metricsById = useMemo(() => {
+    const map = new Map<string, TransactionWithRequiredFields>();
+    for (const tx of metricsTransactions ?? []) map.set(tx.id, tx);
+    return map;
+  }, [metricsTransactions]);
 
   const transactionsByDomainId = useMemo(() => {
     const map = new Map<string, TransactionWithRequiredFields[]>();
@@ -710,8 +718,13 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], metr
                                 tone === 'sell' ? 'bg-emerald-100 text-emerald-700' :
                                 tone === 'buy' || tone === 'renew' ? 'bg-stone-100 text-stone-700' :
                                 'bg-amber-50 text-amber-700';
-                              const sign = tone === 'sell' ? '+' : '-';
-                              const amount = tx.amount ?? 0;
+                              // 以前是 `sign = sell ? '+' : '-'` + 裸 tx.amount：
+                              // 0 元的 transfer 写成 "−$0.00"，分期出售显示合同
+                              // 全额（交易列表同一笔显示的是已收额）。
+                              const { amount, sign, listed } = transactionAmountDisplay(
+                                tx,
+                                metricsById.get(tx.id)
+                              );
                               const dateStr = tx.date ? formatDateLocale(tx.date) : '';
                               return (
                                 <li key={tx.id} className="flex items-center gap-3 text-sm">
@@ -723,6 +736,14 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], metr
                                   <span className={`ml-auto font-semibold tabular-nums ${tone === 'sell' ? 'text-emerald-700' : 'text-stone-900'}`}>
                                     {sign}{formatCurrency(amount)}
                                   </span>
+                                  {listed !== null && (
+                                    <span className="text-xs text-stone-500 tabular-nums shrink-0">
+                                      {t('timeline.sellListedHint').replace(
+                                        '{amount}',
+                                        formatCurrency(listed)
+                                      )}
+                                    </span>
+                                  )}
                                   {tx.notes && (
                                     <span className="text-xs text-stone-500 truncate max-w-[40%]">· {tx.notes}</span>
                                   )}
