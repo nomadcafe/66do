@@ -20,6 +20,7 @@ import {
   AreaChart,
   BarChart,
   Bar,
+  ReferenceLine,
 } from 'recharts';
 import {
   BarChart3,
@@ -70,6 +71,74 @@ interface TimeSeriesData {
   grossSales: number;        // 单月毛额入账（分期销售按到账月展开）—— Performance chart 绿色 area
   realizedPnL: number;       // 累计已实现盈亏：每笔出售 (sellNet − cost basis at sale)，按到账月分摊
   monthlyCashFlow: number;   // 给月度净现金流图用，本图不画
+  purchase: number;          // investment 里归属于「购入」的部分 = investment − renewalCost
+  otherOutflow: number;      // 其余运营支出（fee / transfer / marketing / advertising）
+}
+
+/** 净现金流的正负配色。原来是 #10b981 / #fb7185 —— 在红绿色盲（deutan）下
+ *  两者色差只有 ΔE 3.9，等于没区分；换成这一对后是 8.6，且都过 3:1 对比度。
+ *  仍然是财务界通用的绿进红出，没有改变语义。 */
+const CASHFLOW_IN = '#047857';
+const CASHFLOW_OUT = '#dc2626';
+
+/** 净现金流图的 tooltip：单看一根柱子只知道「这个月净流出 $1,200」，答不出
+ *  「因为买了域名还是因为续费」。三类流出的数已经在 timeSeriesData 里了，摊开给用户看。
+ *
+ *  定义在模块作用域而不是组件体内：写在组件里每次 render 都是一个新的组件类型，
+ *  Recharts 会把 tooltip 整个卸载重建，移动鼠标时会闪。 */
+export function CashFlowTooltip({
+  active,
+  payload,
+  t,
+  monthLabel,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload: TimeSeriesData }>;
+  t: (key: string) => string;
+  monthLabel: (key: string) => string;
+}) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0].payload;
+  const rows = [
+    { label: t('analytics.cashFlowInflow'), value: d.revenue },
+    { label: t('analytics.cashFlowPurchase'), value: -d.purchase },
+    { label: t('analytics.renewalCost'), value: -d.renewalCost },
+    { label: t('analytics.cashFlowOtherOutflow'), value: -d.otherOutflow },
+  ].filter((r) => r.value !== 0);
+
+  return (
+    <div className="rounded-lg border border-stone-200 bg-white/95 px-3 py-2 shadow-lg">
+      <p className="text-xs font-medium text-stone-900">{monthLabel(d.date)}</p>
+      {rows.length === 0 ? (
+        <p className="mt-1.5 text-xs text-stone-500">{t('analytics.cashFlowNoMovement')}</p>
+      ) : (
+        <>
+          <dl className="mt-1.5 space-y-0.5">
+            {rows.map((r) => (
+              <div key={r.label} className="flex items-baseline justify-between gap-6 text-xs">
+                <dt className="text-stone-500">{r.label}</dt>
+                <dd className="tabular-nums text-stone-700">
+                  {r.value > 0 ? '+' : '−'}
+                  {formatCurrency(Math.abs(r.value), 'USD')}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <div className="mt-1.5 flex items-baseline justify-between gap-6 border-t border-stone-200 pt-1.5 text-xs">
+            <dt className="font-medium text-stone-900">{t('analytics.monthlyCashFlow')}</dt>
+            <dd
+              className={`tabular-nums font-semibold ${
+                d.monthlyCashFlow >= 0 ? 'text-emerald-700' : 'text-red-600'
+              }`}
+            >
+              {d.monthlyCashFlow >= 0 ? '+' : '−'}
+              {formatCurrency(Math.abs(d.monthlyCashFlow), 'USD')}
+            </dd>
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
 
 const InfoTooltip = ({ text }: { text: string }) => (
@@ -262,7 +331,11 @@ export default function InvestmentAnalytics({
         revenue,
         grossSales,
         realizedPnL: cumulativeRealizedPnL,
-        monthlyCashFlow
+        monthlyCashFlow,
+        // 净现金流图的 tooltip 要能回答「这个月为什么是负的」，三类流出
+        // 本来就算出来了，以前只是没往下传。
+        purchase: purchaseThisMonth,
+        otherOutflow
       });
     }
 
@@ -532,7 +605,8 @@ export default function InvestmentAnalytics({
                 <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
+            {/* 实线：虚线网格会被读成「预测」或「阈值」，这里只是刻度线 */}
+            <CartesianGrid stroke="#e7e5e4" vertical={false} />
             <XAxis
               dataKey="date"
               tick={{ fontSize: 12, fill: '#78716c' }}
@@ -699,27 +773,54 @@ export default function InvestmentAnalytics({
 
   const renderMonthlyCashFlow = () => (
     <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
-      <h3 className="text-lg font-semibold text-stone-900 mb-4">{t('analytics.monthlyCashFlowTrend')}</h3>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-1">
+        <h3 className="text-lg font-semibold text-stone-900">
+          {t('analytics.monthlyCashFlowTrend')}
+        </h3>
+        {/* 方向不能只靠颜色：红绿在红绿色盲眼里几乎同色，所以图例把
+            「净流入 / 净流出」写成字，柱子相对零线的上下位置是第二重编码。 */}
+        <div className="flex flex-wrap items-center gap-2 text-xs text-stone-600">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: CASHFLOW_IN }} />
+            {t('analytics.cashFlowNetInflow')}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: CASHFLOW_OUT }} />
+            {t('analytics.cashFlowNetOutflow')}
+          </span>
+        </div>
+      </div>
+      <p className="text-sm text-stone-500 leading-relaxed mb-4">
+        {t('analytics.monthlyCashFlowDesc')}
+      </p>
       <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={timeSeriesData}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="date" tickFormatter={monthTickLabel} />
-          <YAxis tickFormatter={compactUSD} />
-          <Tooltip
-            formatter={(value) => [
-              formatCurrency(Number(value), 'USD'),
-              t('analytics.monthlyCashFlow'),
-            ]}
-            labelFormatter={(value) => monthFullLabel(String(value))}
+        <BarChart data={timeSeriesData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+          {/* 实线细网格：虚线网格会被读成「预测」或「阈值」，这里只是刻度。
+              竖线去掉——时间序列柱状图不需要按月切竖格。 */}
+          <CartesianGrid stroke="#e7e5e4" vertical={false} />
+          <XAxis
+            dataKey="date"
+            tick={{ fontSize: 12, fill: '#78716c' }}
+            tickFormatter={monthTickLabel}
+            stroke="#a8a29e"
+            minTickGap={24}
           />
-          <Bar
-            dataKey="monthlyCashFlow"
-            name={t('analytics.monthlyCashFlow')}
-          >
+          <YAxis
+            tick={{ fontSize: 12, fill: '#78716c' }}
+            tickFormatter={compactUSD}
+            stroke="#a8a29e"
+          />
+          <Tooltip
+            content={<CashFlowTooltip t={t} monthLabel={monthFullLabel} />}
+            cursor={{ fill: 'rgba(120,113,108,0.06)' }}
+          />
+          {/* 零线：正负柱状图没有它就看不出符号在哪翻转，而这恰恰是全图的重点 */}
+          <ReferenceLine y={0} stroke="#78716c" strokeWidth={1} />
+          <Bar dataKey="monthlyCashFlow" name={t('analytics.monthlyCashFlow')} radius={[2, 2, 0, 0]}>
             {timeSeriesData.map((entry, index) => (
               <Cell
                 key={`cashflow-${index}`}
-                fill={entry.monthlyCashFlow >= 0 ? '#10b981' : '#fb7185'}
+                fill={entry.monthlyCashFlow >= 0 ? CASHFLOW_IN : CASHFLOW_OUT}
               />
             ))}
           </Bar>

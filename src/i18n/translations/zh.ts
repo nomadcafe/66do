@@ -1038,6 +1038,13 @@ const zh = {
       portfolioPerformingWell: '投资组合表现良好，风险控制得当',
       monthlyCashFlowTrend: '月度净现金流',
       monthlyCashFlow: '月度净现金流',
+      monthlyCashFlowDesc: '每个月真正进出的钱。售出按到账时间算——分期销售按每期收款日出现，而不是成交那一刻整笔记上。流出是购入、续费（含档案续费）和其余运营支出，按交易日期归月。方向不等于盈亏：红色的月份可能只是那个月在囤货。',
+      cashFlowNetInflow: '净流入',
+      cashFlowNetOutflow: '净流出',
+      cashFlowInflow: '售出到账',
+      cashFlowPurchase: '购入支出',
+      cashFlowOtherOutflow: '其他支出',
+      cashFlowNoMovement: '本月没有资金进出',
       yearlyRenewalProfit: {
         title: '年度现金流',
         desc: '按自然年汇总现金流向：续费走事件流（有 expiry_date 时倒推 archive 续费日期，否则按 purchase + i × cycle 估算），购入/费用按交易日；售出按实际到账时间——一次性付款落在成交年，分期销售按每期收款日拆到各年（含首付，按平台费比例扣减）。净现金流 = 售出净收入 − 续费 − 购入与费用。注意：现金流方向 ≠ 盈亏，买入年现金流出不等于亏损，卖出年现金流入也不等于盈利。',
