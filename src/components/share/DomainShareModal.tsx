@@ -14,16 +14,23 @@ import {
 import { investedTweetText, shareToX } from '../../lib/shareText';
 import { useMascotImage } from '../../hooks/useMascotImage';
 import ModalShell from './ModalShell';
-import { domainSaleProfit, domainSaleROI } from '../../lib/domainSaleOutcome';
+import { latestSaleOutcome } from '../../lib/domainSaleOutcome';
+import { parseLocalCalendarDate } from '../../lib/localCalendarDate';
 
 interface DomainShareModalProps {
   isOpen: boolean;
   onClose: () => void;
   domain: DomainWithTags;
   transactions?: TransactionWithRequiredFields[];
+  /** 分期按实际已收折算后的交易副本（transactionsForMetrics）。**只**用于
+   *  分享卡片上的利润 / ROI —— 那张图是要发出去给别人看的，按合同全额算会
+   *  把还没收到的钱也写成利润。列表本身的其它计算仍走原始 transactions。
+   *  与 TransactionList 的同名 prop 是同一套约定。 */
+  metricsTransactions?: TransactionWithRequiredFields[];
+
 }
 
-export default function DomainShareModal({ isOpen, onClose, domain, transactions = [] }: DomainShareModalProps) {
+export default function DomainShareModal({ isOpen, onClose, domain, transactions = [], metricsTransactions }: DomainShareModalProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const { t } = useI18nContext();
@@ -31,11 +38,21 @@ export default function DomainShareModal({ isOpen, onClose, domain, transactions
 
   // 与 Insights 的 Top Performers 同一口径；以前这里是一份基于
   // domain.sale_price 的私有实现（ShareModal 里还有一份同样的拷贝）。
-  const calculateDomainProfit = () => domainSaleProfit(domain, transactions);
-  const calculateROI = () => domainSaleROI(domain, transactions);
+  // 分期出售按「实际已收」算，而不是合同全额——这张图是要发出去的。
+  const outcomeTxs = metricsTransactions ?? transactions;
+  const outcome = latestSaleOutcome(domain, outcomeTxs);
+  const calculateDomainProfit = () => outcome?.profit ?? 0;
+  const calculateROI = () => outcome?.roi ?? 0;
 
   const purchaseDate = new Date(domain.purchase_date || '');
-  const saleDate = domain.sale_date ? new Date(domain.sale_date) : new Date();
+  // 成交价和成交日也走同一笔成交记录。以前 salePrice 读 domain.sale_price、
+  // 利润读交易，同一张卡上两个口径——sale_price 没回写时会印出「成交价 $0，
+  // 利润 $4,000」。sale_date 缺失时原本退回"今天"，持有天数跟着算错。
+  const saleDate = outcome?.saleDate
+    ? (parseLocalCalendarDate(outcome.saleDate) ?? new Date())
+    : domain.sale_date
+      ? new Date(domain.sale_date)
+      : new Date();
 
   const generateShareImage = async () => {
     if (!canvasRef.current) return;
@@ -43,7 +60,7 @@ export default function DomainShareModal({ isOpen, onClose, domain, transactions
     const profit = calculateDomainProfit();
     drawDomainSaleImage(canvasRef.current, {
       domainName: domain.domain_name,
-      salePrice: domain.sale_price ?? 0,
+      salePrice: outcome?.sellGross ?? domain.sale_price ?? 0,
       profit,
       roi: calculateROI(),
       holdingShort: holdingPeriodShort(purchaseDate, saleDate),

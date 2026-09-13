@@ -14,6 +14,11 @@ import { useDebouncedUrlParam } from '../../hooks/useDebouncedUrlParam';
 interface DomainListProps {
   domains: DomainWithTags[];
   transactions?: TransactionWithRequiredFields[];
+  /** 分期按实际已收折算后的交易副本（transactionsForMetrics）。**只**用于
+   *  分享卡片上的利润 / ROI —— 那张图是要发出去给别人看的，按合同全额算会
+   *  把还没收到的钱也写成利润。列表本身的其它计算仍走原始 transactions。
+   *  与 TransactionList 的同名 prop 是同一套约定。 */
+  metricsTransactions?: TransactionWithRequiredFields[];
   onEdit: (domain: DomainWithTags) => void;
   onDelete: (id: string) => void;
   onView: (domain: DomainWithTags) => void;
@@ -31,7 +36,7 @@ interface DomainListProps {
 
 const DOMAINS_PAGE_SIZE = 24;
 
-const DomainList = memo(function DomainList({ domains, transactions = [], onEdit, onDelete, onView, onAdd, onUpdateDomain, stuckDomainIds, expiringDomainIds }: DomainListProps) {
+const DomainList = memo(function DomainList({ domains, transactions = [], metricsTransactions, onEdit, onDelete, onView, onAdd, onUpdateDomain, stuckDomainIds, expiringDomainIds }: DomainListProps) {
   const { t } = useI18nContext();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -368,6 +373,7 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
         <DomainTable
           domains={filteredDomains}
           transactions={transactions}
+          metricsTransactions={metricsTransactions}
           onEdit={onEdit}
           onDelete={onDelete}
           onView={onView}
@@ -381,6 +387,7 @@ const DomainList = memo(function DomainList({ domains, transactions = [], onEdit
                 key={domain.id}
                 domain={domain}
                 transactions={transactions}
+                metricsTransactions={metricsTransactions}
                 onEdit={onEdit}
                 onDelete={onDelete}
                 onView={onView}

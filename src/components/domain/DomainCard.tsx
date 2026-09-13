@@ -21,12 +21,18 @@ interface DomainCardProps {
   domain: DomainWithTags;
   /** 用于基线续费口径；不传则与仅档案一致 */
   transactions?: TransactionWithRequiredFields[];
+  /** 分期按实际已收折算后的交易副本（transactionsForMetrics）。**只**用于
+   *  分享卡片上的利润 / ROI —— 那张图是要发出去给别人看的，按合同全额算会
+   *  把还没收到的钱也写成利润。列表本身的其它计算仍走原始 transactions。
+   *  与 TransactionList 的同名 prop 是同一套约定。 */
+  metricsTransactions?: TransactionWithRequiredFields[];
+
   onEdit: (domain: DomainWithTags) => void;
   onDelete: (id: string) => void;
   onView: (domain: DomainWithTags) => void;
 }
 
-const DomainCard = memo(function DomainCard({ domain, transactions = [], onEdit, onDelete, onView }: DomainCardProps) {
+const DomainCard = memo(function DomainCard({ domain, transactions = [], metricsTransactions, onEdit, onDelete, onView }: DomainCardProps) {
   const [showShareModal, setShowShareModal] = useState(false);
   const { t, locale } = useI18nContext();
   const localeTag = locale === 'zh' ? 'zh-CN' : 'en-US';
@@ -295,6 +301,7 @@ const DomainCard = memo(function DomainCard({ domain, transactions = [], onEdit,
         onClose={() => setShowShareModal(false)}
         domain={domain}
         transactions={transactions}
+        metricsTransactions={metricsTransactions}
       />
     </div>
   );
