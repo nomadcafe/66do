@@ -5,19 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useI18nContext } from '../../../src/contexts/I18nProvider';
 import { supabase } from '../../../src/lib/supabase';
 import { fireSignInNotification } from '../../../src/lib/securityNotify';
-
-function getSafeRedirect(redirect: string | null): string {
-  if (!redirect || typeof redirect !== 'string') return '/dashboard';
-  const path = redirect.trim();
-  // Must be a same-origin path. Reject:
-  //   //evil.com          protocol-relative
-  //   /\evil.com          backslash that some parsers normalize to /
-  //   /foo:bar            any scheme-looking segment
-  if (!path.startsWith('/')) return '/dashboard';
-  if (path.startsWith('//') || path.startsWith('/\\')) return '/dashboard';
-  if (path.includes('\\') || path.includes(':')) return '/dashboard';
-  return path;
-}
+import { getSafeRedirect } from '../../../src/lib/safeRedirect';
 
 function AuthCallbackContent() {
   const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading');
