@@ -72,6 +72,10 @@ export default function NumberInput({
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // 浏览器本来就不会让 readOnly / disabled 的框产生输入，但草稿是我们自己
+    // 存的：不挡一下，程序派发的 change（测试、自动填充）会把派生值改掉，
+    // 而 onChange 又没人接，框里就停在一个假值上直到失焦。
+    if (rest.readOnly || rest.disabled) return;
     const next = sanitize(e.target.value);
     setDraft(next);
     if (next === '' || next === '-' || next === '.' || next === '-.') {

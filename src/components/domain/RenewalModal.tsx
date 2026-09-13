@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { X, Calendar, AlertCircle, CheckCircle } from 'lucide-react';
 import { DomainWithTags } from '../../types/dashboard';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { localCalendarDateISO } from '../../lib/localCalendarDate';
 import DateInput from '../ui/DateInput';
 import NumberInput from '../ui/NumberInput';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 export interface RenewalSubmission {
   renewalYears: number;
@@ -38,6 +39,7 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
   const [transferFee, setTransferFee] = useState<number>(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -78,6 +80,8 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
       document.body.style.overflow = prevOverflow;
     };
   }, [isOpen, isProcessing, onClose]);
+
+  useModalA11y(panelRef, isOpen);
 
   if (!isOpen) return null;
 
@@ -167,7 +171,10 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
         if (e.target === e.currentTarget && !isProcessing) onClose();
       }}
     >
-      <div className="bg-white rounded-xl shadow-2xl max-w-xl w-full transform transition-all max-h-[calc(100vh-2rem)] overflow-y-auto">
+      <div
+        ref={panelRef}
+        className="bg-white rounded-xl shadow-2xl max-w-xl w-full transform transition-all max-h-[calc(100vh-2rem)] overflow-y-auto focus:outline-none"
+      >
         {/* Header. Domain name promoted to a chip-style highlight so the user can
             tell at a glance which domain this dialog is for; the previous
             text-stone-500 subtitle was too easy to miss next to the title. */}

@@ -141,3 +141,46 @@ describe('TransactionForm', () => {
     );
   });
 });
+
+describe('TransactionForm — 分期字段', () => {
+  function openInstallment() {
+    const onSave = setup();
+    pickDomain();
+    fillDate(/date/i, '2026', '03', '10');
+    fireEvent.change(byId('transaction-form-type'), { target: { value: 'sell' } });
+    fireEvent.change(byId('transaction-form-amount'), { target: { value: '12000' } });
+    fireEvent.change(screen.getByDisplayValue(/lump sum/i), { target: { value: 'installment' } });
+    fireEvent.change(byId('transaction-form-installment-period'), { target: { value: '12' } });
+    return onSave;
+  }
+
+  it('shows the per-period amount as a derived, read-only value', () => {
+    openInstallment();
+    const perPeriod = byId('transaction-form-installment-amount');
+    expect(perPeriod.readOnly).toBe(true);
+    expect(perPeriod.value).toBe('1000');
+    // 打进去也不该留下——effect 会立刻按公式覆盖
+    fireEvent.change(perPeriod, { target: { value: '999' } });
+    expect(byId('transaction-form-installment-amount').value).toBe('1000');
+  });
+
+  it('saves the installment total instead of a hardcoded 0', async () => {
+    const onSave = openInstallment();
+    fireEvent.change(byId('transaction-form-downpayment'), { target: { value: '2000' } });
+    fireEvent.submit(byId('transaction-form-amount').closest('form')!);
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    const saved = onSave.mock.calls[0][0];
+    // 2000 首付 + 每期 (12000-2000)/12 × 12 期 = 12000
+    expect(saved.total_installment_amount).toBeCloseTo(12000, 6);
+  });
+
+  it('leaves the installment total unset for a lump-sum transaction', async () => {
+    const onSave = setup();
+    pickDomain();
+    fillDate(/date/i, '2026', '03', '10');
+    fireEvent.change(byId('transaction-form-amount'), { target: { value: '500' } });
+    fireEvent.submit(byId('transaction-form-amount').closest('form')!);
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0].total_installment_amount).toBeUndefined();
+  });
+});

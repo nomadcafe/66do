@@ -119,15 +119,26 @@ export default function InstallmentConfig({
               <label htmlFor="transaction-form-installment-amount" className="block text-sm font-medium text-blue-800 mb-2">
                 {t('transaction.installmentAmount')}
               </label>
+              {/* 只读：这是派生值，不是输入项。TransactionForm 里有个 effect 按
+                  （总额 − 首付 − 尾款）÷ 常规期数 无条件回写它，用户打进去的任何
+                  数字下一帧就被覆盖——之前它长得像个能填的框，其实填不进去。
+                  数据模型也只有这一个 installment_amount，装不下不等额的分期表，
+                  而下游（ReceiptsModal 预填、expandSellToCashReceipts）都按
+                  「每期等额且合计 = amount」来算。所以它只能是算出来的。 */}
               <NumberInput
                 id="transaction-form-installment-amount"
+                readOnly
+                tabIndex={-1}
                 min={0}
                 blankWhenZero
                 value={values.installment_amount}
-                onChange={(v) => onChange({ installment_amount: v ?? 0 })}
-                className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onChange={() => {}}
+                className="w-full px-3 py-2 border border-blue-200 bg-blue-50 text-blue-900 rounded-md cursor-default focus:outline-none"
                 placeholder="0.00"
               />
+              <p className="text-xs text-blue-600 mt-1">
+                {t('transaction.installmentAmountHint')}
+              </p>
             </div>
 
             <div>

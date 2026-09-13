@@ -751,6 +751,7 @@ const zh = {
       installmentPeriod: '分期期数',
       downpaymentAmount: '首付金额',
       installmentAmount: '每期金额',
+      installmentAmountHint: '自动计算：（总额 − 首付 − 尾款）÷ 常规期数。',
       finalPaymentAmount: '最后一期金额',
       installmentSummary: '分期付款摘要',
       downpayment: '首付',
