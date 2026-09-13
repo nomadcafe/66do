@@ -81,7 +81,8 @@ const en = {
     restoreBackup: 'Restore Backup',
     restoreBackupDescription: 'Restore data from backup file, will overwrite all current data.',
     importantWarning: 'Important Warning',
-    restoreWarning: 'Restoring backup will completely replace current data, this operation cannot be undone. Please ensure you have created a backup of current data before restoring.'
+    restoreWarning: 'Restore merges the backup into your current data: domains and transactions with the same id are overwritten by the backup version. Records you added since the backup are NOT deleted — this is a merge, not a wipe. Export a fresh backup first if you want a way back.',
+    restoreParseFailed: 'That file is not valid JSON — pick the backup file this app exported.'
   },
   reports: {
     allTime: 'All Time',
