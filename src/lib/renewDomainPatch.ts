@@ -3,7 +3,9 @@ import type { Domain } from '../types/domain';
 import type { DomainWithTags } from '../types/dashboard';
 import type { TransactionWithRequiredFields } from '../types/transaction';
 
-function toDomainForExpiry(d: DomainWithTags): Domain {
+/** DomainWithTags → handleDomainRenewal 要的 Domain 形状。导出是为了让续费弹窗
+ *  的「新到期日」预览喂给 handleDomainRenewal 的输入和写库那条路径逐字一致。 */
+export function toDomainForExpiry(d: DomainWithTags): Domain {
   return {
     id: d.id,
     domain_name: d.domain_name,

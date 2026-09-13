@@ -4,8 +4,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { X, Calendar, AlertCircle, CheckCircle } from 'lucide-react';
 import { DomainWithTags } from '../../types/dashboard';
 import { useI18nContext } from '../../contexts/I18nProvider';
-import { localCalendarDateISO } from '../../lib/localCalendarDate';
+import { localCalendarDateISO, parseLocalCalendarDate } from '../../lib/localCalendarDate';
 import { renewalAmountForYears } from '../../lib/renewalPricing';
+import { handleDomainRenewal } from '../../lib/domainExpiryManager';
+import { toDomainForExpiry } from '../../lib/renewDomainPatch';
 import DateInput from '../ui/DateInput';
 import NumberInput from '../ui/NumberInput';
 import { useModalA11y } from '../../hooks/useModalA11y';
@@ -29,7 +31,9 @@ interface RenewalModalProps {
 }
 
 export default function RenewalModal({ isOpen, onClose, domain, onRenew }: RenewalModalProps) {
-  const { t } = useI18nContext();
+  const { t, locale } = useI18nContext();
+  // 日期按界面语言格式化。这两处原本写死 'zh-CN'，英文界面上会冒出「2028年3月1日」。
+  const dateTag = locale === 'zh' ? 'zh-CN' : 'en-US';
   const [renewalYears, setRenewalYears] = useState<number>(domain.renewal_cycle || 1);
   // renewal_cost 是「一次续费（cycle 年）」的价，不是每年价——见 renewalPricing。
   const [amount, setAmount] = useState<number>(
@@ -89,25 +93,22 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
 
   if (!isOpen) return null;
 
-  // 直接计算续费后的信息，避免类型转换问题
   const renewalCycle = renewalYears || domain.renewal_cycle || 1;
-  const currentExpiryDate = domain.expiry_date ? new Date(domain.expiry_date) : null;
+  const currentExpiryDate = parseLocalCalendarDate(domain.expiry_date);
 
-  // 计算新的到期日期
-  let newExpiryDate: Date;
-  if (domain.expiry_date) {
-    newExpiryDate = new Date(domain.expiry_date);
-    newExpiryDate.setFullYear(newExpiryDate.getFullYear() + renewalCycle);
-  } else if (domain.purchase_date) {
-    newExpiryDate = new Date(domain.purchase_date);
-    newExpiryDate.setFullYear(newExpiryDate.getFullYear() + renewalCycle);
-    if (domain.renewal_count > 0) {
-      newExpiryDate.setFullYear(newExpiryDate.getFullYear() + (domain.renewal_count * renewalCycle));
-    }
-  } else {
-    newExpiryDate = new Date();
-    newExpiryDate.setFullYear(newExpiryDate.getFullYear() + renewalCycle);
-  }
+  // 「新到期日」预览走 handleDomainRenewal —— 也就是提交后真正写库的那条路径
+  // （saveData → mergeRenewTransactionDomainUpdates → handleDomainRenewal）。
+  //
+  // 这里原本自己算了一遍，和写库那侧有两处不一致：
+  //   1. 用 new Date(expiry_date) 解析日期列。handleDomainRenewal 的注释里就写着
+  //      这件事不能做——「setFullYear + localCalendarDateISO 全是本地取值器，
+  //      UTC 解析会让负偏移时区每续费一次到期日就往前退一天」。于是预览显示的
+  //      日期比真正存进去的早一天。
+  //   2. 兜底链少一档：没有 expiry_date 时直接跳到 purchase_date，而写库那侧
+  //      会先看 next_renewal_date。两者可能差好几年。
+  // 同源之后，预览和结果不可能再对不上。
+  const renewedPreview = handleDomainRenewal(toDomainForExpiry(domain), renewalCycle);
+  const newExpiryDate = parseLocalCalendarDate(renewedPreview.expiry_date) ?? new Date();
   
   const renewalCost = amount;
   const newRenewalCount = (domain.renewal_count || 0) + 1;
@@ -229,7 +230,7 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
               </span>
               <span className="text-sm font-semibold text-stone-900">
                 {currentExpiryDate
-                  ? currentExpiryDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
+                  ? currentExpiryDate.toLocaleDateString(dateTag, { year: 'numeric', month: 'long', day: 'numeric' })
                   : t('renewal.noExpiryDate') || 'Not set'}
               </span>
             </div>
@@ -386,7 +387,7 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
                   {t('renewal.newExpiryDate') || 'New Expiry Date'}
                 </span>
                 <span className="text-sm font-semibold text-teal-900">
-                  {newExpiryDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  {newExpiryDate.toLocaleDateString(dateTag, { year: 'numeric', month: 'long', day: 'numeric' })}
                 </span>
               </div>
               <div className="flex items-center justify-between">
