@@ -983,6 +983,7 @@ const en = {
       openTransaction: 'Click to edit this transaction',
       noEvents: 'No timeline entries yet — add purchase, renewal, or sale transactions',
       virtualPurchaseHint: 'From domain profile (purchase date & cost) when no separate purchase transaction exists',
+      virtualRenewHint: 'Estimated from the domain profile (renewal count & cost); date walked back from the expiry date. No separate renewal transaction was recorded.',
       noDomains: 'Add a domain to get started',
       noDomainMatch: 'No domains match your search',
       searchHint: 'Use the search box above to filter domains in the list',

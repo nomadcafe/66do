@@ -978,6 +978,7 @@ const zh = {
       openTransaction: '点击编辑此交易',
       noEvents: '该域名暂无可用记录，可添加购入、续费或出售交易',
       virtualPurchaseHint: '来自域名档案的购入日与成本（未单独记购入交易时）',
+      virtualRenewHint: '按域名档案的续费次数与单价估算，日期由到期日倒推（未单独记续费交易时）',
       noDomains: '请先添加域名',
       noDomainMatch: '没有匹配的域名，请调整搜索',
       searchHint: '使用上方搜索框按域名名称筛选列表',
