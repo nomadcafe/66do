@@ -1,9 +1,10 @@
 'use client';
 
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
-import { DollarSign, TrendingUp, Target, CheckCircle, XCircle, Award, Receipt, PiggyBank, TrendingDown } from 'lucide-react';
+import { DollarSign, TrendingUp, Target, CheckCircle, Award, Receipt, PiggyBank, TrendingDown } from 'lucide-react';
 import { calculateBasicFinancialMetrics } from '../../lib/coreCalculations';
 import { useI18nContext } from '../../contexts/I18nProvider';
+import { parseLocalCalendarDate } from '../../lib/localCalendarDate';
 import { formatCurrency } from '../../lib/financialCalculations';
 import { realizedROIFromTrades, tradeOutcomes } from '../../lib/realizedPnL';
 import { useMemo } from 'react';
@@ -14,7 +15,7 @@ interface FinancialAnalysisProps {
 }
 
 export default function FinancialAnalysis({ domains, transactions }: FinancialAnalysisProps) {
-  const { t } = useI18nContext();
+  const { t, locale } = useI18nContext();
 
   // basic 提供 lifetime 累计：totalInvestment / totalRevenue / totalProfit /
   // totalGrossSales。Realized P&L / Avg holding 已经在 Insights KPI strip
@@ -31,8 +32,12 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
   // 由 trades 归约而不是 realizedROI(domains, transactions)：后者会把同一个
   // 循环（含每笔的 holdingCostAsOf）再跑一遍，且两个数字有各自漂移的余地。
   const realizedRoi = useMemo(() => realizedROIFromTrades(trades), [trades]);
+  // 只收盈利的成交。以前是对全部 trades 排序后取前 10，于是成交笔数 ≤ 10 时
+  // 亏损的那些必然也进列表——一张标题写着「Top Performing」的卡片里列着一笔
+  // −$800、配一个红叉图标，而同一笔又出现在下面的 worst sale 行里，同一个数
+  // 在同一张卡上出现两次。全亏时列表为空，交给 topPerformersEmpty 文案。
   const topPerformers = useMemo(
-    () => [...trades].sort((a, b) => b.profit - a.profit).slice(0, 10),
+    () => trades.filter((tr) => tr.profit > 0).sort((a, b) => b.profit - a.profit).slice(0, 10),
     [trades]
   );
   // worst sale：亏损交易里 profit 最小的那笔。全部都盈利时不显示——给"赚最少
@@ -46,13 +51,21 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
 
   const pnlColor = (value: number) => (value >= 0 ? 'text-emerald-700' : 'text-rose-700');
 
-  const perfIcon = (roi: number | null) => {
-    // Free-domain trade (roi = null because cost basis is 0): treat as the
-    // success icon — any positive profit on a free domain is infinite ROI.
-    if (roi === null) return <CheckCircle className="h-5 w-5 text-emerald-500" />;
-    if (roi > 50) return <CheckCircle className="h-5 w-5 text-emerald-500" />;
-    if (roi > 0) return <Target className="h-5 w-5 text-amber-500" />;
-    return <XCircle className="h-5 w-5 text-rose-500" />;
+  // 列表只剩盈利成交，所以 roi 要么是 null（免费域名，cost basis 0，任何正
+  // 收益都是无穷大 ROI），要么 > 0——不再有「亏损」这一档。图标是装饰：
+  // 同一行右边就写着 ROI 百分比，含义由文字承担，所以对读屏隐藏，免得重复播报。
+  const perfIcon = (roi: number | null) =>
+    roi === null || roi > 50 ? (
+      <CheckCircle className="h-5 w-5 text-emerald-500" aria-hidden />
+    ) : (
+      <Target className="h-5 w-5 text-amber-500" aria-hidden />
+    );
+
+  // 列表是「每笔成交一行」，同一个域名卖过两次就会出现两行。不写日期的话
+  // 两行长得一模一样，看着像渲染重复了。
+  const saleDateLabel = (iso: string) => {
+    const d = parseLocalCalendarDate(iso);
+    return d ? d.toLocaleDateString(locale === 'zh' ? 'zh-CN' : 'en-US') : iso;
   };
 
   // 走 formatCurrency 而不是裸 toLocaleString：后者默认最多 3 位小数、且不补
@@ -118,12 +131,12 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
         </div>
       </div>
 
-      {/* Top performing domains —— 每笔 sell 一行，按 profit 排序 top 10。
-          一个域名出售多次会出现多次（每个 trade 一行）。免费域名（cost
-          basis 0）的 ROI 显示为 "∞"，避免兜底 0% 让暴利交易排到末尾。
-          Worst sale (profit < 0 里最低的那笔) 作为 footer 行展示——它跟 top
-          10 不在同一份 list（top 全部都是盈利时 worst 不该被错列进 top 列
-          表），但放在同一卡片底部方便对照"赚最多 vs 亏最多"。 */}
+      {/* Top performing domains —— 盈利成交里按 profit 排序取前 10，每笔 sell
+          一行。一个域名出售多次会出现多次（每个 trade 一行），所以行上带成交
+          日期区分。免费域名（cost basis 0）的 ROI 显示为 "∞"，避免兜底 0% 让
+          暴利交易排到末尾。
+          Worst sale (profit < 0 里最低的那笔) 作为 footer 行展示——两份列表
+          互斥（top 只收 profit > 0），同一笔不会既在上面又在下面。 */}
       <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-4">
           <Award className="h-4 w-4 text-amber-600" />
@@ -132,7 +145,11 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
           </h3>
         </div>
         {topPerformers.length === 0 ? (
-          <p className="text-sm text-stone-500">{t('reports.topPerformersEmpty')}</p>
+          // 两种空法要分开说：一笔都没卖过，和卖过但没有一笔是赚的。
+          // 列表只收 profit > 0 之后，后一种才成为可能。
+          <p className="text-sm text-stone-500">
+            {t(trades.length === 0 ? 'reports.topPerformersEmpty' : 'reports.topPerformersNoProfit')}
+          </p>
         ) : (
           <ul className="divide-y divide-stone-100">
             {topPerformers.map((item, idx) => {
@@ -158,6 +175,8 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
                             {item.roi.toFixed(1)}%
                           </span>
                         )}
+                        <span className="mx-1.5 text-stone-300">·</span>
+                        <span className="tabular-nums">{saleDateLabel(item.saleDate)}</span>
                       </p>
                     </div>
                   </div>
