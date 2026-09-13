@@ -5,7 +5,6 @@ import { Download } from 'lucide-react';
 import { DomainWithTags } from '../../types/dashboard';
 import type { TransactionWithRequiredFields } from '../../types/transaction';
 import { useI18nContext } from '../../contexts/I18nProvider';
-import { totalHoldingCostForDomain } from '../../lib/renewalCostBasis';
 import {
   drawDomainSaleImage,
   downloadCanvas,
@@ -15,6 +14,7 @@ import {
 import { investedTweetText, shareToX } from '../../lib/shareText';
 import { useMascotImage } from '../../hooks/useMascotImage';
 import ModalShell from './ModalShell';
+import { domainSaleProfit, domainSaleROI } from '../../lib/domainSaleOutcome';
 
 interface DomainShareModalProps {
   isOpen: boolean;
@@ -29,18 +29,10 @@ export default function DomainShareModal({ isOpen, onClose, domain, transactions
   const { t } = useI18nContext();
   const mascots = useMascotImage();
 
-  const calculateDomainProfit = () => {
-    if (!domain.sale_price) return 0;
-    const totalHoldingCost = totalHoldingCostForDomain(domain, transactions);
-    const platformFee = domain.platform_fee || 0;
-    return domain.sale_price - totalHoldingCost - platformFee;
-  };
-
-  const calculateROI = () => {
-    const totalHoldingCost = totalHoldingCostForDomain(domain, transactions);
-    const profit = calculateDomainProfit();
-    return totalHoldingCost > 0 ? (profit / totalHoldingCost) * 100 : 0;
-  };
+  // 与 Insights 的 Top Performers 同一口径；以前这里是一份基于
+  // domain.sale_price 的私有实现（ShareModal 里还有一份同样的拷贝）。
+  const calculateDomainProfit = () => domainSaleProfit(domain, transactions);
+  const calculateROI = () => domainSaleROI(domain, transactions);
 
   const purchaseDate = new Date(domain.purchase_date || '');
   const saleDate = domain.sale_date ? new Date(domain.sale_date) : new Date();
