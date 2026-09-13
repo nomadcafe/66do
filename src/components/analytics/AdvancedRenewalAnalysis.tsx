@@ -310,10 +310,19 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
                     : 'bg-stone-400';
 
               return (
-                <li
-                  key={row.year}
-                  className={`rounded-xl border px-3 py-3 transition ${rowClass}`}
-                >
+                <li key={row.year}>
+                  {/* 行本身就是切换年份的控件。年份下拉在页首那张卡里，而这份
+                      清单在覆盖率提示 + KPI 条下面——看着「2027 要花 $840」
+                      想看它的明细，得往回滚两屏去够那个下拉。
+                      行上本来就有选中环和「选中年份」徽标，是个选择态的样子，
+                      却点不动；补上点击即可，顺带 aria-pressed 让读屏也知道
+                      这是一组可切换项（与 Portfolio 图例 chip 的写法一致）。 */}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedYear(row.year)}
+                    aria-pressed={isSelected}
+                    className={`w-full text-left rounded-xl border px-3 py-3 transition hover:border-stone-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 ${rowClass}`}
+                  >
                   <div className="grid grid-cols-1 md:grid-cols-12 md:items-center gap-3">
                     <div className="md:col-span-2 flex items-center gap-2 flex-wrap">
                       <span className="text-base font-semibold text-stone-900 tabular-nums">{row.year}</span>
@@ -349,6 +358,7 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
                       {row.domains_needing_renewal}
                     </div>
                   </div>
+                  </button>
                 </li>
               );
             })}
