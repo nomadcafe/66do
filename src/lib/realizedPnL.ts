@@ -247,11 +247,14 @@ export function insightsKPISummary(
 ): InsightsKPISummary {
   const outcomes = tradeOutcomes(domains, transactions);
   let best: TradeOutcome | null = null;
-  let wins = 0;
+  // 成功率的分母是域名数，分子也必须按域名去重：outcomes 是「每笔 sell 一
+  // 行」，同一个域名可以卖两次（分期中断 → 状态回到 active → 重新挂牌成交），
+  // 两笔都赚钱时按成交笔数计会算成 2/1 = 200%。
+  const winningDomains = new Set<string>();
   let holdingSum = 0;
   let holdingCount = 0;
   for (const o of outcomes) {
-    if (o.profit > 0) wins++;
+    if (o.profit > 0) winningDomains.add(o.domainId);
     if (best === null || o.profit > best.profit) best = o;
     if (o.holdingDays !== null) {
       holdingSum += o.holdingDays;
@@ -261,6 +264,7 @@ export function insightsKPISummary(
   // successRate 跟着 domains.length 走（不依赖 outcomes 是否空）：刚买入还没
   // 卖的早期投资者也能看到 0/N 这个真实信号——库存全是负担、还没回血。
   const totalOwned = domains.length;
+  const wins = winningDomains.size;
   return {
     // bestSale 至少展示出来；如果所有交易都亏损（best.profit ≤ 0），就视作"没有正收益"
     bestSale: best && best.profit > 0

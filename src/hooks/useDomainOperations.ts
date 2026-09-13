@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { DomainWithTags, TransactionWithRequiredFields } from '../types/dashboard';
 import type { RenewalSubmission } from '../components/domain/RenewalModal';
+import { renewalCostFromPayment } from '../lib/renewalPricing';
 
 interface UseDomainOperationsReturn {
   editingDomain: DomainWithTags | undefined;
@@ -60,7 +61,13 @@ export function useDomainOperations(
     const renewedDomain: DomainWithTags = {
       ...domain,
       registrar: input.registrar || domain.registrar,
-      renewal_cost: input.updateRenewalCost ? (input.amount / renewalYears) : domain.renewal_cost,
+      // 回写的是「一次续费（renewal_cycle 年）」的价，不是每年价——分析层
+      // （expandRenewalEvents / archiveRenewalCost / renewalCostService）全按
+      // 这个口径读，且有测试钉住。以前这里写的是 amount / renewalYears，也就是
+      // 每年价：2 年一续的域名每续一次，stored 单价就被砍掉一半，成本基准一路缩水。
+      renewal_cost: input.updateRenewalCost
+        ? renewalCostFromPayment(input.amount, renewalYears, domain.renewal_cycle ?? 1)
+        : domain.renewal_cost,
       updated_at: new Date().toISOString()
     };
 
