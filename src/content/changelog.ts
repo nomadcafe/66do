@@ -84,7 +84,7 @@ export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
       date: '2026-09-13',
       items: [
         '修复金额输入框吃掉小数的问题：以前 $10.05 会存成 $5，0.15 这类费率根本填不进去。',
-        '修复多年期域名（2 年一续等）的续费单价：每续费一次存档单价就被砍半，持有成本一路缩水、利润虚高。建议对着注册商账单核一下这类域名的续费价。',
+        '修复多年期域名（2 年一续等）的续费单价：每续费一次存档单价就被砍半，持有成本一路缩水、利润虚高。',
         '分期销售统一按实际已收显示：年度现金流不再把整笔算在成交年，交易列表排序、域名表格展开行、分享图也都跟上了。',
         '修复域名列表的 ROI：没回写成交价的域名会显示 −100%，没填估值的显示绿色 +0.0%（其实是「未知」）。现在分别显示真实收益和「—」。',
         '「表现最好的域名」不再把亏损的成交列进去。',
@@ -231,7 +231,7 @@ export const changelogReleases: Record<HomeLocale, ChangelogRelease[]> = {
       date: '2026-09-13',
       items: [
         'Fixed amount fields swallowing decimals — $10.05 used to save as $5, and rates like 0.15 could not be typed at all.',
-        'Fixed the renewal price on multi-year domains (2-year cycles and similar): each renewal halved the stored price, shrinking holding cost and inflating profit. Worth checking those domains against your registrar invoice.',
+        'Fixed the renewal price on multi-year domains (2-year cycles and similar): each renewal halved the stored price, shrinking holding cost and inflating profit.',
         'Installment sales now show what you actually collected everywhere: annual cash flow no longer books the whole sale in the closing year, and the transaction list sort, domain table history and share images follow suit.',
         'Fixed ROI in the domain list: domains with no recorded sale price showed −100%, and domains with no estimated value showed a green +0.0% (which really meant "unknown"). They now show the real return and "—" respectively.',
         '"Top performing domains" no longer lists losing sales.',
