@@ -52,4 +52,27 @@ describe('RenewalModal', () => {
       String(Number(d))
     );
   });
+
+  it('两年一续的域名，金额预填的是一次续费的价，不是它的两倍', () => {
+    const biennial = { ...domain, renewal_cycle: 2, renewal_cost: 80 } as DomainWithTags;
+    const onRenew = vi.fn().mockResolvedValue(undefined);
+    render(
+      <I18nProvider>
+        <RenewalModal isOpen onClose={vi.fn()} domain={biennial} onRenew={onRenew} />
+      </I18nProvider>
+    );
+    // renewal_cost 是「一次续费（2 年）」的价 = $80。以前这里预填 80 × 2 = $160。
+    expect((screen.getByPlaceholderText('0.00') as HTMLInputElement).value).toBe('80');
+  });
+
+  it('切到只续 1 年时，金额按每年价折半', () => {
+    const biennial = { ...domain, renewal_cycle: 2, renewal_cost: 80 } as DomainWithTags;
+    render(
+      <I18nProvider>
+        <RenewalModal isOpen onClose={vi.fn()} domain={biennial} onRenew={vi.fn()} />
+      </I18nProvider>
+    );
+    fireEvent.click(screen.getByRole('button', { name: /^1\s/ }));
+    expect((screen.getByPlaceholderText('0.00') as HTMLInputElement).value).toBe('40');
+  });
 });

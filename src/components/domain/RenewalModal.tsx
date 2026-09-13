@@ -5,6 +5,7 @@ import { X, Calendar, AlertCircle, CheckCircle } from 'lucide-react';
 import { DomainWithTags } from '../../types/dashboard';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { localCalendarDateISO } from '../../lib/localCalendarDate';
+import { renewalAmountForYears } from '../../lib/renewalPricing';
 import DateInput from '../ui/DateInput';
 import NumberInput from '../ui/NumberInput';
 import { useModalA11y } from '../../hooks/useModalA11y';
@@ -30,7 +31,10 @@ interface RenewalModalProps {
 export default function RenewalModal({ isOpen, onClose, domain, onRenew }: RenewalModalProps) {
   const { t } = useI18nContext();
   const [renewalYears, setRenewalYears] = useState<number>(domain.renewal_cycle || 1);
-  const [amount, setAmount] = useState<number>((domain.renewal_cost || 0) * (domain.renewal_cycle || 1));
+  // renewal_cost 是「一次续费（cycle 年）」的价，不是每年价——见 renewalPricing。
+  const [amount, setAmount] = useState<number>(
+    renewalAmountForYears(domain.renewal_cost || 0, domain.renewal_cycle || 1, domain.renewal_cycle || 1)
+  );
   const [date, setDate] = useState<string>(localCalendarDateISO());
   const [registrar, setRegistrar] = useState<string>(domain.registrar || '');
   const [notes, setNotes] = useState<string>('');
@@ -45,7 +49,7 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
     if (!isOpen) return;
     const years = domain.renewal_cycle || 1;
     setRenewalYears(years);
-    setAmount((domain.renewal_cost || 0) * years);
+    setAmount(renewalAmountForYears(domain.renewal_cost || 0, domain.renewal_cycle || 1, years));
     setDate(localCalendarDateISO());
     setRegistrar(domain.registrar || '');
     setNotes('');
@@ -258,11 +262,14 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
                   key={years}
                   onClick={() => {
                     setRenewalYears(years);
-                    // 用「stored 单价 × 新年数」覆盖金额。之前点年数只改了 renewalYears、
-                    // amount 没动，导致 1 年费用配 2 年期限的错账。stored 单价取 domain.renewal_cost
-                    // （表单初始就是这个口径），用户点完仍可手动改 amount 覆写。
-                    const perYear = domain.renewal_cost || 0;
-                    if (perYear > 0) setAmount(perYear * years);
+                    // 按新年数重算金额。之前点年数只改了 renewalYears、amount 没动，
+                    // 导致 1 年费用配 2 年期限的错账。
+                    // 注意 renewal_cost 是「一次续费（cycle 年）」的价而不是每年价
+                    // ——这里曾经把它当每年价直接乘年数，2 年一续的域名预填会多一倍。
+                    const stored = domain.renewal_cost || 0;
+                    if (stored > 0) {
+                      setAmount(renewalAmountForYears(stored, domain.renewal_cycle || 1, years));
+                    }
                   }}
                   disabled={isProcessing}
                   className={`px-4 py-3 rounded-lg font-medium transition-all ${
