@@ -1045,7 +1045,7 @@ const en = {
       monthlyCashFlow: 'Monthly Net Cash Flow',
       yearlyRenewalProfit: {
         title: 'Annual cash flow',
-        desc: 'Calendar-year cash flow direction. Renewals come from the event stream (archive renewals walked back from expiry_date when available, otherwise estimated from purchase + i × cycle); buys & fees use transaction dates; sales use sell transactions. Net cash flow = net sale proceeds − renewals − purchases & fees. Note: cash-flow direction ≠ profit / loss — a year of net outflow may just mean you bought inventory, and a year of net inflow may just mean you sold previously-bought stock.',
+        desc: 'Calendar-year cash flow direction. Renewals come from the event stream (archive renewals walked back from expiry_date when available, otherwise estimated from purchase + i × cycle); buys & fees use transaction dates; sales follow the money — a lump-sum sale lands in the year it closed, while an installment sale is split across years by the received date of each payment (downpayment included, net of the pro-rated platform fee). Net cash flow = net sale proceeds − renewals − purchases & fees. Note: cash-flow direction ≠ profit / loss — a year of net outflow may just mean you bought inventory, and a year of net inflow may just mean you sold previously-bought stock.',
         year: 'Year',
         renewal: 'Renewal spend',
         otherOutflow: 'Purchases & fees',

@@ -10,9 +10,10 @@ import { calendarYearOf, localMonthKey, parseLocalCalendarDate } from './localCa
 export type { SellProceedsFields } from './sellProceeds';
 export { sellGrossUSD, sellNetUSD } from './sellProceeds';
 
-/** 年度汇总用的 USD 金额：sell 走 sellNetUSD（与 saleNet 字段语义一致），其他类型走 amount */
-function amountUSD(t: TransactionWithRequiredFields): number {
-  return t.type === 'sell' ? sellNetUSD(t) : t.amount;
+/** 年度汇总里「流出类」交易的 USD 金额。sell 不走这里——它按到账事件展开，
+ *  见 calculateYearlyRenewalVsProfit 里的 expandSellToCashReceipts。 */
+function outflowAmountUSD(t: TransactionWithRequiredFields): number {
+  return t.amount;
 }
 
 // 基础财务计算接口
@@ -180,17 +181,28 @@ export function calculateYearlyRenewalVsProfit(
     const y = txCalendarYear(t);
     if (!Number.isFinite(y)) continue;
 
-    const row = ensureYear(y);
-    const amt = amountUSD(t);
-
     if (t.type === 'sell') {
-      row.saleNet += amt;
+      // 分期销售按**实际到账**的年份归集，而不是整笔压在成交年。
+      // 一笔 2025-11 成交、分 24 期收的销售，钱是从 2025-12 起一个月一笔
+      // 进来的；以前 saleNet 走 sellNetUSD(t) + 交易自身日期，于是 2025 虚高
+      // 一整笔、2026 之后明明在收钱却显示 0。月度净现金流图和 realizedPnL
+      // 早就走 expandSellToCashReceipts 了，这张年表是唯一一个没接上的，
+      // 结果同一批数据两处对不上。
+      //
+      // 一次性付款 / 没有任何 receipt 也没有首付的分期，展开器都会回落成
+      // 单条 (t.date, sellNetUSD)，行为与改动前一致。
+      for (const ev of expandSellToCashReceipts(t)) {
+        const evYear = Number(ev.monthKey.slice(0, 4));
+        if (!Number.isFinite(evYear)) continue;
+        ensureYear(evYear).saleNet += ev.netAmount;
+      }
+      continue;
     } else if (t.type === 'renew') {
       // renew 交易由下面的 expandRenewalEvents 走全量统计；这里跳过，
       // 不在此循环里直接累加，避免与事件流重复。
       continue;
     } else if (NON_RENEW_OUTFLOW_TYPES.includes(t.type)) {
-      row.otherOutflow += amt;
+      ensureYear(y).otherOutflow += outflowAmountUSD(t);
     }
   }
 
