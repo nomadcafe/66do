@@ -181,17 +181,6 @@ const InfoTooltip = ({ text }: { text: string }) => (
   </span>
 );
 
-const CHART_PALETTE = [
-  '#0d9488', // teal-600
-  '#10b981', // emerald-500
-  '#f59e0b', // amber-500
-  '#6366f1', // indigo-500
-  '#0891b2', // cyan-600
-  '#84cc16', // lime-500
-  '#a855f7', // purple-500
-  '#f97316', // orange-500
-];
-
 export default function InvestmentAnalytics({
   domains,
   transactions,
@@ -775,11 +764,17 @@ export default function InvestmentAnalytics({
       if (!(d.status in buckets)) continue;
       buckets[d.status] += totalHoldingCostForDomain(d, transactions);
     }
+    // 四种状态的配色。原来是 teal / amber / emerald / rose：
+    //   active(teal) ↔ sold(emerald)   正常色觉下 ΔE 11.6，低于 15 的下限
+    //   active(teal) ↔ expired(rose)   protan 下 ΔE 0.7，等于同色
+    // 偏偏「资金还压着」和「成本已收回」「彻底沉没」是这张图里最不能混的
+    // 三件事。换成下面这组，按饼图该用的 all-pairs 口径全部通过
+    //（最差一对正常色觉 22.9、CVD 9.1），语义也留住了：绿=收回、红=沉没。
     const meta: Array<{ status: string; labelKey: string; color: string }> = [
-      { status: 'active', labelKey: 'analytics.activeDomains', color: '#0d9488' },
-      { status: 'for_sale', labelKey: 'analytics.forSaleDomains', color: '#f59e0b' },
-      { status: 'sold', labelKey: 'analytics.soldDomains', color: '#10b981' },
-      { status: 'expired', labelKey: 'analytics.expiredDomains', color: '#fb7185' },
+      { status: 'active', labelKey: 'analytics.activeDomains', color: '#2a78d6' },
+      { status: 'for_sale', labelKey: 'analytics.forSaleDomains', color: '#eda100' },
+      { status: 'sold', labelKey: 'analytics.soldDomains', color: '#1baf7a' },
+      { status: 'expired', labelKey: 'analytics.expiredDomains', color: '#d03b3b' },
     ];
     const data = meta
       .map((m) => ({ name: t(m.labelKey), value: buckets[m.status], color: m.color }))
@@ -870,39 +865,42 @@ export default function InvestmentAnalytics({
   const renderDistribution = () => (
     <div className="space-y-6">
       <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-stone-900 mb-4">{t('analytics.heldDomainSuffix')}</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-stone-900">{t('analytics.heldDomainSuffix')}</h3>
+          <span className="text-xs text-stone-500">
+            {t('analytics.domainsCount')}: {domainSuffixAnalysis.totalHeld}
+          </span>
+        </div>
+        {/* 条形清单，不是饼图。原来是一张按 index % 循环取色的饼：
+            后缀数一超过调色板长度（8）第 9 种就跟第 1 种同色；而下面的明细
+            只列前 5 条，第 6 名往后在饼上既没有标签也没有图例，根本认不出是谁。
+            后缀排行本来就是「比较很多个相近的值」，这正是饼图最不擅长、
+            条形最擅长的事——下面那张注册商分布早就是条形了，两块现在一致。
+            一种颜色 + 行内文字标签，识别不再依赖色相，也就没有 CVD 问题。 */}
         {domainSuffixAnalysis.heldSuffixData.length > 0 ? (
-          <div className="space-y-4">
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={domainSuffixAnalysis.heldSuffixData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {domainSuffixAnalysis.heldSuffixData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={CHART_PALETTE[index % CHART_PALETTE.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value, name) => [`${value}${t('analytics.countUnit')}`, name]} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="space-y-2">
-              <h4 className="font-medium text-stone-700">{t('analytics.detailedStats')}</h4>
-              {domainSuffixAnalysis.heldSuffixData.slice(0, 5).map((suffix, index) => (
-                <div key={index} className="flex items-center justify-between p-2 bg-stone-50 rounded">
-                  <span className="text-sm font-medium">{suffix.name}</span>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-stone-600">{suffix.value}{t('analytics.countUnit')}</span>
-                    <span className="text-xs text-stone-500">({suffix.percentage.toFixed(1)}%)</span>
+          <div className="space-y-2">
+            {domainSuffixAnalysis.heldSuffixData.slice(0, 12).map((suffix, index) => (
+              <div
+                key={`${suffix.name}-${index}`}
+                className="flex items-center justify-between p-3 bg-stone-50 rounded-xl"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-stone-900 truncate">{suffix.name}</p>
+                  <div className="mt-1 h-2 bg-stone-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-teal-500 rounded-full"
+                      style={{ width: `${suffix.percentage}%` }}
+                    />
                   </div>
                 </div>
-              ))}
-            </div>
+                <div className="ml-3 text-right shrink-0">
+                  <p className="text-sm font-semibold text-stone-800">
+                    {suffix.value}{t('analytics.countUnit')}
+                  </p>
+                  <p className="text-xs text-stone-500">{suffix.percentage.toFixed(1)}%</p>
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <div className="text-center py-8 text-stone-500">
