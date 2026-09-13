@@ -311,6 +311,9 @@ export default function DomainTimelineView({
                         {!ev.transaction && ev.kind === 'purchase' && (
                           <p className="text-xs text-stone-500 mt-1">{t('timeline.virtualPurchaseHint')}</p>
                         )}
+                        {!ev.transaction && ev.kind === 'renew' && (
+                          <p className="text-xs text-stone-500 mt-1">{t('timeline.virtualRenewHint')}</p>
+                        )}
                         {ev.transaction?.notes && (
                           <p className="text-xs text-stone-500 mt-1 line-clamp-2">{ev.transaction.notes}</p>
                         )}
