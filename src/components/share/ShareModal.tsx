@@ -6,6 +6,7 @@ import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags } from '../../types/dashboard';
 import type { TransactionWithRequiredFields } from '../../types/transaction';
 import { calculateBasicFinancialMetrics, sellNetUSD } from '../../lib/coreCalculations';
+import { domainSaleProfit, domainSaleROI } from '../../lib/domainSaleOutcome';
 import { totalHoldingCostForDomain } from '../../lib/renewalCostBasis';
 import {
   drawDomainSaleImage,
@@ -40,18 +41,11 @@ interface ShareModalProps {
   transactions?: TransactionWithRequiredFields[];
 }
 
-function domainProfit(domain: DomainWithTags, transactions: TransactionWithRequiredFields[]): number {
-  if (!domain.sale_price) return 0;
-  const totalHoldingCost = totalHoldingCostForDomain(domain, transactions);
-  const platformFee = domain.platform_fee || 0;
-  return domain.sale_price - totalHoldingCost - platformFee;
-}
-
-function domainROI(domain: DomainWithTags, transactions: TransactionWithRequiredFields[]): number {
-  const totalHoldingCost = totalHoldingCostForDomain(domain, transactions);
-  const profit = domainProfit(domain, transactions);
-  return totalHoldingCost > 0 ? (profit / totalHoldingCost) * 100 : 0;
-}
+// 利润 / ROI 走 lib 里的主口径（与 Insights 的 Top Performers 同源）。
+// 这里原本是一份基于 domain.sale_price 的私有实现，DomainShareModal 里还有
+// 一份一模一样的拷贝——详见 domainSaleOutcome 的注释。
+const domainProfit = domainSaleProfit;
+const domainROI = domainSaleROI;
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
