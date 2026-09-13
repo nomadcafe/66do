@@ -1447,6 +1447,8 @@ const zh = {
       saleDate: '出售日期',
       netProfit: '净利润',
       sold: '已售',
+      expiryDate: '到期',
+      expiresInDays: '还有 {days} 天',
       staleExpiryTitle: '已过期 {days} 天但状态仍是活跃',
       staleExpiryHint: '可能在注册商那边续费了但忘记在这里更新到期日；也可能确实已让它过期。请检查并修正。',
       staleExpiryAction: '编辑域名'

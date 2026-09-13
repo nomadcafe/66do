@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, memo } from 'react';
-import { Globe, Calendar, Tag, Edit, Trash2, Eye, Share2, AlertTriangle } from 'lucide-react';
+import { Globe, Calendar, CalendarClock, Tag, Edit, Trash2, Eye, Share2, AlertTriangle } from 'lucide-react';
 import DomainShareModal from '../share/DomainShareModal';
 import { DomainWithTags } from '../../types/dashboard';
 import { useI18nContext } from '../../contexts/I18nProvider';
@@ -9,6 +9,7 @@ import { calculateDomainROI } from '../../lib/financialCalculations';
 import { totalHoldingCostForDomain } from '../../lib/renewalCostBasis';
 import { domainStatusLabel as statusLabel } from '../../lib/domainStatusLabel';
 import { daysUntilEffectiveExpiry } from '../../lib/effectiveExpiry';
+import { getExpiryBadge, EXPIRY_TONE_CLASS } from '../../lib/expiryBadge';
 import { isExpiredButNotMarked } from '../../lib/domainLossStatus';
 import type { TransactionWithRequiredFields } from '../../types/transaction';
 
@@ -46,6 +47,8 @@ const DomainCard = memo(function DomainCard({ domain, transactions = [], metrics
   // "Stale": still-listed domain whose effective expiry is well past today.
   // Most likely the user renewed at the registrar without recording the
   // renew transaction here — we can't know which way to fix it, so prompt.
+  const expiryBadge = useMemo(() => getExpiryBadge(domain), [domain]);
+
   const staleDaysPastExpiry = useMemo(() => {
     if (domain.status !== 'active' && domain.status !== 'for_sale') return null;
     const days = daysUntilEffectiveExpiry(domain);
@@ -162,6 +165,23 @@ const DomainCard = memo(function DomainCard({ domain, transactions = [], metrics
             {t('domain.renewalCount')}: {domain.renewal_count}
           </span>
         </p>
+        {/* 到期信息。卡片以前完全不显示这个，而手机上列表被强制成卡片视图
+            （DomainList: isMobile ? 'grid' : viewMode）——也就是说在手机上
+            打开域名列表，看不到任何一个域名什么时候到期。域名生意里最有
+            时效性的就是这条。判定和表格共用 getExpiryBadge。 */}
+        {expiryBadge && (
+          <p className="mt-1.5 flex items-center gap-1.5 text-sm text-stone-500">
+            <CalendarClock className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            <span>{t('domain.expiryDate')}</span>
+            <span className="tabular-nums">{formatDate(domain.expiry_date || '')}</span>
+            <span className="text-stone-300">·</span>
+            <span className={`font-medium tabular-nums ${EXPIRY_TONE_CLASS[expiryBadge.tone]}`}>
+              {expiryBadge.expired
+                ? t('domainList.table.expiredText')
+                : t('domain.expiresInDays').replace('{days}', String(expiryBadge.days))}
+            </span>
+          </p>
+        )}
       </div>
 
       {staleDaysPastExpiry !== null && (
