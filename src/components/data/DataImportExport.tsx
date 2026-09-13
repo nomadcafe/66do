@@ -511,18 +511,60 @@ export default function DataImportExport({
             }
             const reader = new FileReader();
             reader.onload = (event) => {
+              // 这条路径以前既不校验也不报错：
+              //   - JSON.parse 失败只 console.error，界面上一点反应都没有，
+              //     用户选完文件像什么都没发生；
+              //   - 解析成功但不是备份（比如选错了文件），domains/transactions
+              //     都取不到，上层就拿当前数据原样存一遍、然后提示"恢复成功"。
+              //     选错文件却被告知成功，是这两者里更糟的一个。
+              // 旁边的导入页一直是先 validateJsonImportData 再下发，这里补齐。
+              let backup: unknown;
               try {
-                const backup = JSON.parse(event.target?.result as string) as unknown;
-                onRestore(backup);
-              } catch (error) {
-                console.error('恢复备份失败:', error);
+                backup = JSON.parse(event.target?.result as string);
+              } catch {
+                setImportResult({
+                  success: false,
+                  message: t('data.invalidFormat'),
+                  importedCount: 0,
+                  errors: [t('data.restoreParseFailed')],
+                });
+                e.target.value = '';
+                return;
               }
+              const validation = validateJsonImportData(backup);
+              if (!validation.valid) {
+                setImportResult({
+                  success: false,
+                  message: t('data.invalidFormat'),
+                  importedCount: 0,
+                  errors: validation.errors,
+                });
+                e.target.value = '';
+                return;
+              }
+              setImportResult(null);
+              onRestore(backup);
+              // 同一个文件二次选择不会触发 change，读完就清空
+              e.target.value = '';
             };
             reader.readAsText(file);
           }}
           className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
         />
       </div>
+
+      {importResult && !importResult.success && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4" role="alert">
+          <p className="text-sm font-medium text-red-900">{importResult.message}</p>
+          {importResult.errors.length > 0 && (
+            <ul className="mt-1 list-inside list-disc text-sm text-red-700">
+              {importResult.errors.slice(0, 5).map((err, i) => (
+                <li key={i}>{err}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       <div className="bg-red-50 border border-red-200 rounded-lg p-4">
         <div className="flex items-start space-x-3">

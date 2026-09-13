@@ -80,7 +80,8 @@ const zh = {
     restoreBackup: '恢复备份',
     restoreBackupDescription: '从备份文件恢复数据，将覆盖当前所有数据。',
     importantWarning: '重要警告',
-    restoreWarning: '恢复备份将完全替换当前数据，此操作不可撤销。请确保在恢复前已创建当前数据的备份。'
+    restoreWarning: '恢复是把备份合并进当前数据：id 相同的域名和交易会被备份里的版本覆盖；备份之后新增的记录不会被删除——是合并，不是清空重来。想留退路的话，先导出一份当前的备份。',
+    restoreParseFailed: '这个文件不是有效的 JSON —— 请选择本应用导出的备份文件。'
   },
   reports: {
     allTime: '全部时间',
