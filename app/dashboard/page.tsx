@@ -1026,6 +1026,7 @@ export default function DashboardPage() {
                   onDelete={setPendingDeleteDomainId}
                   onView={handleViewDomain}
                   onAdd={domainOps.handleAddDomain}
+                  metricsTransactions={transactionsForMetrics}
                   onUpdateDomain={handleQuickUpdateDomain}
                   stuckDomainIds={stuckDomainIdSet}
                   expiringDomainIds={expiringDomainIdSet}

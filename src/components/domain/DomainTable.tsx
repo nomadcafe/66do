@@ -73,6 +73,11 @@ interface Domain {
 interface DomainTableProps {
   domains: DomainWithTags[];
   transactions?: TransactionWithRequiredFields[];
+  /** 分期按实际已收折算后的交易副本（transactionsForMetrics）。**只**用于
+   *  分享卡片上的利润 / ROI —— 那张图是要发出去给别人看的，按合同全额算会
+   *  把还没收到的钱也写成利润。列表本身的其它计算仍走原始 transactions。
+   *  与 TransactionList 的同名 prop 是同一套约定。 */
+  metricsTransactions?: TransactionWithRequiredFields[];
   onEdit: (domain: DomainWithTags) => void;
   onDelete: (id: string) => void;
   onView: (domain: DomainWithTags) => void;
@@ -85,7 +90,7 @@ const TABLE_PAGE_SIZE = 24;
 type EditableMoneyField = 'estimated_value' | 'purchase_cost' | 'renewal_cost';
 type EditTarget = { id: string; field: 'status' | EditableMoneyField } | null;
 
-const DomainTable = memo(function DomainTable({ domains, transactions = [], onEdit, onDelete, onView, onUpdateDomain }: DomainTableProps) {
+const DomainTable = memo(function DomainTable({ domains, transactions = [], metricsTransactions, onEdit, onDelete, onView, onUpdateDomain }: DomainTableProps) {
   // 每个域名当下还在分期收款的摘要（找一次，行渲染直接读 map）。chip 文案
   // 只显示 paid/total，不带金额——表格里多一个货币会让第三列变拥挤。
   const activeInstallmentByDomain = useMemo(() => {
@@ -773,6 +778,7 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
           isOpen={showShareModal}
           domain={selectedDomain}
           transactions={transactions}
+          metricsTransactions={metricsTransactions}
           onClose={() => {
             setShowShareModal(false);
             setSelectedDomain(null);

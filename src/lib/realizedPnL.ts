@@ -15,7 +15,7 @@
 
 import { expandSellToCashReceipts } from './coreCalculations';
 import { holdingCostAsOf } from './renewalCostBasis';
-import { sellNetUSD } from './sellProceeds';
+import { sellGrossUSD, sellNetUSD } from './sellProceeds';
 import type { DomainWithTags, TransactionWithRequiredFields } from '../types/dashboard';
 import { localMonthKey, parseLocalCalendarDate } from './localCalendarDate';
 
@@ -124,6 +124,9 @@ export interface TradeOutcome {
   profit: number;
   /** 出售净额（已扣平台费 / 已折算分期已收部分） */
   sellNet: number;
+  /** 出售毛额（未扣平台费；分期同样是已折算口径）。分享卡片要显示"成交价"，
+   *  只有 net 的话就得回头去读域名行上的 sale_price，那正是口径分叉的来源。 */
+  sellGross: number;
   /** 出售日截止的 cost basis（purchase + 已发生续费） */
   costBasisAtSale: number;
   /** 单笔 ROI = profit / costBasisAtSale × 100。
@@ -176,6 +179,7 @@ export function tradeOutcomes(
       domainName: domain.domain_name,
       profit,
       sellNet,
+      sellGross: sellGrossUSD(t),
       costBasisAtSale: costBasis,
       roi: costBasis > 0 ? (profit / costBasis) * 100 : null,
       saleDate: t.date,
