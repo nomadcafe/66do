@@ -36,6 +36,46 @@ interface TransactionListProps {
 
 const TRANSACTIONS_PAGE_SIZE = 30;
 
+type SortField = 'date' | 'amount' | 'type';
+type SortDir = 'asc' | 'desc';
+
+/**
+ * 列表排序。按金额排时用的是**行上显示的那个数**，不是库里的原始 amount。
+ *
+ * 分期出售在这个列表里显示的是按已收折算后的金额（metricsTransactions），
+ * 上方 KPI 条也是按折算值求和的，只有排序漏了——一笔标价 $50,000、实收
+ * $10,000 的分期，行上写着 +$10,000，排序却把它摆在 $50,000 该在的位置。
+ * 分期笔数一多，「按金额排序」出来的顺序看着就是乱的。
+ */
+export function sortTransactionsForList(
+  list: TransactionWithRequiredFields[],
+  {
+    sortField,
+    sortDir,
+    metricsById,
+  }: {
+    sortField: SortField;
+    sortDir: SortDir;
+    /** id → 折算后的交易。缺项时回退到原始交易。 */
+    metricsById: Map<string, TransactionWithRequiredFields>;
+  }
+): TransactionWithRequiredFields[] {
+  const amountOf = (tx: TransactionWithRequiredFields) =>
+    sellGrossUSD(metricsById.get(tx.id) ?? tx);
+
+  return list.slice().sort((a, b) => {
+    let cmp = 0;
+    if (sortField === 'date') {
+      cmp = (a.date || '').localeCompare(b.date || '');
+    } else if (sortField === 'amount') {
+      cmp = amountOf(a) - amountOf(b);
+    } else {
+      cmp = a.type.localeCompare(b.type);
+    }
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
+}
+
 // 共享行细节块：移动卡片和桌面表格 cell 之前各写过一遍"金额 + ROI + 平台
 // 费净额 + 分期"逻辑，是漂移源（颜色/字号在两边经常对不齐）。提取后两侧
 // 走 variant：card（金额 + ROI 同行 inline，font 更大）、table（全部竖排）。
@@ -65,7 +105,6 @@ function TxMetaBlock({
   variant: 'card' | 'table';
 }) {
   const isSell = transaction.type === 'sell';
-  const sign = isSell ? '+' : '-';
   const listedGross = sellGrossUSD(transaction);
   const adjustedGross = metricsTransaction ? sellGrossUSD(metricsTransaction) : listedGross;
   // 仅 sell 有 metrics-adjustment 余地；非 sell 时 metrics === transaction，showSplit 为 false。
@@ -78,6 +117,10 @@ function TxMetaBlock({
   const isInstallment = isSell && transaction.payment_plan === 'installment';
   const sellRoi = isSell && domain ? calculateDomainROI(domain, allTransactions) : null;
   const isCard = variant === 'card';
+
+  // 免费的 transfer（同注册商 push / 内部转移）金额就是 0，带个负号写成
+  // "−$0.00" 看着像笔亏损。0 不标方向。
+  const sign = displayGross === 0 ? '' : isSell ? '+' : '-';
 
   const amountEl = (
     <span className={`tabular-nums ${isCard ? 'text-base font-bold' : 'text-sm font-semibold'} ${amountColor}`}>
@@ -153,8 +196,6 @@ const TransactionList = memo(function TransactionList({
   const pathname = usePathname();
 
   // search/type/sort/page/view derived from URL (namespaced as tx* to avoid colliding with other components)
-  type SortField = 'date' | 'amount' | 'type';
-  type SortDir = 'asc' | 'desc';
   const urlSearchTerm = searchParams.get('txq') ?? '';
   const typeFilter = searchParams.get('txtype') ?? 'all';
   // Receipts-due pseudo filter — driven from the WeeklyBriefing "Installment
@@ -313,6 +354,13 @@ const TransactionList = memo(function TransactionList({
   // hand us an id set, so the list doesn't silently collapse to empty.
   const receiptsDueFilterActive = receiptsDueFilter && !!receiptsDueIds;
 
+  const metricsById = useMemo(() => {
+    const map = new Map<string, TransactionWithRequiredFields>();
+    const source = metricsTransactions ?? transactions;
+    for (const tx of source) map.set(tx.id, tx);
+    return map;
+  }, [metricsTransactions, transactions]);
+
   const filteredTransactions = useMemo(() => {
     const q = searchTerm.toLowerCase();
     const filtered = transactions.filter(transaction => {
@@ -331,32 +379,14 @@ const TransactionList = memo(function TransactionList({
 
       return matchesSearch && matchesType && matchesReceiptsDue;
     });
-    const sorted = filtered.slice().sort((a, b) => {
-      let cmp = 0;
-      if (sortField === 'date') {
-        cmp = (a.date || '').localeCompare(b.date || '');
-      } else if (sortField === 'amount') {
-        cmp = sellGrossUSD(a) - sellGrossUSD(b);
-      } else {
-        cmp = a.type.localeCompare(b.type);
-      }
-      return sortDir === 'asc' ? cmp : -cmp;
-    });
-    return sorted;
-  }, [transactions, getDomainName, getTypeLabel, searchTerm, typeFilter, sortField, sortDir, receiptsDueFilterActive, receiptsDueIds]);
+    return sortTransactionsForList(filtered, { sortField, sortDir, metricsById });
+  }, [transactions, getDomainName, getTypeLabel, searchTerm, typeFilter, sortField, sortDir, receiptsDueFilterActive, receiptsDueIds, metricsById]);
 
   // Period KPIs reflecting the *visible* (filtered) set, computed from installment-adjusted
   // amounts (when parent supplies metricsTransactions). Inflow uses sellNetUSD — actual cash
   // collected after platform fees and after scaling for partial / cancelled installments —
   // mirroring the Insights "Total Revenue" definition. "Net" here is window cash flow,
   // not the all-time Net Profit (that would require holding-cost calculations across history).
-  const metricsById = useMemo(() => {
-    const map = new Map<string, TransactionWithRequiredFields>();
-    const source = metricsTransactions ?? transactions;
-    for (const tx of source) map.set(tx.id, tx);
-    return map;
-  }, [metricsTransactions, transactions]);
-
   const periodMetrics = useMemo(() => {
     let inflow = 0;
     let outflow = 0;
