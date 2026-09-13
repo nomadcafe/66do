@@ -4,6 +4,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { I18nProvider } from '../../contexts/I18nProvider';
 import { localCalendarDateISO } from '../../lib/localCalendarDate';
+import { handleDomainRenewal } from '../../lib/domainExpiryManager';
+import { toDomainForExpiry } from '../../lib/renewDomainPatch';
 import RenewalModal from './RenewalModal';
 import { DomainWithTags } from '../../types/dashboard';
 
@@ -74,5 +76,44 @@ describe('RenewalModal', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: /^1\s/ }));
     expect((screen.getByPlaceholderText('0.00') as HTMLInputElement).value).toBe('40');
+  });
+
+  it('「新到期日」预览和真正写库的那条路径给出同一个日期', () => {
+    const d = { ...domain, expiry_date: '2027-03-01', renewal_cycle: 1 } as DomainWithTags;
+    render(
+      <I18nProvider>
+        <RenewalModal isOpen onClose={vi.fn()} domain={d} onRenew={vi.fn()} />
+      </I18nProvider>
+    );
+    // 写库那侧：saveData → mergeRenewTransactionDomainUpdates → handleDomainRenewal
+    const saved = handleDomainRenewal(toDomainForExpiry(d), 1).expiry_date!;
+    const shown = new Date(`${saved}T00:00:00`).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric',
+    });
+    expect(screen.getByText(shown)).toBeTruthy();
+    expect(saved).toBe('2028-03-01');
+  });
+
+  it('没有 expiry_date 但有 next_renewal_date 时，预览走的也是同一条兜底链', () => {
+    const d = {
+      ...domain,
+      expiry_date: undefined,
+      next_renewal_date: '2029-06-15',
+      purchase_date: '2020-01-01',
+      renewal_count: 3,
+      renewal_cycle: 1,
+    } as unknown as DomainWithTags;
+    render(
+      <I18nProvider>
+        <RenewalModal isOpen onClose={vi.fn()} domain={d} onRenew={vi.fn()} />
+      </I18nProvider>
+    );
+    // 旧预览会跳过 next_renewal_date 直接用 purchase_date，算出 2024 年
+    const saved = handleDomainRenewal(toDomainForExpiry(d), 1).expiry_date!;
+    expect(saved).toBe('2030-06-15');
+    const shown = new Date(`${saved}T00:00:00`).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric',
+    });
+    expect(screen.getByText(shown)).toBeTruthy();
   });
 });
