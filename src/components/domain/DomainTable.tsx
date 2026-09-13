@@ -188,18 +188,28 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
       bValue = Number(bValue) || 0;
     }
 
-    if (sortDirection === 'asc') {
-      return aValue > bValue ? 1 : -1;
-    } else {
-      return aValue < bValue ? 1 : -1;
-    }
+    // 相等时必须返回 0。原来是 `aValue > bValue ? 1 : -1`，并列项两两比较
+    // 都得到 -1（a 说自己小、b 也说自己小），比较器自相矛盾，并列行的先后
+    // 就成了 sort 实现的副产品——按状态/注册商这种大量并列的列排序时，
+    // 每次重新排都可能换个顺序。并列时再按域名定序，结果才是确定的。
+    let cmp = 0;
+    if (aValue > bValue) cmp = 1;
+    else if (aValue < bValue) cmp = -1;
+    if (cmp === 0) return a.domain_name.localeCompare(b.domain_name);
+    return sortDirection === 'asc' ? cmp : -cmp;
   }), [domains, sortField, sortDirection]);
 
   const totalPages = Math.max(1, Math.ceil(sortedDomains.length / TABLE_PAGE_SIZE));
 
+  // 回到第 1 页的条件是「域名集合变了」（筛选、搜索、增删），不是「domains
+  // 换了个数组身份」。行内改价走 handleQuickUpdateDomain → domains.map(...)
+  // → 全新数组，按身份判断的话，在第 2 页改一个成本就会被踢回第 1 页——而
+  // 行内编辑 + Tab 逐行填数正是为「CSV 导入后顺着列填成本」设计的。
+  // 用 id 组成做键：值变了不动，集合变了才重置。
+  const domainIdsKey = useMemo(() => domains.map((d) => d.id).join(','), [domains]);
   useEffect(() => {
     setPage(1);
-  }, [domains]);
+  }, [domainIdsKey]);
 
   useEffect(() => {
     setPage((p) => (p > totalPages ? totalPages : p));
