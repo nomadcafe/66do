@@ -11,7 +11,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { I18nProvider } from '../../contexts/I18nProvider';
 import DomainTable from './DomainTable';
-import type { DomainWithTags } from '../../types/dashboard';
+import type { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 
 vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
@@ -108,5 +108,57 @@ describe('DomainTable 分页', () => {
       (r) => r.querySelector('td')?.textContent
     );
     expect(secondPass).toEqual(firstPass);
+  });
+});
+
+describe('DomainTable 展开行的金额', () => {
+  const one = makeDomains(1);
+  const rawSell = {
+    id: 'tx1', domain_id: 'd0', type: 'sell', amount: 50000, net_amount: 50000,
+    platform_fee: 0, currency: 'USD', date: '2026-03-01', payment_plan: 'installment',
+  } as unknown as TransactionWithRequiredFields;
+  const adjustedSell = { ...rawSell, amount: 10000, net_amount: 10000 } as TransactionWithRequiredFields;
+  const freeTransfer = {
+    id: 'tx2', domain_id: 'd0', type: 'transfer', amount: 0, net_amount: 0,
+    platform_fee: 0, currency: 'USD', date: '2026-04-01', payment_plan: 'lump_sum',
+  } as unknown as TransactionWithRequiredFields;
+
+  // 表头那个 th 也带 expandHistory 的 aria-label，只点按钮
+  const expand = () =>
+    fireEvent.click(
+      screen.getAllByRole('button').find((b) => /expand/i.test(b.getAttribute('aria-label') ?? ''))!
+    );
+
+  it('分期出售显示已收额，并带出合同「标价」', () => {
+    render(
+      <I18nProvider>
+        <DomainTable
+          domains={one}
+          transactions={[rawSell]}
+          metricsTransactions={[adjustedSell]}
+          onEdit={vi.fn()} onDelete={vi.fn()} onView={vi.fn()}
+        />
+      </I18nProvider>
+    );
+    expand();
+    expect(screen.getByText('+$10,000.00')).toBeTruthy();
+    expect(screen.queryByText('+$50,000.00')).toBeNull();
+    expect(screen.getByText(/50,000/)).toBeTruthy(); // 「标价」小字
+  });
+
+  it('免费 transfer 不写成「−$0.00」', () => {
+    render(
+      <I18nProvider>
+        <DomainTable
+          domains={one}
+          transactions={[freeTransfer]}
+          onEdit={vi.fn()} onDelete={vi.fn()} onView={vi.fn()}
+        />
+      </I18nProvider>
+    );
+    expand();
+    expect(screen.getByText('$0.00')).toBeTruthy();
+    expect(screen.queryByText('-$0.00')).toBeNull();
+    expect(screen.queryByText(String.fromCharCode(8722) + '$0.00')).toBeNull();
   });
 });

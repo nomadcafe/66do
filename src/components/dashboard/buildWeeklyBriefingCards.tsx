@@ -3,6 +3,7 @@ import type { BriefingCard } from './WeeklyBriefing';
 import type { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import type { ActiveInstallmentSummary } from '../../lib/installmentDue';
 import { localCalendarDateISO } from '../../lib/localCalendarDate';
+import { transactionAmountDisplay } from '../../lib/transactionAmountDisplay';
 
 interface BuildWeeklyBriefingCardsInput {
   expiringThisWeek: DomainWithTags[];
@@ -104,8 +105,9 @@ export function buildWeeklyBriefingCards({
   const activityCard: BriefingCard = tx
     ? (() => {
         const dom = domains.find((d) => d.id === tx.domain_id);
-        const sign = tx.type === 'sell' ? '+' : '-';
-        const txAmount = tx.amount ?? 0;
+        // 与交易列表 / 域名表格展开行同一个 helper：0 元的 transfer 不标方向。
+        // recentTransactions 传进来的已经是折算过的副本，所以这里不用再传第二个参数。
+        const { amount: txAmount, sign } = transactionAmountDisplay(tx);
         const icon = tx.type === 'sell'
           ? <TrendingUp className="h-4 w-4" />
           : tx.type === 'renew'
