@@ -188,10 +188,9 @@ export default function PortfolioHealthCard({
         : labels.fromSales.replace('{n}', String(completedSalesCount));
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-stone-200/60 bg-gradient-to-br from-teal-50/50 via-white to-amber-50/40 shadow-md">
+    <div className="surface-hero">
+      <div className="surface-hero-glow" />
       {/* Decorative corner glow */}
-      <div className="pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full bg-gradient-to-br from-teal-200/40 via-emerald-100/30 to-transparent blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-24 -left-24 h-56 w-56 rounded-full bg-gradient-to-tr from-amber-100/30 to-transparent blur-3xl" />
 
       <div className="relative p-6 sm:p-8">
         {/* ────── Hero row: two big numbers + composition donut ──────

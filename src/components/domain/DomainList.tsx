@@ -331,7 +331,7 @@ const DomainList = memo(function DomainList({ domains, transactions = [], metric
       </p>
 
       {filteredDomains.length === 0 ? (
-        <div className="text-center py-14 bg-white rounded-2xl border border-stone-200/80 shadow-sm">
+        <div className="text-center py-14 surface-card">
           <Search className="h-10 w-10 mx-auto text-stone-300 mb-4" />
           <h3 className="text-base font-semibold text-stone-900 mb-2">
             {searchTerm || statusFilter !== 'all' || tagFilter !== 'all' || stuckFilterActive || expiringFilterActive ? t('domainList.noDomainsFound') : t('domainList.noDomainsYet')}

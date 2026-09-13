@@ -748,8 +748,8 @@ const TransactionList = memo(function TransactionList({
       </div>
 
       {viewMode === 'list' && filteredTransactions.length > 0 && (
-        <div className="relative overflow-hidden rounded-3xl border border-stone-200/60 bg-gradient-to-br from-stone-50 via-white to-emerald-50/30 shadow-sm">
-          <div className="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-gradient-to-br from-emerald-100/30 to-transparent blur-3xl" />
+        <div className="surface-hero">
+      <div className="surface-hero-glow" />
           <div className="relative grid grid-cols-2 gap-4 p-5 sm:p-6 lg:grid-cols-4 lg:gap-6">
             {kpiTiles.map((tile) => (
               <div key={tile.key} className="flex items-start gap-3">
@@ -789,7 +789,7 @@ const TransactionList = memo(function TransactionList({
           onSelectDomain={setSelectedDomainId}
         />
       ) : filteredTransactions.length === 0 ? (
-        <div className="text-center py-14 bg-white rounded-2xl border border-stone-200/80 shadow-sm">
+        <div className="text-center py-14 surface-card">
           <FileText className="h-10 w-10 mx-auto text-stone-300 mb-4" />
           <h3 className="text-base font-semibold text-stone-900 mb-2">
             {searchTerm || typeFilter !== 'all' || receiptsDueFilterActive ? t('transactionList.noTransactionsFound') : t('transactionList.noTransactionsYet')}
@@ -834,7 +834,7 @@ const TransactionList = memo(function TransactionList({
             {paginatedTransactions.map((transaction) => (
               <article
                 key={transaction.id}
-                className={`bg-white rounded-2xl border border-stone-200/80 shadow-sm p-4 ${
+                className={`surface-card p-4 ${
                   transaction.type === 'sell' ? 'border-l-4 border-l-emerald-500' : ''
                 }`}
               >
@@ -901,7 +901,7 @@ const TransactionList = memo(function TransactionList({
             ))}
           </div>
           {/* Desktop: full table */}
-          <div className="hidden lg:block bg-white rounded-2xl border border-stone-200/80 shadow-sm overflow-hidden">
+          <div className="hidden lg:block surface-card overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-stone-200">
                 <thead className="bg-stone-50">

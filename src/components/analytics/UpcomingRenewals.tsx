@@ -76,7 +76,7 @@ export default function UpcomingRenewals({ domains }: UpcomingRenewalsProps) {
   const hiddenCount = summary.rows.length - visibleRows.length;
 
   return (
-    <div className="rounded-2xl border border-stone-200/80 bg-white p-6 shadow-sm">
+    <div className="surface-card p-6">
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-stone-700">
           <CalendarClock className="h-5 w-5" />

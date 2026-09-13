@@ -82,7 +82,7 @@ export default function ExpiredDomainLossAnalysis({ domains, transactions = [] }
 
   if (lossAnalysis.expiredDomains.length === 0) {
     return (
-      <div className="bg-white rounded-2xl border border-stone-200/80 p-6 shadow-sm">
+      <div className="surface-card p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-emerald-100 rounded-xl">
@@ -127,7 +127,7 @@ export default function ExpiredDomainLossAnalysis({ domains, transactions = [] }
     <div className="space-y-5">
       {/* Header card — title + definition. Separate from KPI strip so the
           definition reads as preamble, not as a tile of its own. */}
-      <div className="rounded-2xl border border-stone-200/80 bg-white p-6 shadow-sm">
+      <div className="surface-card p-6">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-700">
             <TrendingDown className="h-5 w-5" />
@@ -146,8 +146,7 @@ export default function ExpiredDomainLossAnalysis({ domains, transactions = [] }
           Three fixed-semantic tiles: this-year loss / total expired count /
           cumulative avg per domain. Colored icon tiles signal severity:
           rose for loss, amber for count, stone for the neutral average. */}
-      <div className="relative overflow-hidden rounded-3xl border border-stone-200/60 bg-gradient-to-br from-stone-50 via-white to-rose-50/30 shadow-sm">
-        <div className="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-gradient-to-br from-rose-100/30 to-transparent blur-3xl" />
+      <div className="surface-card">
         <div className="relative grid grid-cols-1 gap-5 p-5 sm:p-6 md:grid-cols-3 md:gap-6">
           {/* Tile 1: This-year loss. When 0, render an em dash + hint so a
               prominent "$0.00" doesn't get misread as the headline number. */}
@@ -237,7 +236,7 @@ export default function ExpiredDomainLossAnalysis({ domains, transactions = [] }
       </div>
 
       {lossAnalysis.lossByYear.length > 0 && (
-        <div className="rounded-2xl border border-stone-200/80 bg-white p-6 shadow-sm">
+        <div className="surface-card p-6">
           <h4 className="text-base font-semibold text-stone-900 mb-4">{t('analytics.annualLossTrend')}</h4>
           <ul className="space-y-2">
             {lossAnalysis.lossByYear.map((yearData) => (
@@ -263,7 +262,7 @@ export default function ExpiredDomainLossAnalysis({ domains, transactions = [] }
         </div>
       )}
 
-      <div className="rounded-2xl border border-stone-200/80 bg-white p-6 shadow-sm">
+      <div className="surface-card p-6">
         <h4 className="text-base font-semibold text-stone-900 mb-4">{t('analytics.expiredDomainsDetails')}</h4>
         <ul className="space-y-2 max-h-64 overflow-y-auto pr-1">
           {lossAnalysis.expiredDomains.map((domain) => (

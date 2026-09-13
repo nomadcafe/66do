@@ -176,8 +176,7 @@ export default function DomainTimelineView({
 
   if (domains.length === 0) {
     return (
-      <div className="relative overflow-hidden rounded-3xl border border-stone-200/60 bg-gradient-to-br from-teal-50/50 via-white to-amber-50/40 shadow-sm">
-        <div className="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-gradient-to-br from-teal-200/40 to-transparent blur-3xl" />
+      <div className="surface-card">
         <div className="relative px-6 py-12 text-center">
           <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-stone-100 text-stone-600">
             <Globe className="h-7 w-7" />
@@ -190,7 +189,7 @@ export default function DomainTimelineView({
 
   if (filteredDomains.length === 0) {
     return (
-      <div className="text-center py-14 bg-white rounded-2xl border border-stone-200/80 shadow-sm">
+      <div className="text-center py-14 surface-card">
         <p className="text-sm text-stone-500">{t('timeline.noDomainMatch')}</p>
       </div>
     );
@@ -202,7 +201,7 @@ export default function DomainTimelineView({
         <p className="text-xs font-medium uppercase tracking-wider text-stone-500 px-1">
           {t('timeline.selectDomain')}
         </p>
-        <div className="bg-white rounded-2xl border border-stone-200/80 shadow-sm max-h-[min(420px,50vh)] overflow-y-auto">
+        <div className="surface-card max-h-[min(420px,50vh)] overflow-y-auto">
           <ul className="divide-y divide-stone-100">
             {filteredDomains.map((d) => {
               const active = d.id === effectiveSelectedId;

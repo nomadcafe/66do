@@ -73,7 +73,7 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
 
   if (!hasData) {
     return (
-      <div className="bg-white rounded-2xl border border-stone-200/80 shadow-sm p-6">
+      <div className="surface-card p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-emerald-100 rounded-xl">
             <BarChart3 className="h-6 w-6 text-emerald-600" />
@@ -112,7 +112,7 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
   return (
     <div className="space-y-5">
       {/* Header card — title + year selector */}
-      <div className="rounded-2xl border border-stone-200/80 bg-white p-6 shadow-sm">
+      <div className="surface-card p-6">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div className="flex items-start gap-3 min-w-0">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-stone-700">
@@ -192,8 +192,7 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
         /* KPI strip — same gradient hero language as the rest of Insights.
            过去年的续费已经是既成事实（estimated ≡ actual），所以标签整组切换成
            过去时，也不再摆「待发生」——那一栏对历史年恒为 0，只会让人以为是数据缺失。 */
-        <div className="relative overflow-hidden rounded-3xl border border-stone-200/60 bg-gradient-to-br from-stone-50 via-white to-teal-50/40 shadow-sm">
-          <div className="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-gradient-to-br from-teal-100/30 to-transparent blur-3xl" />
+        <div className="surface-card">
           <div className="relative grid grid-cols-1 gap-5 p-5 sm:p-6 sm:grid-cols-2 md:gap-6 xl:grid-cols-4">
             <div className="flex items-start gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-100 text-stone-700">
@@ -268,7 +267,7 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
 
       {/* Annual outlook — temporal-coded list rows (past=stone / current=amber / future=teal) */}
       {yearSummaries.length > 0 && (
-        <div className="rounded-2xl border border-stone-200/80 bg-white p-6 shadow-sm">
+        <div className="surface-card p-6">
           <h4 className="text-base font-semibold text-stone-900">{t('renewal.annualOutlook')}</h4>
           <p className="mt-1 text-sm text-stone-500">{t('renewal.annualOutlookDesc')}</p>
 
@@ -368,7 +367,7 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
 
       {/* Cost by registrar — bars use teal-600, more readable than gray */}
       {Object.keys(analysis.cost_by_registrar).length > 0 && (
-        <div className="rounded-2xl border border-stone-200/80 bg-white p-6 shadow-sm">
+        <div className="surface-card p-6">
           <h4 className="text-base font-semibold text-stone-900 mb-4">{t('renewal.costByRegistrar')}</h4>
           <ul className="space-y-2.5">
             {Object.entries(analysis.cost_by_registrar)
@@ -405,7 +404,7 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
           renewal_count + renewal_cost without logging individual renew
           transactions will see all stats render as 0 or empty. That's a
           known data-availability constraint, not a bug here. */}
-      <div className="rounded-2xl border border-stone-200/80 bg-white p-6 shadow-sm">
+      <div className="surface-card p-6">
         <h4 className="text-base font-semibold text-stone-900 mb-4">{t('renewal.costTrends')}</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* 平均成本变动。样本 = 有 ≥2 笔逐笔续费记录的域名；只靠

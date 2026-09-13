@@ -995,9 +995,7 @@ export default function DashboardPage() {
             />
 
             {domains.length === 0 ? (
-              <div className="relative overflow-hidden rounded-3xl border border-stone-200/60 bg-gradient-to-br from-teal-50/60 via-white to-amber-50/40 shadow-sm">
-                <div className="pointer-events-none absolute -top-20 -right-20 h-56 w-56 rounded-full bg-gradient-to-br from-teal-200/40 to-transparent blur-3xl" />
-                <div className="pointer-events-none absolute -bottom-24 -left-24 h-48 w-48 rounded-full bg-gradient-to-tr from-amber-100/30 to-transparent blur-3xl" />
+              <div className="surface-card">
                 <div className="relative px-6 py-12 sm:px-10 sm:py-16 text-center">
                   <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-teal-600 text-white shadow-md shadow-teal-600/30">
                     <Globe className="h-8 w-8" />

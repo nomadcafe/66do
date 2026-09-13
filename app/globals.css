@@ -32,3 +32,31 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ── 容器外观 ──────────────────────────────────────────────────────────
+   卡片的边框 / 圆角 / 阴影原本在每个组件里各写一遍，累计出十来种近似写法
+   （stone-200/80 vs /70 vs 实色，shadow-sm vs lg vs xl，rounded-xl vs 2xl）。
+   差别小到看不出是有意的，叠起来就是"不精致"。收成两个语义类：
+
+     .surface-card —— 普通容器。绝大多数卡片用这个。
+     .surface-hero —— 页面主卡，**每屏最多一个**，用来定视觉重点。
+                      渐变 + 光晕原本在 19 个文件里出现 30 次，
+                      光 Insights 一屏就有三张，谁都不突出。
+
+   要改卡片长相，改这里一处即可。 */
+@layer components {
+  .surface-card {
+    @apply rounded-2xl border border-stone-200/80 bg-white shadow-sm;
+  }
+
+  .surface-hero {
+    @apply relative overflow-hidden rounded-3xl border border-stone-200/60
+           bg-gradient-to-br from-stone-50 via-white to-teal-50/40 shadow-sm;
+  }
+
+  /* 主卡右上角那团光晕。只在 .surface-hero 里用。 */
+  .surface-hero-glow {
+    @apply pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full
+           bg-gradient-to-br from-teal-100/40 to-transparent blur-3xl;
+  }
+}

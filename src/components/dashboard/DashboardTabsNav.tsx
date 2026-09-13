@@ -38,7 +38,7 @@ export default function DashboardTabsNav({
     }`;
 
   return (
-    <div className="relative bg-white rounded-2xl border border-stone-200/80 shadow-sm mb-6 overflow-hidden">
+    <div className="relative surface-card mb-6 overflow-hidden">
       <nav
         className="flex gap-1 p-1.5 overflow-x-auto bg-stone-50/50 border-b border-stone-100"
         aria-label="Tabs"

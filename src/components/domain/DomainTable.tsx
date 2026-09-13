@@ -365,7 +365,7 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], metr
   return (
     <div className="space-y-4">
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-stone-200/80 shadow-sm overflow-hidden">
+      <div className="surface-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-stone-50 border-b border-stone-200">
