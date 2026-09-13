@@ -4,6 +4,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { X, Calendar, AlertCircle, CheckCircle } from 'lucide-react';
 import { DomainWithTags } from '../../types/dashboard';
 import { useI18nContext } from '../../contexts/I18nProvider';
+import { localCalendarDateISO } from '../../lib/localCalendarDate';
+import DateInput from '../ui/DateInput';
+import NumberInput from '../ui/NumberInput';
 
 export interface RenewalSubmission {
   renewalYears: number;
@@ -27,7 +30,7 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
   const { t } = useI18nContext();
   const [renewalYears, setRenewalYears] = useState<number>(domain.renewal_cycle || 1);
   const [amount, setAmount] = useState<number>((domain.renewal_cost || 0) * (domain.renewal_cycle || 1));
-  const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState<string>(localCalendarDateISO());
   const [registrar, setRegistrar] = useState<string>(domain.registrar || '');
   const [notes, setNotes] = useState<string>('');
   const [updateRenewalCost, setUpdateRenewalCost] = useState<boolean>(true);
@@ -41,7 +44,7 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
     const years = domain.renewal_cycle || 1;
     setRenewalYears(years);
     setAmount((domain.renewal_cost || 0) * years);
-    setDate(new Date().toISOString().split('T')[0]);
+    setDate(localCalendarDateISO());
     setRegistrar(domain.registrar || '');
     setNotes('');
     setUpdateRenewalCost(true);
@@ -270,23 +273,23 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
           {/* Unified renewal input */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-stone-700 mb-2">Renewal date</label>
-              <input
-                type="date"
+              <DateInput
+                label="Renewal date"
                 value={date}
-                onChange={(e) => setDate(e.target.value)}
+                onChange={setDate}
+                className="w-full"
+                inputClassName="rounded-lg focus:ring-teal-500"
                 disabled={isProcessing}
-                className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-stone-700 mb-2">Total renewal amount (USD)</label>
-              <input
-                type="number"
+              <NumberInput
                 min={0}
-                step="0.01"
+                blankWhenZero
+                placeholder="0.00"
                 value={Number.isFinite(amount) ? amount : 0}
-                onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
+                onChange={(v) => setAmount(v ?? 0)}
                 disabled={isProcessing}
                 className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
@@ -331,12 +334,12 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
             {createTransferTransaction && (
               <div>
                 <label className="block text-sm font-medium text-stone-700 mb-2">Transfer fee (USD)</label>
-                <input
-                  type="number"
+                <NumberInput
                   min={0}
-                  step="0.01"
+                  blankWhenZero
+                  placeholder="0.00"
                   value={Number.isFinite(transferFee) ? transferFee : 0}
-                  onChange={(e) => setTransferFee(parseFloat(e.target.value) || 0)}
+                  onChange={(v) => setTransferFee(v ?? 0)}
                   disabled={isProcessing}
                   className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />

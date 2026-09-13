@@ -510,9 +510,10 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                         {isEditingCost ? (
                           <input
                             ref={valueInputRef}
-                            type="number"
-                            min="0"
-                            step="1"
+                            // type="text"：原生 number 的 .value 会把 "9." 这种
+                            // 输入中间态读成空字符串，草稿被清掉，$9.88 最后落成 $88
+                            type="text"
+                            inputMode="decimal"
                             value={draftValue}
                             onChange={(e) => setDraftValue(e.target.value)}
                             onBlur={() => commitMoney(domain, 'purchase_cost')}
@@ -544,9 +545,10 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                         {isEditingRenewal ? (
                           <input
                             ref={valueInputRef}
-                            type="number"
-                            min="0"
-                            step="1"
+                            // type="text"：原生 number 的 .value 会把 "9." 这种
+                            // 输入中间态读成空字符串，草稿被清掉，$9.88 最后落成 $88
+                            type="text"
+                            inputMode="decimal"
                             value={draftValue}
                             onChange={(e) => setDraftValue(e.target.value)}
                             onBlur={() => commitMoney(domain, 'renewal_cost')}
@@ -586,9 +588,8 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], onEd
                       ) : isEditingValue ? (
                         <input
                           ref={valueInputRef}
-                          type="number"
-                          min="0"
-                          step="1"
+                          type="text"
+                          inputMode="decimal"
                           value={draftValue}
                           onChange={(e) => setDraftValue(e.target.value)}
                           onBlur={() => commitMoney(domain, 'estimated_value')}

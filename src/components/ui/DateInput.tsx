@@ -6,6 +6,7 @@ interface DateInputProps {
   value: string;
   onChange: (value: string) => void;
   required?: boolean;
+  disabled?: boolean;
   className?: string;
   label?: string;
   icon?: React.ReactNode;
@@ -32,6 +33,7 @@ export default function DateInput({
   value,
   onChange,
   required = false,
+  disabled = false,
   className = '',
   label,
   icon,
@@ -156,8 +158,9 @@ export default function DateInput({
           placeholder="YYYY"
           aria-label={label ? `${label} (YYYY)` : 'YYYY'}
           required={required}
+          disabled={disabled}
           maxLength={4}
-          className={`w-16 px-2 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center ${inputClassName}`}
+          className={`w-16 px-2 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center disabled:bg-stone-100 disabled:text-stone-400 ${inputClassName}`}
         />
         <span className="text-stone-500">-</span>
         <input
@@ -171,8 +174,9 @@ export default function DateInput({
           placeholder="MM"
           aria-label={label ? `${label} (MM)` : 'MM'}
           required={required}
+          disabled={disabled}
           maxLength={2}
-          className={`w-12 px-2 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center ${inputClassName}`}
+          className={`w-12 px-2 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center disabled:bg-stone-100 disabled:text-stone-400 ${inputClassName}`}
         />
         <span className="text-stone-500">-</span>
         <input
@@ -186,8 +190,9 @@ export default function DateInput({
           placeholder="DD"
           aria-label={label ? `${label} (DD)` : 'DD'}
           required={required}
+          disabled={disabled}
           maxLength={2}
-          className={`w-12 px-2 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center ${inputClassName}`}
+          className={`w-12 px-2 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-center disabled:bg-stone-100 disabled:text-stone-400 ${inputClassName}`}
         />
       </div>
     </div>

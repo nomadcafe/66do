@@ -2,6 +2,7 @@ import { AlertTriangle, Award, Calendar, DollarSign, FileText, Plus, RefreshCw, 
 import type { BriefingCard } from './WeeklyBriefing';
 import type { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import type { ActiveInstallmentSummary } from '../../lib/installmentDue';
+import { localCalendarDateISO } from '../../lib/localCalendarDate';
 
 interface BuildWeeklyBriefingCardsInput {
   expiringThisWeek: DomainWithTags[];
@@ -145,7 +146,7 @@ export function buildWeeklyBriefingCards({
     ? (() => {
         const top = receiptsDueThisWeek[0];
         const expectedAmount = top.transaction.installment_amount ?? 0;
-        const dueLabel = top.nextDue ? formatTransactionDate(top.nextDue.toISOString().slice(0, 10)) : '';
+        const dueLabel = top.nextDue ? formatTransactionDate(localCalendarDateISO(top.nextDue)) : '';
         const primary = receiptsDueThisWeek.length === 1
           ? t('dashboard.briefingReceiptsDuePrimaryOne')
               .replace('{domain}', top.domain.domain_name)

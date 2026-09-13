@@ -100,3 +100,21 @@ describe('NumberInput', () => {
     expect(screen.getByTestId('value').textContent).toBe('null');
   });
 });
+
+describe('NumberInput — 退款等负数场景', () => {
+  it('accepts a negative amount when no min is set', () => {
+    render(<Harness blankWhenZero />);
+    const el = screen.getByLabelText('field') as HTMLInputElement;
+    type(el, '-25.5');
+    expect(el.value).toBe('-25.5');
+    expect(screen.getByTestId('value').textContent).toBe('-25.5');
+  });
+
+  it('refuses a negative when min is 0', () => {
+    render(<Harness blankWhenZero min={0} />);
+    const el = screen.getByLabelText('field') as HTMLInputElement;
+    fireEvent.change(el, { target: { value: '-25' } });
+    fireEvent.blur(el);
+    expect(screen.getByTestId('value').textContent).toBe('0');
+  });
+})

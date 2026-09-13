@@ -66,7 +66,9 @@ export default function NumberInput({
         ? digitsAndDots
         : digitsAndDots.slice(0, firstDot + 1) +
           digitsAndDots.slice(firstDot + 1).replace(/\./g, '');
-    return (negative && cleaned ? '-' : '') + cleaned;
+    // 负号在 cleaned 还是空的时候也要留住，否则打退款金额 "-25" 时，
+    // 第一下只有 "-" → 草稿被清成空 → 符号丢了，最后录成 +25。
+    return (negative ? '-' : '') + cleaned;
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

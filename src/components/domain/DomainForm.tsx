@@ -7,6 +7,7 @@ import { validateDomain, sanitizeDomainData, translateValidationMessages } from 
 import { localCalendarDateISO } from '../../lib/localCalendarDate';
 import { DomainWithTags } from '../../types/dashboard';
 import DateInput from '../ui/DateInput';
+import NumberInput from '../ui/NumberInput';
 import { useI18nContext } from '../../contexts/I18nProvider';
 
 const COMMON_RENEWAL_CYCLES = [1, 2, 3, 5, 10] as const;
@@ -346,13 +347,12 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
                 <DollarSign className="h-4 w-4 inline mr-1" />
                 {t('dashboard.purchaseCostLabel')} *
               </label>
-              <input
+              <NumberInput
                 id="domain-form-purchase_cost"
-                type="number"
-                min="0"
-                step="0.01"
-                value={formData.purchase_cost === 0 ? '' : formData.purchase_cost}
-                onChange={(e) => setFormData((prev) => ({ ...prev, purchase_cost: parseFloat(e.target.value) || 0 }))}
+                min={0}
+                blankWhenZero
+                value={formData.purchase_cost}
+                onChange={(v) => setFormData((prev) => ({ ...prev, purchase_cost: v ?? 0 }))}
                 className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="0.00"
               />
@@ -363,13 +363,12 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
                 <DollarSign className="h-4 w-4 inline mr-1" />
                 {t('dashboard.renewalCostLabel')}
               </label>
-              <input
+              <NumberInput
                 id="domain-form-renewal_cost"
-                type="number"
-                min="0"
-                step="0.01"
-                value={formData.renewal_cost === 0 ? '' : formData.renewal_cost}
-                onChange={(e) => setFormData((prev) => ({ ...prev, renewal_cost: parseFloat(e.target.value) || 0 }))}
+                min={0}
+                blankWhenZero
+                value={formData.renewal_cost}
+                onChange={(v) => setFormData((prev) => ({ ...prev, renewal_cost: v ?? 0 }))}
                 className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="0.00"
               />
@@ -381,18 +380,14 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
             {t('dashboard.renewalCycleYears')}
           </label>
           {useCustomCycle ? (
-            <input
+            <NumberInput
               id="domain-form-renewal_cycle"
-              type="number"
+              integer
               min={1}
               max={10}
-              value={formData.renewal_cycle === 0 ? '' : formData.renewal_cycle}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  renewal_cycle: Math.min(10, Math.max(1, parseInt(e.target.value, 10) || 1))
-                }))
-              }
+              blankWhenZero
+              value={formData.renewal_cycle}
+              onChange={(v) => setFormData((prev) => ({ ...prev, renewal_cycle: v ?? 0 }))}
               className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder={t('dashboard.renewalCycleCustomPlaceholder')}
             />
@@ -432,12 +427,13 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
             <Calendar className="h-4 w-4 inline mr-1" />
             {t('dashboard.renewalCountLabel')}
           </label>
-          <input
+          <NumberInput
             id="domain-form-renewal_count"
-            type="number"
-            min="0"
-            value={formData.renewal_count === 0 ? '' : formData.renewal_count}
-            onChange={(e) => setFormData((prev) => ({ ...prev, renewal_count: parseInt(e.target.value) || 0 }))}
+            integer
+            min={0}
+            blankWhenZero
+            value={formData.renewal_count}
+            onChange={(v) => setFormData((prev) => ({ ...prev, renewal_count: v ?? 0 }))}
             className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder={t('dashboard.renewalCountPlaceholder')}
           />
@@ -473,13 +469,12 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
                 <DollarSign className="h-4 w-4 inline mr-1" />
                 {t('dashboard.estimatedValueLabel')}
               </label>
-              <input
+              <NumberInput
                 id="domain-form-estimated_value"
-                type="number"
-                min="0"
-                step="0.01"
-                value={formData.estimated_value === 0 ? '' : formData.estimated_value}
-                onChange={(e) => setFormData((prev) => ({ ...prev, estimated_value: parseFloat(e.target.value) || 0 }))}
+                min={0}
+                blankWhenZero
+                value={formData.estimated_value}
+                onChange={(v) => setFormData((prev) => ({ ...prev, estimated_value: v ?? 0 }))}
                 className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="0.00"
               />
