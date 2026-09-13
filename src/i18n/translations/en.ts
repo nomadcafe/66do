@@ -756,6 +756,7 @@ const en = {
       installmentPeriod: 'Installment Periods',
       downpaymentAmount: 'Downpayment Amount',
       installmentAmount: 'Installment Amount',
+      installmentAmountHint: 'Calculated automatically: (Amount − Downpayment − Final payment) ÷ regular periods.',
       finalPaymentAmount: 'Final Payment Amount',
       installmentSummary: 'Installment Summary',
       downpayment: 'Downpayment',

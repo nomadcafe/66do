@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { X, DollarSign, AlertCircle, CheckCircle, Pencil, Trash2 } from 'lucide-react';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { TransactionWithRequiredFields } from '../../types/dashboard';
@@ -10,6 +10,7 @@ import { logger } from '../../lib/logger';
 import { localCalendarDateISO, parseLocalCalendarDate } from '../../lib/localCalendarDate';
 import DateInput from '../ui/DateInput';
 import NumberInput from '../ui/NumberInput';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface ReceiptsModalProps {
   isOpen: boolean;
@@ -70,6 +71,7 @@ export default function ReceiptsModal({
   const [error, setError] = useState<string | null>(null);
   /** 非空表示正在编辑这条收款，空表示新增 */
   const [editingId, setEditingId] = useState<string | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const receipts = useMemo(
     () => [...(transaction?.receipts ?? [])].sort((a, b) => a.received_date.localeCompare(b.received_date)),
@@ -118,6 +120,8 @@ export default function ReceiptsModal({
       document.body.style.overflow = prevOverflow;
     };
   }, [isOpen, isProcessing, onClose]);
+
+  useModalA11y(panelRef, isOpen && !!transaction);
 
   if (!isOpen || !transaction) return null;
 
@@ -234,7 +238,10 @@ export default function ReceiptsModal({
         if (e.target === e.currentTarget && !isProcessing) onClose();
       }}
     >
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[calc(100vh-2rem)] overflow-y-auto">
+      <div
+        ref={panelRef}
+        className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[calc(100vh-2rem)] overflow-y-auto focus:outline-none"
+      >
         <div className="flex items-start justify-between gap-3 p-6 border-b border-stone-200 bg-gradient-to-b from-emerald-50/40 to-white">
           <div className="flex items-start gap-3 flex-1 min-w-0">
             <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center shrink-0">

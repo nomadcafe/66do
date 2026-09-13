@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Save, DollarSign, Calendar, FileText, Search, ChevronDown } from 'lucide-react';
 import { formatCurrencyAmount } from '../../lib/exchangeRates';
 import {
+  calculateTotalInstallmentAmount,
   installmentFeeFromFormValues,
   sellerSidePlatformFee,
 } from '../../lib/platformFeeCalculator';
@@ -13,6 +14,7 @@ import { parseLocalCalendarDate } from '../../lib/localCalendarDate';
 import DateInput from '../ui/DateInput';
 import NumberInput from '../ui/NumberInput';
 import InstallmentConfig from './InstallmentConfig';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 // 使用统一的类型定义，从 supabaseService 导入
 
@@ -103,6 +105,7 @@ export default function TransactionForm({
   const [domainSearch, setDomainSearch] = useState('');
   const [domainDropdownOpen, setDomainDropdownOpen] = useState(false);
   const domainPickerRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   // 可选域名：活跃、待售、已售（已售也可添加出售记录）
   const eligibleDomains = domains.filter(
@@ -464,6 +467,21 @@ export default function TransactionForm({
     }
 
     const calculatedNetAmount = formData.amount - formData.platform_fee;
+    // 分期总额（= Installment Summary 里显示的那一行）。以前这个字段在表单里
+    // 声明了但从来没算过，每笔分期销售都存 0 —— 没人读它，所以界面上看不出来，
+    // 但 JSON 备份导出的每一行都带着这个假的 0。非分期时写 null 而不是 0，
+    // 「不适用」和「总额是 0」不该长一个样。
+    const totalInstallmentAmount =
+      formData.payment_plan === 'installment'
+        ? calculateTotalInstallmentAmount(
+            formData.downpayment_amount,
+            formData.installment_amount,
+            formData.installment_period,
+            formData.final_payment_amount
+          )
+        // 类型上是 number | undefined；buildTransactionInsertPayload 的
+        // `!= null ? Number(x) : null` 会把它落成数据库里的 NULL。
+        : undefined;
     const clampRenewalYears = Math.min(
       10,
       Math.max(1, Math.floor(Number(formData.renewal_period_years)) || 1)
@@ -477,6 +495,7 @@ export default function TransactionForm({
       ...formData,
       currency: 'USD',
       net_amount: calculatedNetAmount,
+      total_installment_amount: totalInstallmentAmount,
       user_id: '',
       created_at: '',
       updated_at: '',
@@ -540,6 +559,8 @@ export default function TransactionForm({
     { value: 'advertising', label: t('transaction.advertising') }
   ];
 
+  useModalA11y(panelRef, isOpen);
+
   if (!isOpen) return null;
 
   return (
@@ -553,7 +574,8 @@ export default function TransactionForm({
       }}
     >
       <div
-        className="bg-white rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        ref={panelRef}
+        className="bg-white rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto focus:outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">

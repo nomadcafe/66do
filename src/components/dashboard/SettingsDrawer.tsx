@@ -1,6 +1,7 @@
 'use client';
 
 import { ReactNode, useEffect, useRef } from 'react';
+import { useModalA11y } from '../../hooks/useModalA11y';
 import { X, SlidersHorizontal, Database, ShieldCheck } from 'lucide-react';
 
 export type SettingsSection = 'preferences' | 'data' | 'security';
@@ -36,14 +37,14 @@ export default function SettingsDrawer({
   securityNode,
   labels,
 }: SettingsDrawerProps) {
-  const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // 打开时聚焦、关闭时还回去、锁背景滚动、Tab 不跑出抽屉——都在 hook 里。
+  // 初始落点保持在关闭按钮上（data-autofocus），与改造前一致。
+  useModalA11y(panelRef, isOpen);
 
   useEffect(() => {
     if (!isOpen) return;
-    const previouslyFocused = document.activeElement as HTMLElement | null;
-    const focusTimer = window.setTimeout(() => closeBtnRef.current?.focus(), 0);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
@@ -51,12 +52,7 @@ export default function SettingsDrawer({
       }
     };
     document.addEventListener('keydown', handleKey);
-    return () => {
-      window.clearTimeout(focusTimer);
-      document.removeEventListener('keydown', handleKey);
-      document.body.style.overflow = prevOverflow;
-      previouslyFocused?.focus?.();
-    };
+    return () => document.removeEventListener('keydown', handleKey);
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -77,14 +73,17 @@ export default function SettingsDrawer({
       />
 
       {/* Drawer panel */}
-      <div className="absolute right-0 top-0 h-full w-full max-w-[640px] bg-stone-50 shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
+      <div
+        ref={panelRef}
+        className="absolute right-0 top-0 h-full w-full max-w-[640px] bg-stone-50 shadow-2xl flex flex-col animate-in slide-in-from-right duration-200 focus:outline-none"
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-stone-200 bg-white px-5 py-4">
           <h2 id="settings-drawer-title" className="text-base font-semibold text-stone-900">
             {labels.title}
           </h2>
           <button
-            ref={closeBtnRef}
+            data-autofocus
             type="button"
             onClick={onClose}
             aria-label={labels.close}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Save, Globe, Calendar, DollarSign, Tag, Loader2 } from 'lucide-react';
 import { validateDomain, sanitizeDomainData, translateValidationMessages } from '../../lib/validation';
@@ -8,6 +8,7 @@ import { localCalendarDateISO } from '../../lib/localCalendarDate';
 import { DomainWithTags } from '../../types/dashboard';
 import DateInput from '../ui/DateInput';
 import NumberInput from '../ui/NumberInput';
+import { useModalA11y } from '../../hooks/useModalA11y';
 import { useI18nContext } from '../../contexts/I18nProvider';
 
 const COMMON_RENEWAL_CYCLES = [1, 2, 3, 5, 10] as const;
@@ -65,6 +66,7 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
   const [localOpen, setLocalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [useCustomCycle, setUseCustomCycle] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const registrarSuggestions = useMemo(() => {
     if (!existingDomains?.length) return [] as string[];
@@ -204,6 +206,8 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
     // eslint-disable-next-line react-hooks/exhaustive-deps -- handleClose 由组件内部引用稳定，依赖 localOpen 已足够
   }, [localOpen]);
 
+  useModalA11y(panelRef, localOpen);
+
   if (!localOpen) return null;
 
   const modalContent = (
@@ -221,7 +225,8 @@ export default function DomainForm({ domain, isOpen, onClose, onSave, closeRef, 
         onClick={handleClose}
       />
       <div
-        className="relative bg-white w-full max-w-xl h-full overflow-y-auto shadow-xl flex flex-col"
+        ref={panelRef}
+        className="relative bg-white w-full max-w-xl h-full overflow-y-auto shadow-xl flex flex-col focus:outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between z-10 shrink-0">
