@@ -73,7 +73,35 @@ interface TimeSeriesData {
   monthlyCashFlow: number;   // 给月度净现金流图用，本图不画
   purchase: number;          // investment 里归属于「购入」的部分 = investment − renewalCost
   otherOutflow: number;      // 其余运营支出（fee / transfer / marketing / advertising）
+  // 以下三项是上面对应字段在窗口内的累计值，给 Portfolio Performance 用。
+  // 那张图原先三条月度流量 + 一条累计存量共用一个 Y 轴：累计线只涨不跌、
+  // 没有上限，轴的上限被它拉到几万之后，月度那三条被压在底部几个百分点里，
+  // 数据越多越不可读。四条统一成累计就同量级、可比了；月度明细由下面那张
+  // 净现金流图负责（它的 tooltip 还能拆出购入/续费/其他）。
+  //
+  // 口径是「窗口内累计」而不是「开天辟地以来累计」——realizedPnL 本来就是
+  // 这么算的，上方 KPI 条也明确按可见区间求和，三者必须对得上。
+  cumInvestment: number;
+  cumRenewalCost: number;
+  cumGrossSales: number;
 }
+
+/**
+ * Portfolio Performance 四条序列的配色。
+ *
+ * 原来是 indigo #6366f1 / purple #a855f7 / emerald #10b981 / amber #f59e0b。
+ * indigo 和 purple 这一对在 protan 模拟下色差 ΔE 只有 0.9，**正常色觉下也
+ * 只有 11.3**（低于 15 的下限，即「满色觉的人也难以分辨」）—— 也就是说
+ * 「投入」和「续费成本」这两条线，谁都看不出区别，只能靠续费那条是虚线。
+ *
+ * 换成这一组后，按折线图该用的 all-pairs 口径（线会交叉，不止相邻两两比）
+ * 全部通过：最差一对正常色觉 ΔE 16.3、CVD 9.1。语义也尽量留住了——
+ * 出售仍是绿系，已实现盈亏仍是黄系。
+ */
+const SERIES_INVESTMENT = '#2a78d6';
+const SERIES_RENEWAL = '#4a3aa7';
+const SERIES_SALES = '#1baf7a';
+const SERIES_PNL = '#eda100';
 
 /** 净现金流的正负配色。原来是 #10b981 / #fb7185 —— 在红绿色盲（deutan）下
  *  两者色差只有 ΔE 3.9，等于没区分；换成这一对后是 8.6，且都过 3:1 对比度。
@@ -292,6 +320,9 @@ export default function InvestmentAnalytics({
     );
 
     let cumulativeRealizedPnL = 0;
+    let cumInvestment = 0;
+    let cumRenewalCost = 0;
+    let cumGrossSales = 0;
     for (let i = 0; i < monthsToShow; i++) {
       const date = new Date(startDate);
       date.setMonth(date.getMonth() + i);
@@ -323,6 +354,9 @@ export default function InvestmentAnalytics({
       // 累计已实现盈亏：每笔出售的 (sellNet − cost basis at sale) 按到账月分摊后
       // 累加。持有未卖的域名既不进分子也不进分母，所以这条线只在卖出时才动。
       cumulativeRealizedPnL += monthlyRealizedPnL.get(monthKey) ?? 0;
+      cumInvestment += investment;
+      cumRenewalCost += renewalCost;
+      cumGrossSales += grossSales;
 
       data.push({
         date: monthKey,
@@ -335,7 +369,10 @@ export default function InvestmentAnalytics({
         // 净现金流图的 tooltip 要能回答「这个月为什么是负的」，三类流出
         // 本来就算出来了，以前只是没往下传。
         purchase: purchaseThisMonth,
-        otherOutflow
+        otherOutflow,
+        cumInvestment,
+        cumRenewalCost,
+        cumGrossSales
       });
     }
 
@@ -550,10 +587,10 @@ export default function InvestmentAnalytics({
       swatch: 'block' | 'dash';
       color: string;
     }> = [
-      { key: 'investment',  label: t('analytics.investment'),  swatch: 'block', color: 'bg-indigo-500' },
-      { key: 'renewalCost', label: t('analytics.renewalCost'), swatch: 'dash',  color: 'bg-purple-500' },
-      { key: 'grossSales',  label: t('financial.totalSales'),  swatch: 'block', color: 'bg-emerald-500' },
-      { key: 'realizedPnL', label: t('analytics.realizedPnL'), swatch: 'block', color: 'bg-amber-500' },
+      { key: 'investment',  label: t('analytics.cumulativeInvestment'),  swatch: 'block', color: SERIES_INVESTMENT },
+      { key: 'renewalCost', label: t('analytics.cumulativeRenewalCost'), swatch: 'dash',  color: SERIES_RENEWAL },
+      { key: 'grossSales',  label: t('analytics.cumulativeSales'),       swatch: 'block', color: SERIES_SALES },
+      { key: 'realizedPnL', label: t('analytics.realizedPnL'),           swatch: 'block', color: SERIES_PNL },
     ];
 
     return (
@@ -578,7 +615,8 @@ export default function InvestmentAnalytics({
                   <span
                     className={`${
                       s.swatch === 'block' ? 'h-3 w-3' : 'h-1 w-3'
-                    } rounded ${s.color} ${hidden ? 'opacity-40' : ''}`}
+                    } rounded ${hidden ? 'opacity-40' : ''}`}
+                    style={{ backgroundColor: s.color }}
                   />
                   <span>{s.label}</span>
                 </button>
@@ -586,6 +624,9 @@ export default function InvestmentAnalytics({
             })}
           </div>
         </div>
+        <p className="text-sm text-stone-500 leading-relaxed mb-4">
+          {t('analytics.portfolioPerformanceDesc')}
+        </p>
         <ResponsiveContainer width="100%" height={400}>
           <AreaChart
             data={timeSeriesData}
@@ -593,16 +634,12 @@ export default function InvestmentAnalytics({
           >
             <defs>
               <linearGradient id="colorInvestment" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                <stop offset="5%" stopColor="{SERIES_INVESTMENT}" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor={SERIES_INVESTMENT} stopOpacity={0}/>
               </linearGradient>
               <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-              </linearGradient>
-              <linearGradient id="colorPortfolio" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+                <stop offset="5%" stopColor={SERIES_SALES} stopOpacity={0.8}/>
+                <stop offset="95%" stopColor={SERIES_SALES} stopOpacity={0}/>
               </linearGradient>
             </defs>
             {/* 实线：虚线网格会被读成「预测」或「阈值」，这里只是刻度线 */}
@@ -625,50 +662,51 @@ export default function InvestmentAnalytics({
                 borderRadius: '8px',
                 boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
               }}
-              cursor={{ stroke: '#6366f1', strokeWidth: 2 }}
+              cursor={{ stroke: '#a8a29e', strokeWidth: 1 }}
               formatter={(value, name) => [formatCurrency(Number(value), 'USD'), name]}
               labelFormatter={(value) => monthFullLabel(String(value))}
             />
             <Area
               type="monotone"
-              dataKey="investment"
-              stroke="#6366f1"
+              dataKey="cumInvestment"
+              stroke={SERIES_INVESTMENT}
               fill="url(#colorInvestment)"
               strokeWidth={2}
-              name={t('analytics.investment')}
-              activeDot={{ r: 6, fill: '#6366f1' }}
+              name={t('analytics.cumulativeInvestment')}
+              activeDot={{ r: 6, fill: SERIES_INVESTMENT }}
               hide={hiddenSeries.has('investment')}
             />
             <Line
               type="monotone"
-              dataKey="renewalCost"
-              stroke="#a855f7"
+              dataKey="cumRenewalCost"
+              stroke={SERIES_RENEWAL}
               strokeWidth={2}
               strokeDasharray="4 3"
               dot={false}
-              name={t('analytics.renewalCost')}
-              activeDot={{ r: 5, fill: '#a855f7' }}
+              name={t('analytics.cumulativeRenewalCost')}
+              activeDot={{ r: 5, fill: SERIES_RENEWAL }}
               hide={hiddenSeries.has('renewalCost')}
             />
             <Area
               type="monotone"
-              dataKey="grossSales"
-              stroke="#10b981"
+              dataKey="cumGrossSales"
+              stroke={SERIES_SALES}
               fill="url(#colorRevenue)"
               strokeWidth={2}
-              name={t('financial.totalSales')}
-              activeDot={{ r: 6, fill: '#10b981' }}
+              name={t('analytics.cumulativeSales')}
+              activeDot={{ r: 6, fill: SERIES_SALES }}
               hide={hiddenSeries.has('grossSales')}
             />
             <Line
               type="monotone"
               dataKey="realizedPnL"
-              stroke="#f59e0b"
-              fill="url(#colorPortfolio)"
+              stroke={SERIES_PNL}
               strokeWidth={3}
               name={t('analytics.realizedPnL')}
-              dot={{ r: 4, fill: '#f59e0b' }}
-              activeDot={{ r: 8, fill: '#f59e0b' }}
+              // 每个点都画圆点，在 ALL 窗口（三十几个月）下是一条串珠而不是线。
+              // 点少时保留，方便对齐月份。
+              dot={timeSeriesData.length <= 12 ? { r: 4, fill: SERIES_PNL } : false}
+              activeDot={{ r: 8, fill: SERIES_PNL }}
               hide={hiddenSeries.has('realizedPnL')}
             />
           </AreaChart>
