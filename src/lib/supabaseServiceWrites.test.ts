@@ -183,3 +183,46 @@ describe('回传行数依赖的那个 header', () => {
     expect(captured[0].headers.get('prefer')).toContain('return=representation');
   });
 });
+
+/**
+ * 归属过滤必须无条件出现在每条写语句里。
+ *
+ * userId 曾经是可选参数，`.eq('user_id', userId)` 外面包着 `if (userId)`。
+ * 方法的注释写着「语句自带 .eq('user_id')，归属校验已经在这一条语句里完成」，
+ * 但那只在调用方记得传的时候成立——漏传时这层过滤会静悄悄消失，只剩 RLS
+ * 一层兜底，而且没有任何地方会报错。现在是必填（漏传编译不过），这里再钉一道
+ * 运行时断言：过滤确实发到了 PostgREST。
+ */
+
+/**
+ * 归属过滤必须无条件出现在**每一条**写语句里。
+ *
+ * 上面已经钉住了 domain 的 DELETE。补齐 update 和 transaction 两条路径：
+ * userId 曾经是可选参数，`.eq('user_id', userId)` 外面包着 `if (userId)`。
+ * 方法注释写着「语句自带 .eq('user_id')，归属校验已经在这一条语句里完成」，
+ * 但那只在调用方记得传的时候成立——漏传时这层过滤静悄悄消失，只剩 RLS 兜底，
+ * 而且没有任何地方会报错。现在签名是必填（漏传编译不过），这几条再确认过滤
+ * 确实发到了 PostgREST。
+ */
+describe('每条写语句都带 user_id 过滤', () => {
+  it('updateDomainWithClient', async () => {
+    nextResponses = [{ status: 200, body: JSON.stringify({ id: UUID }) }];
+    await DomainService.updateDomainWithClient(makeClient(), UUID, { domain_name: 'x.com' }, USER);
+    expect(captured[0].url).toContain(`id=eq.${UUID}`);
+    expect(captured[0].url).toContain(`user_id=eq.${USER}`);
+  });
+
+  it('updateTransactionWithClient', async () => {
+    nextResponses = [{ status: 200, body: JSON.stringify({ id: UUID }) }];
+    await TransactionService.updateTransactionWithClient(makeClient(), UUID, { amount: 1 }, USER);
+    expect(captured[0].url).toContain(`id=eq.${UUID}`);
+    expect(captured[0].url).toContain(`user_id=eq.${USER}`);
+  });
+
+  it('deleteTransactionWithClient', async () => {
+    nextResponses = [{ status: 200, body: JSON.stringify([{ id: UUID }]) }];
+    await TransactionService.deleteTransactionWithClient(makeClient(), UUID, USER);
+    expect(captured[0].url).toContain(`id=eq.${UUID}`);
+    expect(captured[0].url).toContain(`user_id=eq.${USER}`);
+  });
+});
