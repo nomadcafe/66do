@@ -11,6 +11,7 @@ import {
   LazyExpiredDomainLossAnalysis,
   LazyYearlyCashflowTable,
   LazySalesByPlatform,
+  LazyAnnualExpenses,
   LazyWrapper,
 } from '../LazyComponents';
 import type { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
@@ -277,6 +278,10 @@ export default function InsightsTab({
           </LazyWrapper>
           <LazyWrapper>
             <LazyYearlyCashflowTable domains={domains} transactions={transactionsForMetrics} />
+          </LazyWrapper>
+          {/* 年度支出：上面那张表流出各列的按科目展开。紧跟它，同为按年粒度。 */}
+          <LazyWrapper>
+            <LazyAnnualExpenses domains={domains} transactions={transactionsForMetrics} />
           </LazyWrapper>
           {/* 按 marketplace 看成交表现。必须喂 transactionsForMetrics：
               分期要的是已收折算口径，原始列表会按合同全额放大。 */}

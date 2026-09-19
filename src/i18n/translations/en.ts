@@ -1042,6 +1042,22 @@ const en = {
         '3Y': 'Last 3 Years',
         'ALL': 'All Time'
       },
+      annualExpenses: {
+        title: 'Annual Expenses',
+        desc: 'Calendar-year spend broken out by category — the detail behind the outflow columns above. Purchases follow the canonical rule (buy transactions if any, otherwise the archived purchase cost); renewals come from the event stream and include renewals recorded only as a count on the domain. Same figures as the monthly cash-flow chart, grouped by year instead of month.',
+        year: 'Year',
+        purchase: 'Purchases',
+        renewal: 'Renewals',
+        transfer: 'Transfers',
+        fee: 'Fees',
+        marketing: 'Marketing',
+        advertising: 'Advertising',
+        total: 'Total',
+        receipts: 'Receipts',
+        receiptCoverage: '{withReceipt} of {total} expense transactions have a receipt link.',
+        archiveNote: 'Amounts taken from the domain record rather than a transaction (archived purchase costs, renewals recorded as a count) have no transaction row, so no receipt can be attached to them.',
+        noData: 'No expenses recorded yet.'
+      },
       salesByPlatform: {
         title: 'Sales by Platform',
         desc: 'What each marketplace actually took, and what reached you. The fee rate here is computed after the fact (fees ÷ gross), not the headline rate — installment fees accrue as payments land, and tiered commissions move with the sale price.',
