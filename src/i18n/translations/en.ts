@@ -1043,6 +1043,21 @@ const en = {
         '3Y': 'Last 3 Years',
         'ALL': 'All Time'
       },
+      salesByPlatform: {
+        title: 'Sales by Platform',
+        desc: 'What each marketplace actually took, and what reached you. The fee rate here is computed after the fact (fees ÷ gross), not the headline rate — installment fees accrue as payments land, and tiered commissions move with the sale price.',
+        platform: 'Platform',
+        sales: 'Sales',
+        salesCount: '{count} sales',
+        grossSales: 'Gross sales',
+        platformFees: 'Platform fees',
+        feeRate: 'Effective fee rate',
+        netProceeds: 'Net proceeds',
+        total: 'Total',
+        unknown: 'Not recorded',
+        unknownHint: '{count} sale(s) have no platform recorded. Set the Platform field on a transaction and it will move into its own row here.',
+        noData: 'No completed sales yet. Once you record a sale, this table breaks it down by marketplace.'
+      },
       investmentIncludesRenewals: 'Purchases plus renewals — the Renewal Cost tile is part of this number, not on top of it.',
       investmentBeforeWindow: 'spent before this window',
       investment: 'Investment',

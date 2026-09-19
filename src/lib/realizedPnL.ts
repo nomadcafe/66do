@@ -118,6 +118,10 @@ export function portfolioAtCost(
 
 /** 单笔交易的盈亏明细（用于 best/worst sale 等聚合） */
 export interface TradeOutcome {
+  /** 产生这笔成交的 sell 交易 id。消费方要按交易自身的字段（platform /
+   *  platform_fee_type …）分组时得能 join 回去——(domainId, saleDate) 不够，
+   *  同一域名同一天卖两笔虽然罕见但不是不可能。 */
+  transactionId: string;
   domainId: string;
   domainName: string | null | undefined;
   /** sellNet − holdingCostAsOf(domain, ..., t.date) */
@@ -175,6 +179,7 @@ export function tradeOutcomes(
       }
     }
     outcomes.push({
+      transactionId: t.id,
       domainId: domain.id,
       domainName: domain.domain_name,
       profit,

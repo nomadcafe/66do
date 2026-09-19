@@ -9,6 +9,7 @@ export const LazyUpcomingRenewals = lazy(() => import('./analytics/UpcomingRenew
 export const LazyAdvancedRenewalAnalysis = lazy(() => import('./analytics/AdvancedRenewalAnalysis'));
 export const LazyExpiredDomainLossAnalysis = lazy(() => import('./analytics/ExpiredDomainLossAnalysis'));
 export const LazyYearlyCashflowTable = lazy(() => import('./analytics/YearlyCashflowTable'));
+export const LazySalesByPlatform = lazy(() => import('./analytics/SalesByPlatform'));
 export const LazyDataImportExport = lazy(() => import('./data/DataImportExport'));
 export const LazyUserPreferencesPanel = lazy(() => import('./settings/UserPreferencesPanel'));
 
