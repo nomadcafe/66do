@@ -1038,6 +1038,21 @@ const zh = {
         '3Y': '近3年',
         'ALL': '全部时间'
       },
+      salesByPlatform: {
+        title: '按平台看成交',
+        desc: '每个平台实际抽走了多少、最后到你手里多少。这里的费率是事后算出来的（平台费 ÷ 成交额），不是名义费率——分期的手续费随到账逐期发生，阶梯佣金还会随成交价跳档。',
+        platform: '平台',
+        sales: '成交',
+        salesCount: '{count} 笔成交',
+        grossSales: '成交额',
+        platformFees: '平台费',
+        feeRate: '有效费率',
+        netProceeds: '实收',
+        total: '合计',
+        unknown: '未记录',
+        unknownHint: '有 {count} 笔成交没记平台。在交易里填上「平台」，它就会单独成行。',
+        noData: '还没有成交记录。记一笔出售之后，这里会按平台拆开给你看。'
+      },
       investmentIncludesRenewals: '购入 + 续费。右边那块「续费成本」已经含在这个数里，不是另加。',
       investmentBeforeWindow: '发生在本窗口之前',
       investment: '投资',
