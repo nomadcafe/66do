@@ -61,6 +61,19 @@ interface PortfolioMetrics {
   investment: number;
   renewalCost: number;
   grossSales: number;
+  /**
+   * 窗口开始之前已经花掉的购入 + 续费。ALL 档恒为 0。
+   *
+   * 存在的理由：Realized P&L 对每笔出售扣的是 holdingCostAsOf ——该域名**整段
+   * 持有期**的成本，而 Investment 只数窗口内的支出。于是 2023 年买入、2026 年
+   * 卖出的域名在 2Y 档上会显示成"投入 $24、卖出 $20,000、已实现盈亏 $12,964"：
+   * 那 $5,000 本金被从 P&L 里扣了，却没出现在屏幕上任何地方，看起来就是四块
+   * 数字对不上账。
+   *
+   * 这里不去动 P&L 的算法（它跟 Insights 顶部的 lifetime hero KPI 同源，改成
+   * 窗口口径会让两个数字分家），而是把这个缺口显式摆出来。
+   */
+  priorInvestment: number;
 }
 
 interface TimeSeriesData {
@@ -169,6 +182,60 @@ export function CashFlowTooltip({
   );
 }
 
+/**
+ * 图表要画的月份序列（含起点，"YYYY-MM"，一律本地口径）。
+ *
+ * monthsWindow = N     → 往前数 N 个自然月、含当月，锚在 now。
+ *                        今天 2026-09 时 2Y ⇒ 2024-10 … 2026-09，共 24 格。
+ * monthsWindow = null  → ALL：从最早的数据月一路画到当月。
+ *
+ * 两种模式都不会越过当月（未来时点的事件不该出现在业绩图上），且都必须画到
+ * 当月为止——下面 KPI 的 inWindow 只卡 <= now，这里少一格两边就对不上账。
+ *
+ * 抽成纯函数而不是留在 useMemo 里：窗口边界是这块最容易出错、也最难从渲染
+ * 结果反推的地方（Recharts 在 jsdom 里会把刻度折叠掉，断言 X 轴标签靠不住），
+ * 直接对月份列表做断言才守得住。
+ */
+export function chartMonthKeys(
+  now: Date,
+  monthsWindow: number | null,
+  earliestDate: Date | null
+): string[] {
+  let monthsToShow: number;
+  let startDate: Date;
+
+  if (monthsWindow !== null) {
+    monthsToShow = monthsWindow;
+    startDate = new Date(now.getFullYear(), now.getMonth() - (monthsWindow - 1), 1);
+  } else {
+    const earliest = earliestDate ?? new Date(now.getFullYear() - 1, now.getMonth(), 1);
+    startDate = new Date(earliest.getFullYear(), earliest.getMonth(), 1);
+    const monthsDiff =
+      (now.getFullYear() - earliest.getFullYear()) * 12 + (now.getMonth() - earliest.getMonth());
+    // 「最早数据月 → 当月」跨 monthsDiff 个月，含两端就是 monthsDiff + 1 格。
+    //
+    // 以前是 `monthsToShow = 12; if (monthsDiff > 12) monthsToShow = monthsDiff + 1`。
+    // 那个 12 是想在数据不满一年时把轴铺满，但下面的 `date > now` 本来就会截断，
+    // 铺不出来；真正的效果是 monthsDiff 正好等于 12（数据横跨 13 个月）时条件
+    // 不成立、停在 12 格，最后一格落在上个月——当月整个从图上消失，而 KPI 的
+    // inWindow 只卡 <= now、把当月算了进去，于是同一屏上 Investment /
+    // Renewal Cost 和 Realized P&L / Total Sales 口径劈叉。
+    monthsToShow = monthsDiff + 1;
+  }
+
+  const keys: string[] = [];
+  for (let i = 0; i < monthsToShow; i++) {
+    const date = new Date(startDate);
+    date.setMonth(date.getMonth() + i);
+    if (date > now) break;
+    // 桶的 key 必须和 startDate（new Date(y, m, 1)，本地）同为本地口径。
+    // 用 toISOString() 读会在正偏移时区把每个桶推回上个月，整个窗口跟着
+    // 平移一格（当月画不出来，多画一个更早的月）。
+    keys.push(localMonthKey(date));
+  }
+  return keys;
+}
+
 const InfoTooltip = ({ text }: { text: string }) => (
   <span className="group relative inline-flex">
     <Info className="h-3.5 w-3.5 text-stone-400 cursor-help hover:text-stone-600 transition-colors" />
@@ -266,62 +333,44 @@ export default function InvestmentAnalytics({
     [transactions, domains]
   );
 
+  // 三类流出（购入 / 续费 / 其余运营支出）全部走 computeMonthlyOutflow，口径
+  // 在那里统一定义，并与年度现金流表（calculateYearlyRenewalVsProfit）对拍，
+  // 保证同一屏上的年表、投资线、现金流图不会再各说各话。
+  //
+  // 传全量 domains/transactions（而不是按窗口过滤过的）：老域名上月续费、
+  // 窗口外创建但事件落在窗口内的域名都得算进来。传 now 作上限——chart 只画
+  // ≤ now 的月份，未来时点的事件永远画不出来；对 stale 域名（status=active
+  // 但 expiry 已过）产生的过去时点 projected 事件，语义上是"漏录的续费"，
+  // 画成一条紫线反而误导，所以 computeMonthlyOutflow 本来就不收 projected。
+  // DomainCard 的 stale 警告 + Renewal Outlook 的"实际"列已经覆盖那个信号。
+  //
+  // 提到 timeSeriesData 外面：KPI 那块要用同一份 map 算"窗口之前已投入"，
+  // 两处各算一次的话口径迟早分家。
+  const monthlyOutflow = useMemo(
+    () => computeMonthlyOutflow(domains, transactions, new Date()),
+    [domains, transactions]
+  );
+
+  // ALL 档的起点：全量数据里最早的购入日 / 交易日。有窗口时用不到。
+  const earliestDataDate = useMemo(() => {
+    const allDates = [
+      ...domains.map(d => parseLocalCalendarDate(d.purchase_date)),
+      ...transactions.map(t => parseLocalCalendarDate(t.date))
+    ].filter((d): d is Date => d !== null);
+    if (allDates.length === 0) return null;
+    return new Date(Math.min(...allDates.map(d => d.getTime())));
+  }, [domains, transactions]);
+
   const timeSeriesData: TimeSeriesData[] = useMemo(() => {
     const data: TimeSeriesData[] = [];
-    const now = new Date();
-    let monthsToShow: number;
-    let startDate: Date;
-
-    if (monthsWindow !== null) {
-      monthsToShow = monthsWindow;
-      startDate = new Date(now.getFullYear(), now.getMonth() - (monthsWindow - 1), 1);
-    } else {
-      // ALL: 找到最早的数据日期并展开（全量数据）
-      monthsToShow = 12;
-      const allDates = [
-        ...domains.map(d => parseLocalCalendarDate(d.purchase_date)),
-        ...transactions.map(t => parseLocalCalendarDate(t.date))
-      ].filter((d): d is Date => d !== null);
-      const earliestDate = allDates.length > 0
-        ? new Date(Math.min(...allDates.map(d => d.getTime())))
-        : new Date(now.getFullYear() - 1, now.getMonth(), 1);
-      startDate = new Date(earliestDate.getFullYear(), earliestDate.getMonth(), 1);
-      const monthsDiff = (now.getFullYear() - earliestDate.getFullYear()) * 12 + (now.getMonth() - earliestDate.getMonth());
-      if (monthsDiff > 12) {
-        monthsToShow = monthsDiff + 1;
-      }
-    }
-
-    // 三类流出（购入 / 续费 / 其余运营支出）全部走 computeMonthlyOutflow，口径
-    // 在那里统一定义，并与年度现金流表（calculateYearlyRenewalVsProfit）对拍，
-    // 保证同一屏上的年表、投资线、现金流图不会再各说各话。
-    //
-    // 传全量 domains/transactions（而不是按窗口过滤过的）：老域名上月续费、
-    // 窗口外创建但事件落在窗口内的域名都得算进来。传 now 作上限——chart 只画
-    // ≤ now 的月份，未来时点的事件永远画不出来；对 stale 域名（status=active
-    // 但 expiry 已过）产生的过去时点 projected 事件，语义上是"漏录的续费"，
-    // 画成一条紫线反而误导，所以 computeMonthlyOutflow 本来就不收 projected。
-    // DomainCard 的 stale 警告 + Renewal Outlook 的"实际"列已经覆盖那个信号。
-    const { purchaseByMonth, renewalByMonth, otherByMonth } = computeMonthlyOutflow(
-      domains,
-      transactions,
-      now
-    );
+    const monthKeys = chartMonthKeys(new Date(), monthsWindow, earliestDataDate);
+    const { purchaseByMonth, renewalByMonth, otherByMonth } = monthlyOutflow;
 
     let cumulativeRealizedPnL = 0;
     let cumInvestment = 0;
     let cumRenewalCost = 0;
     let cumGrossSales = 0;
-    for (let i = 0; i < monthsToShow; i++) {
-      const date = new Date(startDate);
-      date.setMonth(date.getMonth() + i);
-      // 桶的 key 必须和 startDate（new Date(y, m, 1)，本地）同为本地口径。
-      // 用 toISOString() 读会在正偏移时区把每个桶推回上个月，整个窗口跟着
-      // 平移一格（当月画不出来，多画一个更早的月）。
-      const monthKey = localMonthKey(date);
-
-      if (date > now) break;
-
+    for (const monthKey of monthKeys) {
       const purchaseThisMonth = purchaseByMonth.get(monthKey) ?? 0;
       const renewalCost = renewalByMonth.get(monthKey) ?? 0;
       const investment = purchaseThisMonth + renewalCost;
@@ -366,7 +415,7 @@ export default function InvestmentAnalytics({
     }
 
     return data;
-  }, [domains, transactions, monthsWindow, monthlyNetInflowByMonth, monthlyGrossInflowByMonth, monthlyRealizedPnL]);
+  }, [monthsWindow, earliestDataDate, monthlyOutflow, monthlyNetInflowByMonth, monthlyGrossInflowByMonth, monthlyRealizedPnL]);
 
   // KPI 4 项全部跟随时间窗口。Investment / Renewal Cost 直接对 timeSeriesData
   // 求和（保证 KPI 数值 = 用户在 chart 可见区间上看到的总和）。Realized P&L
@@ -405,13 +454,27 @@ export default function InvestmentAnalytics({
       renewalCost += row.renewalCost;
     }
 
+    // 窗口之前的购入 + 续费。跟上面的 investment 同源（都出自 monthlyOutflow），
+    // 只是取补集：严格早于 startMonth 的月份。ALL 档 startMonth 为 null，没有
+    // "之前"可言，留 0。
+    let priorInvestment = 0;
+    if (startMonth !== null) {
+      for (const map of [monthlyOutflow.purchaseByMonth, monthlyOutflow.renewalByMonth]) {
+        for (const [key, v] of map) {
+          const d = parseLocalMonthKey(key);
+          if (d && d < startMonth) priorInvestment += v;
+        }
+      }
+    }
+
     return {
       realizedPnL,
       investment,
       renewalCost,
       grossSales,
+      priorInvestment,
     };
-  }, [monthlyRealizedPnL, monthlyGrossInflowByMonth, monthsWindow, timeSeriesData]);
+  }, [monthlyRealizedPnL, monthlyGrossInflowByMonth, monthlyOutflow, monthsWindow, timeSeriesData]);
 
   // 轴刻度用紧凑格式；两张图共用，避免一张写 $12k、另一张写 $12,345.679。
   // 具体数值（KPI / tooltip / 表格）一律走 formatCurrency。
@@ -471,6 +534,8 @@ export default function InvestmentAnalytics({
       icon: React.ReactNode;
       iconBg: string;
       value: React.ReactNode;
+      /** 数值下面的一行小字。目前只有 Investment 用：交代窗口之前的投入。 */
+      subline?: React.ReactNode;
     };
 
     // 顺序：outcome（Realized P&L）→ inputs（Investment / Renewal Cost）→
@@ -502,6 +567,15 @@ export default function InvestmentAnalytics({
             {formatCurrency(portfolioMetrics.investment, 'USD')}
           </span>
         ),
+        // 窗口之前还花过钱就摊出来。不加进上面的数字——上面那个必须等于图表
+        // indigo 区域在可见区间的求和，动了它图和数就对不上了。
+        subline:
+          portfolioMetrics.priorInvestment > 0 ? (
+            <>
+              +{formatCurrency(portfolioMetrics.priorInvestment, 'USD')}{' '}
+              {t('analytics.investmentBeforeWindow')}
+            </>
+          ) : undefined,
       },
       {
         key: 'renewalCost',
@@ -544,6 +618,11 @@ export default function InvestmentAnalytics({
                   {tile.tooltip ? <InfoTooltip text={tile.tooltip} /> : null}
                 </div>
                 <p className="mt-1 text-xl font-bold tracking-tight">{tile.value}</p>
+                {tile.subline ? (
+                  <p className="mt-0.5 text-[11px] leading-snug text-stone-500 tabular-nums">
+                    {tile.subline}
+                  </p>
+                ) : null}
               </div>
             </div>
           ))}
