@@ -15,6 +15,7 @@
  */
 
 import { tradeOutcomes } from './realizedPnL';
+import { parseLocalCalendarDate } from './localCalendarDate';
 import type { DomainWithTags } from '../types/dashboard';
 import type { TransactionWithRequiredFields } from '../types/transaction';
 
@@ -48,6 +49,20 @@ export function platformOfSale(t: TransactionWithRequiredFields): string | null 
   return derived ?? null;
 }
 
+/** 展开某个平台时看到的单笔成交。 */
+export interface PlatformSaleDetail {
+  transactionId: string;
+  domainName: string | null | undefined;
+  saleDate: string;
+  grossSales: number;
+  platformFees: number;
+  netProceeds: number;
+  costBasis: number;
+  realizedPnL: number;
+  /** 单笔 ROI；cost basis 为 0 时 null（比值没有定义） */
+  roi: number | null;
+}
+
 export interface PlatformSalesRow {
   /** 显示名。规范写法优先，用户自造的名字保留他自己的大小写。 */
   platform: string;
@@ -66,11 +81,13 @@ export interface PlatformSalesRow {
   costBasis: number;
   /** 已实现盈亏 = 实收 − cost basis */
   realizedPnL: number;
+  /** 这个平台下的逐笔成交，按成交日倒序。UI 展开时用。 */
+  sales: PlatformSaleDetail[];
 }
 
 export interface SalesByPlatformSummary {
   rows: PlatformSalesRow[];
-  totals: Omit<PlatformSalesRow, 'platform' | 'isUnknown'>;
+  totals: Omit<PlatformSalesRow, 'platform' | 'isUnknown' | 'sales'>;
   /** 没有平台信息的成交笔数。> 0 时 UI 提示用户可以补录。 */
   unknownCount: number;
 }
@@ -85,11 +102,24 @@ export interface SalesByPlatformSummary {
  *
  *   两者都要全量、不要预过滤：cost basis 要看域名完整的购买 + 续费历史，
  *   截短过的会把成本算小、利润算大。
+ * @param monthsWindow 只统计**成交日**落在最近 N 个自然月（含当月）里的成交；
+ *   null = 全部。窗口语义跟 Investment Analytics 的选择器一致：N=24 时
+ *   今天 2026-09 → 起点 2024-10-01。
+ *
+ *   注意筛的是成交日，不是购入日，而且 cost basis 依然取整段持有期——一个
+ *   2023 年买、2026 年卖的域名在"近 2 年"档里，那 $5,000 本金照样要扣。
+ *   按购入日截数据是 ShareModal 犯过的错（见 a04acdd）。
  */
 export function salesByPlatform(
   domains: DomainWithTags[],
-  transactions: TransactionWithRequiredFields[]
+  transactions: TransactionWithRequiredFields[],
+  monthsWindow: number | null = null
 ): SalesByPlatformSummary {
+  const now = new Date();
+  const windowStart =
+    monthsWindow === null
+      ? null
+      : new Date(now.getFullYear(), now.getMonth() - (monthsWindow - 1), 1);
   const txById = new Map(transactions.map((t) => [t.id, t]));
 
   type Bucket = {
@@ -99,6 +129,7 @@ export function salesByPlatform(
     grossSales: number;
     netProceeds: number;
     costBasis: number;
+    sales: PlatformSaleDetail[];
   };
   // key 用小写，所以 'Sedo' / 'sedo' / 'SEDO' 落同一个桶。这也是为什么库里
   // 那些大小写分叉的历史数据不需要专门写迁移去洗——聚合这一层就消化掉了。
@@ -108,22 +139,37 @@ export function salesByPlatform(
   const buckets = new Map<string | null, Bucket>();
 
   for (const trade of tradeOutcomes(domains, transactions)) {
+    if (windowStart) {
+      const sold = parseLocalCalendarDate(trade.saleDate);
+      if (!sold || sold < windowStart) continue;
+    }
     const tx = txById.get(trade.transactionId);
     const name = tx ? platformOfSale(tx) : null;
     const key = name ? name.toLowerCase() : null;
 
     let b = buckets.get(key);
     if (!b) {
-      b = { display: name, salesCount: 0, grossSales: 0, netProceeds: 0, costBasis: 0 };
+      b = { display: name, salesCount: 0, grossSales: 0, netProceeds: 0, costBasis: 0, sales: [] };
       buckets.set(key, b);
     }
     b.salesCount += 1;
     b.grossSales += trade.sellGross;
     b.netProceeds += trade.sellNet;
     b.costBasis += trade.costBasisAtSale;
+    b.sales.push({
+      transactionId: trade.transactionId,
+      domainName: trade.domainName,
+      saleDate: trade.saleDate,
+      grossSales: trade.sellGross,
+      platformFees: trade.sellGross - trade.sellNet,
+      netProceeds: trade.sellNet,
+      costBasis: trade.costBasisAtSale,
+      realizedPnL: trade.profit,
+      roi: trade.roi,
+    });
   }
 
-  const finish = (b: Omit<Bucket, 'display'>) => {
+  const finish = (b: Omit<Bucket, 'display' | 'sales'>) => {
     // 平台费从 gross − net 反推，而不是读 tx.platform_fee：分期只收到一部分
     // 时，tradeOutcomes 的 gross/net 都是按已付比例折算过的，费用自然跟着摊；
     // 直接读 platform_fee 会把整笔合同的费用算进只收了两期的成交里。
@@ -144,6 +190,8 @@ export function salesByPlatform(
       platform: b.display ?? '',
       isUnknown: b.display === null,
       ...finish(b),
+      // 倒序：最近的成交在最上面，跟交易列表的默认顺序一致
+      sales: [...b.sales].sort((x, y) => (y.saleDate || '').localeCompare(x.saleDate || '')),
     }))
     // 按实收降序——"哪个平台给我带来的钱最多"是看这张表的第一个问题。
     // Unknown 永远沉底：它不是一个平台，是一堆待补录的数据。

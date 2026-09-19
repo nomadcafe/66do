@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo } from 'react';
-import { Store, Info } from 'lucide-react';
+import { Fragment, useMemo, useState } from 'react';
+import { Store, Info, ChevronRight } from 'lucide-react';
 import { formatCurrency } from '../../lib/financialCalculations';
 import { salesByPlatform } from '../../lib/salesByPlatform';
+import { parseLocalCalendarDate } from '../../lib/localCalendarDate';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import type { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 
@@ -12,6 +13,16 @@ interface SalesByPlatformProps {
   /** transactionsForMetrics —— 分期必须是已折算口径，见 salesByPlatform 的注释 */
   transactions: TransactionWithRequiredFields[];
 }
+
+// 跟 Investment Analytics 的选择器同一套档位和语义（往前数 N 个自然月、含当月），
+// 免得同一个 Insights 里两处"近 2 年"指的不是同一段时间。
+const WINDOWS: Array<{ key: string; months: number | null }> = [
+  { key: '6M', months: 6 },
+  { key: '1Y', months: 12 },
+  { key: '2Y', months: 24 },
+  { key: '3Y', months: 36 },
+  { key: 'ALL', months: null },
+];
 
 /**
  * Sales by Platform —— 按 marketplace 看成交表现。
@@ -28,13 +39,25 @@ interface SalesByPlatformProps {
  * 移动端堆叠成卡片，桌面端整表——跟 YearlyCashflowTable 同一套响应式策略，
  * 六列表格在手机上横向滚动是没法用的。
  */
+
 export default function SalesByPlatform({ domains, transactions }: SalesByPlatformProps) {
-  const { t } = useI18nContext();
+  const { t, locale } = useI18nContext();
+  const [windowKey, setWindowKey] = useState('ALL');
+  // 展开中的平台行，按下标记。用下标而不是平台名：Unknown 桶的 platform 是
+  // 空串，拿名字当 key 就得再造个哨兵，而哨兵总得保证撞不上真实平台名。
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+
+  const months = WINDOWS.find((w) => w.key === windowKey)?.months ?? null;
 
   const { rows, totals, unknownCount } = useMemo(
-    () => salesByPlatform(domains, transactions),
-    [domains, transactions]
+    () => salesByPlatform(domains, transactions, months),
+    [domains, transactions, months]
   );
+
+  const saleDateLabel = (iso: string) => {
+    const d = parseLocalCalendarDate(iso);
+    return d ? d.toLocaleDateString(locale === 'zh' ? 'zh-CN' : 'en-US') : iso;
+  };
 
   const money = (n: number) => formatCurrency(n, 'USD');
   const signedMoney = (n: number) =>
@@ -60,6 +83,18 @@ export default function SalesByPlatform({ domains, transactions }: SalesByPlatfo
             {t('analytics.salesByPlatform.desc')}
           </p>
         </div>
+        <select
+          value={windowKey}
+          onChange={(e) => setWindowKey(e.target.value)}
+          aria-label={t('analytics.dataRange')}
+          className="ml-auto shrink-0 rounded-lg border border-stone-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-400"
+        >
+          {WINDOWS.map((w) => (
+            <option key={w.key} value={w.key}>
+              {t(`analytics.timeframe.${w.key}`)}
+            </option>
+          ))}
+        </select>
       </div>
     </div>
   );
@@ -147,12 +182,32 @@ export default function SalesByPlatform({ domains, transactions }: SalesByPlatfo
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
-              {rows.map((row) => (
-                <tr key={row.platform || 'unknown'} className="hover:bg-stone-50/60">
+              {rows.map((row, idx) => (
+                <Fragment key={row.platform || `unknown-${idx}`}>
+                <tr
+                  className="cursor-pointer hover:bg-stone-50/60"
+                  onClick={() => setExpandedIdx(expandedIdx === idx ? null : idx)}
+                >
                   <td
                     className={`px-5 py-3 font-medium ${row.isUnknown ? 'text-stone-400' : 'text-stone-900'}`}
                   >
-                    {nameOf(row.platform, row.isUnknown)}
+                    <button
+                      type="button"
+                      aria-expanded={expandedIdx === idx}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExpandedIdx(expandedIdx === idx ? null : idx);
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                    >
+                      <ChevronRight
+                        className={`h-3.5 w-3.5 text-stone-400 transition-transform ${
+                          expandedIdx === idx ? 'rotate-90' : ''
+                        }`}
+                        aria-hidden
+                      />
+                      {nameOf(row.platform, row.isUnknown)}
+                    </button>
                   </td>
                   <td className="px-5 py-3 text-right tabular-nums text-stone-700">{row.salesCount}</td>
                   <td className="px-5 py-3 text-right tabular-nums text-stone-700">{money(row.grossSales)}</td>
@@ -169,6 +224,57 @@ export default function SalesByPlatform({ domains, transactions }: SalesByPlatfo
                     {signedMoney(row.realizedPnL)}
                   </td>
                 </tr>
+                {expandedIdx === idx && (
+                  <tr className="bg-stone-50/40">
+                    <td colSpan={7} className="px-5 py-0">
+                      {/* 逐笔明细。汇总行回答「哪个平台好」，这里回答「为什么」
+                          ——某个平台的有效费率偏高，往往是一两笔大额成交拉的。 */}
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="text-[10px] uppercase tracking-wider text-stone-400">
+                            <th className="py-2 font-medium">{t('analytics.salesByPlatform.domain')}</th>
+                            <th className="py-2 font-medium">{t('analytics.salesByPlatform.saleDate')}</th>
+                            <th className="py-2 text-right font-medium">{t('analytics.salesByPlatform.grossSales')}</th>
+                            <th className="py-2 text-right font-medium">{t('analytics.salesByPlatform.platformFees')}</th>
+                            <th className="py-2 text-right font-medium">{t('analytics.salesByPlatform.feeRate')}</th>
+                            <th className="py-2 text-right font-medium">{t('analytics.salesByPlatform.netProceeds')}</th>
+                            <th className="py-2 text-right font-medium">{t('analytics.realizedPnL')}</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-stone-200/60">
+                          {row.sales.map((sale) => (
+                            <tr key={sale.transactionId}>
+                              <td className="py-2 pr-3 text-stone-700">{sale.domainName ?? '—'}</td>
+                              <td className="py-2 pr-3 tabular-nums text-stone-500">
+                                {saleDateLabel(sale.saleDate)}
+                              </td>
+                              <td className="py-2 text-right tabular-nums text-stone-700">
+                                {money(sale.grossSales)}
+                              </td>
+                              <td className="py-2 text-right tabular-nums text-stone-700">
+                                {sale.platformFees > 0 ? `−${money(sale.platformFees)}` : '—'}
+                              </td>
+                              <td className="py-2 text-right tabular-nums text-stone-700">
+                                {rate(
+                                  sale.grossSales > 0
+                                    ? (sale.platformFees / sale.grossSales) * 100
+                                    : null
+                                )}
+                              </td>
+                              <td className="py-2 text-right tabular-nums text-emerald-700">
+                                {money(sale.netProceeds)}
+                              </td>
+                              <td className={`py-2 text-right font-medium tabular-nums ${pnlClass(sale.realizedPnL)}`}>
+                                {signedMoney(sale.realizedPnL)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               ))}
             </tbody>
             <tfoot>
