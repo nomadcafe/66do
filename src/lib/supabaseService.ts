@@ -136,12 +136,17 @@ export class DomainService {
    * 语句自带 `.eq('user_id')`，加上 domains 表的 RLS（FOR ALL USING
    * auth.uid() = user_id），归属校验已经在这一条语句里完成了——不需要先
    * SELECT 一次确认"这行是不是你的"再写，那是白白多一次往返。
+   *
+   * userId 是必填的。它曾经是可选参数、`.eq('user_id')` 外面包着 `if (userId)`,
+   * 于是上面那句"语句自带"只在调用方记得传的时候成立；漏传时归属过滤会静悄悄
+   * 消失，只剩 RLS 一层，而且没有任何地方会报错。改成必填之后，漏传直接编译
+   * 不过——同样的保证，但由类型系统强制而不是靠自觉。
    */
   static async updateDomainWithClient(
     client: SupabaseClient<Database>,
     id: string,
     updates: DomainUpdate,
-    userId?: string
+    userId: string
   ): Promise<{ data: Domain | null; error: WriteError | null }> {
     const domainId = typeof id === 'string' ? id.trim() : ''
     if (!domainId) return { data: null, error: null }
@@ -153,9 +158,7 @@ export class DomainService {
       .update(updates as never)
       .eq('id', domainId)
 
-    if (userId) {
-      queryBuilder = queryBuilder.eq('user_id', userId) as typeof queryBuilder
-    }
+    queryBuilder = queryBuilder.eq('user_id', userId) as typeof queryBuilder
 
     // maybeSingle 而不是 single：0 行是"不是你的 / 不存在"这个正常分支，
     // single 会把它变成 PGRST116 错误，和真正的故障混在一起。
@@ -180,15 +183,13 @@ export class DomainService {
   static async deleteDomainWithClient(
     client: SupabaseClient<Database>,
     id: string,
-    userId?: string
+    userId: string
   ): Promise<{ deleted: number; error: WriteError | null }> {
     const domainId = typeof id === 'string' ? id.trim() : ''
     if (!domainId) return { deleted: 0, error: null }
 
     let query = client.from('domains').delete().eq('id', domainId)
-    if (userId) {
-      query = query.eq('user_id', userId) as typeof query
-    }
+    query = query.eq('user_id', userId) as typeof query
     // .select() 让 PostgREST 回传被删掉的行，否则无法区分"删了 1 行"和
     // "条件没匹配到任何行"——后者不是错误，但对调用方是 403。
     const { data, error } = await (query.select('id') as unknown as Promise<{
@@ -315,16 +316,14 @@ export class TransactionService {
     client: SupabaseClient<Database>,
     id: string,
     updates: TransactionUpdate,
-    userId?: string
+    userId: string
   ): Promise<Transaction | null> {
     let query = client
       .from('domain_transactions')
       .update(updates as never)
       .eq('id', id)
 
-    if (userId) {
-      query = query.eq('user_id', userId) as typeof query
-    }
+    query = query.eq('user_id', userId) as typeof query
 
     const { data, error } = await (query
       .select()
@@ -343,7 +342,7 @@ export class TransactionService {
   static async deleteTransactionWithClient(
     client: SupabaseClient<Database>,
     id: string,
-    userId?: string
+    userId: string
   ): Promise<{ deleted: number; error: WriteError | null }> {
     const transactionId = typeof id === 'string' ? id.trim() : ''
     if (!transactionId) return { deleted: 0, error: null }
@@ -353,9 +352,7 @@ export class TransactionService {
       .delete()
       .eq('id', transactionId)
 
-    if (userId) {
-      query = query.eq('user_id', userId) as typeof query
-    }
+    query = query.eq('user_id', userId) as typeof query
 
     const { data, error } = await (query.select('id') as unknown as Promise<{
       data: Array<{ id: string }> | null
@@ -454,16 +451,14 @@ export class InstallmentReceiptService {
     client: SupabaseClient<Database>,
     id: string,
     updates: InstallmentReceiptUpdate,
-    userId?: string
+    userId: string
   ): Promise<InstallmentReceiptRow | null> {
     let query = client
       .from('installment_receipts')
       .update(updates as never)
       .eq('id', id)
 
-    if (userId) {
-      query = query.eq('user_id', userId) as typeof query
-    }
+    query = query.eq('user_id', userId) as typeof query
 
     const { data, error } = await (query
       .select()
@@ -479,16 +474,14 @@ export class InstallmentReceiptService {
   static async deleteReceiptWithClient(
     client: SupabaseClient<Database>,
     id: string,
-    userId?: string
+    userId: string
   ): Promise<boolean> {
     let query = client
       .from('installment_receipts')
       .delete()
       .eq('id', id)
 
-    if (userId) {
-      query = query.eq('user_id', userId) as typeof query
-    }
+    query = query.eq('user_id', userId) as typeof query
 
     const { error } = await query
 
