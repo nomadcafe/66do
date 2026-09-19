@@ -1,7 +1,7 @@
 'use client';
 
 import { Domain } from '../types/domain';
-import { localCalendarDateISO, parseLocalCalendarDate } from './localCalendarDate';
+import { addYearsClamped, localCalendarDateISO, parseLocalCalendarDate } from './localCalendarDate';
 
 const DEFAULT_RENEWAL_CYCLE = 1;
 
@@ -43,19 +43,17 @@ export function handleDomainRenewal(domain: Domain, renewalYears?: number): Doma
   if (!baseDate && domain.purchase_date) {
     const purchase = parseLocalCalendarDate(domain.purchase_date);
     if (purchase) {
-      baseDate = new Date(purchase);
       const priorCycles = (domain.renewal_count || 0) + 1;
-      baseDate.setFullYear(baseDate.getFullYear() + priorCycles * ownCycle);
+      baseDate = addYearsClamped(purchase, priorCycles * ownCycle);
     }
   }
 
-  let newExpiryDate = baseDate ? new Date(baseDate) : new Date();
-  newExpiryDate.setFullYear(newExpiryDate.getFullYear() + yearsToAdd);
+  // addYearsClamped 而不是裸 setFullYear：2 月 29 日加整年会溢出成 3 月 1 日，
+  // 而且不可逆（续费再撤销回不到原点）。见 localCalendarDate 里的说明。
+  let newExpiryDate = addYearsClamped(baseDate ?? new Date(), yearsToAdd);
 
   if (Number.isNaN(newExpiryDate.getTime())) {
-    const repair = new Date();
-    repair.setFullYear(repair.getFullYear() + yearsToAdd);
-    newExpiryDate = repair;
+    newExpiryDate = addYearsClamped(new Date(), yearsToAdd);
   }
 
   return {

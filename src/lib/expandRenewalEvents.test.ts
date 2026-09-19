@@ -461,3 +461,57 @@ describe('expandRenewalEvents — next_renewal_date as anchor', () => {
     expect(events.map((e) => e.source)).toEqual(['archive']);
   });
 });
+
+/**
+ * 闰日域名。
+ *
+ * 这个函数是从 expiry_date 往回推算历次续费日期的。以前用裸
+ * `d.setFullYear(d.getFullYear() - n)`，2 月 29 日减整年会溢出成 3 月 1 日
+ * （目标年没有闰日，JS 往后顺延）。于是闰日注册的域名，推出来的续费事件
+ * 全落在 3 月 1 日——**续费成本在月度图表里整体记进了错误的月份**。
+ *
+ * 日子漂一天本身不显眼，跨月就是实打实的统计错误了。
+ */
+describe('闰日（2 月 29 日）', () => {
+  it('从闰日 expiry 往回推，事件留在 2 月而不是溢出到 3 月', () => {
+    const events = expandRenewalEvents({
+      id: 'leap',
+      purchase_date: '2024-02-29',
+      expiry_date: '2028-02-29',
+      renewal_count: 2,
+      renewal_cycle: 1,
+      renewal_cost: 12,
+      baseline_renewal_as_of: null,
+    }, []);
+    const dates = events.map((e) => localCalendarDateISO(e.date));
+    // 旧实现：['2026-03-01', '2027-03-01'] —— 两笔都记进 3 月
+    expect(dates).toEqual(['2026-02-28', '2027-02-28']);
+    expect(dates.every((d) => d.slice(5, 7) === '02')).toBe(true);
+  });
+
+  it('往前推（无 expiry 的 fallback 路径）同样夹住', () => {
+    const events = expandRenewalEvents({
+      id: 'leap2',
+      purchase_date: '2024-02-29',
+      renewal_count: 2,
+      renewal_cycle: 1,
+      renewal_cost: 12,
+      baseline_renewal_as_of: null,
+    }, []);
+    const dates = events.map((e) => localCalendarDateISO(e.date));
+    // 旧实现：['2025-03-01', '2026-03-01']
+    expect(dates).toEqual(['2025-02-28', '2026-02-28']);
+  });
+
+  it('目标年也是闰年时保留 2 月 29', () => {
+    const events = expandRenewalEvents({
+      id: 'leap3',
+      purchase_date: '2024-02-29',
+      renewal_count: 1,
+      renewal_cycle: 4,
+      renewal_cost: 12,
+      baseline_renewal_as_of: null,
+    }, []);
+    expect(events.map((e) => localCalendarDateISO(e.date))).toEqual(['2028-02-29']);
+  });
+});

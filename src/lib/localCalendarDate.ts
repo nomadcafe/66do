@@ -74,3 +74,31 @@ export function calendarYearOf(value: string | null | undefined): number {
   const d = parseLocalCalendarDate(trimmed);
   return d ? d.getFullYear() : NaN;
 }
+
+/**
+ * 加减整年，并把 2 月 29 日夹到目标年的月末。
+ *
+ * 裸 `d.setFullYear(d.getFullYear() + n)` 在闰日上会溢出：2028-02-29 加一年，
+ * 2029 没有 2 月 29 日，JS 顺延成 2029-03-01。后果有两层：
+ *
+ *   - 日期悄悄漂一天，而且不可逆。续费再撤销：
+ *       2028-02-29 → +1y → 2029-03-01 → −1y → 2028-03-01
+ *     回不到原点，每走一轮就钉死在 3 月 1 日。
+ *   - 更要紧的是**跨月**。expandRenewalEvents 是从 expiry_date 往回推算历次
+ *     续费日期的，闰日域名推出来的事件全落在 3 月 1 日而不是 2 月底——于是
+ *     续费成本在月度图表里整体记进了错误的月份。
+ *
+ * 闰日注册不常见但真实存在，而且一旦漂过一次就永远是 3 月 1 日、不再触发，
+ * 属于那种发生了也没人会发现的错。夹到 2 月 28 日是通用惯例（也是注册商
+ * 处理闰日续费的做法）。
+ */
+export function addYearsClamped(date: Date, years: number): Date {
+  const day = date.getDate();
+  const month = date.getMonth();
+  const targetYear = date.getFullYear() + years;
+  // 目标年同月的最后一天。只有 2 月会小于 29，所以实际只有闰日会被夹。
+  const lastDayOfTargetMonth = new Date(targetYear, month + 1, 0).getDate();
+  const next = new Date(date);
+  next.setFullYear(targetYear, month, Math.min(day, lastDayOfTargetMonth));
+  return next;
+}

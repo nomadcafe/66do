@@ -18,7 +18,7 @@
  * UI — and 'unknown' as a hint to nudge the user to fill expiry_date.
  */
 
-import { parseLocalCalendarDate } from './localCalendarDate';
+import { addYearsClamped, parseLocalCalendarDate } from './localCalendarDate';
 
 export type ExpirySource = 'explicit' | 'next_renewal_date' | 'estimated' | 'unknown';
 
@@ -52,8 +52,7 @@ export function getEffectiveExpiry(domain: DomainLike): EffectiveExpiry {
     const cycle = Math.max(1, Math.floor(domain.renewal_cycle ?? 1) || 1);
     const renewals = Math.max(0, Math.floor(domain.renewal_count ?? 0) || 0);
     const yearsAhead = (renewals + 1) * cycle;
-    const estimated = new Date(purchase);
-    estimated.setFullYear(estimated.getFullYear() + yearsAhead);
+    const estimated = addYearsClamped(purchase, yearsAhead);
     if (!Number.isNaN(estimated.getTime())) {
       return { date: estimated, source: 'estimated' };
     }

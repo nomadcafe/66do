@@ -38,7 +38,7 @@
 import type { TransactionWithRequiredFields } from '../types/transaction';
 import { transferTxsForDomain } from './txIndex';
 import { archiveRenewalCount, knownRenewalTxs } from './renewalCostBasis';
-import { parseLocalCalendarDate } from './localCalendarDate';
+import { addYearsClamped, parseLocalCalendarDate } from './localCalendarDate';
 
 export type RenewalEventSource = 'archive' | 'transaction' | 'projected';
 
@@ -143,10 +143,11 @@ export function expandRenewalEvents(
       // (i=1..archiveCount) happened at `original_expiry + (i-1) × cycle`,
       // which equals `current_expiry − knownTxTotalYears − (archiveCount − i + 1) × cycle`.
       for (let i = 1; i <= archiveCount; i++) {
-        const d = new Date(expiry);
         const yearsBack =
           knownTxTotalYears + transferTotalYears + (archiveCount - i + 1) * cycle;
-        d.setFullYear(d.getFullYear() - yearsBack);
+        // 闰日域名走裸 setFullYear 会把推算出来的续费日推成 3 月 1 日，
+        // 续费成本于是记进错误的月份（月度图表按事件日期分桶）。
+        const d = addYearsClamped(expiry, -yearsBack);
         events.push({ date: d, amount: perRenewal, years: cycle, source: 'archive' });
       }
     } else if (purchase) {
@@ -154,8 +155,7 @@ export function expandRenewalEvents(
       // next_renewal_date): assume initial registration covered one cycle, so
       // the first renewal happens at purchase + cycle.
       for (let i = 1; i <= archiveCount; i++) {
-        const d = new Date(purchase);
-        d.setFullYear(d.getFullYear() + i * cycle);
+        const d = addYearsClamped(purchase, i * cycle);
         events.push({ date: d, amount: perRenewal, years: cycle, source: 'archive' });
       }
     }
@@ -186,7 +186,7 @@ export function expandRenewalEvents(
       const horizonMs = options.forecastUntil.getTime();
       // Bump forward step by step from expiry. Cap iterations as a defensive
       // measure against pathological cycle/horizon combos.
-      const next = new Date(expiry);
+      let next = new Date(expiry);
       let safety = 100;
       while (next.getTime() <= horizonMs && safety-- > 0) {
         events.push({
@@ -195,7 +195,7 @@ export function expandRenewalEvents(
           years: cycle,
           source: 'projected',
         });
-        next.setFullYear(next.getFullYear() + cycle);
+        next = addYearsClamped(next, cycle);
       }
     }
   }

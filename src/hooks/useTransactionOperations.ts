@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { logger } from '../lib/logger';
 import { ERROR_MESSAGE_TIMEOUT } from '../lib/constants';
 import { expiryExtensionYears } from '../lib/renewDomainPatch';
-import { localCalendarDateISO, parseLocalCalendarDate } from '../lib/localCalendarDate';
+import { addYearsClamped, localCalendarDateISO, parseLocalCalendarDate } from '../lib/localCalendarDate';
 
 interface UseTransactionOperationsReturn {
   editingTransaction: TransactionWithRequiredFields | undefined;
@@ -149,8 +149,7 @@ export function useTransactionOperations(
             // 负偏移时区把日子往前挪一天（续费加一天、删续费再退一天）。
             const d = parseLocalCalendarDate(nextExpiry);
             if (d) {
-              d.setFullYear(d.getFullYear() - yearsToRollback);
-              nextExpiry = localCalendarDateISO(d);
+              nextExpiry = localCalendarDateISO(addYearsClamped(d, -yearsToRollback));
             }
           }
           return {
