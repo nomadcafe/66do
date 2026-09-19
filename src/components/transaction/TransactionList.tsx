@@ -9,6 +9,7 @@ import { transactionAmountDisplay } from '../../lib/transactionAmountDisplay';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import DomainTimelineView from './DomainTimelineView';
+import TxTags from './TxTags';
 import { ListPagination } from '../ui/ListPagination';
 import { useDebouncedUrlParam } from '../../hooks/useDebouncedUrlParam';
 
@@ -376,14 +377,16 @@ const TransactionList = memo(function TransactionList({
   const filteredTransactions = useMemo(() => {
     const q = searchTerm.toLowerCase();
     const filtered = transactions.filter(transaction => {
-      // 搜索覆盖：域名 + notes + type 标签（i18n 后）+ category。原来只匹配
-      // 前两项，搜 "sell" / "投资" 这类常见词全是空结果，用户得手动按 type
-      // 筛再来回切。category 同理——保存进 DB 但搜索完全不见。
+      // 搜索覆盖：域名 + notes + type 标签（i18n 后）+ category + platform。
+      // 原来只匹配前两项，搜 "sell" / "投资" 这类常见词全是空结果，用户得手动
+      // 按 type 筛再来回切。category / platform 同理——保存进 DB 但搜索完全
+      // 不见；现在它们在行上有标签了，看得见的就得搜得到。
       const matchesSearch =
         !q ||
         getDomainName(transaction.domain_id).toLowerCase().includes(q) ||
         (transaction.notes || '').toLowerCase().includes(q) ||
         (transaction.category || '').toLowerCase().includes(q) ||
+        (transaction.platform || '').toLowerCase().includes(q) ||
         getTypeLabel(transaction.type).toLowerCase().includes(q);
 
       const matchesType = typeFilter === 'all' || transaction.type === typeFilter;
@@ -909,6 +912,12 @@ const TransactionList = memo(function TransactionList({
                 {transaction.notes && (
                   <div className="mt-2 text-xs text-stone-600 break-words">{transaction.notes}</div>
                 )}
+                <TxTags
+                  transaction={transaction}
+                  typeLabel={getTypeLabel(transaction.type)}
+                  domainName={getDomainName(transaction.domain_id)}
+                  t={t}
+                />
               </article>
             ))}
           </div>
@@ -1009,8 +1018,16 @@ const TransactionList = memo(function TransactionList({
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-stone-700 max-w-xs truncate">
-                        {transaction.notes || '-'}
+                      <div className="max-w-xs">
+                        <div className="truncate text-sm text-stone-700" title={transaction.notes || undefined}>
+                          {transaction.notes || '-'}
+                        </div>
+                        <TxTags
+                          transaction={transaction}
+                          typeLabel={getTypeLabel(transaction.type)}
+                          domainName={getDomainName(transaction.domain_id)}
+                          t={t}
+                        />
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

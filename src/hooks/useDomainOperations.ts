@@ -83,7 +83,10 @@ export function useDomainOperations(
       platform_fee: undefined,
       platform_fee_percentage: undefined,
       net_amount: renewalCost,
-      category: 'renewal',
+      // category 不再自动填。以前写死 'renewal'，而这笔的 type 本来就是
+      // 'renew' —— 同一个意思印两遍。category 现在会以标签形式显示在交易行
+      // 上（TxTags），自动填的重复值就是纯噪音。留空，让它只承载用户自己
+      // 想打的分类。历史行里那些值由 TxTags 在渲染时挡掉。
       tax_deductible: false,
       receipt_url: undefined,
       notes: input.notes || `Renewed for ${renewalYears} year(s)`,
@@ -105,7 +108,7 @@ export function useDomainOperations(
         platform_fee: undefined,
         platform_fee_percentage: undefined,
         net_amount: input.transferFee || 0,
-        category: 'transfer',
+        // 同上：type 已经是 'transfer'，不用 category 再说一遍。
         tax_deductible: false,
         receipt_url: undefined,
         notes: input.notes ? `${baseNotes}; ${input.notes}` : baseNotes,
