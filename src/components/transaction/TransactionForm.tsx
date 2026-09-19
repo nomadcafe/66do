@@ -44,7 +44,6 @@ const buildEmptyFormData = ({ preserveDomainId = '' }: { preserveDomainId?: stri
   notes: '',
   platform: '',
   category: '',
-  tax_deductible: false,
   receipt_url: '',
   payment_plan: 'lump_sum' as 'lump_sum' | 'installment',
   installment_period: 1,
@@ -228,7 +227,6 @@ export default function TransactionForm({
         notes: transaction.notes || '',
         platform: transaction.platform || '',
         category: transaction.category || '',
-        tax_deductible: transaction.tax_deductible || false,
         receipt_url: transaction.receipt_url || '',
         // 分期付款相关字段
         payment_plan: transaction.payment_plan || 'lump_sum',
@@ -1068,19 +1066,6 @@ export default function TransactionForm({
                 </datalist>
               )}
             </div>
-          </div>
-
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="tax_deductible"
-              checked={formData.tax_deductible}
-              onChange={(e) => setFormData({ ...formData, tax_deductible: e.target.checked })}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-stone-300 rounded"
-            />
-            <label htmlFor="tax_deductible" className="ml-2 block text-sm text-stone-700">
-              {t('transaction.taxDeductible')}
-            </label>
           </div>
 
           <div>

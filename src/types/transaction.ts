@@ -27,7 +27,6 @@ export interface Transaction {
   notes?: string;
   platform?: string;
   category?: string;
-  tax_deductible?: boolean;
   receipt_url?: string;
   created_at: string;
   updated_at: string;

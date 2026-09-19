@@ -34,7 +34,6 @@ export function buildTransactionInsertPayload(
     // 自由文本字段落库前 trim：'Sedo ' 和 'Sedo' 在候选下拉里是两条，
     // 在交易列表里看着也一模一样，纯属噪音。
     category: freeText(transaction.category),
-    tax_deductible: Boolean(transaction.tax_deductible),
     receipt_url: (transaction.receipt_url as string) || null,
     notes: (transaction.notes as string) || null,
     platform: freeText(transaction.platform),
@@ -115,8 +114,6 @@ export function buildTransactionUpdatePayload(
     out.net_amount = transaction.net_amount != null ? Number(transaction.net_amount) : null
   if ('category' in transaction)
     out.category = freeText(transaction.category)
-  if ('tax_deductible' in transaction)
-    out.tax_deductible = Boolean(transaction.tax_deductible)
   if ('receipt_url' in transaction)
     out.receipt_url = (transaction.receipt_url as string) || null
   if ('notes' in transaction) out.notes = (transaction.notes as string) || null

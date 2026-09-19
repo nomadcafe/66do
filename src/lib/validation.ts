@@ -743,7 +743,6 @@ export function sanitizeTransactionData(transaction: unknown): Record<string, un
       net_amount: netAmount,
       notes,
       category,
-      tax_deductible: Boolean(transactionObj.tax_deductible),
       receipt_url: receiptUrl,
       renewal_period_years: renewalPeriodYears,
     }),

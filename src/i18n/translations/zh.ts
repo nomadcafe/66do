@@ -693,7 +693,6 @@ const zh = {
       date: '日期',
       notes: '备注',
       category: '分类',
-      taxDeductible: '可抵税',
       receiptUrl: '收据链接',
       exchangeRate: '汇率',
       baseAmount: '基础金额',
