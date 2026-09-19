@@ -112,28 +112,42 @@ export default function TransactionForm({
     (d) => d.status === 'active' || d.status === 'for_sale' || d.status === 'sold'
   );
 
+  /**
+   * 自由文本字段的候选列表，按**忽略大小写**去重。
+   *
+   * 以前用的是 `new Set<string>()`，而 Set 区分大小写：种子里有 'Sedo'，用户
+   * 打了 'sedo'，下拉里就同时挂着两条；再来一次 'SEDO' 就是三条。这个列表是
+   * 用来帮用户复用同一个名字的，自己先分了叉就没意义了。
+   *
+   * 先放进来的那个写法胜出（platform 的种子先进，所以 'Sedo' 是规范写法），
+   * 用户自己造的名字则保留他自己的大小写。
+   *
+   * 注意只收敛**候选列表**，不改已经存进库里的值——那属于数据迁移，不该在
+   * 渲染时悄悄做。用户下次从下拉里选的是规范写法，自然就收敛了。
+   */
+  const dedupeIgnoringCase = (values: Iterable<string>): string[] => {
+    const byLower = new Map<string, string>();
+    for (const raw of values) {
+      const v = (raw || '').trim();
+      if (!v) continue;
+      const k = v.toLowerCase();
+      if (!byLower.has(k)) byLower.set(k, v);
+    }
+    return Array.from(byLower.values()).sort((a, b) => a.localeCompare(b));
+  };
+
   const categorySuggestions = useMemo(() => {
     if (!existingTransactions?.length) return [] as string[];
-    const seen = new Set<string>();
-    for (const t of existingTransactions) {
-      const c = (t.category || '').trim();
-      if (c) seen.add(c);
-    }
-    return Array.from(seen).sort((a, b) => a.localeCompare(b));
+    return dedupeIgnoringCase(existingTransactions.map((t) => t.category || ''));
   }, [existingTransactions]);
+
   const platformSuggestions = useMemo(() => {
-    const seen = new Set<string>();
-    // 把常见交易平台作为种子，让首次填写也有可选项；用户填过的会自动加进来。
-    for (const seed of ['Afternic', 'Atom', 'Sedo', 'Dan', 'Escrow.com', 'Spaceship', 'GoDaddy', 'Namecheap', 'NameSilo']) {
-      seen.add(seed);
-    }
-    if (existingTransactions?.length) {
-      for (const t of existingTransactions) {
-        const p = (t.platform || '').trim();
-        if (p) seen.add(p);
-      }
-    }
-    return Array.from(seen).sort((a, b) => a.localeCompare(b));
+    // 常见交易平台作为种子，让首次填写也有可选项；种子在前 → 它们的写法是规范写法。
+    const seeds = ['Afternic', 'Atom', 'Sedo', 'Dan', 'Escrow.com', 'Spaceship', 'GoDaddy', 'Namecheap', 'NameSilo'];
+    return dedupeIgnoringCase([
+      ...seeds,
+      ...(existingTransactions ?? []).map((t) => t.platform || ''),
+    ]);
   }, [existingTransactions]);
   const filteredDomains = domainSearch.trim()
     ? eligibleDomains.filter(

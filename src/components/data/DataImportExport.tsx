@@ -90,7 +90,7 @@ export default function DataImportExport({
       if (file.size > MAX_FILE_SIZE) {
         setImportResult({
           success: false,
-          message: t('data.fileTooLarge') || `文件大小不能超过${(MAX_FILE_SIZE / 1024 / 1024).toFixed(0)}MB`,
+          message: t('data.fileTooLarge').replace('{size}', (MAX_FILE_SIZE / 1024 / 1024).toFixed(0)),
           importedCount: 0,
           errors: [`文件大小: ${(file.size / 1024 / 1024).toFixed(2)}MB，最大允许: ${(MAX_FILE_SIZE / 1024 / 1024).toFixed(0)}MB`]
         });
@@ -106,7 +106,7 @@ export default function DataImportExport({
       if (!isValidExtension && !isValidMimeType) {
         setImportResult({
           success: false,
-          message: t('data.invalidFileType') || '不支持的文件类型',
+          message: t('data.invalidFileType'),
           importedCount: 0,
           errors: [`支持的文件类型: ${ALLOWED_EXTENSIONS.join(', ')}`]
         });
@@ -502,7 +502,7 @@ export default function DataImportExport({
             if (file.size > MAX_FILE_SIZE) {
               setImportResult({
                 success: false,
-                message: t('data.fileTooLarge') || `文件大小不能超过${(MAX_FILE_SIZE / 1024 / 1024).toFixed(0)}MB`,
+                message: t('data.fileTooLarge').replace('{size}', (MAX_FILE_SIZE / 1024 / 1024).toFixed(0)),
                 importedCount: 0,
                 errors: [`文件大小: ${(file.size / 1024 / 1024).toFixed(2)}MB，最大允许: ${(MAX_FILE_SIZE / 1024 / 1024).toFixed(0)}MB`],
               });
