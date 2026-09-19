@@ -134,10 +134,22 @@ function TxMetaBlock({
     </span>
   );
 
+  // roi === null：cost basis 为 0（抢注 / 白嫖来的米，或成本没录），比值没有
+  // 定义。以前兜底成 0，于是同一行左边写着赚了 $10,000、右边 ROI 写 0.0%。
+  // 渲染成灰色的「—」并把原因放进 title，跟域名表格那一列的处理一致。
   const roiEl = sellRoi !== null && (
-    <span className={`text-xs font-medium tabular-nums ${sellRoi.roi >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-      ROI {sellRoi.roi >= 0 ? '+' : ''}{formatPercentage(sellRoi.roi)}
-    </span>
+    sellRoi.roi === null ? (
+      <span
+        className="text-xs font-medium tabular-nums text-stone-400"
+        title={t('domainList.table.roiNoCostBasisHint')}
+      >
+        ROI —
+      </span>
+    ) : (
+      <span className={`text-xs font-medium tabular-nums ${sellRoi.roi >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+        ROI {sellRoi.roi >= 0 ? '+' : ''}{formatPercentage(sellRoi.roi)}
+      </span>
+    )
   );
 
   const feeEl = hasPlatformFee && (

@@ -909,6 +909,7 @@ const zh = {
         actions: '操作',
         sold: '已售',
         roiUnknownHint: '还没填估值，算不出回报。点「估值」那一格填一个。',
+        roiNoCostBasisHint: '成交了，但没有任何购入成本记录——回报率等于除以 0，算不出来。利润金额本身是准的。',
         roiUnrealizedHint: '浮动收益——按你填的估值折算，不是已成交的收益。',
         expiredText: '已过期',
         viewDetails: '查看详情',

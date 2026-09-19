@@ -5,7 +5,7 @@ import { Globe, Calendar, CalendarClock, Tag, Edit, Trash2, Eye, Share2, AlertTr
 import DomainShareModal from '../share/DomainShareModal';
 import { DomainWithTags } from '../../types/dashboard';
 import { useI18nContext } from '../../contexts/I18nProvider';
-import { calculateDomainROI } from '../../lib/financialCalculations';
+import { domainRoiWithKind, soldGrossRevenueOf, soldNetRevenueOf } from '../../lib/financialCalculations';
 import { totalHoldingCostForDomain } from '../../lib/renewalCostBasis';
 import { domainStatusLabel as statusLabel } from '../../lib/domainStatusLabel';
 import { daysUntilEffectiveExpiry } from '../../lib/effectiveExpiry';
@@ -37,6 +37,19 @@ const DomainCard = memo(function DomainCard({ domain, transactions = [], metrics
   const [showShareModal, setShowShareModal] = useState(false);
   const { t, locale } = useI18nContext();
   const localeTag = locale === 'zh' ? 'zh-CN' : 'en-US';
+
+  // 与 ROI 同源的出售金额：全部 sell 交易合计，存档字段只作兜底。
+  // net 用于算利润（已扣平台费），gross 用于显示"成交价"——两者不能混。
+  const soldRevenue = useMemo(
+    () =>
+      domain.status === 'sold'
+        ? {
+            net: soldNetRevenueOf(domain, transactions),
+            gross: soldGrossRevenueOf(domain, transactions),
+          }
+        : { net: 0, gross: 0 },
+    [domain, transactions]
+  );
 
   // 计算总持有成本 - 使用useMemo优化
   const totalHoldingCost = useMemo(
@@ -208,9 +221,16 @@ const DomainCard = memo(function DomainCard({ domain, transactions = [], metrics
         </div>
       )}
 
-      {domain.status === 'sold' && domain.sale_date && domain.sale_price && (() => {
-        const netProfit = domain.sale_price - totalHoldingCost - (domain.platform_fee || 0);
-        const roi = calculateDomainROI(domain, transactions);
+      {domain.status === 'sold' && soldRevenue.gross > 0 && (() => {
+        // netProfit 和 roi 必须同源。以前 netProfit 直接读域名行上的
+        // sale_price / platform_fee 存档字段，而 roi 按 sell 交易算，于是同一
+        // 域名卖过两轮时（sale_price 只留得住最后一次、持有成本却是累计的）
+        // 这张绿框里会并排印着「+$2,000」和「ROI +700.0%」。
+        //
+        // 渲染条件也一起换掉：原来卡在 `domain.sale_date && domain.sale_price`
+        // 上，sale_price 没回写（导入数据 / 补录的 sell 交易）时整块直接不显示。
+        const netProfit = soldRevenue.net - totalHoldingCost;
+        const roiInfo = domainRoiWithKind(domain, transactions);
         const profitPositive = netProfit >= 0;
         return (
           <div
@@ -241,13 +261,17 @@ const DomainCard = memo(function DomainCard({ domain, transactions = [], metrics
                   profitPositive ? 'text-emerald-700/80' : 'text-rose-700/80'
                 }`}
               >
-                ROI {profitPositive ? '+' : ''}{roi.toFixed(1)}%
+                {/* cost basis 为 0（抢注 / 白嫖，或成本没录）时比值除不了，
+                    利润金额照样是准的——所以只把百分比打成「—」。 */}
+                ROI{' '}
+                {roiInfo.roi === null
+                  ? '—'
+                  : `${roiInfo.roi >= 0 ? '+' : ''}${roiInfo.roi.toFixed(1)}%`}
               </span>
             </div>
             <p className={`mt-1.5 text-xs ${profitPositive ? 'text-emerald-700/70' : 'text-rose-700/70'}`}>
-              {t('domain.salePrice')} {formatCurrency(domain.sale_price)}
-              {' · '}
-              {formatDate(domain.sale_date)}
+              {t('domain.salePrice')} {formatCurrency(soldRevenue.gross)}
+              {domain.sale_date ? ` · ${formatDate(domain.sale_date)}` : ''}
             </p>
           </div>
         );

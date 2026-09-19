@@ -9,6 +9,7 @@ import {
 } from './renewalCostBasis';
 import { isDomainLost } from './domainLossStatus';
 import { txsForDomain } from './txIndex';
+import { parseLocalCalendarDate } from './localCalendarDate';
 
 interface DomainROI {
   domainId: string;
@@ -17,8 +18,11 @@ interface DomainROI {
   totalSales: number;          // 总销售额
   netRevenue: number;          // 净收入（扣除手续费）
   grossProfit: number;          // 毛利润（净收入-投资成本）
-  roi: number;                 // ROI百分比
-  holdingPeriod: number;        // 持有天数
+  /** ROI 百分比。cost basis 为 0（免费域名 / 成本没录）时为 null —— 比值没有
+   *  定义，兜底成 0 会被读成「打平」。 */
+  roi: number | null;
+  /** 持有天数：买入 → 成交（未卖则到今天）。日期缺失 / 异常时为 null。 */
+  holdingPeriod: number | null;
   status: string;
   saleDate?: string;
 }
@@ -85,7 +89,7 @@ export function calculateDomainROI(
   
   // 利润和ROI
   let grossProfit: number;
-  let roi: number;
+  let roi: number | null;
   
   if (isExpired) {
     // 过期域名：100%损失
@@ -94,16 +98,32 @@ export function calculateDomainROI(
   } else {
     // 正常计算
     grossProfit = netRevenue - totalInvestment;
-    roi = totalInvestment > 0 ? (grossProfit / totalInvestment) * 100 : 0;
+    // cost basis 为 0（抢注 / 白嫖，或成本没录）时比值没有定义，给 null 而不是
+    // 兜底 0：以前一笔 $0 成本卖出 $10,000 的成交，在交易列表里左边写着赚了
+    // $10,000、右边 ROI 写 0.0%。与 financialCalculations.domainRoiWithKind 和
+    // realizedPnL.tradeOutcomes 对齐，三处对同一笔成交给同一个答案。
+    roi = totalInvestment > 0 ? (grossProfit / totalInvestment) * 100 : null;
   }
   
-  // 持有期
-  const purchaseDate = new Date(domain.purchase_date || '');
-  const currentDate = new Date();
-  const holdingPeriod = Math.floor((currentDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
-  
-  // 销售日期
-  const saleDate = salesTransactions.length > 0 ? salesTransactions[0].date : undefined;
+  // 销售日期：同一域名卖过多轮时取最早那笔（持有期的终点）。
+  const saleDate =
+    salesTransactions.length > 0
+      ? salesTransactions.reduce((a, b) => (a.date <= b.date ? a : b)).date
+      : undefined;
+
+  // 持有期。三处以前都不对：
+  //   - new Date('YYYY-MM-DD') 按 UTC 解析，跟本地的 now 相减，负偏移时区差一天
+  //   - purchase_date 为空时 new Date('') 是 Invalid Date → holdingPeriod = NaN
+  //   - 已卖掉的域名也一直算到**今天**，两年前成交的域名持有期还在天天增长
+  // 与 realizedPnL.tradeOutcomes.holdingDays 同口径：买入 → 成交（未卖则到今天）。
+  const purchaseMs = (parseLocalCalendarDate(domain.purchase_date) ?? new Date(NaN)).getTime();
+  const endMs = saleDate
+    ? (parseLocalCalendarDate(saleDate) ?? new Date(NaN)).getTime()
+    : Date.now();
+  const holdingPeriod =
+    Number.isFinite(purchaseMs) && Number.isFinite(endMs) && endMs > purchaseMs
+      ? Math.floor((endMs - purchaseMs) / (1000 * 60 * 60 * 24))
+      : null;
   
   return {
     domainId: domain.id,

@@ -5,9 +5,8 @@ import { Download } from 'lucide-react';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags } from '../../types/dashboard';
 import type { TransactionWithRequiredFields } from '../../types/transaction';
-import { calculateBasicFinancialMetrics, sellNetUSD } from '../../lib/coreCalculations';
 import { domainSaleProfit, domainSaleROI } from '../../lib/domainSaleOutcome';
-import { totalHoldingCostForDomain } from '../../lib/renewalCostBasis';
+import { realizedROIFromTrades, tradeOutcomes } from '../../lib/realizedPnL';
 import {
   drawDomainSaleImage,
   drawPortfolioImage,
@@ -49,61 +48,77 @@ const domainROI = domainSaleROI;
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-function filterByRange(
-  domains: DomainWithTags[],
-  transactions: TransactionWithRequiredFields[],
-  range: PortfolioRange
-): { domains: DomainWithTags[]; transactions: TransactionWithRequiredFields[] } {
-  if (range === 'all') return { domains, transactions };
+/** 窗口起点（含）。'all' 没有起点。
+ *
+ *  按自然年往回推，而不是 years × 365 天——后者每 4 年少算一天，"Last 2 years"
+ *  实际是 730 天。跟 Insights 时间窗口选择器一样锚在当下。 */
+function rangeCutoffMs(range: PortfolioRange): number | null {
+  if (range === 'all') return null;
   const years = range === '1y' ? 1 : range === '2y' ? 2 : 3;
-  const cutoff = Date.now() - years * 365 * MS_PER_DAY;
-  const timeOf = (v: string | null | undefined) =>
-    (parseLocalCalendarDate(v) ?? new Date(NaN)).getTime();
-  const filteredDomains = domains.filter((d) => {
-    const purchase = d.purchase_date ? timeOf(d.purchase_date) : 0;
-    return purchase >= cutoff || !d.purchase_date;
-  });
-  const filteredTransactions = transactions.filter((t) => timeOf(t.date) >= cutoff);
-  return { domains: filteredDomains, transactions: filteredTransactions };
+  const now = new Date();
+  return new Date(now.getFullYear() - years, now.getMonth(), now.getDate()).getTime();
 }
 
+/**
+ * 分享卡片上的四个数。
+ *
+ * 口径必须和用户刚刚在仪表盘上看到的一致，否则发出去的图和自己的后台对不上：
+ *   - 全部走 tradeOutcomes（每笔 sell 一行，cost basis 取 holdingCostAsOf，
+ *     与 Insights 的 Top Performers / Realized ROI 同源）
+ *   - ROI = Σprofit / Σcost basis，即 realizedROI。以前用的是
+ *     calculateBasicFinancialMetrics.roi，分母含**没卖出的库存成本**——
+ *     useDomainStats 早就因为这个把它换掉了（"could be deeply negative while
+ *     Realized P&L is positive"），仪表盘改了，这张要发出去的图没跟上：
+ *     同一批数据分享卡片 190.3%、仪表盘 1400.0%，标签都写着 ROI。
+ *
+ * 时间范围同样不能靠裁数据实现。以前是 filterByRange 按 purchase_date /
+ * tx.date 把 domains 和 transactions 都截一刀再喂给计算——2023 年买、2026 年
+ * 卖的域名在"近 2 年"档里域名本身被滤掉了，它的 sell 交易却留着：成本凭空
+ * 消失、利润凭空变大。InvestmentAnalytics 里那段长注释警告的就是这个。
+ * 正确做法是全量数据算 trade，再按**成交日**落不落在窗口里筛。
+ */
 function computeShareDataFromData(
   domains: DomainWithTags[],
   transactions: TransactionWithRequiredFields[],
+  range: PortfolioRange,
   locale: 'zh' | 'en'
 ): ShareData {
-  const metrics = calculateBasicFinancialMetrics(domains, transactions);
-  const totalInvestment = metrics.totalInvestment;
-  const totalProfit = metrics.totalProfit;
-  const roi = metrics.roi;
+  const cutoff = rangeCutoffMs(range);
+  const timeOf = (v: string | null | undefined) =>
+    (parseLocalCalendarDate(v) ?? new Date(NaN)).getTime();
 
-  const sellTxByDomainId = transactions.filter((t) => t.type === 'sell').reduce((acc, t) => {
-    const id = t.domain_id;
-    acc[id] = (acc[id] || 0) + sellNetUSD(t);
-    return acc;
-  }, {} as Record<string, number>);
+  const trades = tradeOutcomes(domains, transactions).filter((tr) => {
+    if (cutoff === null) return true;
+    const t = timeOf(tr.saleDate);
+    return Number.isFinite(t) && t >= cutoff;
+  });
+
+  const totalProfit = trades.reduce((sum, tr) => sum + tr.profit, 0);
+  // 分母是这些已成交域名的 cost basis 之和，跟 totalProfit / roi 同一批交易。
+  const totalInvestment = trades.reduce((sum, tr) => sum + tr.costBasisAtSale, 0);
+  const roi = realizedROIFromTrades(trades);
 
   let bestDomain: DomainWithTags | null = null;
   let bestProfit = -Infinity;
-  for (const domain of domains) {
-    const revenue = sellTxByDomainId[domain.id] ?? 0;
-    if (revenue <= 0) continue;
-    const holdingCost = totalHoldingCostForDomain(domain, transactions);
-    const profit = revenue - holdingCost;
-    if (profit > bestProfit) {
-      bestProfit = profit;
-      bestDomain = domain;
+  const domainsById = new Map(domains.map((d) => [d.id, d]));
+  for (const tr of trades) {
+    if (tr.profit <= 0) continue;
+    if (tr.profit > bestProfit) {
+      bestProfit = tr.profit;
+      bestDomain = domainsById.get(tr.domainId) ?? null;
     }
   }
 
-  const domainsWithPurchaseDate = domains.filter((d) => d.purchase_date);
-  const purchaseDates = domainsWithPurchaseDate.map((d) => new Date(d.purchase_date!).getTime());
-  const transactionDates = transactions.map((t) => new Date(t.date).getTime());
-  const saleDates = domains.filter((d) => d.sale_date).map((d) => new Date(d.sale_date!).getTime());
+  // 投资时长：最早购入日（不早于窗口起点）到现在。走 parseLocalCalendarDate
+  // 而不是 new Date(str)——后者按 UTC 解析 'YYYY-MM-DD'，负偏移时区会早一天。
+  const purchaseDates = domains
+    .filter((d) => d.purchase_date)
+    .map((d) => timeOf(d.purchase_date))
+    .filter((ms) => Number.isFinite(ms));
   const now = Date.now();
-  const startMs = purchaseDates.length > 0 ? Math.min(...purchaseDates) : now;
-  const endMs = Math.max(now, ...transactionDates, ...saleDates, startMs);
-  const days = Math.max(0, Math.floor((endMs - startMs) / MS_PER_DAY));
+  let startMs = purchaseDates.length > 0 ? Math.min(...purchaseDates) : now;
+  if (cutoff !== null) startMs = Math.max(startMs, cutoff);
+  const days = Math.max(0, Math.floor((now - startMs) / MS_PER_DAY));
   let investmentPeriod: string;
   if (days === 0) investmentPeriod = '—';
   else if (days < 30) investmentPeriod = locale === 'zh' ? `${days}天` : `${days} days`;
@@ -137,8 +152,9 @@ export default function ShareModal({ isOpen, onClose, shareData, domains = [], t
 
   const portfolioShareData = useMemo(() => {
     if (domains.length === 0 || transactions.length === 0) return shareData;
-    const { domains: filteredDomains, transactions: filteredTransactions } = filterByRange(domains, transactions, portfolioRange);
-    return computeShareDataFromData(filteredDomains, filteredTransactions, locale);
+    // 传全量：时间范围在 computeShareDataFromData 内部按成交日筛，
+    // 不能在这里先把 domains / transactions 截短（会丢掉成本基准）。
+    return computeShareDataFromData(domains, transactions, portfolioRange, locale);
   }, [domains, transactions, portfolioRange, locale, shareData]);
 
   const effectivePortfolioData = useMemo(() => ({

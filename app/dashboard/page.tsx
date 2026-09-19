@@ -921,8 +921,6 @@ export default function DashboardPage() {
           <div className="space-y-8" hidden={activeTab !== 'portfolio'}>
             <PortfolioHealthCard
               totalDomains={stats.totalDomains}
-              activeDomains={stats.activeDomains}
-              soldDomains={stats.soldDomains}
               realizedPnLAllTime={allTimeRealizedPnL}
               realizedPnLInWindow={windowedRealizedPnL}
               realizedPnLSeries={realizedPnLSeries}

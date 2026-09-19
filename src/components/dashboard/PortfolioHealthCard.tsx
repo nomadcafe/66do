@@ -5,8 +5,6 @@ import { TrendingUp, TrendingDown, Globe, Award, RefreshCw } from 'lucide-react'
 
 interface PortfolioHealthCardProps {
   totalDomains: number;
-  activeDomains: number;
-  soldDomains: number;
   /** All-time cumulative Realized P&L (sellNet − cost basis at sale, summed). */
   realizedPnLAllTime: number;
   /** Realized P&L within the active trend window — used for the period delta caption. */
@@ -20,7 +18,17 @@ interface PortfolioHealthCardProps {
   /** Sum of holdingCostAsOf for active + for_sale domains (current "inventory at cost"). */
   portfolioAtCost: number;
   roi: number;
-  /** Status composition counts for the mini donut. */
+  /**
+   * Status composition counts for the mini donut — **and** the single source
+   * for every per-status count on this card (donut legend, "held · listed"
+   * caption, footer "active / sold").
+   *
+   * 这里以前旁边还挂着 activeDomains / soldDomains 两个 prop，dashboard 从
+   * useDomainStats 传进来、组件却从来没解构过。而 useDomainStats 那个只数
+   * status === 'active'，把 for_sale 排除在外——跟全站"for_sale 也算持有"
+   * （portfolioAtCost / 持仓分布 / renewalCostService）的口径相反。死参数本身
+   * 无害，但谁哪天接上去，数字就跟同一张卡上的甜甜圈对不上了，所以删掉。
+   */
   composition: { active: number; forSale: number; sold: number; expired: number };
   /** Amortized YTD renewal cost — the steady-state operational annual cost. */
   ytdRenewalSpendAmortized: number;

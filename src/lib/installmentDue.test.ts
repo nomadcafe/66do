@@ -143,3 +143,52 @@ describe('getReceiptsDueSoon', () => {
     expect(list.map((s) => s.domain.id)).toEqual(['d2', 'd1']);
   });
 });
+
+/**
+ * 下一期到账日的月末溢出。
+ *
+ * 裸 `d.setMonth(d.getMonth() + 1)`：1 月 31 日 + 1 个月 = 3 月 3 日（2 月没有
+ * 31 号，JS 往后顺延）。每月 29–31 号收款的分期会莫名其妙跳过 2 月。
+ */
+describe('nextDue 的月末处理', () => {
+  const soldDomain = { id: 'd1', domain_name: 'x.com', status: 'sold' } as never;
+
+  const txWith = (receivedDate: string) => ([{
+    id: 't1', domain_id: 'd1', type: 'sell', payment_plan: 'installment',
+    installment_period: 24, installment_status: 'active',
+    amount: 24000, net_amount: 24000, platform_fee: 0, date: '2026-01-05',
+    receipts: [{ id: 'r1', received_date: receivedDate, amount: 1000 }],
+  }] as never);
+
+  const nextDueOf = (receivedDate: string) =>
+    getActiveInstallmentSummary(soldDomain, txWith(receivedDate))?.nextDue;
+
+  it('1 月 31 日的下一期落在 2 月 28/29，而不是顺延到 3 月', () => {
+    const d = nextDueOf('2026-01-31')!;
+    expect(d.getFullYear()).toBe(2026);
+    expect(d.getMonth()).toBe(1); // 2 月
+    expect(d.getDate()).toBe(28); // 2026 不是闰年
+  });
+
+  it('闰年夹到 2 月 29', () => {
+    const d = nextDueOf('2028-01-31')!;
+    expect(d.getMonth()).toBe(1);
+    expect(d.getDate()).toBe(29);
+  });
+
+  it('月份天数够用时日期原样保留', () => {
+    const d = nextDueOf('2026-03-31')!;
+    expect(d.getMonth()).toBe(3); // 4 月
+    expect(d.getDate()).toBe(30); // 4 月只有 30 天
+    const e = nextDueOf('2026-05-15')!;
+    expect(e.getMonth()).toBe(5);
+    expect(e.getDate()).toBe(15);
+  });
+
+  it('跨年', () => {
+    const d = nextDueOf('2026-12-31')!;
+    expect(d.getFullYear()).toBe(2027);
+    expect(d.getMonth()).toBe(0);
+    expect(d.getDate()).toBe(31);
+  });
+});

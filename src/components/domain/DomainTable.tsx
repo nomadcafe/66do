@@ -651,7 +651,14 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], metr
                       {roiInfo.roi === null ? (
                         <div
                           className="text-sm text-stone-400"
-                          title={t('domainList.table.roiUnknownHint')}
+                          title={
+                            // roi 为 null 有两种来源：持有中没填估值（unknown），
+                            // 以及已成交但 cost basis 是 0（realized，比值除不了）。
+                            // 两种都渲染成「—」，但原因不同，提示语不能混。
+                            roiInfo.kind === 'realized'
+                              ? t('domainList.table.roiNoCostBasisHint')
+                              : t('domainList.table.roiUnknownHint')
+                          }
                         >
                           —
                         </div>
