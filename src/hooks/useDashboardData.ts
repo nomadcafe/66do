@@ -19,6 +19,7 @@ import {
 import { mergeRenewTransactionDomainUpdates } from '../lib/renewDomainPatch';
 import { reconcileOptimisticSave } from '../lib/reconcileOptimisticSave';
 import { logger } from '../lib/logger';
+import { domainChangeSignature, transactionChangeSignature } from '../lib/changeSignature';
 import { MAX_BULK_OPERATION_SIZE } from '../lib/constants';
 
 interface LoadOptions {
@@ -235,67 +236,12 @@ export function useDashboardData(
         throw new Error('No access token for save');
       }
 
-      const toDomainSignature = (domain: DomainWithTags) => JSON.stringify({
-        id: domain.id,
-        domain_name: domain.domain_name,
-        status: domain.status,
-        renewal_cycle: domain.renewal_cycle ?? 1,
-        renewal_count: domain.renewal_count ?? 0,
-        registrar: domain.registrar || null,
-        purchase_date: domain.purchase_date || null,
-        purchase_cost: domain.purchase_cost || null,
-        renewal_cost: domain.renewal_cost || null,
-        baseline_renewal_as_of: domain.baseline_renewal_as_of || null,
-        registration_date: domain.registration_date || null,
-        next_renewal_date: domain.next_renewal_date || null,
-        expiry_date: domain.expiry_date || null,
-        estimated_value: domain.estimated_value || null,
-        sale_date: domain.sale_date || null,
-        sale_price: domain.sale_price || null,
-        platform_fee: domain.platform_fee || null,
-        tags: JSON.stringify(domain.tags || []),
-      });
-      const toTransactionSignature = (transaction: TransactionWithRequiredFields) => JSON.stringify({
-        id: transaction.id,
-        domain_id: transaction.domain_id,
-        type: transaction.type,
-        amount: transaction.amount,
-        currency: transaction.currency,
-        platform_fee: transaction.platform_fee || null,
-        platform_fee_percentage: transaction.platform_fee_percentage || null,
-        net_amount: transaction.net_amount || null,
-        date: transaction.date,
-        notes: transaction.notes || null,
-        platform: transaction.platform || null,
-        category: transaction.category || null,
-        receipt_url: transaction.receipt_url || null,
-        payment_plan: transaction.payment_plan || null,
-        installment_period: transaction.installment_period || null,
-        downpayment_amount: transaction.downpayment_amount || null,
-        installment_amount: transaction.installment_amount || null,
-        final_payment_amount: transaction.final_payment_amount || null,
-        total_installment_amount: transaction.total_installment_amount || null,
-        installment_status: transaction.installment_status || null,
-        platform_fee_type: transaction.platform_fee_type || null,
-        user_input_fee_rate: transaction.user_input_fee_rate || null,
-        user_input_surcharge_rate: transaction.user_input_surcharge_rate || null,
-        afternic_ns_pointed: transaction.afternic_ns_pointed ?? null,
-        afternic_premium_addon: transaction.afternic_premium_addon ?? null,
-        atom_commission_tier: transaction.atom_commission_tier ?? null,
-        atom_no_coin: transaction.atom_no_coin ?? null,
-        atom_custom_commission_rate: transaction.atom_custom_commission_rate ?? null,
-        escrow_lease_type: transaction.escrow_lease_type ?? null,
-        escrow_transaction_fee: transaction.escrow_transaction_fee ?? null,
-        renewal_period_years: transaction.renewal_period_years ?? null,
-        extend_domain_expiry_on_renew: transaction.extend_domain_expiry_on_renew ?? null,
-        renewal_years_use_custom: transaction.renewal_years_use_custom ?? null,
-      });
 
       const existingDomainMap = new Map(domains.map((d) => [d.id, d]));
       const changedDomains = domainsForSave.filter((domain) => {
         const existing = existingDomainMap.get(domain.id);
         if (!existing) return true;
-        return toDomainSignature(existing) !== toDomainSignature(domain);
+        return domainChangeSignature(existing) !== domainChangeSignature(domain);
       });
 
       const existingTransactionMap = new Map(transactions.map((tx) => [tx.id, tx]));
@@ -304,7 +250,7 @@ export function useDashboardData(
         : newTransactions.filter((transaction) => {
             const existing = existingTransactionMap.get(transaction.id);
             if (!existing) return true;
-            return toTransactionSignature(existing) !== toTransactionSignature(transaction);
+            return transactionChangeSignature(existing) !== transactionChangeSignature(transaction);
           });
 
       logger.log(
