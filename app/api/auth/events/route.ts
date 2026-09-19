@@ -13,6 +13,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthInfoFromRequest } from '../../../../src/lib/auth-helper';
+import { checkUserWriteRateLimit } from '../../../../src/lib/rateLimit';
 import { createAuthenticatedSupabaseClient } from '../../../../src/lib/supabaseAuthClient';
 import { logger } from '../../../../src/lib/logger';
 
@@ -27,6 +28,21 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
   const { userId, accessToken } = authInfo;
+
+  // 全站唯一一个没有限流的数据端点——其余 domains / transactions /
+  // installment-receipts 各自的 handler 都挂了。这里是只读、RLS 内、上限 100
+  // 行，泄不出别人的东西，但一个拿着自己 token 的客户端可以无节制地打它。
+  //
+  // 复用 userWrite 那档（60/min/用户）：名字里的 "write" 指的是限流档位不是
+  // HTTP 动词，60/min 对一个设置面板里的列表正好；audit 那档不能用，它的约定
+  // 是超限后静默返回成功不落库，放在 GET 上就成了"限流时假装没有事件"。
+  const rl = await checkUserWriteRateLimit(userId);
+  if (rl.limited) {
+    return NextResponse.json(
+      { ok: false, error: rl.reason === 'rate' ? 'rate_limited' : 'backend_unavailable' },
+      { status: rl.reason === 'rate' ? 429 : 503 }
+    );
+  }
 
   // Parse limit. Cap at MAX_LIMIT so a curious client can't ask for the
   // whole table.
