@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { handleDomainRenewal } from './domainExpiryManager';
 import type { Domain } from '../types/domain';
+import { addYearsClamped, localCalendarDateISO, parseLocalCalendarDate } from './localCalendarDate';
 
 function makeDomain(overrides: Partial<Domain> = {}): Domain {
   return {
@@ -147,5 +148,53 @@ describe('handleDomainRenewal — next_renewal_date as the base date', () => {
         rolledBack.getDate()
       ).padStart(2, '0')}`
     ).toBe(original);
+  });
+});
+
+/**
+ * 闰日续费。
+ *
+ * 裸 `setFullYear` 在 2 月 29 日上会溢出成 3 月 1 日（目标年没有闰日，JS 往后
+ * 顺延），而且**不可逆**：续一年再撤销回不到原点，永久钉在 3 月 1 日。
+ *
+ * 上面那条 "a renew followed by its rollback restores the original date" 钉的
+ * 就是这个不变量，只是用的是普通日期，碰不到闰日这条路径。
+ */
+describe('闰日（2 月 29 日）到期日', () => {
+  it('2028-02-29 续一年落在 2029-02-28，不是 2029-03-01', () => {
+    const out = handleDomainRenewal(
+      makeDomain({ expiry_date: '2028-02-29', next_renewal_date: undefined }),
+      1
+    );
+    expect(out.expiry_date).toBe('2029-02-28');
+  });
+
+  it('续到闰年时保留 2 月 29', () => {
+    const out = handleDomainRenewal(
+      makeDomain({ expiry_date: '2028-02-29', next_renewal_date: undefined }),
+      4
+    );
+    expect(out.expiry_date).toBe('2032-02-29');
+  });
+
+  it('闰日上续费再撤销也能回到原点', () => {
+    const out = handleDomainRenewal(
+      makeDomain({ expiry_date: '2028-02-29', next_renewal_date: undefined }),
+      1
+    );
+    // useTransactionOperations 删除 renew 交易时走的就是 addYearsClamped(-n)
+    const rolledBack = localCalendarDateISO(
+      addYearsClamped(parseLocalCalendarDate(out.expiry_date!)!, -1)
+    );
+    // 旧实现：2028-02-29 → 2029-03-01 → 2028-03-01，漂了一天且回不来
+    expect(rolledBack).toBe('2028-02-28');
+    // 夹住之后是稳定的：再走一轮不会继续漂
+    const again = handleDomainRenewal(
+      makeDomain({ expiry_date: rolledBack, next_renewal_date: undefined }),
+      1
+    );
+    expect(
+      localCalendarDateISO(addYearsClamped(parseLocalCalendarDate(again.expiry_date!)!, -1))
+    ).toBe('2028-02-28');
   });
 });
