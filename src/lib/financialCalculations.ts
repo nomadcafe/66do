@@ -7,47 +7,36 @@ import {
   acquisitionCostForDomain,
 } from './renewalCostBasis';
 import { isDomainLost } from './domainLossStatus';
-import { sellNetUSD } from './sellProceeds';
+import { sellGrossUSD, sellNetUSD } from './sellProceeds';
 import { txsForDomain } from './txIndex';
 import { calendarYearOf, parseLocalCalendarDate } from './localCalendarDate';
 
-/**
- * 计算单个域名的 ROI（Domain Portfolio 表格/卡片使用）
- * 公式：ROI = (净收入 - 总持有成本) / 总持有成本 × 100
- * - 总持有成本 = 购买成本(purchase_cost) + 续费成本 + 转移费(transfer 交易)
- *   续费成本口径见 renewalCostBasis；转移费需要传入 transactions 才能算。
- * - 已出售：净收入 = 该域名全部 sell 交易的净额之和；拿不到交易数据时才退回
- *   域名行上的 sale_price − platform_fee 存档字段
- *
- * 与 enhancedFinancialMetrics.calculateDomainROI（同名，TransactionList 用）的
- * 区别：成本口径两边一致，收入口径这边多一条「持有中用 estimated_value 代入」
- * 的未实现分支——表格要的是"现在值多少"，交易列表要的是"这笔成交赚了多少"。
- * 已出售那一支现在两边同源，不会再各说各话。
- * - 过期：视为 -100%
- * - 持有中且有预估价值：净收入用 estimated_value 代入
- */
-export function calculateDomainROI(
-  domain: {
-    id?: string;
-    purchase_cost?: number | null;
-    renewal_cost?: number | null;
-    renewal_count: number;
-    baseline_renewal_as_of?: string | null;
-    status: string;
-    sale_price?: number | null;
-    platform_fee?: number | null;
-    estimated_value?: number | null;
-    expiry_date?: string | null;
-  },
-  transactions?: Array<{
-    domain_id: string;
-    type: string;
-    date: string;
-    amount: number;
-    net_amount?: number | null;
-    platform_fee?: number | null;
-  }>
-): number {
+type RoiDomain = {
+  id?: string;
+  purchase_cost?: number | null;
+  renewal_cost?: number | null;
+  renewal_count: number;
+  baseline_renewal_as_of?: string | null;
+  status: string;
+  sale_price?: number | null;
+  platform_fee?: number | null;
+  estimated_value?: number | null;
+  expiry_date?: string | null;
+};
+
+type RoiTransactions = Array<{
+  domain_id: string;
+  type: string;
+  date: string;
+  amount: number;
+  net_amount?: number | null;
+  platform_fee?: number | null;
+}>;
+
+/** 总持有成本 = 购入 + 续费 + 转移。拿不到 transactions 时退回档案字段。
+ *  抽出来给 calculateDomainROI 和 domainRoiWithKind 共用——后者需要知道
+ *  分母是不是 0，光看 ROI 的返回值区分不出「打平」和「除不了」。 */
+function holdingCostOf(domain: RoiDomain, transactions?: RoiTransactions): number {
   const purchaseCost =
     domain.id && transactions
       ? acquisitionCostForDomain({ id: domain.id, purchase_cost: domain.purchase_cost }, transactions)
@@ -66,7 +55,58 @@ export function calculateDomainROI(
       : domain.renewal_count * (domain.renewal_cost || 0);
   const transferCost =
     domain.id && transactions ? transferCostForDomain(domain.id, transactions) : 0;
-  const totalHoldingCost = purchaseCost + renewalCost + transferCost;
+  return purchaseCost + renewalCost + transferCost;
+}
+
+/** 该域名全部 sell 交易的净额之和。拿不到 transactions 时退回域名行上的
+ *  sale_price − platform_fee 存档字段。
+ *
+ *  DomainCard 的 Net Profit 以前是直接读那两个存档字段算的，于是同一域名卖过
+ *  两轮时只算得到最后一次（而持有成本是累计的），跟它旁边那个按交易算的 ROI
+ *  当场矛盾。导出给它用，保证一张卡上两个数同源。 */
+export function soldNetRevenueOf(domain: RoiDomain, transactions?: RoiTransactions): number {
+  const sellTxs = sellTxsOf(domain, transactions);
+  if (sellTxs.length > 0) return sellTxs.reduce((sum, t) => sum + sellNetUSD(t), 0);
+  return (domain.sale_price ?? 0) - (domain.platform_fee || 0);
+}
+
+/** 该域名全部 sell 交易的**毛额**之和（未扣平台费）。给"成交价"这类展示用——
+ *  利润和 ROI 一律走 net（soldNetRevenueOf），两者不能混。 */
+export function soldGrossRevenueOf(domain: RoiDomain, transactions?: RoiTransactions): number {
+  const sellTxs = sellTxsOf(domain, transactions);
+  if (sellTxs.length > 0) return sellTxs.reduce((sum, t) => sum + sellGrossUSD(t), 0);
+  return domain.sale_price ?? 0;
+}
+
+function sellTxsOf(domain: RoiDomain, transactions?: RoiTransactions) {
+  return domain.id && transactions
+    ? txsForDomain(transactions, domain.id).filter((t) => t.type === 'sell')
+    : [];
+}
+
+/**
+ * 计算单个域名的 ROI（Domain Portfolio 表格/卡片使用）
+ * 公式：ROI = (净收入 - 总持有成本) / 总持有成本 × 100
+ * - 总持有成本 = 购买成本(purchase_cost) + 续费成本 + 转移费(transfer 交易)
+ *   续费成本口径见 renewalCostBasis；转移费需要传入 transactions 才能算。
+ * - 已出售：净收入 = 该域名全部 sell 交易的净额之和；拿不到交易数据时才退回
+ *   域名行上的 sale_price − platform_fee 存档字段
+ *
+ * 与 enhancedFinancialMetrics.calculateDomainROI（同名，TransactionList 用）的
+ * 区别：成本口径两边一致，收入口径这边多一条「持有中用 estimated_value 代入」
+ * 的未实现分支——表格要的是"现在值多少"，交易列表要的是"这笔成交赚了多少"。
+ * 已出售那一支现在两边同源，不会再各说各话。
+ * - 过期：视为 -100%
+ * - 持有中且有预估价值：净收入用 estimated_value 代入
+ *
+ * 成本为 0 时返回 0（比值没有定义，这里只能给个数）。调用方要区分「打平」和
+ * 「除不了」，走 domainRoiWithKind —— 它在这种情况下返回 roi: null。
+ */
+export function calculateDomainROI(
+  domain: RoiDomain,
+  transactions?: RoiTransactions
+): number {
+  const totalHoldingCost = holdingCostOf(domain, transactions);
 
   if (totalHoldingCost === 0) return 0;
 
@@ -78,14 +118,7 @@ export function calculateDomainROI(
   //   - 同一个域名卖过两轮时 sale_price 只留得住最后一次，而持有成本是累计的。
   // 存档字段留作兜底：调用方没传 transactions 时仍然按老路走。
   if (domain.status === 'sold') {
-    const sellTxs =
-      domain.id && transactions
-        ? txsForDomain(transactions, domain.id).filter((t) => t.type === 'sell')
-        : [];
-    const netRevenue =
-      sellTxs.length > 0
-        ? sellTxs.reduce((sum, t) => sum + sellNetUSD(t), 0)
-        : (domain.sale_price ?? 0) - (domain.platform_fee || 0);
+    const netRevenue = soldNetRevenueOf(domain, transactions);
     return ((netRevenue - totalHoldingCost) / totalHoldingCost) * 100;
   }
 
@@ -126,6 +159,17 @@ export function domainRoiWithKind(
   transactions?: Parameters<typeof calculateDomainROI>[1]
 ): { roi: number | null; kind: DomainRoiKind } {
   if (domain.status === 'sold') {
+    // cost basis 为 0（抢注 / 白嫖来的米，或成本压根没录）时 ROI 没有定义：
+    // 分母是 0，任何正收益都是无穷大。calculateDomainROI 在这里兜底返回 0，
+    // 于是一个 $0 成本卖出 $10,000 的域名在表格里渲染成**绿色的 +0.0%**——
+    // 跟"持有中没填估值"那档一模一样的读法错误（那档已经修成 null 了）。
+    // realizedPnL.tradeOutcomes 早就是 `costBasis > 0 ? … : null`，这里对齐它。
+    //
+    // kind 仍然是 realized：这笔交易确确实实成交了、profit 也算得出来，
+    // 只有"回报率"这个比值无从表达。表格据此渲染成「—」并给出对应提示。
+    if (holdingCostOf(domain, transactions) <= 0) {
+      return { roi: null, kind: 'realized' };
+    }
     return { roi: calculateDomainROI(domain, transactions), kind: 'realized' };
   }
   if (isDomainLost(domain)) return { roi: -100, kind: 'lost' };

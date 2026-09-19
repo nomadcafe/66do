@@ -59,7 +59,7 @@ describe('calculateDomainROI 的成本基准', () => {
     // 钉下来，说明为什么调用方必须传完整列表。
     const degraded = roiFromSales(domain(), [sell]);
     expect(degraded.totalInvestment).toBe(124);
-    expect(degraded.roi).toBeGreaterThan(roiFromSales(domain(), [buy, renew1, renew2, sell]).roi);
+    expect(degraded.roi!).toBeGreaterThan(roiFromSales(domain(), [buy, renew1, renew2, sell]).roi!);
   });
 
   it('用户没维护 renewal_count、只记了续费交易时，续费成本照样算得到', () => {
@@ -90,5 +90,32 @@ describe('两份 calculateDomainROI 的关系', () => {
     expect(roiFromDomainState(d, txs as never)).toBe(0);
     // 实际交易口径：确实卖了 500、成本 100 → 400%
     expect(roiFromSales(d, txs as never).roi).toBeCloseTo(400, 6);
+  });
+});
+
+/**
+ * 持有天数。三处以前都不对：
+ *   - new Date('YYYY-MM-DD') 按 UTC 解析，跟本地的 now 相减，负偏移时区差一天
+ *   - purchase_date 为空时 new Date('') 是 Invalid Date → NaN
+ *   - 已卖掉的域名也一直算到今天，两年前成交的域名持有期还在天天增长
+ */
+describe('holdingPeriod', () => {
+  it('已售域名算到成交日，而不是到今天', () => {
+    const d = domain({ status: 'sold', purchase_date: '2025-01-01' });
+    const sold = { ...sell, date: '2025-03-02' };
+    // 2025-01-01 → 2025-03-02 = 31 + 28 + 1 = 60 天
+    expect(roiFromSales(d, [buy, sold]).holdingPeriod).toBe(60);
+  });
+
+  it('卖过多轮时以最早那笔为终点', () => {
+    const d = domain({ status: 'sold', purchase_date: '2025-01-01' });
+    const first = { ...sell, date: '2025-03-02' };
+    const second = { ...sell, date: '2026-03-02' };
+    expect(roiFromSales(d, [buy, second, first]).holdingPeriod).toBe(60);
+  });
+
+  it('purchase_date 缺失时是 null，不是 NaN', () => {
+    const d = domain({ purchase_date: null });
+    expect(roiFromSales(d, [buy]).holdingPeriod).toBeNull();
   });
 });

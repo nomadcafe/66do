@@ -36,7 +36,7 @@ describe('域名 ROI 的两处实现', () => {
   it('存档字段齐全时两者一致', () => {
     const domain = { ...base, sale_price: 5000, platform_fee: 0 };
     const a = roiFromArchive(domain, [sellTx]);
-    const b = roiFromTransactions(base, [sellTx]).roi;
+    const b = roiFromTransactions(base, [sellTx]).roi!;
     expect(a).toBeCloseTo(400, 6);
     expect(a).toBeCloseTo(b, 6);
   });
@@ -45,7 +45,7 @@ describe('域名 ROI 的两处实现', () => {
     // 导入的数据 / 补录的 sell 交易：域名行上没有 sale_price
     const domain = { ...base, sale_price: null, platform_fee: null };
     const a = roiFromArchive(domain, [sellTx]);
-    const b = roiFromTransactions(base, [sellTx]).roi;
+    const b = roiFromTransactions(base, [sellTx]).roi!;
     // 旧实现：netRevenue = 0 → (0 − 1000)/1000 = −100%
     // 一笔赚了 4 倍的成交，在域名表格里显示成 −100%
     expect(b).toBeCloseTo(400, 6);
@@ -56,7 +56,7 @@ describe('域名 ROI 的两处实现', () => {
     const txs = [sellTx, { ...sellTx, amount: 3000, net_amount: 3000, date: '2026-09-01' }];
     const domain = { ...base, sale_price: 3000, platform_fee: 0 };
     const a = roiFromArchive(domain, txs);
-    const b = roiFromTransactions(base, txs).roi;
+    const b = roiFromTransactions(base, txs).roi!;
     expect(a).toBeCloseTo(b, 6);
   });
 });

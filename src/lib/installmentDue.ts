@@ -16,6 +16,20 @@ export interface ActiveInstallmentSummary {
   nextDue: Date | null;
 }
 
+/** 加一个月，并把日期夹在目标月的最后一天以内。
+ *
+ *  裸 setMonth(getMonth() + 1) 会溢出：1 月 31 日 + 1 个月 = 3 月 3 日（2 月没有
+ *  31 号，JS 往后顺延）。于是每月 29–31 号收款的分期，"下一期"会莫名其妙跳过
+ *  2 月、落到 3 月初，甚至连着几期越推越远。 */
+function addOneMonthClamped(d: Date): Date {
+  const day = d.getDate();
+  // 先落到目标月的 1 号再设日，避免中途经过一个不存在的日期。
+  const target = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+  const lastDayOfTarget = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  target.setDate(Math.min(day, lastDayOfTarget));
+  return target;
+}
+
 function nextDueDate(t: TransactionWithRequiredFields): Date | null {
   const receipts = t.receipts ?? [];
   if (receipts.length > 0) {
@@ -23,8 +37,7 @@ function nextDueDate(t: TransactionWithRequiredFields): Date | null {
     const last = sorted[sorted.length - 1];
     const d = parseLocalCalendarDate(last.received_date);
     if (!d) return null;
-    d.setMonth(d.getMonth() + 1);
-    return d;
+    return addOneMonthClamped(d);
   }
   if (t.installment_first_payment_date) {
     const d = parseLocalCalendarDate(t.installment_first_payment_date);

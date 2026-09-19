@@ -914,6 +914,7 @@ const en = {
         actions: 'Actions',
         sold: 'Sold',
         roiUnknownHint: 'No estimated value set yet, so there is nothing to compute a return from. Click the Value cell to set one.',
+        roiNoCostBasisHint: 'Sold, but no acquisition cost is on record — a return percentage would be a division by zero. The profit amount is still exact.',
         roiUnrealizedHint: 'Unrealized — based on the estimated value you set, not on a completed sale.',
         expiredText: 'Expired',
         viewDetails: 'View Details',
