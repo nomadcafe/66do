@@ -1055,6 +1055,8 @@ const en = {
         total: 'Total',
         unknown: 'Not recorded',
         unknownHint: '{count} sale(s) have no platform recorded. Set the Platform field on a transaction and it will move into its own row here.',
+        domain: 'Domain',
+        saleDate: 'Sale date',
         noData: 'No completed sales yet. Once you record a sale, this table breaks it down by marketplace.'
       },
       investmentIncludesRenewals: 'Purchases plus renewals — the Renewal Cost tile is part of this number, not on top of it.',

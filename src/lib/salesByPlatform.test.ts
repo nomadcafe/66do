@@ -185,3 +185,74 @@ describe('与 Insights 其它数字对拍', () => {
     expect(totals.grossSales).toBe(rows.reduce((s, r) => s + r.grossSales, 0));
   });
 });
+
+describe('时间窗口', () => {
+  const domains = [domain('old', 1000), domain('recent', 500)];
+  const txs = [
+    buy('old', 1000), sell('old', 10000, 9000, { platform: 'Sedo' }),      // 2026-05-01
+    buy('recent', 500), sell('recent', 3000, 2700, { platform: 'Dan' }),   // 2026-05-01
+  ];
+
+  it('null = 全部', () => {
+    expect(salesByPlatform(domains, txs, null).totals.salesCount).toBe(2);
+  });
+
+  it('按成交日筛，窗口外的整笔不计', () => {
+    const old = [
+      ...domains,
+      domain('ancient', 200),
+    ];
+    const oldTxs = [
+      ...txs,
+      buy('ancient', 200),
+      { ...sell('ancient', 800, 700, { platform: 'Sedo' }), date: '2020-01-01' } as never,
+    ];
+    // 2020 那笔在任何有限窗口之外
+    const windowed = salesByPlatform(old, oldTxs, 36);
+    expect(windowed.totals.salesCount).toBe(2);
+    // 全量则三笔都在
+    expect(salesByPlatform(old, oldTxs, null).totals.salesCount).toBe(3);
+  });
+
+  it('窗口外买入的成本依然全额扣掉', () => {
+    // 这是 ShareModal 当初踩的坑：按购入日截数据，成本凭空消失、利润虚高
+    const d = [domain('old', 1000)];
+    const t = [buy('old', 1000), sell('old', 10000, 9000, { platform: 'Sedo' })];
+    // purchase_date 是 2025-01-01，用 6 个月窗口时购入日早已在窗口外
+    const row = salesByPlatform(d, t, 6).rows[0];
+    expect(row.costBasis).toBe(1000);
+    expect(row.realizedPnL).toBe(8000); // 9000 − 1000，不是 9000
+  });
+});
+
+describe('逐笔明细', () => {
+  it('每个平台带上自己的成交明细，按成交日倒序', () => {
+    const d = [domain('a', 100), domain('b', 100)];
+    const t = [
+      buy('a', 100), { ...sell('a', 1000, 900, { platform: 'Sedo' }), date: '2026-03-01' } as never,
+      buy('b', 100), { ...sell('b', 2000, 1800, { platform: 'Sedo' }), date: '2026-07-01' } as never,
+    ];
+    const row = salesByPlatform(d, t).rows[0];
+    expect(row.sales.map((x) => x.saleDate)).toEqual(['2026-07-01', '2026-03-01']);
+    expect(row.sales.map((x) => x.domainName)).toEqual(['b.com', 'a.com']);
+  });
+
+  it('明细加起来等于汇总行', () => {
+    const d = [domain('a', 100), domain('b', 200)];
+    const t = [
+      buy('a', 100), sell('a', 1000, 900, { platform: 'Dan' }),
+      buy('b', 200), sell('b', 2000, 1800, { platform: 'Dan' }),
+    ];
+    const row = salesByPlatform(d, t).rows[0];
+    expect(row.sales.reduce((s, x) => s + x.grossSales, 0)).toBe(row.grossSales);
+    expect(row.sales.reduce((s, x) => s + x.netProceeds, 0)).toBe(row.netProceeds);
+    expect(row.sales.reduce((s, x) => s + x.realizedPnL, 0)).toBeCloseTo(row.realizedPnL, 6);
+    expect(row.sales).toHaveLength(row.salesCount);
+  });
+
+  it('免费域名的单笔 ROI 是 null，不是 0', () => {
+    const d = [domain('free', 0)];
+    const t = [sell('free', 5000, 4500, { platform: 'Dan' })];
+    expect(salesByPlatform(d, t).rows[0].sales[0].roi).toBeNull();
+  });
+});

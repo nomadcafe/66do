@@ -1050,6 +1050,8 @@ const zh = {
         total: '合计',
         unknown: '未记录',
         unknownHint: '有 {count} 笔成交没记平台。在交易里填上「平台」，它就会单独成行。',
+        domain: '域名',
+        saleDate: '成交日',
         noData: '还没有成交记录。记一笔出售之后，这里会按平台拆开给你看。'
       },
       investmentIncludesRenewals: '购入 + 续费。右边那块「续费成本」已经含在这个数里，不是另加。',
