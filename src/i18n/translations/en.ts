@@ -979,6 +979,8 @@ const en = {
       notes: 'Notes',
       actions: 'Actions',
       unknownDomain: 'Unknown Domain',
+      viewReceipt: 'Receipt',
+      viewReceiptAria: 'Open receipt for {domain} (new tab)',
       viewList: 'Transaction list',
       viewTimeline: 'Domain timeline'
     },

@@ -974,6 +974,8 @@ const zh = {
       notes: '备注',
       actions: '操作',
       unknownDomain: '未知域名',
+      viewReceipt: '凭证',
+      viewReceiptAria: '打开 {domain} 的凭证（新标签页）',
       viewList: '交易列表',
       viewTimeline: '域名时间线'
     },
