@@ -42,7 +42,8 @@ export default function DomainShareModal({ isOpen, onClose, domain, transactions
   const outcomeTxs = metricsTransactions ?? transactions;
   const outcome = latestSaleOutcome(domain, outcomeTxs);
   const calculateDomainProfit = () => outcome?.profit ?? 0;
-  const calculateROI = () => outcome?.roi ?? 0;
+  // null（没有成交 / 成本基准为 0）一路传到底：卡片画 ∞，推文省掉 ROI 整句。
+  const calculateROI = (): number | null => outcome?.roi ?? null;
 
   const purchaseDate = new Date(domain.purchase_date || '');
   // 成交价和成交日也走同一笔成交记录。以前 salePrice 读 domain.sale_price、

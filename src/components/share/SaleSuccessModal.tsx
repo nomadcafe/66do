@@ -82,8 +82,10 @@ export default function SaleSuccessModal({
 
   const totalHoldingCost = totalHoldingCostForDomain(domain, transactions);
   const calculateProfit = (): number => getSellerNetUSD() - totalHoldingCost;
-  const calculateROI = (): number =>
-    totalHoldingCost > 0 ? (calculateProfit() / totalHoldingCost) * 100 : 0;
+  // 成本为 0 时比值没有定义，返回 null 而不是兜底 0 —— 抢注来的米卖了一笔，
+  // 卡片和推文上写「ROI 0.0%」是错的。
+  const calculateROI = (): number | null =>
+    totalHoldingCost > 0 ? (calculateProfit() / totalHoldingCost) * 100 : null;
 
   const purchaseDate = new Date(domain.purchase_date || '');
   const saleDate = new Date(transaction.date);
@@ -175,7 +177,9 @@ export default function SaleSuccessModal({
                 <TrendingUp className="h-6 w-6 text-blue-600" />
               </div>
               <p className="text-2xl font-bold text-blue-600">
-                {calculateROI().toFixed(1)}%
+                {/* 成本基准为 0 时比值没有定义 —— 画 ∞ 而不是 0.0%，
+                    跟分享卡和 Top Performers 一致。 */}
+                {calculateROI() === null ? '∞' : `${calculateROI()!.toFixed(1)}%`}
               </p>
               <p className="text-sm text-stone-600">{t('common.returnOnInvestment')}</p>
             </div>

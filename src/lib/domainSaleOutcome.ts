@@ -46,10 +46,19 @@ export function domainSaleProfit(
   return latestSaleOutcome(domain, transactions)?.profit ?? 0;
 }
 
-/** ROI 百分比。成本基准为 0 的免费域名 roi 是 null，卡片上按 0 渲染。 */
+/**
+ * ROI 百分比。**没有成交、或成本基准为 0 时返回 null**，不是 0。
+ *
+ * 以前是 `?? 0`。于是一个抢注来的米（purchase_cost 0、没有 buy 交易）卖了
+ * $10,000，分享图上写着「利润 $10,000 / ROI 0.0%」，推文里也是——而这是要
+ * 发出去给别人看的。0% 读作"打平"，实际意思是"分母是 0，这个比值没有定义"。
+ *
+ * 同一个错误在域名表格、交易列表和 Insights 里已经分别修过（a04acdd），
+ * 分享这条路当时漏了。调用方要自己处理 null：卡片上画 ∞，推文里整句省掉。
+ */
 export function domainSaleROI(
   domain: DomainWithTags,
   transactions: TransactionWithRequiredFields[]
-): number {
-  return latestSaleOutcome(domain, transactions)?.roi ?? 0;
+): number | null {
+  return latestSaleOutcome(domain, transactions)?.roi ?? null;
 }

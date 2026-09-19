@@ -65,17 +65,34 @@ describe('domainSaleOutcome', () => {
     expect(domainSaleProfit(d, txs)).toBeCloseTo(8000, 6);
   });
 
-  it('没有任何成交记录时利润和 ROI 都是 0，卡片按「还没卖」渲染', () => {
+  it('没有任何成交记录时利润是 0，ROI 是 null', () => {
     const d = dom({ status: 'active' });
     expect(latestSaleOutcome(d, [])).toBeNull();
     expect(domainSaleProfit(d, [])).toBe(0);
-    expect(domainSaleROI(d, [])).toBe(0);
+    // 利润 0 是事实（没卖，没赚没亏）；ROI 则是"无从谈起"，不是"打平"
+    expect(domainSaleROI(d, [])).toBeNull();
   });
 
-  it('免费域名（成本基准 0）的 ROI 在卡片上按 0 渲染，而不是 NaN / Infinity', () => {
+  // 这两条以前断言的是 `toBe(0)`，理由写着「卡片上按 0 渲染，而不是
+  // NaN / Infinity」。避开 NaN 是对的，落到 0 是错的：0% 在卡片和推文里读作
+  // "打平"，而实际意思是"分母是 0，这个比值没有定义"。一个抢注来的米卖了
+  // $10,000，分享图上写「利润 $10,000 / ROI 0.0%」，发出去是要被人问的。
+  //
+  // 域名表格 / 交易列表 / Insights 三处在 a04acdd 已经改成 null + 渲染「—」，
+  // 分享这条路当时漏了。现在统一：lib 返回 null，卡片画 ∞，推文省掉 ROI 整句。
+  it('免费域名（成本基准 0）的 ROI 是 null，不是 0，也不是 NaN / Infinity', () => {
     const d = dom({ purchase_cost: 0 });
     const txs = [sell('t1', 2000, '2026-04-01')];
-    expect(Number.isFinite(domainSaleROI(d, txs))).toBe(true);
-    expect(domainSaleROI(d, txs)).toBe(0);
+    const roi = domainSaleROI(d, txs);
+    expect(roi).toBeNull();
+    expect(Number.isNaN(roi as unknown as number)).toBe(false);
+    // 利润本身照常算得出来
+    expect(domainSaleProfit(d, txs)).toBeGreaterThan(0);
+  });
+
+  it('有成本时 ROI 照常是数字', () => {
+    const d = dom({ purchase_cost: 100 });
+    const txs = [sell('t1', 500, '2026-04-01')];
+    expect(typeof domainSaleROI(d, txs)).toBe('number');
   });
 });
