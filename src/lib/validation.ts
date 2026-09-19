@@ -539,6 +539,27 @@ export function validateInstallmentReceipt(receipt: unknown): ValidationResult {
 }
 
 // 清理和标准化数据
+/**
+ * 从 derived 里挑出「原始请求中确实存在该 key」的项。
+ *
+ * sanitize* 的产物会被 buildDomain/TransactionUpdatePayload 按 `'x' in obj`
+ * 决定是否进 UPDATE。要让"没传的字段不动"这条成立，sanitizer 就不能替调用方
+ * 把 key 补齐——补齐等于把每次 PUT 都变成全量覆盖。
+ *
+ * 注意 `currency` 这类恒定派生值也走这里：只有请求带了 currency 才会被写回，
+ * 否则交给 insert builder 的默认值。
+ */
+function pickPresent(
+  source: Record<string, unknown>,
+  derived: Record<string, unknown>
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(derived)) {
+    if (key in source) out[key] = value;
+  }
+  return out;
+}
+
 export function sanitizeDomainData(domain: unknown): Record<string, unknown> {
   if (!domain || typeof domain !== 'object' || domain === null) {
     return {};
@@ -621,21 +642,33 @@ export function sanitizeDomainData(domain: unknown): Record<string, unknown> {
     nextRenewalDate = domainObj.next_renewal_date.trim().slice(0, 10);
   }
 
+  // 只覆盖**请求里真的带了**的字段。以前是无条件全部写进去，于是
+  // buildDomainUpdatePayload 里那套 `'x' in domain` 的部分更新判断全成了空转
+  // ——它的注释写着"未传字段不动数据库现有值"，但 sanitizer 把每个 key 都补齐
+  // 了，判断永远为真。实测 PUT /api/domains/[id] 只带 { domain_name } 时，
+  // registrar / purchase_date / purchase_cost / renewal_cost / expiry_date /
+  // estimated_value 全被写成 null，renewal_cycle 回到 1，tags 清空——只改个
+  // 名字，这条域名的其余资料就没了。
+  //
+  // 应用自己的表单每次都提交完整对象，所以第一方客户端碰不到；但这是个 REST
+  // 写接口，谁拿自己的 token 写个脚本做局部更新就会中招。
   return {
     ...domainObj,
-    domain_name: domainName,
-    registrar,
-    purchase_date: domainObj.purchase_date || null,
-    expiry_date: expiryDate,
-    next_renewal_date: nextRenewalDate,
-    purchase_cost: purchaseCost,
-    renewal_cost: renewalCost,
-    renewal_cycle: renewalCycle,
-    renewal_count: renewalCount,
-    baseline_renewal_as_of: baselineRenewalAsOf,
-    registration_date: registrationDate,
-    estimated_value: estimatedValue,
-    tags
+    ...pickPresent(domainObj, {
+      domain_name: domainName,
+      registrar,
+      purchase_date: domainObj.purchase_date || null,
+      expiry_date: expiryDate,
+      next_renewal_date: nextRenewalDate,
+      purchase_cost: purchaseCost,
+      renewal_cost: renewalCost,
+      renewal_cycle: renewalCycle,
+      renewal_count: renewalCount,
+      baseline_renewal_as_of: baselineRenewalAsOf,
+      registration_date: registrationDate,
+      estimated_value: estimatedValue,
+      tags,
+    }),
   };
 }
 
@@ -696,17 +729,23 @@ export function sanitizeTransactionData(transaction: unknown): Record<string, un
     if (Number.isInteger(y) && y >= 1 && y <= 10) renewalPeriodYears = y;
   }
 
+  // 同 sanitizeDomainData：只覆盖请求里真的带了的字段。这边的后果更重——
+  // amount 走的是 `Number(undefined) || 0`，所以一个只想改备注的
+  // PUT /api/transactions/[id] { notes } 会把这笔交易的金额直接写成 0，
+  // 连带清掉 platform_fee / net_amount / category / receipt_url。
   return {
     ...transactionObj,
-    amount,
-    currency,
-    platform_fee: platformFee,
-    platform_fee_percentage: platformFeePercentage,
-    net_amount: netAmount,
-    notes,
-    category,
-    tax_deductible: Boolean(transactionObj.tax_deductible),
-    receipt_url: receiptUrl,
-    renewal_period_years: renewalPeriodYears
+    ...pickPresent(transactionObj, {
+      amount,
+      currency,
+      platform_fee: platformFee,
+      platform_fee_percentage: platformFeePercentage,
+      net_amount: netAmount,
+      notes,
+      category,
+      tax_deductible: Boolean(transactionObj.tax_deductible),
+      receipt_url: receiptUrl,
+      renewal_period_years: renewalPeriodYears,
+    }),
   };
 }
