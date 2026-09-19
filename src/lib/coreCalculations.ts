@@ -24,9 +24,14 @@ export interface BasicFinancialMetrics {
   /** 累计出售毛额（未扣平台费，与 Total Sales 卡片一致） */
   totalGrossSales: number;
   totalProfit: number;
-  roi: number;
-  profitMargin: number;
 }
+
+// roi / profitMargin 已移除。它们的分母是**全部**域名的持有成本（含没卖出的
+// 库存），而分子只来自已成交的收入——一个买入持有型的组合会得到一个深度为负
+// 的 ROI，同时 Realized P&L 是正的。useDomainStats 早就因为这个换成了
+// realizedROI，分享卡片也在 a04acdd 跟上。留着这两个字段只是等下一个人再踩
+// 一次；要"已实现"口径走 realizedPnL.realizedROI，要 lifetime 净头寸看
+// totalRevenue − totalInvestment（FinancialAnalysisOptimized 的 Net Profit）。
 
 // 计算基础财务指标
 export function calculateBasicFinancialMetrics(
@@ -43,16 +48,12 @@ export function calculateBasicFinancialMetrics(
   const totalRevenue = sellTransactions.reduce((sum, t) => sum + sellNetUSD(t), 0);
 
   const totalProfit = totalRevenue - totalInvestment;
-  const roi = totalInvestment > 0 ? (totalProfit / totalInvestment) * 100 : 0;
-  const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
   return {
     totalInvestment,
     totalRevenue,
     totalGrossSales,
-    totalProfit,
-    roi,
-    profitMargin
+    totalProfit
   };
 }
 

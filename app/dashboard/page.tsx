@@ -47,9 +47,8 @@ import { useDashboardData } from '../../src/hooks/useDashboardData';
 import { useDomainOperations } from '../../src/hooks/useDomainOperations';
 import { useTransactionOperations } from '../../src/hooks/useTransactionOperations';
 import { useDomainStats } from '../../src/hooks/useDomainStats';
-import { calculateBasicFinancialMetrics, sellNetUSD, expandSellToCashReceipts } from '../../src/lib/coreCalculations';
+import { expandSellToCashReceipts } from '../../src/lib/coreCalculations';
 import { calculatePaidAmountFromInstallment } from '../../src/lib/platformFeeCalculator';
-import { totalHoldingCostForDomain } from '../../src/lib/renewalCostBasis';
 import { getEffectiveExpiry, daysUntilEffectiveExpiry } from '../../src/lib/effectiveExpiry';
 import { expandRenewalEvents } from '../../src/lib/expandRenewalEvents';
 import { totalRealizedPnL, realizedPnLByMonth, portfolioAtCost } from '../../src/lib/realizedPnL';
@@ -774,65 +773,32 @@ export default function DashboardPage() {
     });
   }, [setActiveTab]);
 
-  // Share 数据与 Analytics 一致：基于按分期调整后的交易（实际已收），非 domain.sale_price
-  const shareData = useMemo(() => {
-    const metrics = calculateBasicFinancialMetrics(domains, transactionsForMetrics);
-    const totalInvestment = metrics.totalInvestment;
-    const totalProfit = metrics.totalProfit;
-    const roi = metrics.roi;
-
-    // 最佳表现域名：按出售交易净收入 - 持有成本 计算单域名利润，与 Analytics 口径一致
-    const sellTxByDomainId = transactionsForMetrics.filter((t) => t.type === 'sell').reduce((acc, t) => {
-      const id = t.domain_id;
-      acc[id] = (acc[id] || 0) + sellNetUSD(t);
-      return acc;
-    }, {} as Record<string, number>);
-
-    let bestDomain: DomainWithTags | null = null;
-    let bestProfit = -Infinity;
-    for (const domain of domains) {
-      const revenue = sellTxByDomainId[domain.id] ?? 0;
-      if (revenue <= 0) continue;
-      const holdingCost = totalHoldingCostForDomain(domain, transactionsForMetrics);
-      const profit = revenue - holdingCost;
-      if (profit > bestProfit) {
-        bestProfit = profit;
-        bestDomain = domain;
-      }
-    }
-
-    // Investment period: earliest purchase → latest activity (last sale/transaction or now)
-    const domainsWithPurchaseDate = domains.filter((d) => d.purchase_date);
-    const timeOf = (v: string | null | undefined) =>
-      (parseLocalCalendarDate(v) ?? new Date(NaN)).getTime();
-    const purchaseDates = domainsWithPurchaseDate.map((d) => timeOf(d.purchase_date));
-    const transactionDates = transactions.map((t) => timeOf(t.date));
-    const saleDates = domains.filter((d) => d.sale_date).map((d) => timeOf(d.sale_date));
-    const now = Date.now();
-    const startMs = purchaseDates.length > 0 ? Math.min(...purchaseDates) : now;
-    const endMs = Math.max(now, ...transactionDates, ...saleDates, startMs);
-    const days = Math.max(0, Math.floor((endMs - startMs) / (1000 * 60 * 60 * 24)));
-    let investmentPeriod: string;
-    if (days === 0) investmentPeriod = locale === 'zh' ? '—' : '—';
-    else if (days < 30) investmentPeriod = locale === 'zh' ? `${days}天` : `${days} days`;
-    else if (days < 365) investmentPeriod = locale === 'zh' ? `${Math.floor(days / 30)}个月` : `${Math.floor(days / 30)} months`;
-    else {
-      const years = Math.floor(days / 365);
-      const months = Math.floor((days % 365) / 30);
-      investmentPeriod = locale === 'zh' ? `${years}年${months}个月` : `${years}y ${months}mo`;
-    }
-
-    const soldDomains = domains.filter((d) => d.status === 'sold');
-    return {
-      totalProfit,
-      roi,
-      bestDomain: bestDomain?.domain_name ?? '—',
-      investmentPeriod,
+  // ShareModal 的兜底 props。
+  //
+  // 这里以前整段复制了 ShareModal 里的 computeShareDataFromData——同一套
+  // bestDomain 循环、同一套 investmentPeriod 格式化、同一个
+  // calculateBasicFinancialMetrics.roi。两份实现于是各自漂移：a04acdd 把
+  // ShareModal 那份换成了 realizedROI 口径，这份没跟上，还在算那个"分母含
+  // 未卖出库存"的旧 ROI。
+  //
+  // 而这些数字**只有在 domains 或 transactions 为空时才会被读到**（ShareModal
+  // 拿到非空数据就自己算），那时候它们全是 0。也就是说这 50 行的产出在任何
+  // 有意义的场景下都用不上，只是在原地等着跟另一份分家。
+  //
+  // 留下的是 ShareModal 自己算不出来的两项：可选的已售域名列表（单域名分享
+  // 的选择器），和 hasData 判空用的总数。
+  const shareData = useMemo(
+    () => ({
+      totalProfit: 0,
+      roi: 0,
+      bestDomain: '—',
+      investmentPeriod: '—',
       domainCount: domains.length,
-      totalInvestment,
-      soldDomains
-    };
-  }, [domains, transactions, transactionsForMetrics, locale]);
+      totalInvestment: 0,
+      soldDomains: domains.filter((d) => d.status === 'sold'),
+    }),
+    [domains]
+  );
 
 
 

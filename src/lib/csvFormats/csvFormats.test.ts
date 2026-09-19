@@ -3,6 +3,7 @@ import * as Papa from 'papaparse'
 import { detectFormat, mapRows } from './index'
 import { mergeCsvImportWithExisting } from './mergeWithExisting'
 import { parseMoneyAmount } from './parseMoney'
+import { genericFormat } from './formats/generic'
 import type { DomainWithTags } from '../../types/dashboard'
 
 // 真实场景下的 papaparse 一致：用同样的 header:true / skipEmptyLines。
@@ -392,5 +393,85 @@ describe('mergeCsvImportWithExisting', () => {
     ])
     expect(result.mergedDomains[0].registrar).toBe('Porkbun')
     expect(result.mergedDomains[0].registration_date).toBe('2020-01-02')
+  })
+})
+
+/**
+ * parseMoneyAmount 的静默错值。
+ *
+ * 旧实现是「剥掉一切非数字非小数点字符，然后 parseFloat」。对英美格式没问题，
+ * 但下面这些会给出**错误金额而不是报错**——而 purchase_cost / renewal_cost
+ * 是 ROI、已实现盈亏、投入合计所有数字的地基，这里错了整个组合的账都错，
+ * 界面上还看不出任何异常。
+ */
+describe('parseMoneyAmount — 不能静默给错值', () => {
+  it('欧陆小数逗号不再被当成千分位（曾经放大 100 倍）', () => {
+    // 用户在德/法/西语区的 Excel 里打开注册商 CSV 再另存就会变成这样
+    expect(parseMoneyAmount('1234,56')).toBe(1234.56)   // 旧：123456
+    expect(parseMoneyAmount('€1.234,56')).toBe(1234.56) // 旧：1.23456
+    expect(parseMoneyAmount('12,50')).toBe(12.5)        // 旧：1250
+  })
+
+  it('英美格式不受影响', () => {
+    expect(parseMoneyAmount('$1,234.56')).toBe(1234.56)
+    expect(parseMoneyAmount('1,234')).toBe(1234)
+    expect(parseMoneyAmount('1,234,567.89')).toBe(1234567.89)
+    expect(parseMoneyAmount('$ 402.00')).toBe(402)
+  })
+
+  it('负数返回 null，而不是翻转成正数', () => {
+    // 旧实现先剥掉 '-' 再判 n < 0，那道判断永远走不到
+    expect(parseMoneyAmount('-402')).toBeNull()   // 旧：402
+    expect(parseMoneyAmount('(402)')).toBeNull()  // 旧：402（会计写法）
+    expect(parseMoneyAmount('-$1,234.56')).toBeNull()
+  })
+
+  it('坏输入返回 null，而不是截断出一个数', () => {
+    expect(parseMoneyAmount('1.2.3')).toBeNull()  // 旧：1.2
+    expect(parseMoneyAmount('.')).toBeNull()
+    expect(parseMoneyAmount(',')).toBeNull()
+  })
+
+  it('零和小数照常', () => {
+    expect(parseMoneyAmount('0')).toBe(0)
+    expect(parseMoneyAmount('$0.00')).toBe(0)
+    expect(parseMoneyAmount('0.99')).toBe(0.99)
+  })
+
+  it('带单位 / 空格千分位的也认', () => {
+    expect(parseMoneyAmount('$1,234.56 USD')).toBe(1234.56)
+    expect(parseMoneyAmount('12 345.67')).toBe(12345.67)
+  })
+})
+
+describe('generic format 的金额列', () => {
+  const map = (row: Record<string, string>) => genericFormat.mapRow(row)
+
+  it('千分位不再被整个丢掉', () => {
+    // 旧实现走裸 Number('1,234.56') → NaN → 成本静默消失，界面上只是空白
+    expect(map({ domain_name: 'a.com', purchase_cost: '1,234.56' })?.purchase_cost).toBe(1234.56)
+  })
+
+  it('负成本不进库', () => {
+    // 旧实现 Number('-5') → −5 → Number.isFinite 放行，负成本让 ROI 变成荒唐值
+    expect(map({ domain_name: 'a.com', purchase_cost: '-5' })?.purchase_cost).toBeUndefined()
+  })
+
+  it('欧陆小数逗号按金额解析', () => {
+    expect(map({ domain_name: 'a.com', renewal_cost: '12,50' })?.renewal_cost).toBe(12.5)
+  })
+
+  it('续费次数 / 周期只收非负整数', () => {
+    expect(map({ domain_name: 'a.com', renewal_count: '3' })?.renewal_count).toBe(3)
+    expect(map({ domain_name: 'a.com', renewal_count: '-1' })?.renewal_count).toBeUndefined()
+    expect(map({ domain_name: 'a.com', renewal_cycle: '1.5' })?.renewal_cycle).toBeUndefined()
+  })
+
+  it('正常数字照常', () => {
+    const r = map({ domain_name: 'A.COM', purchase_cost: '402', renewal_cost: '12', renewal_count: '2' })
+    expect(r?.domain_name).toBe('a.com')
+    expect(r?.purchase_cost).toBe(402)
+    expect(r?.renewal_cost).toBe(12)
+    expect(r?.renewal_count).toBe(2)
   })
 })
