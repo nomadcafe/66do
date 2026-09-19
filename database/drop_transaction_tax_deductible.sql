@@ -36,6 +36,22 @@
 --       FROM public.domain_transactions
 --      WHERE tax_deductible IS TRUE;
 --
+-- APPLIED: 2026-09-19. Recorded in schema_migrations the same day.
+--
+--   The ordering below is what *should* have happened. What actually happened
+--   is that the code deploy went out first (this repo auto-deploys on push to
+--   main via the Vercel Git integration), and step 2 ran afterwards. The end
+--   state is identical, but there was a window where transaction inserts would
+--   have failed had the column been NOT NULL without a default.
+--
+--   It turned out to be harmless — `SELECT COUNT(*) FILTER (WHERE
+--   tax_deductible IS TRUE)` came back 0 out of 102 transactions, confirming
+--   the flag had never once been used in the app's entire history.
+--
+--   Keep the ordering below for the next column removal; the point of writing
+--   it down is that push == deploy here, so "before the deploy" means "before
+--   you push", not "before you remember to".
+--
 -- ORDERING — read this before running anything:
 --
 --   Step 1 and step 2 run BEFORE the code deploy. Step 3 runs AFTER.
