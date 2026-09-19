@@ -698,7 +698,6 @@ const en = {
       date: 'Date',
       notes: 'Notes',
       category: 'Category',
-      taxDeductible: 'Tax Deductible',
       receiptUrl: 'Receipt URL',
       exchangeRate: 'Exchange Rate',
       baseAmount: 'Base Amount',

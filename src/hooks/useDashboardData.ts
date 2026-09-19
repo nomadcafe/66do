@@ -268,7 +268,6 @@ export function useDashboardData(
         notes: transaction.notes || null,
         platform: transaction.platform || null,
         category: transaction.category || null,
-        tax_deductible: transaction.tax_deductible ?? false,
         receipt_url: transaction.receipt_url || null,
         payment_plan: transaction.payment_plan || null,
         installment_period: transaction.installment_period || null,
@@ -462,7 +461,6 @@ export function useDashboardData(
           platform_fee_percentage: transaction.platform_fee_percentage || null,
           net_amount: transaction.net_amount || null,
           category: transaction.category || null,
-          tax_deductible: transaction.tax_deductible ?? false,
           receipt_url: transaction.receipt_url || null,
           notes: transaction.notes || null
         };

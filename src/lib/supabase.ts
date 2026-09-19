@@ -121,7 +121,6 @@ export interface Database {
           platform_fee_percentage: number | null
           net_amount: number | null
           category: string | null
-          tax_deductible: boolean
           receipt_url: string | null
           notes: string | null
           platform: string | null
@@ -160,7 +159,6 @@ export interface Database {
           platform_fee_percentage?: number | null
           net_amount?: number | null
           category?: string | null
-          tax_deductible?: boolean
           receipt_url?: string | null
           notes?: string | null
           platform?: string | null
@@ -199,7 +197,6 @@ export interface Database {
           platform_fee_percentage?: number | null
           net_amount?: number | null
           category?: string | null
-          tax_deductible?: boolean
           receipt_url?: string | null
           notes?: string | null
           platform?: string | null
