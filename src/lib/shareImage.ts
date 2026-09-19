@@ -90,7 +90,8 @@ export interface DomainSaleImageParams {
   domainName: string;
   salePrice: number;
   profit: number;
-  roi: number;
+  /** null = 成本基准为 0，比值没有定义。卡片画 ∞，不画 0.0%。 */
+  roi: number | null;
   holdingShort: string;
   holdingLocalized: string;
   /** Drives colour / copy. When false the card uses a neutral loss palette. */
@@ -348,7 +349,10 @@ export function drawDomainSaleImage(canvas: HTMLCanvasElement, p: DomainSaleImag
     col2X,
     metricValueY,
     metricLabelY,
-    `${p.roi >= 0 ? '+' : ''}${p.roi.toFixed(1)}%`,
+    // 免费 / 零成本域名：任何正收益的 ROI 都是无穷大。以前兜底成 0.0%，
+    // 在一张要发出去的卡上写着「利润 $10,000 / ROI 0.0%」。∞ 的画法跟
+    // FinancialAnalysisOptimized 的 Top Performers 一致。
+    p.roi === null ? '∞' : `${p.roi >= 0 ? '+' : ''}${p.roi.toFixed(1)}%`,
     'ROI',
     pnlColor
   );
