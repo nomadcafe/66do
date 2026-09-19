@@ -1004,7 +1004,7 @@ const zh = {
       totalInvestment: '总投资',
       totalRevenue: '总收益',
       netProfit: '净利润',
-      netProfitCalculation: '净利润 = 净收入 - 总持有成本（投资成本 + 续费成本）',
+      netProfitCalculation: '出售净额减去该域名整段持有期的成本（购入 + 历次续费），按到账月计入。窗口开始之前花的钱照样在这里扣，所以它不等于「出售总额 − 投资」。',
       totalReturn: '总回报率',
       liquidityRatio: '可售占比',
       liquidityRatioDesc: '可售域名（活跃+在售）占比，越高流动性越好',
@@ -1030,6 +1030,7 @@ const zh = {
         'ALL': '全部时间'
       },
       investmentIncludesRenewals: '购入 + 续费。右边那块「续费成本」已经含在这个数里，不是另加。',
+      investmentBeforeWindow: '发生在本窗口之前',
       investment: '投资',
       renewalCost: '续费成本',
       revenue: '收益',

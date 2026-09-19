@@ -1009,7 +1009,7 @@ const en = {
       totalInvestment: 'Total Investment',
       totalRevenue: 'Total Revenue',
       netProfit: 'Net Profit',
-      netProfitCalculation: 'Net Profit = Net Revenue - Total Holding Cost (Investment + Renewal Costs)',
+      netProfitCalculation: "Net sale proceeds minus each domain's full holding cost (purchase plus every renewal over its whole life), booked to the month the cash lands. Costs paid before the selected window are still deducted here, so this is not Total Sales minus Investment.",
       totalReturn: 'Total Return',
       liquidityRatio: 'Liquidity ratio',
       liquidityRatioDesc: 'Share of domains that are active or for sale; higher is better',
@@ -1035,6 +1035,7 @@ const en = {
         'ALL': 'All Time'
       },
       investmentIncludesRenewals: 'Purchases plus renewals — the Renewal Cost tile is part of this number, not on top of it.',
+      investmentBeforeWindow: 'spent before this window',
       investment: 'Investment',
       renewalCost: 'Renewal cost',
       revenue: 'Revenue',
