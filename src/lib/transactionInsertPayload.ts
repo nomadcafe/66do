@@ -1,5 +1,14 @@
 import type { TransactionInsert, TransactionUpdate } from './supabaseService'
 
+/** 自由文本字段（category / platform）落库前的归一：trim，空串存 null。
+ *  不动大小写——用户自己造的名字不该被悄悄改写；候选下拉那边按忽略大小写
+ *  去重，从源头上不让同一个平台分叉成几条。 */
+function freeText(v: unknown): string | null {
+  if (typeof v !== 'string') return null
+  const trimmed = v.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
 /**
  * 从交易对象构建 domain_transactions 表的 Insert  payload（API 与客户端共用）
  */
@@ -22,11 +31,13 @@ export function buildTransactionInsertPayload(
     platform_fee: transaction.platform_fee != null ? Number(transaction.platform_fee) : null,
     platform_fee_percentage: transaction.platform_fee_percentage != null ? Number(transaction.platform_fee_percentage) : null,
     net_amount: transaction.net_amount != null ? Number(transaction.net_amount) : null,
-    category: (transaction.category as string) || null,
+    // 自由文本字段落库前 trim：'Sedo ' 和 'Sedo' 在候选下拉里是两条，
+    // 在交易列表里看着也一模一样，纯属噪音。
+    category: freeText(transaction.category),
     tax_deductible: Boolean(transaction.tax_deductible),
     receipt_url: (transaction.receipt_url as string) || null,
     notes: (transaction.notes as string) || null,
-    platform: (transaction.platform as string) || null,
+    platform: freeText(transaction.platform),
     payment_plan: (transaction.payment_plan as string) || null,
     installment_period: transaction.installment_period != null ? Number(transaction.installment_period) : null,
     downpayment_amount: transaction.downpayment_amount != null ? Number(transaction.downpayment_amount) : null,
@@ -103,14 +114,14 @@ export function buildTransactionUpdatePayload(
   if ('net_amount' in transaction)
     out.net_amount = transaction.net_amount != null ? Number(transaction.net_amount) : null
   if ('category' in transaction)
-    out.category = (transaction.category as string) || null
+    out.category = freeText(transaction.category)
   if ('tax_deductible' in transaction)
     out.tax_deductible = Boolean(transaction.tax_deductible)
   if ('receipt_url' in transaction)
     out.receipt_url = (transaction.receipt_url as string) || null
   if ('notes' in transaction) out.notes = (transaction.notes as string) || null
   if ('platform' in transaction)
-    out.platform = (transaction.platform as string) || null
+    out.platform = freeText(transaction.platform)
   if ('payment_plan' in transaction)
     out.payment_plan = (transaction.payment_plan as string) || null
   if ('installment_period' in transaction)
