@@ -215,6 +215,11 @@ const TransactionList = memo(function TransactionList({
   // due" card. Without it, clicking Review used to scroll to the domain list
   // (wrong destination) and never narrowed to the actual installments.
   const receiptsDueFilter = searchParams.get('txdue') === '1';
+  // ?txnoplatform=1 —— 只看「没记平台的出售」。Sales by Platform 那块的
+  // 「未记录」行会把用户送到这里补录：那张表按平台拆成交，platform 这一列
+  // 是后加的，老交易全是 NULL，于是一大坨钱堆在「未记录」里。在 102 笔交易
+  // 里手动翻出哪几笔缺平台是没法做的事，所以给个筛选。
+  const missingPlatformFilter = searchParams.get('txnoplatform') === '1';
   const sortField: SortField = ((): SortField => {
     const raw = searchParams.get('txsort');
     return raw === 'amount' || raw === 'type' ? raw : 'date';
@@ -247,6 +252,7 @@ const TransactionList = memo(function TransactionList({
   const setTypeFilter = (s: string) => updateParams({ txtype: s === 'all' ? null : s, txpage: null });
   const setPage = (n: number) => updateParams({ txpage: n <= 1 ? null : String(n) });
   const clearReceiptsDueFilter = () => updateParams({ txdue: null, txpage: null });
+  const clearMissingPlatformFilter = () => updateParams({ txnoplatform: null, txpage: null });
   const setViewMode = (mode: 'list' | 'timeline') => updateParams({ txview: mode === 'list' ? null : 'timeline' });
   const setSelectedDomainId = (id: string) => updateParams({ txdomain: id || null });
 
@@ -391,11 +397,16 @@ const TransactionList = memo(function TransactionList({
 
       const matchesType = typeFilter === 'all' || transaction.type === typeFilter;
       const matchesReceiptsDue = !receiptsDueFilterActive || receiptsDueIds!.has(transaction.id);
+      // 只对 sell 生效：Sales by Platform 只统计卖出侧，买入/续费的 platform
+      // 是注册商，不是 marketplace，混进来补录会把两个概念搅在一起。
+      const matchesMissingPlatform =
+        !missingPlatformFilter ||
+        (transaction.type === 'sell' && !(transaction.platform || '').trim());
 
-      return matchesSearch && matchesType && matchesReceiptsDue;
+      return matchesSearch && matchesType && matchesReceiptsDue && matchesMissingPlatform;
     });
     return sortTransactionsForList(filtered, { sortField, sortDir, metricsById });
-  }, [transactions, getDomainName, getTypeLabel, searchTerm, typeFilter, sortField, sortDir, receiptsDueFilterActive, receiptsDueIds, metricsById]);
+  }, [transactions, getDomainName, getTypeLabel, searchTerm, typeFilter, sortField, sortDir, receiptsDueFilterActive, receiptsDueIds, missingPlatformFilter, metricsById]);
 
   // Period KPIs reflecting the *visible* (filtered) set, computed from installment-adjusted
   // amounts (when parent supplies metricsTransactions). Inflow uses sellNetUSD — actual cash
@@ -675,6 +686,22 @@ const TransactionList = memo(function TransactionList({
         </div>
       )}
 
+      {/* 缺平台筛选的横幅。同 receipts-due：解释为什么列表变短了，并给一键退出。
+          琥珀色跟 Sales by Platform 那块「未记录」提示同色，让用户认得出是
+          从那里来的。 */}
+      {missingPlatformFilter && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50/70 px-3.5 py-2 text-sm text-amber-900">
+          <span>{t('transactionList.missingPlatformFilterBanner')}</span>
+          <button
+            type="button"
+            onClick={clearMissingPlatformFilter}
+            className="rounded-md px-2 py-1 text-xs font-medium text-amber-900 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+          >
+            {t('transactionList.clearFilters')}
+          </button>
+        </div>
+      )}
+
       {/* Type chip strip — primary type filter, replaces the old dropdown.
           Only rendered when there's at least one transaction; hidden in
           timeline mode (which has its own filtering semantics). Each chip
@@ -807,12 +834,12 @@ const TransactionList = memo(function TransactionList({
         <div className="text-center py-14 surface-card">
           <FileText className="h-10 w-10 mx-auto text-stone-300 mb-4" />
           <h3 className="text-base font-semibold text-stone-900 mb-2">
-            {searchTerm || typeFilter !== 'all' || receiptsDueFilterActive ? t('transactionList.noTransactionsFound') : t('transactionList.noTransactionsYet')}
+            {searchTerm || typeFilter !== 'all' || receiptsDueFilterActive || missingPlatformFilter ? t('transactionList.noTransactionsFound') : t('transactionList.noTransactionsYet')}
           </h3>
           <p className="text-sm text-stone-500 mb-5 max-w-sm mx-auto">
-            {searchTerm || typeFilter !== 'all' || receiptsDueFilterActive ? t('transactionList.adjustSearch') : t('transactionList.getStarted')}
+            {searchTerm || typeFilter !== 'all' || receiptsDueFilterActive || missingPlatformFilter ? t('transactionList.adjustSearch') : t('transactionList.getStarted')}
           </p>
-          {!searchTerm && typeFilter === 'all' && !receiptsDueFilterActive ? (
+          {!searchTerm && typeFilter === 'all' && !receiptsDueFilterActive && !missingPlatformFilter ? (
             <button
               onClick={onAdd}
               className="inline-flex items-center px-4 py-2.5 bg-teal-600 text-white rounded-xl text-sm font-medium hover:bg-teal-700 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
@@ -832,6 +859,7 @@ const TransactionList = memo(function TransactionList({
                   txq: null,
                   txtype: null,
                   txdue: null,
+                  txnoplatform: null,
                   txpage: null,
                 });
               }}

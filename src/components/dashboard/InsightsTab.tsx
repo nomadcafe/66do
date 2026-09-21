@@ -22,6 +22,9 @@ interface InsightsTabProps {
   transactionsForMetrics: TransactionWithRequiredFields[];
   t: (key: string) => string;
   formatCurrency: (n: number, currency?: string) => string;
+  /** Sales by Platform 的「未记录」行 → 跳到已筛好缺平台出售的交易列表。
+   *  面板本身是只读的，补录走既有的交易编辑表单，不在分析层开写入口。 */
+  onBackfillPlatform?: () => void;
 }
 
 type InsightsSubTab = 'performance' | 'portfolio' | 'renewals' | 'loss';
@@ -51,6 +54,7 @@ export default function InsightsTab({
   transactionsForMetrics,
   t,
   formatCurrency,
+  onBackfillPlatform,
 }: InsightsTabProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -286,7 +290,11 @@ export default function InsightsTab({
           {/* 按 marketplace 看成交表现。必须喂 transactionsForMetrics：
               分期要的是已收折算口径，原始列表会按合同全额放大。 */}
           <LazyWrapper>
-            <LazySalesByPlatform domains={domains} transactions={transactionsForMetrics} />
+            <LazySalesByPlatform
+              domains={domains}
+              transactions={transactionsForMetrics}
+              onBackfillPlatform={onBackfillPlatform}
+            />
           </LazyWrapper>
         </div>
       )}

@@ -5,8 +5,8 @@
  * 合计行、Unknown 行的弱化与提示、费率除不了时不写成 0.0%。
  */
 import React from 'react';
-import { describe, it, expect } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, within, fireEvent } from '@testing-library/react';
 import { I18nProvider } from '../../contexts/I18nProvider';
 import SalesByPlatform from './SalesByPlatform';
 import type { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
@@ -29,10 +29,14 @@ const sell = (id: string, gross: number, net: number, over: Record<string, unkno
     payment_plan: 'lump_sum', ...over,
   }) as unknown as TransactionWithRequiredFields;
 
-const show = (d: DomainWithTags[], t: TransactionWithRequiredFields[]) =>
+const show = (
+  d: DomainWithTags[],
+  t: TransactionWithRequiredFields[],
+  onBackfillPlatform?: () => void
+) =>
   render(
     <I18nProvider>
-      <SalesByPlatform domains={d} transactions={t} />
+      <SalesByPlatform domains={d} transactions={t} onBackfillPlatform={onBackfillPlatform} />
     </I18nProvider>
   );
 
@@ -110,5 +114,48 @@ describe('SalesByPlatform', () => {
     const table = container.querySelector('table')!;
     expect(within(table).getByText('Afternic')).toBeTruthy();
     expect(within(table).queryByText('Not recorded')).toBeNull();
+  });
+});
+
+/**
+ * 「未记录」那行的补录入口。
+ *
+ * platform 这一列是后加的（add_transaction_platform_column.sql），老交易全是
+ * NULL，所以刚打开这张表大概率是一大坨钱堆在「未记录」里。在上百笔交易里手动
+ * 翻出缺平台的那几笔不现实，所以提示里带个按钮，跳到已经筛好的交易列表。
+ *
+ * 补录本身走既有的交易编辑表单——分析面板保持只读，不在这里开写入口。
+ */
+describe('补录入口', () => {
+  const withUnknown = (): [DomainWithTags[], TransactionWithRequiredFields[]] => [
+    [domain('d1', 100), domain('d2', 100)],
+    [
+      buy('d1', 100), sell('d1', 500, 450),                        // 无平台
+      buy('d2', 100), sell('d2', 3000, 2700, { platform: 'Dan' }),
+    ],
+  ];
+
+  it('有未记录的成交时显示按钮，点击触发回调', () => {
+    const onBackfill = vi.fn();
+    const [d, t] = withUnknown();
+    show(d, t, onBackfill);
+    const btn = screen.getByRole('button', { name: /fill them in/i });
+    fireEvent.click(btn);
+    expect(onBackfill).toHaveBeenCalledTimes(1);
+  });
+
+  it('没传回调时只显示说明，不显示按钮', () => {
+    const [d, t] = withUnknown();
+    show(d, t);
+    expect(screen.queryByRole('button', { name: /fill them in/i })).toBeNull();
+    // 说明文字照常在
+    expect(screen.getByText(/have no platform recorded/i)).toBeTruthy();
+  });
+
+  it('全部都记了平台时，按钮和提示都不出现', () => {
+    const onBackfill = vi.fn();
+    show([domain('d1', 100)], [buy('d1', 100), sell('d1', 3000, 2700, { platform: 'Dan' })], onBackfill);
+    expect(screen.queryByRole('button', { name: /fill them in/i })).toBeNull();
+    expect(screen.queryByText(/have no platform recorded/i)).toBeNull();
   });
 });

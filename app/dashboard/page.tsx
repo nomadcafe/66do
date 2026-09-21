@@ -764,6 +764,23 @@ export default function DashboardPage() {
   // the card promised "show me exactly these N installments", and a leftover
   // type=buy chip would intersect that to 0 rows and break the contract.
   // txsort/txdir/txview stay — they're presentational, not gates.
+  // Sales by Platform 的「未记录」行 → activity tab + ?txnoplatform=1。
+  // 那张表按 marketplace 拆成交，而 platform 这一列是后加的（见
+  // add_transaction_platform_column.sql），老交易全是 NULL，于是一大坨钱堆在
+  // 「未记录」里。在上百笔交易里手动翻出缺平台的那几笔不现实，所以直接把用户
+  // 送到已经筛好的列表。
+  //
+  // 同 handleReviewReceiptsDue：清掉 txq / txtype / txpage，否则残留的类型
+  // chip 会跟这个筛选求交集变成 0 行，用户点了个按钮反而看到"没有交易"。
+  const handleBackfillPlatform = useCallback(() => {
+    setActiveTab('activity', { txnoplatform: '1', txpage: null, txq: null, txtype: null });
+    requestAnimationFrame(() => {
+      document
+        .getElementById('dashboard-activity-anchor')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, [setActiveTab]);
+
   const handleReviewReceiptsDue = useCallback(() => {
     setActiveTab('activity', { txdue: '1', txpage: null, txq: null, txtype: null });
     requestAnimationFrame(() => {
@@ -1021,6 +1038,7 @@ export default function DashboardPage() {
               transactionsForMetrics={transactionsForMetrics}
               t={t}
               formatCurrency={formatCurrencyEnhanced}
+              onBackfillPlatform={handleBackfillPlatform}
             />
           </div>
         )}
