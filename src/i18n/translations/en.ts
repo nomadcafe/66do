@@ -952,6 +952,7 @@ const en = {
       noTransactionsYet: 'No transactions yet',
       adjustSearch: 'Try adjusting your search or filter criteria',
       clearFilters: 'Clear filters',
+      missingPlatformFilterBanner: 'Showing only sales with no platform recorded. Open one, set its Platform field, and it moves into its own row in Sales by Platform.',
       receiptsDueFilterBanner: 'Showing only installments due this week',
       sortBy: 'Sort',
       sortByDate: 'By Date',
@@ -1073,6 +1074,7 @@ const en = {
         unknownHint: '{count} sale(s) have no platform recorded. Set the Platform field on a transaction and it will move into its own row here.',
         domain: 'Domain',
         saleDate: 'Sale date',
+        backfillAction: 'Fill them in',
         noData: 'No completed sales yet. Once you record a sale, this table breaks it down by marketplace.'
       },
       investmentIncludesRenewals: 'Purchases plus renewals — the Renewal Cost tile is part of this number, not on top of it.',

@@ -12,6 +12,8 @@ interface SalesByPlatformProps {
   domains: DomainWithTags[];
   /** transactionsForMetrics —— 分期必须是已折算口径，见 salesByPlatform 的注释 */
   transactions: TransactionWithRequiredFields[];
+  /** 点「未记录」提示里的补录按钮时调用。不传就只显示说明文字。 */
+  onBackfillPlatform?: () => void;
 }
 
 // 跟 Investment Analytics 的选择器同一套档位和语义（往前数 N 个自然月、含当月），
@@ -40,7 +42,11 @@ const WINDOWS: Array<{ key: string; months: number | null }> = [
  * 六列表格在手机上横向滚动是没法用的。
  */
 
-export default function SalesByPlatform({ domains, transactions }: SalesByPlatformProps) {
+export default function SalesByPlatform({
+  domains,
+  transactions,
+  onBackfillPlatform,
+}: SalesByPlatformProps) {
   const { t, locale } = useI18nContext();
   const [windowKey, setWindowKey] = useState('ALL');
   // 展开中的平台行，按下标记。用下标而不是平台名：Unknown 桶的 platform 是
@@ -118,11 +124,20 @@ export default function SalesByPlatform({ domains, transactions }: SalesByPlatfo
           platform 这一列是后加的，老交易全是 NULL —— 用户看到一个很大的
           Unknown 行时，得知道那是"没录"而不是"某个叫 Unknown 的平台"。 */}
       {unknownCount > 0 && (
-        <div className="flex items-start gap-2 rounded-xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="flex flex-wrap items-start gap-2 rounded-xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
-          <p>
+          <p className="min-w-0 flex-1">
             {t('analytics.salesByPlatform.unknownHint').replace('{count}', String(unknownCount))}
           </p>
+          {onBackfillPlatform && (
+            <button
+              type="button"
+              onClick={onBackfillPlatform}
+              className="shrink-0 rounded-lg bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-900 hover:bg-amber-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+            >
+              {t('analytics.salesByPlatform.backfillAction')}
+            </button>
+          )}
         </div>
       )}
 

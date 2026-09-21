@@ -947,6 +947,7 @@ const zh = {
       noTransactionsYet: '暂无交易',
       adjustSearch: '请调整搜索或筛选条件',
       clearFilters: '清除筛选',
+      missingPlatformFilterBanner: '只显示没记平台的出售。打开任一笔、填上「平台」，它就会在「按平台看成交」里单独成行。',
       receiptsDueFilterBanner: '仅显示本周应收的分期交易',
       sortBy: '排序',
       sortByDate: '按日期',
@@ -1068,6 +1069,7 @@ const zh = {
         unknownHint: '有 {count} 笔成交没记平台。在交易里填上「平台」，它就会单独成行。',
         domain: '域名',
         saleDate: '成交日',
+        backfillAction: '去补录',
         noData: '还没有成交记录。记一笔出售之后，这里会按平台拆开给你看。'
       },
       investmentIncludesRenewals: '购入 + 续费。右边那块「续费成本」已经含在这个数里，不是另加。',
