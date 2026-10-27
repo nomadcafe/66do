@@ -1,5 +1,7 @@
 -- 给 public 下所有 SECURITY DEFINER 函数钉死 search_path。
 --
+-- APPLIED: 2026-10-27. Recorded in schema_migrations the same day.
+--
 -- 背景：
 --   handle_new_user / handle_user_update 等用户同步触发器函数（见
 --   complete_user_sync.sql / clean_sync.sql）是 SECURITY DEFINER，但没有
