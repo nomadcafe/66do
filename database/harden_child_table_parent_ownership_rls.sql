@@ -1,5 +1,7 @@
 -- 子表 RLS 补上「父行也必须是你的」这一条。
 --
+-- APPLIED: 2026-10-27. Recorded in schema_migrations the same day.
+--
 -- 背景：
 --   domain_transactions 和 installment_receipts 的策略只检查行自己的
 --   user_id = auth.uid()。至于它挂在谁的父行上——交易的 domain_id、收款的

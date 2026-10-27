@@ -12,7 +12,7 @@
 | 表 | 策略 |
 |---|---|
 | `domains` | `Users can access own domains` — `FOR ALL USING (auth.uid() = user_id)` |
-| `domain_transactions` | `Users can access own transactions` — `FOR ALL USING (auth.uid() = user_id)` |
+| `domain_transactions` | `Users can access own transactions` — `FOR ALL USING (auth.uid() = user_id)`，WITH CHECK 另要求 `domain_id` 指向自己的 domains 行 |
 | `renewal_cost_history` | 4 条 per-op policy，通过 `domains.user_id` 跨表检查所有权 |
 | `users` | 仅 `users_select_self` — `FOR SELECT USING (auth.uid() = id)`；写入走 SECURITY DEFINER 触发器 |
 | `verification_tokens` | RLS 开启、零 policy → 仅 `service_role` 可访问 |
@@ -26,11 +26,8 @@
 - `fix_renewal_cost_history_rls.sql` — `renewal_cost_history` 的 4 条 policy（2026-04-22 应用）
 - `fix_users_verification_tokens_password_reset_rls.sql` — `users` 收紧、`verification_tokens` 清空、`password_reset_tokens` drop（2026-04-22 应用）
 - `create_user_id_rls.sql` — `domains` / `domain_transactions` 的等效 baseline（策略名不同）
-
-**待执行（2026-10-27 写入，执行后把这段挪进上面的列表并注明日期）：**
-
-- `harden_child_table_parent_ownership_rls.sql` — `domain_transactions` / `installment_receipts` 的 WITH CHECK 加上父行归属检查
-- `pin_security_definer_search_path.sql` — public 下所有 SECURITY DEFINER 函数钉死 `search_path`
+- `harden_child_table_parent_ownership_rls.sql` — `domain_transactions` / `installment_receipts` 的 WITH CHECK 加父行归属检查（2026-10-27 应用）
+- `pin_security_definer_search_path.sql` — public 下所有 SECURITY DEFINER 函数钉死 `search_path = public, pg_temp`（2026-10-27 应用）
 
 ---
 
