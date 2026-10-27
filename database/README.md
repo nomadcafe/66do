@@ -27,6 +27,11 @@
 - `fix_users_verification_tokens_password_reset_rls.sql` — `users` 收紧、`verification_tokens` 清空、`password_reset_tokens` drop（2026-04-22 应用）
 - `create_user_id_rls.sql` — `domains` / `domain_transactions` 的等效 baseline（策略名不同）
 
+**待执行（2026-10-27 写入，执行后把这段挪进上面的列表并注明日期）：**
+
+- `harden_child_table_parent_ownership_rls.sql` — `domain_transactions` / `installment_receipts` 的 WITH CHECK 加上父行归属检查
+- `pin_security_definer_search_path.sql` — public 下所有 SECURITY DEFINER 函数钉死 `search_path`
+
 ---
 
 ## 其他文件分类
