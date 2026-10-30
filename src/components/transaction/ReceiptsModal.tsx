@@ -106,8 +106,6 @@ export default function ReceiptsModal({
 
   useEffect(() => {
     if (!isOpen) return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !isProcessing) {
         e.preventDefault();
@@ -117,7 +115,6 @@ export default function ReceiptsModal({
     document.addEventListener('keydown', handleKey);
     return () => {
       document.removeEventListener('keydown', handleKey);
-      document.body.style.overflow = prevOverflow;
     };
   }, [isOpen, isProcessing, onClose]);
 

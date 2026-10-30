@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, RefObject } from 'react';
+import { lockBodyScroll } from '../lib/scrollLock';
 
 const FOCUSABLE = [
   'a[href]',
@@ -52,8 +53,7 @@ export function useModalA11y(
     // 让"打开后第一个按键"和焦点落位之间多一个没人管的窗口。
     (preferred ?? panel).focus();
 
-    const prevOverflow = lockScroll ? document.body.style.overflow : null;
-    if (lockScroll) document.body.style.overflow = 'hidden';
+    const unlockScroll = lockScroll ? lockBodyScroll() : null;
 
     const handleKey = (e: KeyboardEvent) => {
       if (e.key !== 'Tab') return;
@@ -86,7 +86,7 @@ export function useModalA11y(
     document.addEventListener('keydown', handleKey);
     return () => {
       document.removeEventListener('keydown', handleKey);
-      if (lockScroll && prevOverflow !== null) document.body.style.overflow = prevOverflow;
+      unlockScroll?.();
       // 关闭后焦点回到打开它的那个按钮，而不是掉回 <body>
       previouslyFocused?.focus?.();
     };
