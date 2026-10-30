@@ -6,6 +6,7 @@ import { Search, Filter, Plus, Edit, Trash2, Calendar, FileText, LayoutList, Git
 import { sellGrossUSD, sellNetUSD } from '../../lib/coreCalculations';
 import { calculateDomainROI, formatPercentage } from '../../lib/enhancedFinancialMetrics';
 import { transactionAmountDisplay } from '../../lib/transactionAmountDisplay';
+import { parseLocalCalendarDate } from '../../lib/localCalendarDate';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { DomainWithTags, TransactionWithRequiredFields } from '../../types/dashboard';
 import DomainTimelineView from './DomainTimelineView';
@@ -159,12 +160,27 @@ function TxMetaBlock({
     </span>
   );
 
+  // 分期进度：只写「2/12」要心算才知道走到哪了，加一条进度条一眼能看出来。
+  const receivedCount = transaction.receipts?.length ?? 0;
+  const periodCount = transaction.installment_period ?? 0;
   const installmentEl = isInstallment && (
-    <span className="text-xs text-stone-500">
-      {transaction.installment_status === 'cancelled'
-        ? `${t('transaction.installment')} · ${t('transaction.cancelled')}`
-        : `${t('transaction.installment')} ${transaction.receipts?.length ?? 0}/${transaction.installment_period ?? 0}`}
-    </span>
+    transaction.installment_status === 'cancelled' ? (
+      <span className="text-xs text-stone-500">
+        {`${t('transaction.installment')} · ${t('transaction.cancelled')}`}
+      </span>
+    ) : (
+      <span className="inline-flex items-center gap-2 text-xs text-stone-500">
+        <span className="tabular-nums">{`${t('transaction.installment')} ${receivedCount}/${periodCount}`}</span>
+        {periodCount > 0 && (
+          <span className="h-1.5 w-16 overflow-hidden rounded-full bg-stone-200" aria-hidden="true">
+            <span
+              className="block h-full rounded-full bg-emerald-500"
+              style={{ width: `${Math.min(100, (receivedCount / periodCount) * 100)}%` }}
+            />
+          </span>
+        )}
+      </span>
+    )
   );
 
   if (isCard) {
@@ -352,8 +368,9 @@ const TransactionList = memo(function TransactionList({
     }).format(amount);
   }, [localeTag]);
 
+  // 'YYYY-MM-DD' 按本地日历日解析；new Date() 会当成 UTC 午夜，美洲时区显示成前一天
   const formatDate = useCallback((dateString: string) => {
-    return new Date(dateString).toLocaleDateString(localeTag);
+    return parseLocalCalendarDate(dateString)?.toLocaleDateString(localeTag) ?? dateString;
   }, [localeTag]);
 
   // domainById：行渲染需要拿完整 domain 对象算 ROI（旧逻辑每行 .find 是
@@ -801,7 +818,7 @@ const TransactionList = memo(function TransactionList({
                   {tile.icon}
                 </span>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
                     {tile.label}
                   </p>
                   <p className={`mt-1 text-xl font-bold tracking-tight tabular-nums ${tile.valueColor}`}>
@@ -905,6 +922,7 @@ const TransactionList = memo(function TransactionList({
                         <button
                           onClick={() => onOpenReceipts(transaction)}
                           aria-label={`${t('transaction.addReceipt')} ${getDomainName(transaction.domain_id)}`}
+                          title={t('transaction.addReceipt')}
                           className="p-2 text-stone-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                         >
                           <PlusCircle className="h-4 w-4" />
@@ -913,6 +931,7 @@ const TransactionList = memo(function TransactionList({
                     <button
                       onClick={() => onEdit(transaction)}
                       aria-label={`${t('common.edit')} ${getDomainName(transaction.domain_id)}`}
+                      title={t('common.edit')}
                       className="p-2 text-stone-500 hover:text-teal-600 hover:bg-teal-50 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
                     >
                       <Edit className="h-4 w-4" />
@@ -920,6 +939,7 @@ const TransactionList = memo(function TransactionList({
                     <button
                       onClick={() => onDelete(transaction.id)}
                       aria-label={`${t('common.delete')} ${getDomainName(transaction.domain_id)}`}
+                      title={t('common.delete')}
                       className="p-2 text-stone-500 hover:text-rose-600 hover:bg-rose-50 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -1068,6 +1088,7 @@ const TransactionList = memo(function TransactionList({
                             <button
                               onClick={() => onOpenReceipts(transaction)}
                               aria-label={`${t('transaction.addReceipt')} ${getDomainName(transaction.domain_id)}`}
+                          title={t('transaction.addReceipt')}
                               className="p-2 text-stone-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                             >
                               <PlusCircle className="h-4 w-4" />
@@ -1076,6 +1097,7 @@ const TransactionList = memo(function TransactionList({
                         <button
                           onClick={() => onEdit(transaction)}
                           aria-label={`${t('common.edit')} ${getDomainName(transaction.domain_id)}`}
+                      title={t('common.edit')}
                           className="p-2 text-stone-500 hover:text-teal-600 hover:bg-teal-50 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
                         >
                           <Edit className="h-4 w-4" />
@@ -1083,6 +1105,7 @@ const TransactionList = memo(function TransactionList({
                         <button
                           onClick={() => onDelete(transaction.id)}
                           aria-label={`${t('common.delete')} ${getDomainName(transaction.domain_id)}`}
+                      title={t('common.delete')}
                           className="p-2 text-stone-500 hover:text-rose-600 hover:bg-rose-50 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
                         >
                           <Trash2 className="h-4 w-4" />

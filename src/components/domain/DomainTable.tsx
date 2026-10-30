@@ -10,6 +10,7 @@ import { domainRoiWithKind } from '../../lib/financialCalculations';
 import { domainStatusLabel as statusLabel } from '../../lib/domainStatusLabel';
 import { isExpiredButNotMarked } from '../../lib/domainLossStatus';
 import { getExpiryBadge, EXPIRY_TONE_CLASS } from '../../lib/expiryBadge';
+import { parseLocalCalendarDate } from '../../lib/localCalendarDate';
 import { transactionAmountDisplay } from '../../lib/transactionAmountDisplay';
 import { ListPagination } from '../ui/ListPagination';
 
@@ -347,7 +348,7 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], metr
     }).format(amount);
   };
   const formatDateLocale = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(localeTag);
+    return parseLocalCalendarDate(dateString)?.toLocaleDateString(localeTag) ?? dateString;
   };
 
 

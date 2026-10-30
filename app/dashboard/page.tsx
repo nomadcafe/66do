@@ -421,8 +421,8 @@ export default function DashboardPage() {
   );
   const formatTransactionDate = useCallback((d: string | null | undefined) => {
     if (!d) return '';
-    const parsed = new Date(d);
-    return Number.isNaN(parsed.getTime()) ? d : dateFormatter.format(parsed);
+    const parsed = parseLocalCalendarDate(d);
+    return parsed ? dateFormatter.format(parsed) : d;
   }, [dateFormatter]);
 
   // Trend window for the portfolio sparkline (affects sparkline only — totals stay all-time)
