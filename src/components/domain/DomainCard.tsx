@@ -11,6 +11,7 @@ import { domainStatusLabel as statusLabel } from '../../lib/domainStatusLabel';
 import { daysUntilEffectiveExpiry } from '../../lib/effectiveExpiry';
 import { getExpiryBadge, EXPIRY_TONE_CLASS } from '../../lib/expiryBadge';
 import { isExpiredButNotMarked } from '../../lib/domainLossStatus';
+import { parseLocalCalendarDate } from '../../lib/localCalendarDate';
 import type { TransactionWithRequiredFields } from '../../types/transaction';
 
 /** Days past effective expiry after which a still-active domain is "stale".
@@ -107,7 +108,7 @@ const DomainCard = memo(function DomainCard({ domain, transactions = [], metrics
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(localeTag);
+    return parseLocalCalendarDate(dateString)?.toLocaleDateString(localeTag) ?? dateString;
   };
 
   const formatCurrency = (amount: number) => {
