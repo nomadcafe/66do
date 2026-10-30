@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { lockBodyScroll } from '../../lib/scrollLock';
 
 interface DeleteConfirmDialogProps {
   open: boolean;
@@ -46,8 +47,7 @@ export default function DeleteConfirmDialog({
     if (!open) return;
     const previouslyFocused = document.activeElement as HTMLElement | null;
     const focusTimer = window.setTimeout(() => confirmRef.current?.focus(), 0);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const unlockScroll = lockBodyScroll();
 
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -73,7 +73,7 @@ export default function DeleteConfirmDialog({
     return () => {
       window.clearTimeout(focusTimer);
       document.removeEventListener('keydown', handleKey);
-      document.body.style.overflow = prevOverflow;
+      unlockScroll();
       previouslyFocused?.focus?.();
     };
   }, [open, onCancel]);

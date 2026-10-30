@@ -68,14 +68,10 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
     return amount / renewalYears;
   }, [amount, renewalYears]);
 
-  // Esc-to-close + body scroll lock while open. (Backdrop-click is handled
-  // inline on the overlay's onClick.) Mirrors the DeleteConfirmDialog
-  // a11y treatment so the rest of the page can't scroll behind the modal
-  // and keyboard users have a way out.
+  // Esc-to-close while open. (Backdrop-click is handled inline on the
+  // overlay's onClick; scroll lock lives in useModalA11y.)
   useEffect(() => {
     if (!isOpen) return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !isProcessing) {
         e.preventDefault();
@@ -85,7 +81,6 @@ export default function RenewalModal({ isOpen, onClose, domain, onRenew }: Renew
     document.addEventListener('keydown', handleKey);
     return () => {
       document.removeEventListener('keydown', handleKey);
-      document.body.style.overflow = prevOverflow;
     };
   }, [isOpen, isProcessing, onClose]);
 
