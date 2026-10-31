@@ -913,7 +913,7 @@ const TransactionList = memo(function TransactionList({
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-0.5 flex-shrink-0">
+                  <div className="flex items-center gap-1 flex-shrink-0">
                     {onOpenReceipts &&
                       transaction.type === 'sell' &&
                       transaction.payment_plan === 'installment' &&
@@ -923,7 +923,7 @@ const TransactionList = memo(function TransactionList({
                           onClick={() => onOpenReceipts(transaction)}
                           aria-label={`${t('transaction.addReceipt')} ${getDomainName(transaction.domain_id)}`}
                           title={t('transaction.addReceipt')}
-                          className="p-2 text-stone-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                          className="p-2.5 text-stone-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                         >
                           <PlusCircle className="h-4 w-4" />
                         </button>
@@ -932,15 +932,17 @@ const TransactionList = memo(function TransactionList({
                       onClick={() => onEdit(transaction)}
                       aria-label={`${t('common.edit')} ${getDomainName(transaction.domain_id)}`}
                       title={t('common.edit')}
-                      className="p-2 text-stone-500 hover:text-teal-600 hover:bg-teal-50 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                      className="p-2.5 text-stone-500 hover:text-teal-600 hover:bg-teal-50 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
                     >
                       <Edit className="h-4 w-4" />
                     </button>
+                    {/* 删除和编辑之间隔开一段，手机上不容易误点 */}
+                    <span className="mx-1 h-5 w-px bg-stone-200" aria-hidden="true" />
                     <button
                       onClick={() => onDelete(transaction.id)}
                       aria-label={`${t('common.delete')} ${getDomainName(transaction.domain_id)}`}
                       title={t('common.delete')}
-                      className="p-2 text-stone-500 hover:text-rose-600 hover:bg-rose-50 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                      className="p-2.5 text-stone-500 hover:text-rose-600 hover:bg-rose-50 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -975,11 +977,11 @@ const TransactionList = memo(function TransactionList({
               <table className="min-w-full divide-y divide-stone-200">
                 <thead className="bg-stone-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
                       {t('transactionList.domain')}
                     </th>
                     <th
-                      className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider"
+                      className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider"
                       aria-sort={sortField === 'type' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
                     >
                       <button
@@ -993,7 +995,7 @@ const TransactionList = memo(function TransactionList({
                       </button>
                     </th>
                     <th
-                      className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider"
+                      className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider"
                       aria-sort={sortField === 'amount' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
                     >
                       <button
@@ -1007,7 +1009,7 @@ const TransactionList = memo(function TransactionList({
                       </button>
                     </th>
                     <th
-                      className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider"
+                      className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider"
                       aria-sort={sortField === 'date' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
                     >
                       <button
@@ -1020,10 +1022,10 @@ const TransactionList = memo(function TransactionList({
                         {sortField === 'date' && (sortDir === 'asc' ? <ArrowUp className="h-3 w-3 text-teal-600" /> : <ArrowDown className="h-3 w-3 text-teal-600" />)}
                       </button>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
                       {t('transactionList.notes')}
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-stone-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-right text-xs font-medium text-stone-500 uppercase tracking-wider">
                       {t('transactionList.actions')}
                     </th>
                   </tr>
@@ -1036,17 +1038,17 @@ const TransactionList = memo(function TransactionList({
                       transaction.type === 'sell' ? 'bg-emerald-50/30' : ''
                     }`}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-stone-900">
                         {getDomainName(transaction.domain_id)}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTypeColor(transaction.type)}`}>
                         {getTypeLabel(transaction.type)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4 whitespace-nowrap">
                       <TxMetaBlock
                         transaction={transaction}
                         allTransactions={transactions}
@@ -1057,7 +1059,7 @@ const TransactionList = memo(function TransactionList({
                         variant="table"
                       />
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <Calendar className="h-4 w-4 text-stone-400 mr-1" />
                         <span className="text-sm text-stone-900">
@@ -1065,7 +1067,7 @@ const TransactionList = memo(function TransactionList({
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4">
                       <div className="max-w-xs">
                         <div className="truncate text-sm text-stone-700" title={transaction.notes || undefined}>
                           {transaction.notes || '-'}
@@ -1078,7 +1080,7 @@ const TransactionList = memo(function TransactionList({
                         />
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-0.5">
                         {onOpenReceipts &&
                           transaction.type === 'sell' &&

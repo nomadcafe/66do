@@ -15,6 +15,7 @@ import {
 import { saleTweetText, shareToX } from '../../lib/shareText';
 import { useMascotImage } from '../../hooks/useMascotImage';
 import ModalShell from './ModalShell';
+import { parseLocalCalendarDate } from '../../lib/localCalendarDate';
 
 interface SaleSuccessModalProps {
   isOpen: boolean;
@@ -87,8 +88,8 @@ export default function SaleSuccessModal({
   const calculateROI = (): number | null =>
     totalHoldingCost > 0 ? (calculateProfit() / totalHoldingCost) * 100 : null;
 
-  const purchaseDate = new Date(domain.purchase_date || '');
-  const saleDate = new Date(transaction.date);
+  const purchaseDate = parseLocalCalendarDate(domain.purchase_date) ?? new Date(NaN);
+  const saleDate = parseLocalCalendarDate(transaction.date) ?? new Date(NaN);
   const holdingLocalized = holdingPeriodLocalized(purchaseDate, saleDate, {
     days: t('common.days'),
     months: t('common.months'),
