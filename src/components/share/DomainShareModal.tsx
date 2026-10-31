@@ -45,14 +45,15 @@ export default function DomainShareModal({ isOpen, onClose, domain, transactions
   // null（没有成交 / 成本基准为 0）一路传到底：卡片画 ∞，推文省掉 ROI 整句。
   const calculateROI = (): number | null => outcome?.roi ?? null;
 
-  const purchaseDate = new Date(domain.purchase_date || '');
+  // 两个日期都按本地日历日解析——一边 UTC 一边本地，持有天数会差一天
+  const purchaseDate = parseLocalCalendarDate(domain.purchase_date) ?? new Date(NaN);
   // 成交价和成交日也走同一笔成交记录。以前 salePrice 读 domain.sale_price、
   // 利润读交易，同一张卡上两个口径——sale_price 没回写时会印出「成交价 $0，
   // 利润 $4,000」。sale_date 缺失时原本退回"今天"，持有天数跟着算错。
   const saleDate = outcome?.saleDate
     ? (parseLocalCalendarDate(outcome.saleDate) ?? new Date())
     : domain.sale_date
-      ? new Date(domain.sale_date)
+      ? (parseLocalCalendarDate(domain.sale_date) ?? new Date())
       : new Date();
 
   const generateShareImage = async () => {

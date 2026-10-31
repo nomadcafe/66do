@@ -165,8 +165,8 @@ export default function ShareModal({ isOpen, onClose, shareData, domains = [], t
   const drawCanvas = useCallback(() => {
     if (!canvasRef.current) return;
     if (shareMode === 'single' && selectedDomain) {
-      const purchaseDate = new Date(selectedDomain.purchase_date || '');
-      const saleDate = selectedDomain.sale_date ? new Date(selectedDomain.sale_date) : new Date();
+      const purchaseDate = parseLocalCalendarDate(selectedDomain.purchase_date) ?? new Date(NaN);
+      const saleDate = parseLocalCalendarDate(selectedDomain.sale_date) ?? new Date();
       const profit = domainProfit(selectedDomain, transactions);
       drawDomainSaleImage(canvasRef.current, {
         domainName: selectedDomain.domain_name,

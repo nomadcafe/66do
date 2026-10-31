@@ -5,6 +5,7 @@ import { calculateExpiredDomainLoss } from '../../lib/financialCalculations';
 import { useI18nContext } from '../../contexts/I18nProvider';
 import { TrendingDown, Hash, Scale, CheckCircle } from 'lucide-react';
 import type { TransactionWithRequiredFields } from '../../types/transaction';
+import { parseLocalCalendarDate } from '../../lib/localCalendarDate';
 
 interface ExpiredDomainLossAnalysisProps {
   domains: Array<{
@@ -275,7 +276,7 @@ export default function ExpiredDomainLossAnalysis({ domains, transactions = [] }
                 <span className="font-medium text-stone-900 truncate">{domain.domain_name}</span>
                 <span className="text-sm text-stone-500 shrink-0 tabular-nums">
                   {domain.expiryDate
-                    ? dateFormatter.format(new Date(domain.expiryDate))
+                    ? dateFormatter.format(parseLocalCalendarDate(domain.expiryDate) ?? new Date(domain.expiryDate))
                     : t('analytics.expiryDateMissing')}
                 </span>
               </div>
