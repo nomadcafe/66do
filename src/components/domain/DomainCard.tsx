@@ -124,28 +124,11 @@ const DomainCard = memo(function DomainCard({ domain, transactions = [], metrics
         domain.status
       )} p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:border-stone-300 transition-all duration-200`}
     >
-      {/* Actions in top-right. The pr-20 below reserves header space so we
-          don't need the backdrop-blur container anymore — actions sit in
-          their own clear zone. */}
-      <div className="absolute top-3 right-3 flex items-center gap-0.5 z-10">
-        <button onClick={() => onView(domain)} className="p-1.5 text-stone-400 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label={`${t('domainList.table.viewDetails')} ${domain.domain_name}`} title={t('domainList.table.viewDetails')}>
-          <Eye className="h-4 w-4" />
-        </button>
-        <button onClick={() => onEdit(domain)} className="p-1.5 text-stone-400 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label={`${t('domainList.table.editDomain')} ${domain.domain_name}`} title={t('domainList.table.editDomain')}>
-          <Edit className="h-4 w-4" />
-        </button>
-        {domain.status === 'sold' && (
-          <button onClick={() => setShowShareModal(true)} className="p-1.5 text-stone-400 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label={`${t('domainList.table.shareSale')} ${domain.domain_name}`} title={t('domainList.table.shareSale')}>
-            <Share2 className="h-4 w-4" />
-          </button>
-        )}
-        <button onClick={() => onDelete(domain.id)} className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label={`${t('domainList.table.deleteDomain')} ${domain.domain_name}`} title={t('domainList.table.deleteDomain')}>
-          <Trash2 className="h-4 w-4" />
-        </button>
-      </div>
-
-      <div className="flex items-start gap-3 mb-4 pr-20">
-        <div className="p-2 bg-stone-100 rounded-xl flex-shrink-0">
+      {/* 标题行：操作按钮和域名放在同一个 flex 行里。以前按钮是 absolute 定位、
+          标题用 pr-20 预留 80px——已售域名多一个分享按钮就超出预留，长域名
+          被按钮盖住。放进同一行后标题自然让出按钮的宽度。 */}
+      <div className="flex items-start gap-3 mb-4">
+        <div className="hidden sm:block p-2 bg-stone-100 rounded-xl flex-shrink-0">
           <Globe className="h-5 w-5 text-stone-600" />
         </div>
         <div className="flex-1 min-w-0">
@@ -153,6 +136,24 @@ const DomainCard = memo(function DomainCard({ domain, transactions = [], metrics
             {domain.domain_name}
           </h3>
           <p className="text-sm text-stone-500 mt-1 break-words">{domain.registrar}</p>
+        </div>
+        <div className="-mt-1 -mr-1 flex items-center gap-0.5 flex-shrink-0">
+          <button onClick={() => onView(domain)} className="p-2 lg:p-1.5 text-stone-400 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label={`${t('domainList.table.viewDetails')} ${domain.domain_name}`} title={t('domainList.table.viewDetails')}>
+            <Eye className="h-4 w-4" />
+          </button>
+          <button onClick={() => onEdit(domain)} className="p-2 lg:p-1.5 text-stone-400 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label={`${t('domainList.table.editDomain')} ${domain.domain_name}`} title={t('domainList.table.editDomain')}>
+            <Edit className="h-4 w-4" />
+          </button>
+          {domain.status === 'sold' && (
+            <button onClick={() => setShowShareModal(true)} className="p-2 lg:p-1.5 text-stone-400 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label={`${t('domainList.table.shareSale')} ${domain.domain_name}`} title={t('domainList.table.shareSale')}>
+              <Share2 className="h-4 w-4" />
+            </button>
+          )}
+          {/* 删除和其它按钮隔开，手机上不容易误点 */}
+          <span className="mx-0.5 h-4 w-px bg-stone-200" aria-hidden="true" />
+          <button onClick={() => onDelete(domain.id)} className="p-2 lg:p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label={`${t('domainList.table.deleteDomain')} ${domain.domain_name}`} title={t('domainList.table.deleteDomain')}>
+            <Trash2 className="h-4 w-4" />
+          </button>
         </div>
       </div>
 

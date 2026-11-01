@@ -692,10 +692,10 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], metr
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1">
+                      <div className="flex items-center justify-end gap-0.5">
                         <button
                           onClick={() => onView(domain)}
-                          className="p-1 text-stone-400 hover:text-teal-600 transition-colors"
+                          className="p-1.5 text-stone-400 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
                           title={t('domainList.table.viewDetails')}
                           aria-label={`${t('domainList.table.viewDetails')} ${domain.domain_name}`}
                         >
@@ -703,7 +703,7 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], metr
                         </button>
                         <button
                           onClick={() => onEdit(domain)}
-                          className="p-1 text-stone-400 hover:text-teal-600 transition-colors"
+                          className="p-1.5 text-stone-400 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
                           title={t('domainList.table.editDomain')}
                           aria-label={`${t('domainList.table.editDomain')} ${domain.domain_name}`}
                         >
@@ -715,7 +715,7 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], metr
                               setSelectedDomain(domain);
                               setShowShareModal(true);
                             }}
-                            className="p-1 text-stone-400 hover:text-teal-600 transition-colors"
+                            className="p-1.5 text-stone-400 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
                             title={t('domainList.table.shareSale')}
                             aria-label={`${t('domainList.table.shareSale')} ${domain.domain_name}`}
                           >
@@ -724,7 +724,7 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], metr
                         )}
                         <button
                           onClick={() => onDelete(domain.id)}
-                          className="p-1 text-stone-400 hover:text-rose-600 transition-colors"
+                          className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
                           title={t('domainList.table.deleteDomain')}
                           aria-label={`${t('domainList.table.deleteDomain')} ${domain.domain_name}`}
                         >
