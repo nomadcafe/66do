@@ -129,7 +129,7 @@ export default function AnnualExpenses({ domains, transactions }: AnnualExpenses
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-stone-200 bg-stone-50/60 text-[10px] uppercase tracking-[0.14em] text-stone-500">
+              <tr className="border-b border-stone-200 bg-stone-50/60 text-[11px] uppercase tracking-[0.14em] text-stone-500">
                 <th className="px-5 py-3 font-semibold">{t('analytics.annualExpenses.year')}</th>
                 {EXPENSE_CATEGORIES.map((c) => (
                   <th key={c} className="px-5 py-3 text-right font-semibold">

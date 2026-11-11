@@ -516,7 +516,7 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], metr
                           二字标签足够区分，统一固定宽度让数字纵向对齐，扫起来
                           像一张迷你财务卡。空值斜体灰显示 "Set" 邀请填写。 */}
                       <div className="flex items-center gap-2">
-                        <span className="w-10 text-[10px] font-semibold uppercase tracking-wide text-stone-400">
+                        <span className="w-10 text-[11px] font-semibold uppercase tracking-wide text-stone-400">
                           {t('domainList.table.costLabelBuy')}
                         </span>
                         {isEditingCost ? (
@@ -551,7 +551,7 @@ const DomainTable = memo(function DomainTable({ domains, transactions = [], metr
                         )}
                       </div>
                       <div className="mt-1 flex items-center gap-2">
-                        <span className="w-10 text-[10px] font-semibold uppercase tracking-wide text-stone-400">
+                        <span className="w-10 text-[11px] font-semibold uppercase tracking-wide text-stone-400">
                           {t('domainList.table.costLabelRenew')}
                         </span>
                         {isEditingRenewal ? (

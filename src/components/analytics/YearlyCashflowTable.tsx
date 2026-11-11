@@ -168,7 +168,7 @@ export default function YearlyCashflowTable({
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left">
                 <thead>
-                  <tr className="border-b border-stone-200 bg-stone-50/60 text-stone-500 text-[10px] uppercase tracking-[0.14em]">
+                  <tr className="border-b border-stone-200 bg-stone-50/60 text-stone-500 text-[11px] uppercase tracking-[0.14em]">
                     <th className="px-5 py-3 font-semibold">{t('analytics.yearlyRenewalProfit.year')}</th>
                     <th className="px-5 py-3 font-semibold text-right">{t('analytics.yearlyRenewalProfit.renewal')}</th>
                     <th className="px-5 py-3 font-semibold text-right">{t('analytics.yearlyRenewalProfit.otherOutflow')}</th>
@@ -250,7 +250,7 @@ function Stat({
 }) {
   return (
     <div className="min-w-0">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">{label}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">{label}</p>
       <p className={`mt-0.5 text-sm font-semibold tabular-nums ${valueClass ?? 'text-stone-700'}`}>
         {value}
       </p>

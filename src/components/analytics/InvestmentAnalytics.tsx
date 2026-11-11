@@ -612,7 +612,7 @@ export default function InvestmentAnalytics({
               </span>
               <div className="min-w-0">
                 <div className="flex items-center gap-1">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
                     {tile.label}
                   </p>
                   {tile.tooltip ? <InfoTooltip text={tile.tooltip} /> : null}

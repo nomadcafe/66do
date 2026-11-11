@@ -158,7 +158,7 @@ export default function ExpiredDomainLossAnalysis({ domains, transactions = [] }
               <TrendingDown className="h-5 w-5" />
             </span>
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
                 {t('analytics.thisYearTotalLoss')}
               </p>
               {hasThisYearLoss ? (
@@ -182,7 +182,7 @@ export default function ExpiredDomainLossAnalysis({ domains, transactions = [] }
               <Hash className="h-5 w-5" />
             </span>
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
                 {t('analytics.expiredDomainsCount')}
               </p>
               <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-stone-900">
@@ -201,7 +201,7 @@ export default function ExpiredDomainLossAnalysis({ domains, transactions = [] }
               <Scale className="h-5 w-5" />
             </span>
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
                 {t('analytics.averageLossPerDomain')}
               </p>
               {hasPricedLoss ? (

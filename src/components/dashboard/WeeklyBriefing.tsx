@@ -52,18 +52,18 @@ export default function WeeklyBriefing({ title, subtitle, cards }: WeeklyBriefin
                 {card.icon}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-500">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-500">
                   {card.title}
                 </p>
                 <p
-                  className={`mt-0.5 truncate text-sm font-semibold leading-snug ${
+                  className={`mt-0.5 text-sm font-semibold leading-snug sm:truncate ${
                     card.empty ? 'text-stone-500' : 'text-stone-900'
                   }`}
                 >
                   {card.primary}
                 </p>
                 {card.secondary && (
-                  <p className="mt-0.5 truncate text-xs text-stone-500">{card.secondary}</p>
+                  <p className="mt-0.5 text-xs text-stone-500 sm:truncate">{card.secondary}</p>
                 )}
               </div>
             </div>

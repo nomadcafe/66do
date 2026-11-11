@@ -162,7 +162,7 @@ const DomainCard = memo(function DomainCard({ domain, transactions = [], metrics
           date, original cost, renewal count). DollarSign icons removed —
           tabular nums + the dollar sign in formatCurrency carry the meaning. */}
       <div className="mb-4">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
           {t('domain.totalHoldingCost')}
         </p>
         <p className="mt-0.5 text-xl font-bold tabular-nums text-stone-900">
@@ -243,7 +243,7 @@ const DomainCard = memo(function DomainCard({ domain, transactions = [], metrics
             }`}
           >
             <p
-              className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${
+              className={`text-[11px] font-semibold uppercase tracking-[0.14em] ${
                 profitPositive ? 'text-emerald-700/80' : 'text-rose-700/80'
               }`}
             >

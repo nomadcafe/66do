@@ -98,7 +98,7 @@ export default function UpcomingRenewals({ domains }: UpcomingRenewalsProps) {
             return (
               <div key={key} className={`rounded-xl border p-4 ${tone.tile}`}>
                 <p
-                  className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${tone.label}`}
+                  className={`text-[11px] font-semibold uppercase tracking-[0.14em] ${tone.label}`}
                 >
                   {t(BUCKET_LABEL_KEY[key])}
                 </p>
@@ -123,7 +123,7 @@ export default function UpcomingRenewals({ domains }: UpcomingRenewalsProps) {
           <div className="mt-5 overflow-x-auto">
             <table className="w-full min-w-[34rem] text-sm">
               <thead>
-                <tr className="border-b border-stone-100 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                <tr className="border-b border-stone-100 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
                   <th className="py-2 pr-3 text-left font-semibold">{t('renewal.colDomain')}</th>
                   <th className="py-2 px-3 text-left font-semibold">{t('renewal.colRegistrar')}</th>
                   <th className="py-2 px-3 text-left font-semibold">{t('renewal.colDueDate')}</th>
@@ -147,7 +147,7 @@ export default function UpcomingRenewals({ domains }: UpcomingRenewalsProps) {
                       </span>
                       {/* 兜底推算出来的到期日置信度低，标出来别让人当成注册商给的确切日期 */}
                       {row.expiry_source === 'estimated' && (
-                        <span className="ml-1.5 inline-flex items-center rounded bg-stone-100 px-1.5 py-0.5 text-[10px] font-medium text-stone-600">
+                        <span className="ml-1.5 inline-flex items-center rounded bg-stone-100 px-1.5 py-0.5 text-[11px] font-medium text-stone-600">
                           {t('renewal.expiryEstimated')}
                         </span>
                       )}

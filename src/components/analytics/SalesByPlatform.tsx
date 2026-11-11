@@ -186,7 +186,7 @@ export default function SalesByPlatform({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-stone-200 bg-stone-50/60 text-[10px] uppercase tracking-[0.14em] text-stone-500">
+              <tr className="border-b border-stone-200 bg-stone-50/60 text-[11px] uppercase tracking-[0.14em] text-stone-500">
                 <th className="px-5 py-3 font-semibold">{t('analytics.salesByPlatform.platform')}</th>
                 <th className="px-5 py-3 text-right font-semibold">{t('analytics.salesByPlatform.sales')}</th>
                 <th className="px-5 py-3 text-right font-semibold">{t('analytics.salesByPlatform.grossSales')}</th>
@@ -246,7 +246,7 @@ export default function SalesByPlatform({
                           ——某个平台的有效费率偏高，往往是一两笔大额成交拉的。 */}
                       <table className="w-full text-left text-xs">
                         <thead>
-                          <tr className="text-[10px] uppercase tracking-wider text-stone-400">
+                          <tr className="text-[11px] uppercase tracking-wider text-stone-400">
                             <th className="py-2 font-medium">{t('analytics.salesByPlatform.domain')}</th>
                             <th className="py-2 font-medium">{t('analytics.salesByPlatform.saleDate')}</th>
                             <th className="py-2 text-right font-medium">{t('analytics.salesByPlatform.grossSales')}</th>
@@ -329,7 +329,7 @@ function Stat({
 }) {
   return (
     <div className="min-w-0">
-      <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">{label}</p>
+      <p className="text-[11px] font-medium uppercase tracking-wider text-stone-500">{label}</p>
       <p className={`mt-0.5 truncate text-sm font-semibold tabular-nums ${valueClass}`}>{value}</p>
     </div>
   );

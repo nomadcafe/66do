@@ -144,7 +144,7 @@ export default function InsightsTab({
               <TrendingUp className="h-5 w-5" />
             </span>
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
                 {t('insights.kpiRealizedPnL')}
               </p>
               <p className={`mt-1 text-xl font-bold tracking-tight tabular-nums ${pnlColor}`}>
@@ -160,7 +160,7 @@ export default function InsightsTab({
               <Award className="h-5 w-5" />
             </span>
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
                 {t('insights.kpiBestSale')}
               </p>
               {kpis.bestSale ? (
@@ -188,7 +188,7 @@ export default function InsightsTab({
               <Target className="h-5 w-5" />
             </span>
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
                 {t('insights.kpiSuccessRate')}
               </p>
               {kpis.successRate ? (
@@ -214,7 +214,7 @@ export default function InsightsTab({
               <Clock className="h-5 w-5" />
             </span>
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
                 {t('insights.kpiAvgHolding')}
               </p>
               {kpis.avgHoldingDays !== null ? (
@@ -230,6 +230,9 @@ export default function InsightsTab({
       </div>
 
       {/* ────── Sub-tab nav (segmented control) ────── */}
+      {/* 四个按钮 whitespace-nowrap，窄屏上合起来比屏幕宽——外面包一层横向滚动，
+          别把整页撑出横向滚动条 */}
+      <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
       <div className="inline-flex items-center gap-1 rounded-xl border border-stone-200 bg-stone-100/80 p-1">
         <button
           type="button"
@@ -263,6 +266,7 @@ export default function InsightsTab({
         >
           {t('insights.subTabLoss')}
         </button>
+      </div>
       </div>
 
       {/* ────── Tab content — visited sub-tabs stay mounted (hidden when

@@ -818,7 +818,7 @@ const TransactionList = memo(function TransactionList({
                   {tile.icon}
                 </span>
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
                     {tile.label}
                   </p>
                   <p className={`mt-1 text-xl font-bold tracking-tight tabular-nums ${tile.valueColor}`}>

@@ -193,7 +193,7 @@ export default function FinancialAnalysis({ domains, transactions }: FinancialAn
               <div className="flex items-center gap-3 min-w-0">
                 <TrendingDown className="h-5 w-5 text-rose-500 shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
                     {t('reports.worstSale')}
                   </p>
                   <p className="mt-0.5 text-sm font-medium text-stone-900 truncate">
@@ -236,7 +236,7 @@ function KpiTile({
         {icon}
       </span>
       <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
           {label}
         </p>
         <p className={`mt-1 text-xl font-bold tracking-tight tabular-nums ${valueClass ?? 'text-stone-900'}`}>

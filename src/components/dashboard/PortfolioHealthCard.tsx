@@ -448,7 +448,7 @@ export default function PortfolioHealthCard({
                 )}
               </p>
               {axisTicks.length >= 2 && (
-                <p className="hidden shrink-0 text-[10px] tabular-nums text-stone-400 sm:block">
+                <p className="hidden shrink-0 text-[11px] tabular-nums text-stone-400 sm:block">
                   {axisTicks[0].label}
                   {' → '}
                   {axisTicks[axisTicks.length - 1].label}
@@ -485,7 +485,7 @@ export default function PortfolioHealthCard({
         </div>
 
         {/* ────── Footer chips: secondary metrics ────── */}
-        <p className="mt-7 -mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-400">
+        <p className="mt-7 -mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">
           {labels.allTimeFooter}
         </p>
         <div className="mt-5 grid grid-cols-3 gap-3 border-t border-stone-200/70 pt-4">
@@ -494,7 +494,7 @@ export default function PortfolioHealthCard({
               <Globe className="h-4 w-4" />
             </span>
             <div className="min-w-0">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">
+              <p className="text-[11px] font-medium uppercase tracking-wider text-stone-500">
                 {labels.domains}
               </p>
               <p className="truncate text-sm font-semibold text-stone-900 tabular-nums">
@@ -515,7 +515,7 @@ export default function PortfolioHealthCard({
               <Award className="h-4 w-4" />
             </span>
             <div className="min-w-0">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">
+              <p className="text-[11px] font-medium uppercase tracking-wider text-stone-500">
                 {labels.roi}
               </p>
               <p
@@ -534,7 +534,7 @@ export default function PortfolioHealthCard({
               <RefreshCw className="h-4 w-4" />
             </span>
             <div className="min-w-0">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-stone-500">
+              <p className="text-[11px] font-medium uppercase tracking-wider text-stone-500">
                 {labels.ytdRenewalSpend}
               </p>
               <p

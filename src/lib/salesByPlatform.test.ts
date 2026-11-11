@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { salesByPlatform, platformOfSale } from './salesByPlatform';
 import { totalRealizedPnL } from './realizedPnL';
 import type { DomainWithTags } from '../types/dashboard';
@@ -187,6 +187,16 @@ describe('与 Insights 其它数字对拍', () => {
 });
 
 describe('时间窗口', () => {
+  // 窗口按"今天"往回推，夹具里的成交日是写死的 2026-05-01。不钉住时钟，
+  // 日子一过（2026-11 起 6 个月窗口就不含 5 月了）测试就自己挂掉。
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 6, 15));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   const domains = [domain('old', 1000), domain('recent', 500)];
   const txs = [
     buy('old', 1000), sell('old', 10000, 9000, { platform: 'Sedo' }),      // 2026-05-01

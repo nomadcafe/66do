@@ -126,7 +126,7 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
           <div className="flex flex-col gap-1 sm:items-end">
             <label
               htmlFor={yearSelectId}
-              className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500"
+              className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500"
             >
               {t('renewal.outlookSelectedYear')}
             </label>
@@ -199,7 +199,7 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
                 <DollarSign className="h-5 w-5" />
               </span>
               <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
                   {isPastYear ? t('renewal.renewalSpend') : t('renewal.estimatedCost')} ({selectedYear})
                 </p>
                 <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-stone-900">
@@ -213,7 +213,7 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
                 <Calendar className="h-5 w-5" />
               </span>
               <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
                   {isPastYear ? t('renewal.domainsRenewed') : t('renewal.domainsToRenew')}
                 </p>
                 <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-stone-900">
@@ -231,7 +231,7 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
                     <CheckCircle2 className="h-5 w-5" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
                       {t('renewal.alreadySpent')}
                     </p>
                     <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-stone-900">
@@ -251,7 +251,7 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
                     <Hourglass className="h-5 w-5" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
                       {t('renewal.remainingCost')}
                     </p>
                     <p className="mt-1 text-xl font-bold tracking-tight tabular-nums text-stone-900">
@@ -271,7 +271,7 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
           <h4 className="text-base font-semibold text-stone-900">{t('renewal.annualOutlook')}</h4>
           <p className="mt-1 text-sm text-stone-500">{t('renewal.annualOutlookDesc')}</p>
 
-          <div className="hidden md:grid md:grid-cols-12 gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500 px-3 pt-5 pb-2 border-b border-stone-100">
+          <div className="hidden md:grid md:grid-cols-12 gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500 px-3 pt-5 pb-2 border-b border-stone-100">
             <div className="col-span-2">{t('renewal.outlookYear')}</div>
             <div className="col-span-5">{t('renewal.outlookEstimated')}</div>
             <div className="col-span-2 text-right">{t('renewal.outlookActual')}</div>
@@ -326,7 +326,7 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
                     <div className="md:col-span-2 flex items-center gap-2 flex-wrap">
                       <span className="text-base font-semibold text-stone-900 tabular-nums">{row.year}</span>
                       {isSelected && (
-                        <span className={`text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded ${
+                        <span className={`text-[11px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded ${
                           tc === 'current'
                             ? 'text-amber-700 bg-amber-100/80'
                             : tc === 'future'
@@ -428,7 +428,7 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
                 />
               )}
               <span
-                className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${
+                className={`text-[11px] font-semibold uppercase tracking-[0.14em] ${
                   hasTrendSample && avgCostChange > 0 ? 'text-amber-700/80' : 'text-stone-500'
                 }`}
               >
@@ -468,7 +468,7 @@ export default function AdvancedRenewalAnalysis({ domains, transactions }: Advan
           <div className="rounded-xl border border-stone-100 bg-stone-50/60 p-4">
             <div className="flex items-center gap-2 mb-1">
               <Trophy className="h-4 w-4 text-stone-600" />
-              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
                 {t('renewal.mostExpensiveDomains')}
               </span>
             </div>
